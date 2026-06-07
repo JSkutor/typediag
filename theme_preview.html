@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TypeDiag Wood & Space Grey Themes</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code&family=Outfit:wght@300;400;500;600&family=Lora:ital,wght@0,400;0,500;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      transition: background-color 0.4s ease, border-color 0.4s ease, color 0.4s ease, box-shadow 0.4s ease;
+    }
+
+    /* THEME 1: Space Grey & Cobalt (Kept) */
+    .theme-space {
+      --bg-color: #2a2b2e;
+      --panel-bg: #323336;
+      --text-primary: #e4e6eb;
+      --text-muted: #8d929b;
+      --border-color: rgba(228, 230, 235, 0.08);
+      
+      --key-alpha-bg: #36383c;
+      --key-alpha-text: #e4e6eb;
+      --key-mod-bg: #2d2e31;
+      --key-mod-text: #8d929b;
+      --key-accent-bg: #638ccb;
+      --key-accent-text: #f0f2f5;
+      
+      --shadow-color: rgba(12, 14, 16, 0.35);
+      --font-mono: 'Fira Code', monospace;
+      --font-sans: 'Outfit', sans-serif;
+      
+      --key-shadow: 0 4px 6px var(--shadow-color), inset 0 1px 0 rgba(255,255,255,0.05);
+      --key-active-shadow: 0 1px 2px var(--shadow-color);
+      --key-translate: translateY(0);
+      --key-active-translate: translateY(3px);
+    }
+
+    /* THEME 2: Walnut & Ivory (Deep cool dark wood) */
+    .theme-walnut {
+      --bg-color: #231f1c;
+      --panel-bg: #2d2724;
+      --text-primary: #ede8e1;
+      --text-muted: #9c8e83;
+      --border-color: rgba(237, 232, 225, 0.06);
+      
+      --key-alpha-bg: #3b322e;
+      --key-alpha-text: #ede8e1;
+      --key-mod-bg: #322a27;
+      --key-mod-text: #9c8e83;
+      --key-accent-bg: #c4a482;
+      --key-accent-text: #231f1c;
+      
+      --shadow-color: rgba(14, 12, 10, 0.4);
+      --font-mono: 'Fira Code', monospace;
+      --font-sans: 'Plus Jakarta Sans', sans-serif;
+      
+      --key-shadow: 0 4px 6px var(--shadow-color), inset 0 1px 0 rgba(255,255,255,0.04);
+      --key-active-shadow: 0 1px 2px var(--shadow-color);
+      --key-translate: translateY(0);
+      --key-active-translate: translateY(3px);
+    }
+
+    /* THEME 3: Mahogany & Gold (Reddish-brown wood with warm accents) */
+    .theme-mahogany {
+      --bg-color: #2b1b16;
+      --panel-bg: #38231c;
+      --text-primary: #e8dcc8;
+      --text-muted: #a68b80;
+      --border-color: rgba(232, 220, 200, 0.07);
+      
+      --key-alpha-bg: #4a2e25;
+      --key-alpha-text: #e8dcc8;
+      --key-mod-bg: #3e261e;
+      --key-mod-text: #a68b80;
+      --key-accent-bg: #d49b4c;
+      --key-accent-text: #2b1b16;
+      
+      --shadow-color: rgba(18, 11, 9, 0.45);
+      --font-mono: 'Fira Code', monospace;
+      --font-sans: 'Outfit', sans-serif;
+      
+      --key-shadow: 0 4px 6px var(--shadow-color), inset 0 1px 0 rgba(255,255,255,0.05);
+      --key-active-shadow: 0 1px 2px var(--shadow-color);
+      --key-translate: translateY(0);
+      --key-active-translate: translateY(3px);
+    }
+
+    /* THEME 4: Oak & Sand (Muted mid-brown organic wood) */
+    .theme-oak {
+      --bg-color: #26221d;
+      --panel-bg: #332d26;
+      --text-primary: #e6dfd3;
+      --text-muted: #9e9383;
+      --border-color: rgba(230, 223, 211, 0.08);
+      
+      --key-alpha-bg: #423b32;
+      --key-alpha-text: #e6dfd3;
+      --key-mod-bg: #38322a;
+      --key-mod-text: #9e9383;
+      --key-accent-bg: #c2ab87;
+      --key-accent-text: #1f1b16;
+      
+      --shadow-color: rgba(15, 13, 11, 0.35);
+      --font-mono: 'Fira Code', monospace;
+      --font-sans: 'Plus Jakarta Sans', sans-serif;
+      
+      --key-shadow: 0 3px 5px var(--shadow-color), inset 0 1px 0 rgba(255,255,255,0.04);
+      --key-active-shadow: 0 1px 2px var(--shadow-color);
+      --key-translate: translateY(0);
+      --key-active-translate: translateY(2px);
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      padding: 60px 20px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 960px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 35px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 25px;
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 500;
+      letter-spacing: -0.3px;
+    }
+
+    h1 span {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      border: 1px solid var(--border-color);
+      padding: 3px 8px;
+      border-radius: 4px;
+      margin-left: 10px;
+      vertical-align: middle;
+    }
+
+    .theme-selector {
+      display: flex;
+      gap: 4px;
+      background-color: rgba(0, 0, 0, 0.15);
+      padding: 4px;
+      border-radius: 8px;
+    }
+
+    .theme-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      padding: 6px 14px;
+      font-family: var(--font-sans);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      border-radius: 6px;
+    }
+
+    .theme-btn:hover {
+      color: var(--text-primary);
+    }
+
+    .theme-btn.active {
+      background-color: var(--panel-bg);
+      color: var(--text-primary);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .playground {
+      background-color: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 30px;
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.2);
+    }
+
+    .text-display {
+      font-family: 'Lora', serif;
+      font-size: 21px;
+      font-weight: 400;
+      line-height: 1.8;
+      padding: 26px;
+      background-color: rgba(0, 0, 0, 0.12);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      letter-spacing: -0.1px;
+    }
+
+    .text-display .typed {
+      color: var(--text-primary);
+      opacity: 0.95;
+    }
+
+    .text-display .cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1.25em;
+      background-color: var(--key-accent-bg);
+      vertical-align: middle;
+      margin-left: 2px;
+      animation: blink 1s step-end infinite;
+    }
+
+    .text-display .untyped {
+      color: var(--text-muted);
+      opacity: 0.45;
+    }
+
+    .text-display .hesitated {
+      color: var(--text-primary);
+      border-bottom: 2px dashed var(--key-accent-bg);
+      padding-bottom: 2px;
+    }
+
+    .keyboard-container {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 20px;
+      background-color: rgba(0, 0, 0, 0.08);
+      border-radius: 14px;
+      border: 1px solid var(--border-color);
+    }
+
+    .delaunay-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 10;
+      opacity: 0.08;
+    }
+
+    .keyboard-row {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .key {
+      background-color: var(--key-alpha-bg);
+      color: var(--key-alpha-text);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      height: 50px;
+      min-width: 46px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 8px 10px;
+      cursor: pointer;
+      user-select: none;
+      box-shadow: var(--key-shadow);
+      transform: var(--key-translate);
+      transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.3s, color 0.3s;
+      position: relative;
+    }
+
+    .key.mod {
+      background-color: var(--key-mod-bg);
+      color: var(--key-mod-text);
+      min-width: 68px;
+      font-size: 11px;
+      font-family: var(--font-sans);
+      font-weight: 400;
+      text-transform: lowercase;
+    }
+
+    .key.accent {
+      background-color: var(--key-accent-bg);
+      color: var(--key-accent-text);
+      border-color: var(--key-accent-bg);
+    }
+
+    .key[data-key="tab"] { min-width: 72px; }
+    .key[data-key="caps"] { min-width: 82px; }
+    .key[data-key="enter"] { min-width: 92px; }
+    .key[data-key="shift-l"] { min-width: 110px; }
+    .key[data-key="shift-r"] { min-width: 110px; }
+    .key[data-key="backspace"] { min-width: 88px; }
+    .key[data-key="space"] { min-width: 290px; }
+
+    .key.active, .key:active {
+      transform: var(--key-active-translate) !important;
+      box-shadow: var(--key-active-shadow) !important;
+    }
+
+    .key-sub {
+      align-self: flex-end;
+      font-size: 9px;
+      opacity: 0.4;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      border-top: 1px solid var(--border-color);
+      padding-top: 30px;
+    }
+
+    .stat-card {
+      text-align: left;
+      padding-left: 10px;
+      border-left: 2px solid var(--border-color);
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .stat-value {
+      font-family: var(--font-mono);
+      font-size: 20px;
+      font-weight: 400;
+    }
+
+    .highlight-accent {
+      color: var(--key-accent-bg);
+    }
+
+    .guidance-box {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      border-top: 1px solid var(--border-color);
+      padding-top: 25px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .guidance-box strong {
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+  </style>
+</head>
+<body class="theme-space">
+
+  <div class="container">
+    <header>
+      <h1>TypeDiag <span>Space Grey & Wood Series</span></h1>
+      <div class="theme-selector">
+        <button class="theme-btn active" onclick="setTheme('space', this)">Space Grey & Cobalt</button>
+        <button class="theme-btn" onclick="setTheme('walnut', this)">Walnut & Ivory</button>
+        <button class="theme-btn" onclick="setTheme('mahogany', this)">Mahogany & Gold</button>
+        <button class="theme-btn" onclick="setTheme('oak', this)">Oak & Sand</button>
+      </div>
+    </header>
+
+    <div class="playground">
+      <div class="text-display" id="typingBox">
+        <span class="typed">공간 타건 동역학 데이터를 활용하여</span>
+        <span class="hesitated">당신의 손가락이 머무르는 곳을</span>
+        <span class="untyped">가장 우아하게 분석해냅니다.</span><span class="cursor"></span>
+      </div>
+
+      <div class="keyboard-container">
+        <svg class="delaunay-overlay" id="delaunayOverlay"></svg>
+
+        <div class="keyboard-row">
+          <div class="key" data-keycode="KeyQ">Q<span class="key-sub">ㅂ</span></div>
+          <div class="key" data-keycode="KeyW">W<span class="key-sub">ㅈ</span></div>
+          <div class="key" data-keycode="KeyE">E<span class="key-sub">ㄷ</span></div>
+          <div class="key" data-keycode="KeyR">R<span class="key-sub">ㄱ</span></div>
+          <div class="key" data-keycode="KeyT">T<span class="key-sub">ㅅ</span></div>
+          <div class="key" data-keycode="KeyY">Y<span class="key-sub">ㅛ</span></div>
+          <div class="key" data-keycode="KeyU">U<span class="key-sub">ㅕ</span></div>
+          <div class="key" data-keycode="KeyI">I<span class="key-sub">ㅑ</span></div>
+          <div class="key" data-keycode="KeyO">O<span class="key-sub">ㅐ</span></div>
+          <div class="key" data-keycode="KeyP">P<span class="key-sub">ㅔ</span></div>
+          <div class="key mod" data-key="backspace" data-keycode="Backspace">backspace</div>
+        </div>
+
+        <div class="keyboard-row">
+          <div class="key mod" data-key="caps">caps lock</div>
+          <div class="key" data-keycode="KeyA">A<span class="key-sub">ㅁ</span></div>
+          <div class="key" data-keycode="KeyS">S<span class="key-sub">ㄴ</span></div>
+          <div class="key" data-keycode="KeyD">D<span class="key-sub">ㅇ</span></div>
+          <div class="key" data-keycode="KeyF">F<span class="key-sub">ㄹ</span></div>
+          <div class="key" data-keycode="KeyG">G<span class="key-sub">ㅎ</span></div>
+          <div class="key" data-keycode="KeyH">H<span class="key-sub">ㅗ</span></div>
+          <div class="key" data-keycode="KeyJ">J<span class="key-sub">ㅓ</span></div>
+          <div class="key" data-keycode="KeyK">K<span class="key-sub">ㅏ</span></div>
+          <div class="key" data-keycode="KeyL">L<span class="key-sub">ㅣ</span></div>
+          <div class="key mod" data-key="enter" data-keycode="Enter">enter</div>
+        </div>
+
+        <div class="keyboard-row">
+          <div class="key mod" data-key="shift-l" data-keycode="ShiftLeft">shift</div>
+          <div class="key" data-keycode="KeyZ">Z<span class="key-sub">ㅋ</span></div>
+          <div class="key" data-keycode="KeyX">X<span class="key-sub">ㅌ</span></div>
+          <div class="key" data-keycode="KeyC">C<span class="key-sub">ㅊ</span></div>
+          <div class="key" data-keycode="KeyV">V<span class="key-sub">ㅍ</span></div>
+          <div class="key" data-keycode="KeyB">B<span class="key-sub">ㅠ</span></div>
+          <div class="key" data-keycode="KeyN">N<span class="key-sub">ㅜ</span></div>
+          <div class="key" data-keycode="KeyM">M<span class="key-sub">ㅡ</span></div>
+          <div class="key" data-keycode="Comma">,</div>
+          <div class="key" data-keycode="Period">.</div>
+          <div class="key mod" data-key="shift-r" data-keycode="ShiftRight">shift</div>
+        </div>
+
+        <div class="keyboard-row">
+          <div class="key mod">ctrl</div>
+          <div class="key mod">option</div>
+          <div class="key mod">command</div>
+          <div class="key" data-key="space" data-keycode="Space"></div>
+          <div class="key mod">command</div>
+          <div class="key mod">option</div>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">망설임 지수 (Hesitation Index)</div>
+          <div class="stat-value highlight-accent" id="hesitationValue">0.26</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">평활도 보간 (Laplacian Smoothing)</div>
+          <div class="stat-value" id="smoothingValue">2회 반복</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">실시간 타건 (Dwell Time)</div>
+          <div class="stat-value" id="dwellValue">81ms</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="guidance-box">
+      <strong>💡 피드백 믹스 가이드:</strong>
+      <p>모던하고 차가운 금속 느낌의 <strong>Space Grey</strong> 톤과 따뜻하고 부드러운 유기적 느낌의 <strong>Wood</strong> 톤이 함께 섞여있습니다. 이 중 어떤 감성이 최종 제품에 더 알맞은지 비교 테스트해 보실 수 있습니다.</p>
+    </div>
+  </div>
+
+  <script>
+    function setTheme(themeName, element) {
+      document.body.className = '';
+      document.body.classList.add('theme-' + themeName);
+      
+      document.querySelectorAll('.theme-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      element.classList.add('active');
+
+      drawDelaunay(themeName);
+    }
+
+    document.addEventListener('keydown', (event) => {
+      const code = event.code;
+      const keyElement = document.querySelector(`.key[data-keycode="${code}"]`);
+      if (keyElement) {
+        keyElement.classList.add('active');
+        
+        const randDwell = Math.floor(Math.random() * 30) + 70;
+        document.getElementById('dwellValue').innerText = randDwell + 'ms';
+      }
+    });
+
+    document.addEventListener('keyup', (event) => {
+      const code = event.code;
+      const keyElement = document.querySelector(`.key[data-keycode="${code}"]`);
+      if (keyElement) {
+        keyElement.classList.remove('active');
+      }
+    });
+
+    function drawDelaunay(theme) {
+      const svg = document.getElementById('delaunayOverlay');
+      svg.innerHTML = ''; 
+
+      const keys = Array.from(document.querySelectorAll('.key:not(.mod)'));
+      const lineCount = 14; 
+      
+      let strokeColor = 'rgba(255, 255, 255, 0.08)';
+      if (theme === 'space') strokeColor = 'rgba(99, 140, 203, 0.12)';
+      if (theme === 'walnut') strokeColor = 'rgba(196, 164, 130, 0.1)';
+      if (theme === 'mahogany') strokeColor = 'rgba(212, 155, 76, 0.1)';
+      if (theme === 'oak') strokeColor = 'rgba(194, 171, 135, 0.1)';
+
+      const containerRect = document.querySelector('.keyboard-container').getBoundingClientRect();
+
+      for (let i = 0; i < lineCount; i++) {
+        const k1 = keys[Math.floor(Math.random() * keys.length)];
+        const k2 = keys[Math.floor(Math.random() * keys.length)];
+        
+        if (k1 && k2 && k1 !== k2) {
+          const r1 = k1.getBoundingClientRect();
+          const r2 = k2.getBoundingClientRect();
+
+          const x1 = (r1.left + r1.width/2) - containerRect.left;
+          const y1 = (r1.top + r1.height/2) - containerRect.top;
+          const x2 = (r2.left + r2.width/2) - containerRect.left;
+          const y2 = (r2.top + r2.height/2) - containerRect.top;
+
+          const dist = Math.hypot(x2 - x1, y2 - y1);
+          if (dist < 150) {
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('x1', x1);
+            line.setAttribute('y1', y1);
+            line.setAttribute('x2', x2);
+            line.setAttribute('y2', y2);
+            line.setAttribute('stroke', strokeColor);
+            line.setAttribute('stroke-width', '1');
+            svg.appendChild(line);
+          }
+        }
+      }
+    }
+
+    window.addEventListener('load', () => {
+      setTimeout(() => drawDelaunay('space'), 200);
+    });
+
+    window.addEventListener('resize', () => {
+      const activeTheme = document.body.className.replace('theme-', '');
+      drawDelaunay(activeTheme);
+    });
+
+    document.querySelectorAll('.key').forEach(key => {
+      key.addEventListener('mousedown', () => {
+        key.classList.add('active');
+      });
+      key.addEventListener('mouseup', () => {
+        key.classList.remove('active');
+      });
+    });
+  </script>
+</body>
+</html>
