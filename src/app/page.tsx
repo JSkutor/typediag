@@ -7,7 +7,8 @@ import { VirtualKeyboard, DiagnosticsMode } from "@/components/workspace/Virtual
 import { FlightAnimator } from "@/components/workspace/FlightAnimator";
 import { FLIGHT_D, PHASE, LANDING_START, TILT_AT, Flight, buildFrames } from "@/components/workspace/flightChoreography";
 import { useTypingStore } from "@/store/useTypingStore";
-import { KeyResult, runPipeline, buildLayout } from "@/lib/skdm";
+import { KeyResult, runPipeline, buildLayout, triangulate } from "@/lib/skdm";
+import { LatencySurface3D } from "@/components/workspace/LatencySurface3D";
 
 export type UiState = "practice" | "measuring" | "flying" | "diagnostics";
 
@@ -21,6 +22,7 @@ export default function Workspace() {
   const [keyStats, setKeyStats] = useState<Record<string, KeyResult>>({});
   const [targetKeys, setTargetKeys] = useState<Set<string>>(new Set());
   const [keyDelays, setKeyDelays] = useState<Record<string, number>>({});
+  const [triangles, setTriangles] = useState<Uint32Array | null>(null);
 
   // Cache of flat-keyboard keycap rects, measured once on mount (and on resize)
   // so we never read layout while the DOM is mid-transition (avoids thrash).
@@ -156,11 +158,12 @@ export default function Workspace() {
         
         if (uiState === "practice") {
           // Pre-calculate SKDM pipeline NOW so it's ready and doesn't lag the tilt later
-          if (events.length > 0) {
-            const layout = buildLayout();
-            const results = runPipeline(events, layout);
-            setKeyStats(results);
-          }
+          const currentEvents = useTypingStore.getState().events;
+          const layout = buildLayout();
+          const results = runPipeline(currentEvents, layout);
+          const { triangles } = triangulate(results);
+          setKeyStats(results);
+          setTriangles(triangles);
 
           // Always recalculate keycap and text positions right before transitioning
           // to guarantee absolute alignment with current window size, typed content, and loaded fonts.
@@ -275,16 +278,20 @@ export default function Workspace() {
       {/* Note: Kept strictly invisible during practice to hide all borders/shadows, but present in DOM for measuring! */}
       <div className={`screen-diagnostics ${uiState === "practice" || uiState === "measuring" ? "invisible" : ""}`}>
         <div className={`kbd-wrap ${uiState}`} style={{ transform: "scale(0.95)" }}>
-          <VirtualKeyboard 
-            mode={uiState === "diagnostics" ? "diagnostics" : "practice"} 
-            uiState={uiState}
-            targetKeys={targetKeys}
-            diagnosticMode={diagnosticMode} 
-            keyStats={keyStats} 
-            focusedKey={focusedKey}
-            onKeyClick={handleKeyClick}
-            keyDelays={keyDelays}
-          />
+          {diagnosticMode === "surface" && uiState === "diagnostics" && triangles ? (
+            <LatencySurface3D keyStats={keyStats} triangles={triangles} width={900} height={500} />
+          ) : (
+            <VirtualKeyboard 
+              mode={uiState === "diagnostics" ? "diagnostics" : "practice"} 
+              uiState={uiState}
+              targetKeys={targetKeys}
+              diagnosticMode={diagnosticMode} 
+              keyStats={keyStats} 
+              focusedKey={focusedKey}
+              onKeyClick={handleKeyClick}
+              keyDelays={keyDelays}
+            />
+          )}
         </div>
         <DashboardPanel 
           mode={uiState === "diagnostics" ? "diagnostics" : "practice"} 

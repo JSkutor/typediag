@@ -149,20 +149,9 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
     );
   };
 
-  // Optional: render Delaunay mesh base if we have triangles and are in surface mode
-  const renderMesh = () => {
-    if (!is3D || diagnosticMode !== "surface" || !triangles || Object.keys(keyStats).length === 0) return null;
-    return (
-      <svg className="delaunay-mesh">
-        {/* Triangles would be rendered here via SVG lines connecting key DOM centers */}
-      </svg>
-    );
-  };
-
   return (
     <div className="scene-3d" ref={sceneRef}>
       <div className={`keyboard-container keyboard-layout ${mode === "practice" ? "mode-practice" : "mode-diagnostics"}`}>
-        {renderMesh()}
         {KEYBOARD_ROWS.map((row, rIdx) => {
           // Centering the spacebar row
           const isSpaceRow = row.length === 1 && row[0] === "space";
