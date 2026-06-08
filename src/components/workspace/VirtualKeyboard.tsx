@@ -45,27 +45,42 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
   const isFlying = uiState === "flying";
   const sceneRef = useRef<HTMLDivElement>(null);
 
-  // Each keycap pops in (WAAPI, compositor-friendly) exactly as its flying glyph
-  // settles into the slot. Concrete keyframes + will-change only while animating.
+  // Effect 1: pre-promote keycap layers as soon as keyDelays are available
+  // (= pre-calc finished, ~800ms after mount). Eliminates 31 layer-creation
+  // spikes that previously fired mid-flight via setTimeout callbacks.
+  useEffect(() => {
+    if (Object.keys(keyDelays).length === 0) return;
+    const root = sceneRef.current;
+    if (!root) return;
+    const keycaps = Array.from(root.querySelectorAll<HTMLElement>(".keycap-base"));
+    keycaps.forEach((el) => { el.style.willChange = "transform, opacity"; });
+    return () => keycaps.forEach((el) => { el.style.willChange = ""; });
+  }, [keyDelays]);
+
+  // Effect 2: run pop-in animations when flying starts. Layers are already
+  // promoted so each setTimeout callback only starts an animation — no paint.
   useEffect(() => {
     if (!isFlying) return;
     const root = sceneRef.current;
     if (!root) return;
 
+    const keycaps = Array.from(root.querySelectorAll<HTMLElement>(".keycap-base"));
+    keycaps.forEach((el) => { el.style.opacity = "0"; });
+
     const animations: Animation[] = [];
-    root.querySelectorAll<HTMLElement>(".keycap-base").forEach((el) => {
-      const key = el.id.replace("keycap-", "");
-      const landMs = keyDelays[key] ?? LANDING_START;
-      el.style.opacity = "0";
-      el.style.willChange = "transform, opacity";
+
+    keycaps.forEach((el) => {
+      // Pop in all at once precisely when landing starts
+      const delayTime = LANDING_START;
+
       const anim = el.animate(
         [
           { transform: "translate3d(0, 0, 0) scale(0.55)", opacity: 0 },
           { transform: "translate3d(0, 0, 0) scale(1)", opacity: 1, offset: 1 },
         ],
         {
-          duration: 460,
-          delay: Math.max(0, landMs - 130),
+          duration: 150,
+          delay: delayTime,
           easing: "cubic-bezier(0.34, 1.56, 0.64, 1)",
           fill: "both",
         },
