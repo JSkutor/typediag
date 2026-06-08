@@ -113,11 +113,8 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
     const isModifier = ["backspace", "enter", "shift", "space"].includes(lowerKey);
     const keyClass = isModifier ? "keycap-mod" : "keycap-alpha";
     
-    let label = keyLabel;
-    if (lowerKey === "backspace") label = "Backspace ⌫";
-    if (lowerKey === "enter") label = "Enter ↵";
-    if (lowerKey === "shift") label = "Shift";
-    if (lowerKey === "space") label = " ";
+    let label = keyLabel.toUpperCase();
+    if (lowerKey === "space") label = "";
 
     let keyWidth = "3rem";
     if (lowerKey === "space") keyWidth = "15rem";
@@ -128,7 +125,7 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
     const inlineStyle: React.CSSProperties = {
       width: keyWidth,
       height: "3rem",
-      boxShadow: is3D ? "var(--shadow-key)" : "var(--shadow-key-active)",
+      boxShadow: "none",
       transform: `translateZ(${zOffset}px)`,
     };
 

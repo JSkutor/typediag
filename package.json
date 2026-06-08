@@ -12,9 +12,12 @@
   },
   "dependencies": {
     "d3-delaunay": "^6.0.4",
+    "framer-motion": "^12.40.0",
+    "gsap": "^3.15.0",
     "next": "16.2.7",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "three": "^0.184.0",
     "zustand": "^5.0.14"
   },
   "devDependencies": {
@@ -26,6 +29,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/three": "^0.184.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.7",
     "happy-dom": "^20.10.2",

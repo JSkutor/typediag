@@ -20,8 +20,25 @@ export default function Workspace() {
   const [focusedKey, setFocusedKey] = useState<string | null>(null);
   const [keyStats, setKeyStats] = useState<Record<string, KeyResult>>({});
   const [triangles, setTriangles] = useState<Uint32Array | null>(null);
+  const [dynamicScale, setDynamicScale] = useState(0.95);
 
-  const { flights, targetKeys, keyDelays, precalculateFlights } = useFlightChoreography();
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleResize = () => {
+      const baseW = 1060;
+      const baseH = 720;
+      const scaleX = window.innerWidth / baseW;
+      const scaleY = window.innerHeight / baseH;
+      // Fit entirely within viewport, cap max at 1.45 for big screens, min at 0.25 for small screens
+      const scale = Math.max(0.25, Math.min(scaleX, scaleY, 1.45));
+      setDynamicScale(scale);
+    };
+    window.addEventListener("resize", handleResize);
+    handleResize();
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const { flights, targetKeys, keyDelays, keycapRects, precalculateFlights } = useFlightChoreography(uiState, dynamicScale);
 
   const setTarget = useTypingStore((state) => state.setTarget);
 
@@ -42,11 +59,6 @@ export default function Workspace() {
     precalculateFlights();
 
     setUiState("flying");
-
-    setTimeout(() => {
-      setUiState("diagnostics");
-      setDiagnosticMode("surface");
-    }, TILT_AT);
   }, [precalculateFlights]);
 
   useWorkspaceKeybindings({
@@ -76,7 +88,14 @@ export default function Workspace() {
   return (
     <div className="workspace-container" style={{ position: "relative", width: "100vw", height: "100vh", overflow: "hidden" }}>
       
-      <FlightAnimator flights={flights} isFlying={uiState === "flying"} />
+      <FlightAnimator 
+        flights={flights} 
+        isFlying={uiState === "flying" || uiState === "diagnostics"} 
+        onComplete={() => {
+          setUiState("diagnostics");
+          setDiagnosticMode("surface");
+        }}
+      />
 
       {/* Mode Toggle Button for mouse users */}
       <button 
@@ -101,21 +120,59 @@ export default function Workspace() {
       {/* Screen: Diagnostics Layer (Fades In) */}
       {/* Note: Kept strictly invisible during practice to hide all borders/shadows, but present in DOM for measuring! */}
       <div className={`screen-diagnostics ${uiState === "practice" || uiState === "measuring" ? "invisible" : ""}`}>
-        <div className={`kbd-wrap ${uiState}`} style={{ transform: "scale(0.95)" }}>
-          {diagnosticMode === "surface" && uiState === "diagnostics" && triangles ? (
-            <LatencySurface3D keyStats={keyStats} triangles={triangles} width={900} height={500} />
-          ) : (
-            <VirtualKeyboard 
-              mode={uiState === "diagnostics" ? "diagnostics" : "practice"} 
-              uiState={uiState}
-              targetKeys={targetKeys}
-              diagnosticMode={diagnosticMode} 
-              keyStats={keyStats} 
-              focusedKey={focusedKey}
-              onKeyClick={handleKeyClick}
-              keyDelays={keyDelays}
-            />
-          )}
+        <div className={`kbd-wrap ${uiState}`} style={{ transform: `scale(${dynamicScale})` }}>
+          <div style={{ position: "relative", width: 1000, height: 650, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            {/* 2D HTML/CSS Virtual Keyboard */}
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "opacity 0.22s ease-in-out",
+                opacity: uiState === "diagnostics" && diagnosticMode === "surface" ? 0 : 1,
+                pointerEvents: uiState === "diagnostics" && diagnosticMode === "surface" ? "none" : "auto",
+                zIndex: 2,
+              }}
+            >
+              <VirtualKeyboard 
+                mode={uiState === "diagnostics" ? "diagnostics" : "practice"} 
+                uiState={uiState}
+                targetKeys={targetKeys}
+                diagnosticMode={diagnosticMode} 
+                keyStats={keyStats} 
+                focusedKey={focusedKey}
+                onKeyClick={handleKeyClick}
+                keyDelays={keyDelays}
+              />
+            </div>
+
+            {/* 3D WebGL Latency Surface */}
+            {triangles && (
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  transition: "opacity 0.22s ease-in-out",
+                  opacity: uiState === "diagnostics" && diagnosticMode === "surface" ? 1 : 0,
+                  pointerEvents: uiState === "diagnostics" && diagnosticMode === "surface" ? "auto" : "none",
+                  zIndex: 1,
+                }}
+              >
+                <LatencySurface3D 
+                  keyStats={keyStats} 
+                  triangles={triangles} 
+                  width={1000} 
+                  height={650} 
+                  flights={flights} 
+                  keycapRects={keycapRects} 
+                  isActivated={uiState === "diagnostics" && diagnosticMode === "surface"}
+                  dynamicScale={dynamicScale}
+                />
+              </div>
+            )}
+          </div>
         </div>
         <DashboardPanel 
           mode={uiState === "diagnostics" ? "diagnostics" : "practice"} 

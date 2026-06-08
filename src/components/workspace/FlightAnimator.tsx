@@ -1,92 +1,110 @@
 "use client";
 
 import React, { useEffect, useRef, useMemo } from "react";
-import { FLIGHT_DURATION, Flight } from "./flightChoreography";
+import { Flight } from "./flightChoreography";
+import gsap from "gsap";
 
 interface FlightAnimatorProps {
   flights: Flight[];
   isFlying: boolean;
+  onComplete?: () => void;
 }
 
-export const FlightAnimator: React.FC<FlightAnimatorProps> = ({ flights, isFlying }) => {
-  const refs = useRef<Array<HTMLSpanElement | null>>([]);
+export const FlightAnimator: React.FC<FlightAnimatorProps> = ({ flights, isFlying, onComplete }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
   
-  // Pool sized to the max number of unique keyboard keys + buffer.
-  // Smaller than 250 to avoid pre-promoting hundreds of unnecessary GPU layers.
-  const poolSize = 64;
-  const pool = useMemo(() => Array.from({ length: poolSize }), []);
-
-  // Effect 1: pre-promote layers as soon as flights are calculated (~800ms after
-  // mount, well before the user presses Tab). By the time the animation starts,
-  // all GPU layers already exist — zero layer-creation cost at t=0.
-  useEffect(() => {
-    if (flights.length === 0) return;
-    const els: HTMLSpanElement[] = [];
-    for (let i = 0; i < flights.length; i++) {
-      const el = refs.current[i];
-      if (el) {
-        el.style.willChange = "transform, opacity";
-        els.push(el);
-      }
-    }
-    return () => els.forEach((el) => { el.style.willChange = ""; });
+  // We don't use refs array here, we can just select by class using GSAP within the container.
+  // Using memo to create the stable pool
+  const pool = useMemo(() => {
+    return flights.length > 0 ? flights : [];
   }, [flights]);
 
-  // Effect 2: start animations when Tab is pressed. Layers are already promoted
-  // so this frame only kicks off compositor work — no paint or layer creation.
   useEffect(() => {
-    if (!isFlying || flights.length === 0) return;
+    if (!isFlying || flights.length === 0 || !containerRef.current) return;
 
-    const animations: Animation[] = [];
-    const currentRefs = refs.current;
+    const container = containerRef.current;
+    const textKeys = container.querySelectorAll('.flying-char.from-text');
+    const spawnedKeys = container.querySelectorAll('.flying-char.from-spawn');
+    const allKeys = container.querySelectorAll('.flying-char');
 
-    const rafId = requestAnimationFrame(() => {
-      for (let i = 0; i < flights.length; i++) {
-        const f = flights[i];
-        const el = currentRefs[i];
-        if (!el || !f.keyframes) continue;
-
-        el.style.opacity = "1";
-
-        const anim = el.animate(f.keyframes, {
-          duration: FLIGHT_DURATION,
-          easing: "linear",
-          fill: "both",
-        });
-        animations.push(anim);
+    // Initialize starting positions and make everything visible.
+    // This explicitly overrides any leftover GSAP cache if DOM nodes were re-used.
+    gsap.set(allKeys, { 
+      opacity: 1,
+      scale: 1,
+      xPercent: -50,
+      yPercent: -50,
+      x: (i, el) => {
+        const id = Number(el.getAttribute('data-id'));
+        return flights.find(f => f.id === id)?.sx || 0;
+      },
+      y: (i, el) => {
+        const id = Number(el.getAttribute('data-id'));
+        return flights.find(f => f.id === id)?.sy || 0;
       }
     });
 
-    return () => {
-      cancelAnimationFrame(rafId);
-      animations.forEach((a) => a.cancel());
-      for (let i = 0; i < flights.length; i++) {
-        const el = currentRefs[i];
-        if (el) el.style.opacity = "0";
+    const tl = gsap.timeline();
+
+    // 1. Detachment: text keys float up slightly
+    tl.to(allKeys, {
+      y: "-=30",
+      scale: 1.1,
+      duration: 0.4,
+      ease: "power2.out",
+      stagger: 0.01,
+    });
+
+    // 2. Target Landing: straight flight
+    tl.to(allKeys, {
+      x: (i, el) => {
+        const id = Number(el.getAttribute('data-id'));
+        return flights.find(f => f.id === id)?.tx || 0;
+      },
+      y: (i, el) => {
+        const id = Number(el.getAttribute('data-id'));
+        return flights.find(f => f.id === id)?.ty || 0;
+      },
+      scale: 0.4, // Match keycap text size
+      duration: 0.7, // Slightly longer to compensate for removed swarm phase
+      ease: "power3.inOut",
+      stagger: { amount: 0.2, from: "start" }
+    }, "landing");
+
+    // 4. Assembly Completion: Hand off to solid keycap (slow fade-out)
+    tl.to(allKeys, {
+      opacity: 0,
+      duration: 0.6,
+      ease: "power2.out",
+    }, "handoff");
+
+    // Call onComplete at the start of the handoff to begin the 3D cross-fade concurrently
+    tl.call(() => {
+      if (onComplete) {
+        onComplete();
       }
+    }, [], "handoff");
+
+    return () => {
+      tl.kill();
+      gsap.set(allKeys, { opacity: 0 });
     };
   }, [isFlying, flights]);
 
-  // We always render the pool to avoid DOM Mount/Unmount overhead.
-  // By referencing flights[i].char here, React updates the text node and triggers layout
-  // in the background *before* the user presses Tab, skipping text shaping lag at t=0.
   return (
-    <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 9999 }}>
-      {pool.map((_, i) => {
-        const f = flights[i];
-        return (
-          <span
-            key={i}
-            ref={(el) => {
-              refs.current[i] = el;
-            }}
-            className="flying-char"
-            style={{ opacity: 0 }}
-          >
-            {f ? f.char : ""}
-          </span>
-        );
-      })}
+    <div ref={containerRef} style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 9999 }}>
+      {pool.map((f) => (
+        <span
+          key={f.id}
+          data-id={f.id}
+          className={`flying-char ${f.isFromText ? 'from-text' : 'from-spawn'}`}
+          style={{
+            opacity: 0,
+          }}
+        >
+          {f.char}
+        </span>
+      ))}
     </div>
   );
 };

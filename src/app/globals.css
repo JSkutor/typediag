@@ -367,8 +367,8 @@ h4 {
   gap: 8px;
   padding: 16px;
   border-radius: var(--radius-lg);
-  border: 1px solid var(--border-subtle);
-  background-color: var(--bg-inset);
+  border: none;
+  background-color: transparent;
   width: fit-content;
 }
 .keyboard-row {
@@ -383,21 +383,21 @@ h4 {
   border-radius: var(--radius-sm);
   cursor: pointer;
   user-select: none;
-  border: 1px solid var(--border-keycap);
+  border: 1px solid rgba(141, 146, 155, 0.15); /* Exact match with 3D base layer outline */
+  background-color: transparent;
 }
 .keycap-alpha {
-  background-color: var(--keycap-face);
-  color: var(--text-primary);
+  color: rgba(141, 146, 155, 0.3); /* Exact match with 3D base layer text */
   font-family: var(--font-mono);
-  font-size: 0.875rem;
+  font-size: 10px;
 }
 .keycap-alpha:hover {
-  background-color: var(--keycap-face-hover);
+  background-color: rgba(141, 146, 155, 0.05);
 }
 .keycap-mod {
-  background-color: var(--key-mod-bg);
-  color: var(--key-mod-text);
-  font-size: 0.75rem;
+  color: rgba(141, 146, 155, 0.3);
+  font-family: var(--font-mono);
+  font-size: 10px;
 }
 
 /* Dashboard Panel */
