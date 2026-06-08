@@ -2,7 +2,7 @@
  * Shared flight choreography constants.
  */
 
-export const FLIGHT_DURATION = 1500; // GSAP timeline duration matches this conceptually
+export const FLIGHT_DURATION = 1500; // Legacy, can be kept for compatibility if needed.
 export const LANDING_START = 1500;
 export const TILT_AT = 1600;
 
@@ -11,6 +11,14 @@ export const PHASE = {
   swarmEnd: 0.65,
   landMin: 0.72,
   landMax: 0.92,
+} as const;
+
+export const TRANSITION_TIMING = {
+  detachmentDuration: 0.4,
+  landingDuration: 0.7,
+  handoffDuration: 0.6,
+  surfaceCrossFadeDelay: 0.22, // 220ms
+  surfaceElevationDuration: 1.2, // 1200ms
 } as const;
 
 export interface Flight {

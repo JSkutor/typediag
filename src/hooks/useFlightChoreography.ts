@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useTypingStore } from "@/store/useTypingStore";
-import { Flight, PHASE, FLIGHT_DURATION } from "@/components/workspace/flightChoreography";
+import { Flight } from "@/components/workspace/flightChoreography";
+import { calculateFlights } from "@/components/workspace/flightCalculations";
 import { UiState } from "@/app/page";
 
 const rand = (min: number, max: number) => min + Math.random() * (max - min);
@@ -72,81 +73,24 @@ export function useFlightChoreography(uiState: UiState, dynamicScale: number) {
 
     const targetText = useTypingStore.getState().targetText;
 
-    // Group occurrences (indices) of each valid character
-    const charIndicesMap = new Map<string, number[]>();
-    const validChars = /^[a-zA-Z,.]$/;
+    const charRects: Record<number, { left: number; top: number; width: number; height: number }> = {};
     for (let i = 0; i < targetText.length; i++) {
-      const char = targetText[i].toLowerCase();
-      if (validChars.test(char)) {
-        if (!charIndicesMap.has(char)) {
-          charIndicesMap.set(char, []);
-        }
-        charIndicesMap.get(char)!.push(i);
+      const charSpan = document.getElementById(`text-char-${i}`);
+      if (charSpan) {
+        charRects[i] = charSpan.getBoundingClientRect();
       }
     }
-
-    const uniqueCharsInText = new Map<string, number>();
-    for (const [char, indices] of charIndicesMap.entries()) {
-      // Stable pseudo-random choice using character and string length as a seed
-      const seed = char.charCodeAt(0) * 31 + targetText.length;
-      const pseudoRand = Math.abs(Math.sin(seed) * 10000) % 1;
-      const randIdx = Math.floor(pseudoRand * indices.length);
-      const chosenIdx = indices[randIdx];
-      uniqueCharsInText.set(char, chosenIdx);
-    }
-
-    const newFlights: Flight[] = [];
-    const newTargetKeys = new Set<string>();
-    const newKeyDelays: Record<string, number> = {};
-    let flightId = 0;
 
     const winW = window.innerWidth;
     const winH = window.innerHeight;
 
-    const addFlight = (key: string, isFromText: boolean, sx: number, sy: number, charLabel: string, textIdx?: number) => {
-      const keyRect = rects[key];
-      if (!keyRect) return;
-
-      const tx = keyRect.left + keyRect.width / 2;
-      const ty = keyRect.top + keyRect.height / 2;
-      const landOffset = rand(PHASE.landMin, PHASE.landMax);
-
-      newTargetKeys.add(key);
-      newKeyDelays[key] = landOffset * FLIGHT_DURATION;
-
-      // Random swarm waypoints
-      const w1x = sx + rand(-150, 150);
-      const w1y = Math.min(sy, winH / 2) + rand(-100, 50);
-
-      const w2x = tx + rand(-100, 100);
-      const w2y = ty - rand(50, 200);
-
-      const f: Flight = {
-        id: flightId++,
-        char: charLabel,
-        isFromText,
-        sx, sy, hx: sx, hy: sy,
-        w1x, w1y,
-        w2x, w2y,
-        ax: tx, ay: ty,
-        tx, ty,
-        rotA: rand(-15, 15), rotB: rand(-30, 30), rotC: rand(-10, 10),
-        landOffset,
-        textIdx,
-      };
-      newFlights.push(f);
-    };
-
-    // 1. Process keys that are in the text
-    const handledKeys = new Set<string>();
-    Array.from(uniqueCharsInText.entries()).forEach(([key, textIdx]) => {
-      const charSpan = document.getElementById(`text-char-${textIdx}`);
-      if (charSpan) {
-        const r = charSpan.getBoundingClientRect();
-        addFlight(key, true, r.left + r.width / 2, r.top + r.height / 2, targetText[textIdx], textIdx);
-        handledKeys.add(key);
-      }
-    });
+    const { flights: newFlights, targetKeys: newTargetKeys, keyDelays: newKeyDelays } = calculateFlights(
+      targetText,
+      rects,
+      charRects,
+      winW,
+      winH
+    );
 
     setFlights(newFlights);
     setTargetKeys(newTargetKeys);

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useMemo } from "react";
-import { Flight } from "./flightChoreography";
+import { Flight, TRANSITION_TIMING } from "./flightChoreography";
 import gsap from "gsap";
 
 interface FlightAnimatorProps {
@@ -50,7 +50,7 @@ export const FlightAnimator: React.FC<FlightAnimatorProps> = ({ flights, isFlyin
     tl.to(allKeys, {
       y: "-=30",
       scale: 1.1,
-      duration: 0.4,
+      duration: TRANSITION_TIMING.detachmentDuration,
       ease: "power2.out",
       stagger: 0.01,
     });
@@ -66,7 +66,7 @@ export const FlightAnimator: React.FC<FlightAnimatorProps> = ({ flights, isFlyin
         return flights.find(f => f.id === id)?.ty || 0;
       },
       scale: 0.4, // Match keycap text size
-      duration: 0.7, // Slightly longer to compensate for removed swarm phase
+      duration: TRANSITION_TIMING.landingDuration, // Slightly longer to compensate for removed swarm phase
       ease: "power3.inOut",
       stagger: { amount: 0.2, from: "start" }
     }, "landing");
@@ -74,7 +74,7 @@ export const FlightAnimator: React.FC<FlightAnimatorProps> = ({ flights, isFlyin
     // 4. Assembly Completion: Hand off to solid keycap (slow fade-out)
     tl.to(allKeys, {
       opacity: 0,
-      duration: 0.6,
+      duration: TRANSITION_TIMING.handoffDuration,
       ease: "power2.out",
     }, "handoff");
 
