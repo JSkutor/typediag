@@ -9,6 +9,7 @@ export const ROW_STAGGER_U: Record<number, number> = {
   1: 0.5, // qwerty
   2: 0.75, // asdf
   3: 1.25, // zxcv
+  4: 2.0, // space
 };
 
 /** Coordinate size of 1 key unit (column index spacing). */

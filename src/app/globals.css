@@ -160,3 +160,359 @@ h4 {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
 }
+
+/* ==========================================================================
+   TypeDiag — 3D & Animation Utilities
+   ========================================================================== */
+
+/* 3D Scene Wrapper */
+.scene-3d {
+  perspective: 1000px;
+  transform-style: preserve-3d;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Virtual Keyboard 3D Transform */
+.keyboard-container {
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 1.2s cubic-bezier(0.25, 1, 0.5, 1);
+  will-change: transform;
+}
+
+.keyboard-container.mode-practice {
+  transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg) translateZ(0);
+}
+
+.keyboard-container.mode-diagnostics {
+  transform: rotateX(45deg) rotateY(0deg) rotateZ(-10deg) translateZ(30px);
+}
+
+/* Individual Keycap.
+   Assembly (pop-in) and the invisible-until-landed start state are driven by
+   the Web Animations API in VirtualKeyboard, so the only thing CSS does here is
+   provide gentle transitions for the diagnostics-mode highlight changes (clicks).
+   will-change is applied imperatively, only while a keycap is animating. */
+.keycap-3d {
+  transition:
+    box-shadow 0.25s ease,
+    background-color 0.25s ease,
+    border-color 0.25s ease;
+  transform-style: preserve-3d;
+}
+
+/* Flying glyphs. All motion is run via WAAPI with concrete keyframes so the
+   browser composites it on the GPU thread (no CSS vars / calc -> no main-thread
+   fallback, which was the real cause of the stutter). */
+.flying-char {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  pointer-events: none;
+  font-family: var(--font-mono);
+  font-size: 1.25rem;
+  color: var(--text-primary);
+}
+
+/* Empty keyboard frame stays hidden during the pure-flight swarm interlude,
+   then fades in just before the glyphs start landing. */
+.kbd-wrap {
+  transition: opacity 0.45s ease;
+}
+.kbd-wrap.frame-hidden {
+  opacity: 0;
+}
+
+/* Glassmorphism Panels */
+.glass-panel {
+  background: rgba(42, 43, 46, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-panel);
+}
+
+/* Diagnostic Mode Key Highlights */
+.key-highlight-error {
+  background-color: rgba(239, 91, 91, 0.2) !important;
+  color: var(--error) !important;
+  box-shadow: inset 0 0 0 1px var(--error), 0 4px 6px var(--keycap-shadow) !important;
+}
+
+.key-highlight-shift {
+  background-color: rgba(56, 97, 251, 0.2) !important;
+  color: var(--accent) !important;
+  box-shadow: inset 0 0 0 1px var(--accent), 0 4px 6px var(--keycap-shadow) !important;
+}
+
+.key-highlight-space {
+  background-color: rgba(87, 214, 141, 0.2) !important;
+  color: var(--success) !important;
+  box-shadow: inset 0 0 0 1px var(--success), 0 4px 6px var(--keycap-shadow) !important;
+}
+
+/* SVG Delaunay Overlay */
+.delaunay-mesh {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+  transform: translateZ(1px); /* Just slightly above base */
+}
+
+/* ==========================================================================
+   TypeDiag — Workspace Layouts (Vanilla CSS)
+   ========================================================================== */
+
+/* Workspace Controller */
+.workspace-container {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 32px;
+}
+.mode-toggle-btn {
+  position: absolute;
+  top: 16px;
+  right: 32px;
+  z-index: 50;
+  padding: 8px 20px;
+  border-radius: 9999px;
+  border: 1px solid var(--border-strong);
+  background-color: var(--bg-raised);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  transition: background-color 0.2s;
+  cursor: pointer;
+}
+.mode-toggle-btn:hover {
+  background-color: var(--bg-overlay);
+}
+
+/* Practice Panel */
+.practice-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 1024px;
+  margin: 0 auto;
+  height: 100%;
+  gap: 64px;
+  position: relative;
+  transition: opacity 1s;
+}
+.typing-area {
+  width: 100%;
+  font-size: 1.875rem;
+  font-family: var(--font-mono);
+  line-height: 1.625;
+  transition: all 0.7s;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.typing-area.mode-practice {
+  opacity: 1;
+  transform: translateY(0);
+}
+.typing-area.mode-diagnostics {
+  opacity: 0;
+  transform: translateY(-64px);
+  pointer-events: none;
+}
+.typing-text-container {
+  position: relative;
+  width: 100%;
+  text-align: left;
+  color: var(--text-muted);
+}
+.typing-text-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: var(--text-primary);
+}
+
+/* Virtual Keyboard */
+.keyboard-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-inset);
+  width: fit-content;
+}
+.keyboard-row {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+}
+.keycap-base {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  user-select: none;
+  border: 1px solid var(--border-keycap);
+}
+.keycap-alpha {
+  background-color: var(--keycap-face);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+}
+.keycap-alpha:hover {
+  background-color: var(--keycap-face-hover);
+}
+.keycap-mod {
+  background-color: var(--key-mod-bg);
+  color: var(--key-mod-text);
+  font-size: 0.75rem;
+}
+
+/* Dashboard Panel */
+.dashboard-panel {
+  position: absolute;
+  right: 32px;
+  top: 25%;
+  width: 320px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  z-index: 50;
+  transition: opacity 0.5s;
+  opacity: 1;
+}
+.dashboard-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.dashboard-desc {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  line-height: 1.625;
+}
+.dashboard-stats {
+  margin-top: 16px;
+  border-top: 1px solid var(--border-strong);
+  padding-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+}
+.stat-label {
+  color: var(--text-secondary);
+}
+.stat-value {
+  color: var(--accent);
+  font-family: var(--font-mono);
+}
+.stat-value.primary {
+  color: var(--text-primary);
+}
+
+/* ==========================================================================
+   TypeDiag — Cinematic Transitions
+   ========================================================================== */
+
+/* The Practice screen layer */
+.screen-practice {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center; /* Centered vertically */
+  justify-content: center;
+  /* Sentence slides down and fades quickly so the swarm interlude is clean
+     (no sentence on screen) by the time the glyphs are mid-air. */
+  transition: transform 1.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.55s ease;
+  z-index: 20;
+  will-change: transform, opacity;
+}
+
+/* Practice screen moves DOWN out of view (stage 2 visual: text slides down). */
+.screen-practice.hidden-down {
+  transform: translateY(100vh);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* The Diagnostics (Keyboard) layer */
+.screen-diagnostics {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  /* NOTE: filter:blur() was removed — animating a full-screen blur was the
+     primary cause of the stutter. Only opacity animates here now. */
+  transition: opacity 0.6s ease;
+  z-index: 10;
+  transform: translateY(0);
+  opacity: 1;
+}
+
+/* Invisible state: present in DOM for measuring keycap rects, but hidden.
+   No blur filter (kept compositor-cheap). */
+.screen-diagnostics.invisible {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Text Container */
+.text-char-container {
+  display: inline-block;
+  position: relative;
+}
+.text-char-muted {
+  color: var(--text-muted);
+}
+.text-char-primary {
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: var(--text-primary);
+}
+.text-char-error {
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: var(--error);
+}
