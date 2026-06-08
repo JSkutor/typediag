@@ -11,7 +11,7 @@
  */
 
 /** Total per-glyph timeline length (ms). Snappy pacing. */
-export const FLIGHT_D = 1400;
+export const FLIGHT_DURATION = 1400;
 
 /** When the (empty) keyboard frame fades in, just before the first glyph lands. */
 export const LANDING_START = 980;
@@ -20,7 +20,7 @@ export const LANDING_START = 980;
 export const TILT_AT = 1540;
 
 /**
- * Phase boundaries as fractions of FLIGHT_D, shared by every glyph so all
+ * Phase boundaries as fractions of FLIGHT_DURATION, shared by every glyph so all
  * letters finish detaching (and hover-hold) before the swarm begins.
  */
 export const PHASE = {
@@ -40,7 +40,7 @@ export interface Flight {
   /** Hover position at the end of the detach phase. */
   hx: number;
   hy: number;
-  /** Staggered start and end for detachment (fraction of FLIGHT_D) */
+  /** Staggered start and end for detachment (fraction of FLIGHT_DURATION) */
   detachStart: number;
   detachEnd: number;
   /** Two mid-air swarm waypoints. */
@@ -57,7 +57,7 @@ export interface Flight {
   rotA: number;
   rotB: number;
   rotC: number;
-  /** When this glyph reaches its slot, as a fraction of FLIGHT_D (landMin..landMax). */
+  /** When this glyph reaches its slot, as a fraction of FLIGHT_DURATION (landMin..landMax). */
   landOffset: number;
   /** Original character index in the sentence. */
   textIdx?: number;
@@ -65,14 +65,14 @@ export interface Flight {
   keyframes?: Keyframe[];
 }
 
-const tf = (x: number, y: number, s: number, r: number) =>
+const formatTransform = (x: number, y: number, s: number, r: number) =>
   `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) scale(${s}) rotate(${r.toFixed(1)}deg)`;
 
 /**
  * Build a fully-resolved keyframe array (no CSS vars / calc) so the browser can
  * run the animation entirely on the compositor thread — the key fix for jank.
  */
-export function buildFrames(f: Flight): Keyframe[] {
+export function buildFlightKeyframes(f: Flight): Keyframe[] {
   const land = f.landOffset;
   const fade = Math.min(land + 0.05, 0.999);
 
@@ -80,15 +80,15 @@ export function buildFrames(f: Flight): Keyframe[] {
   
   frames.push(
     // 0% ~ 30% (0ms ~ 420ms): Hold in place and pulse with a soft white glow
-    { offset: 0, transform: tf(f.sx, f.sy, 1, 0), opacity: 1, filter: "drop-shadow(0 0 0px rgba(255, 255, 255, 0)) brightness(1)", easing: "ease-out" },
-    { offset: 0.15, transform: tf(f.sx, f.sy, 1.06, 0), opacity: 1, filter: "drop-shadow(0 0 8px rgba(255, 255, 255, 0.35)) brightness(1.35)", easing: "ease-in" },
-    { offset: 0.3, transform: tf(f.sx, f.sy, 1, 0), opacity: 1, filter: "drop-shadow(0 0 0px rgba(255, 255, 255, 0)) brightness(1)", easing: "cubic-bezier(0.25, 1, 0.5, 1)" },
+    { offset: 0, transform: formatTransform(f.sx, f.sy, 1, 0), opacity: 1, filter: "drop-shadow(0 0 0px rgba(255, 255, 255, 0)) brightness(1)", easing: "ease-out" },
+    { offset: 0.15, transform: formatTransform(f.sx, f.sy, 1.06, 0), opacity: 1, filter: "drop-shadow(0 0 8px rgba(255, 255, 255, 0.35)) brightness(1.35)", easing: "ease-in" },
+    { offset: 0.3, transform: formatTransform(f.sx, f.sy, 1, 0), opacity: 1, filter: "drop-shadow(0 0 0px rgba(255, 255, 255, 0)) brightness(1)", easing: "cubic-bezier(0.25, 1, 0.5, 1)" },
     // 30% ~ land: Flight & scale down to keycap text size
-    { offset: land, transform: tf(f.tx, f.ty, 0.47, 0), opacity: 1, filter: "none", easing: "linear" },
+    { offset: land, transform: formatTransform(f.tx, f.ty, 0.47, 0), opacity: 1, filter: "none", easing: "linear" },
     // Hand off to the solid keycap: fade out
-    { offset: fade, transform: tf(f.tx, f.ty, 0.40, 0), opacity: 0, filter: "none", easing: "linear" },
+    { offset: fade, transform: formatTransform(f.tx, f.ty, 0.40, 0), opacity: 0, filter: "none", easing: "linear" },
     // Stay hidden until the timeline ends
-    { offset: 1, transform: tf(f.tx, f.ty, 0.40, 0), opacity: 0, filter: "none" }
+    { offset: 1, transform: formatTransform(f.tx, f.ty, 0.40, 0), opacity: 0, filter: "none" }
   );
 
   return frames;

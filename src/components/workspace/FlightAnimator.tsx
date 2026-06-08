@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useMemo } from "react";
-import { FLIGHT_D, Flight } from "./flightChoreography";
+import { FLIGHT_DURATION, Flight } from "./flightChoreography";
 
 interface FlightAnimatorProps {
   flights: Flight[];
@@ -38,17 +38,18 @@ export const FlightAnimator: React.FC<FlightAnimatorProps> = ({ flights, isFlyin
     if (!isFlying || flights.length === 0) return;
 
     const animations: Animation[] = [];
+    const currentRefs = refs.current;
 
     const rafId = requestAnimationFrame(() => {
       for (let i = 0; i < flights.length; i++) {
         const f = flights[i];
-        const el = refs.current[i];
+        const el = currentRefs[i];
         if (!el || !f.keyframes) continue;
 
         el.style.opacity = "1";
 
         const anim = el.animate(f.keyframes, {
-          duration: FLIGHT_D,
+          duration: FLIGHT_DURATION,
           easing: "linear",
           fill: "both",
         });
@@ -60,7 +61,7 @@ export const FlightAnimator: React.FC<FlightAnimatorProps> = ({ flights, isFlyin
       cancelAnimationFrame(rafId);
       animations.forEach((a) => a.cancel());
       for (let i = 0; i < flights.length; i++) {
-        const el = refs.current[i];
+        const el = currentRefs[i];
         if (el) el.style.opacity = "0";
       }
     };

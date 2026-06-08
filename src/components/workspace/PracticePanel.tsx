@@ -4,15 +4,15 @@ import React from "react";
 import { useTypingStore } from "@/store/useTypingStore";
 
 export const PracticePanel: React.FC = () => {
-  const { targetText, typed } = useTypingStore();
+  const { targetText, typedText } = useTypingStore();
 
   return (
     <div className="typing-area" style={{ width: "100%", textAlign: "center", fontSize: "1.875rem", fontFamily: "var(--font-mono)", lineHeight: 1.625 }}>
       <div id="typing-text-container" className="typing-text-container inline-block text-left" style={{ maxWidth: "1024px" }}>
         {targetText.split("").map((char, i) => {
-          const isTyped = i < typed.length;
+          const isTyped = i < typedText.length;
           const displayChar = char === " " ? "\u00A0" : char;
-          const typedChar = isTyped ? (typed[i] === " " ? "\u00A0" : typed[i]) : null;
+          const typedChar = isTyped ? (typedText[i] === " " ? "\u00A0" : typedText[i]) : null;
 
           return (
             <span key={i} id={`text-char-${i}`} className="text-char-container">

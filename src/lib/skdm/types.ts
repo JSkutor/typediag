@@ -3,17 +3,17 @@
  * `skdm/model.py` and `skdm/layout.py`.
  */
 
-/** A single keystroke event: `fromKey` was pressed, then `selfKey` after `latencyMs`. */
+/** A single keystroke event: `fromKey` was pressed, then `toKey` after `latencyMs`. */
 export interface KeyEvent {
   fromKey: string;
-  selfKey: string;
+  toKey: string;
   latencyMs: number;
 }
 
-/** Aggregated statistics for one `(from, self)` key pair. */
+/** Aggregated statistics for one `(from, to)` key pair. */
 export interface PairStat {
   fromKey: string;
-  selfKey: string;
+  toKey: string;
   /** Observation count for this pair (after outlier removal). */
   frequency: number;
   /** Mean post-sigmoid value in [0, 1]; larger = slower. */

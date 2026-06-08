@@ -3,6 +3,7 @@
 import React, { useEffect, useRef } from "react";
 import { KeyResult } from "@/lib/skdm";
 import { LANDING_START } from "./flightChoreography";
+import { UiState } from "@/app/page";
 
 export type DiagnosticsMode =
   | "surface"
@@ -14,7 +15,7 @@ export type DiagnosticsMode =
 
 interface VirtualKeyboardProps {
   mode: "practice" | "diagnostics";
-  uiState?: string;
+  uiState?: UiState;
   targetKeys?: Set<string>;
   diagnosticMode?: DiagnosticsMode;
   keyStats?: Record<string, KeyResult>;
@@ -34,11 +35,8 @@ const KEYBOARD_ROWS = [
 export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
   mode,
   uiState = "diagnostics",
-  diagnosticMode = "surface",
-  keyStats = {},
   focusedKey,
   onKeyClick,
-  triangles,
   keyDelays = {},
 }) => {
   const is3D = mode === "diagnostics";
@@ -138,6 +136,7 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
       <div
         key={keyLabel}
         id={`keycap-${lowerKey}`}
+        data-testid={`keycap-${lowerKey}`}
         className={`keycap-3d keycap-base ${keyClass} ${highlightClass}`}
         style={inlineStyle}
         onClick={() => onKeyClick?.(keyLabel)}

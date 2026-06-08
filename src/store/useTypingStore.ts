@@ -8,7 +8,7 @@ interface TypingState {
   /** Target text shown to the user. */
   targetText: string;
   /** IME-composed text from the input (for display + accuracy only). */
-  typed: string;
+  typedText: string;
   /** Raw physical key transitions feeding the SKDM model. */
   events: KeyEvent[];
   status: SessionStatus;
@@ -22,15 +22,16 @@ interface TypingState {
   setTarget: (text: string) => void;
   /** Record one physical key press (already normalized) at time `at` (ms). */
   recordKey: (token: string, at: number) => void;
-  /** Sync the IME-composed input value (display + accuracy). */
-  setTyped: (value: string) => void;
+  setTypedText: (value: string) => void;
+  /** Process a logical key press from UI (for building text and recording) */
+  handleKeyPress: (key: string, timestamp: number) => void;
   finish: () => void;
   reset: () => void;
 }
 
 export const useTypingStore = create<TypingState>((set, get) => ({
   targetText: "",
-  typed: "",
+  typedText: "",
   events: [],
   status: "idle",
   startedAt: null,
@@ -41,7 +42,7 @@ export const useTypingStore = create<TypingState>((set, get) => ({
   setTarget: (text) =>
     set({
       targetText: text,
-      typed: "",
+      typedText: "",
       events: [],
       status: "idle",
       startedAt: null,
@@ -66,7 +67,7 @@ export const useTypingStore = create<TypingState>((set, get) => ({
       if (lastKey !== null && lastKeyAt !== null) {
         const event: KeyEvent = {
           fromKey: lastKey,
-          selfKey: token,
+          toKey: token,
           latencyMs: at - lastKeyAt,
         };
         next.events = [...state.events, event];
@@ -75,7 +76,36 @@ export const useTypingStore = create<TypingState>((set, get) => ({
     });
   },
 
-  setTyped: (value) => set({ typed: value }),
+  setTypedText: (value) => set({ typedText: value }),
+
+  handleKeyPress: (key, timestamp) => {
+    let keyToken = key.toLowerCase();
+    if (keyToken === " ") keyToken = "space";
+    
+    const isModifier = ["backspace", "enter", "shift", "space"].includes(keyToken);
+    
+    if (key.length === 1 || isModifier) {
+      const state = get();
+      const currentTyped = state.typedText;
+      let nextTyped = currentTyped;
+      
+      if (keyToken === "backspace") {
+        nextTyped = currentTyped.slice(0, -1);
+      } else if (key.length === 1) {
+        nextTyped = currentTyped + key;
+      }
+      
+      if (nextTyped !== currentTyped) {
+        set({ typedText: nextTyped });
+        
+        if (nextTyped.length >= state.targetText.length) {
+          get().finish();
+        }
+      }
+      
+      get().recordKey(keyToken, timestamp);
+    }
+  },
 
   finish: () =>
     set((state) =>
@@ -86,7 +116,7 @@ export const useTypingStore = create<TypingState>((set, get) => ({
 
   reset: () =>
     set((state) => ({
-      typed: "",
+      typedText: "",
       events: [],
       status: "idle",
       startedAt: null,

@@ -17,7 +17,6 @@ export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
   height = 500,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const requestRef = useRef<number>(0);
 
   // Rotation angles
   // pitch: angle viewing the desk. 0 = top-down, Math.PI/3 = tilted

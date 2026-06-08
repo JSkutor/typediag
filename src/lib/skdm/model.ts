@@ -20,7 +20,7 @@ import { mean, median, percentile, std } from "./stats";
 import type { KeyEvent, KeyPosition, KeyResult, PairStat } from "./types";
 
 const PAIR_SEP = "\u0000";
-const pairKey = (from: string, self: string) => `${from}${PAIR_SEP}${self}`;
+const pairKey = (from: string, to: string) => `${from}${PAIR_SEP}${to}`;
 
 // ---------------------------------------------------------------------------
 // 1. Pre-processing
@@ -45,11 +45,11 @@ export function sigmoidLatency(latencyMs: number, maxClipMs: number): number {
  * clean stretches of normal typing.
  */
 export function filterBackspaces(events: KeyEvent[]): KeyEvent[] {
-  // Logical stack tracking text assembly: [selfKey, originating event | null].
+  // Logical stack tracking text assembly: [toKey, originating event | null].
   const stack: Array<[string, KeyEvent | null]> = [];
 
   for (const ev of events) {
-    const sKey = ev.selfKey.toLowerCase();
+    const sKey = ev.toKey.toLowerCase();
     const fKey = ev.fromKey.toLowerCase();
 
     if (sKey === "backspace") {
@@ -110,33 +110,33 @@ export function filterOutliers(events: KeyEvent[]): [KeyEvent[], number] {
   return [validEvents, maxObserved];
 }
 
-/** Aggregate raw events into (from, self) pair statistics. */
+/** Aggregate raw events into (from, to) pair statistics. */
 export function aggregatePairs(
   events: KeyEvent[],
 ): Map<string, PairStat> {
   const [validEvents, maxClipMs] = filterOutliers(events);
 
   const buckets = new Map<string, number[]>();
-  const meta = new Map<string, { fromKey: string; selfKey: string }>();
+  const meta = new Map<string, { fromKey: string; toKey: string }>();
   for (const ev of validEvents) {
-    const key = pairKey(ev.fromKey, ev.selfKey);
+    const key = pairKey(ev.fromKey, ev.toKey);
     const sig = sigmoidLatency(ev.latencyMs, maxClipMs);
     const arr = buckets.get(key);
     if (arr) {
       arr.push(sig);
     } else {
       buckets.set(key, [sig]);
-      meta.set(key, { fromKey: ev.fromKey, selfKey: ev.selfKey });
+      meta.set(key, { fromKey: ev.fromKey, toKey: ev.toKey });
     }
   }
 
   const stats = new Map<string, PairStat>();
   for (const [key, sigValues] of buckets) {
     if (sigValues.length === 0) continue;
-    const { fromKey, selfKey } = meta.get(key)!;
+    const { fromKey, toKey } = meta.get(key)!;
     stats.set(key, {
       fromKey,
-      selfKey,
+      toKey,
       frequency: sigValues.length,
       z: mean(sigValues),
     });
@@ -157,9 +157,9 @@ export function summarizeKeys(
   const incoming = new Map<string, PairStat[]>();
   const allZs: number[] = [];
   for (const stat of pairStats.values()) {
-    const list = incoming.get(stat.selfKey);
+    const list = incoming.get(stat.toKey);
     if (list) list.push(stat);
-    else incoming.set(stat.selfKey, [stat]);
+    else incoming.set(stat.toKey, [stat]);
     allZs.push(stat.z);
   }
 
@@ -167,9 +167,9 @@ export function summarizeKeys(
 
   const latenciesPerKey = new Map<string, number[]>();
   for (const ev of validEvents) {
-    const list = latenciesPerKey.get(ev.selfKey);
+    const list = latenciesPerKey.get(ev.toKey);
     if (list) list.push(ev.latencyMs);
-    else latenciesPerKey.set(ev.selfKey, [ev.latencyMs]);
+    else latenciesPerKey.set(ev.toKey, [ev.latencyMs]);
   }
 
   const allStdevs: number[] = [];

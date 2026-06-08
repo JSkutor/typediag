@@ -16,7 +16,17 @@ import type { KeyEvent } from "./types";
 
 const EPS = 1e-9;
 
-const events: KeyEvent[] = reference.events;
+interface ReferenceEvent {
+  fromKey: string;
+  selfKey: string;
+  latencyMs: number;
+}
+
+const events: KeyEvent[] = (reference.events as ReferenceEvent[]).map((ev) => ({
+  fromKey: ev.fromKey,
+  toKey: ev.selfKey,
+  latencyMs: ev.latencyMs,
+}));
 
 describe("sigmoidLatency", () => {
   it("is 0.5 at the center (40% of clip)", () => {
@@ -31,9 +41,16 @@ describe("sigmoidLatency", () => {
   });
 });
 
+const pythonRows = [
+  "1234567890".split(""),
+  "qwertyuiop".split(""),
+  "asdfghjkl".split(""),
+  "zxcvbnm,.".split(""),
+];
+
 describe("layout parity", () => {
   it("matches Python coordinates for analysed keys", () => {
-    const layout = buildLayout();
+    const layout = buildLayout(pythonRows);
     for (const [key, ref] of Object.entries(reference.results)) {
       expect(layout[key].x).toBeCloseTo(ref.x, 12);
       expect(layout[key].y).toBeCloseTo(ref.y, 12);
@@ -44,7 +61,7 @@ describe("layout parity", () => {
 
 describe("Delaunay adjacency parity", () => {
   it("produces the same neighbour graph as scipy", () => {
-    const layout = buildLayout();
+    const layout = buildLayout(pythonRows);
     const cleaned = filterBackspaces(events);
     const [valid] = filterOutliers(cleaned);
     const pairStats = aggregatePairs(cleaned);
@@ -64,7 +81,7 @@ describe("Delaunay adjacency parity", () => {
 
 describe("full pipeline parity", () => {
   it("matches the Python reference for every key", () => {
-    const layout = buildLayout();
+    const layout = buildLayout(pythonRows);
     const results = runPipeline(events, layout);
 
     const refKeys = Object.keys(reference.results).sort();
