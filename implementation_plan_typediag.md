@@ -1,44 +1,90 @@
-# Next-Generation Typing Practice Platform (TypeDiag)
+# TypeDiag 라우팅 아키텍처 및 레이아웃 개편 계획서
 
-본 프로젝트는 기존 Python으로 작성된 공간 타건 동역학 모델(SKDM)을 핵심 엔진으로 삼아, 사용자에게 매우 상세하고 유용한 통계를 제공하는 차세대 타자연습 웹 서비스를 구축하는 것을 목표로 합니다.
+본 문서는 TypeDiag 프로젝트의 라우팅 구조 변경(단일 페이지 앱 통합) 및 레이아웃 품질 개편을 위한 구체적인 구현 계획을 정의합니다.
 
-## Final Architecture & Design Decisions
+---
 
-지금까지 논의하여 확정된 기술 스택 및 아키텍처는 다음과 같습니다.
+## 1. 아키텍처 개요 (라우팅 & 흐름)
 
-### 1. 기술 스택 (Tech Stack) - MVP 기준
-- **프레임워크**: **Next.js (App Router)** - 현재는 클라이언트(프론트엔드) 위주로 사용하며, 추후 로그인/DB 도입 시 API 라우트를 활용할 수 있도록 확장성을 고려해 선택.
-- **인증 및 DB**: **초기 MVP 단계에서는 제외**. 사용자 로그인 없이 로컬 환경(브라우저 메모리 및 LocalStorage)에서 100% 클라이언트 사이드 연산으로 작동. 추후 Supabase 등을 쉽게 연동할 수 있도록 모듈 구조만 분리.
-- **상태 관리**: **Zustand** - 밀리초 단위로 쏟아지는 키보드 입력 이벤트를 성능 저하 없이 가볍고 직관적으로 관리.
-- **3D 렌더링**: **React Three Fiber (Three.js)** - 타건 히트맵 및 라플라시안 평활화 결과 등을 3D로 시각화하여 강력한 시각적 피드백 제공.
-- **스타일링**: **Vanilla CSS (CSS Modules)** - 기계식 키보드 매니아 감성의 묵직하고 세련된 다크 테마 적용. 커스텀 디자인과 애니메이션을 세밀하게 제어 (Glassmorphism 배제).
+사용자의 편리한 접속(Zero Friction)과 검색엔진 최적화(SEO), 그리고 매끄러운 단일 페이지(SPA)의 상태 보존을 모두 달성하기 위해 **"언어별 루트 기반 SPA + 독립된 SEO 랜딩 페이지"** 구조를 채택합니다.
 
-### 2. 핵심 로직 및 데이터 수집 (Core Logic & Data)
-- **SKDM 수학 모델 포팅**: 기존 Python `model.py`의 딜로니 삼각분할 및 라플라시안 평활화 로직을 `d3-delaunay` 등의 라이브러리를 활용해 **TypeScript로 완벽히 재작성**.
-- **한국어 IME 처리**: 한글 조합(`onChange`, `composition`)에 의존하지 않고 **물리적 키보드 이벤트(`keydown`, `keyup`)를 직접 캡처**하여 원시 타건(Raw Keystroke) 간의 거리와 지연시간을 정확히 계산.
-- **훈련 콘텐츠 제공**: MVP 단계에서는 로컬 JSON(또는 더미 데이터)에 저장된 양질의 텍스트를 제공합니다. 추후 백엔드 확장 시 DB 연동 및 On-Demand LLM API(OpenAI/Gemini) 맞춤형 문장 생성 기능을 추가합니다.
+```mermaid
+flowchart TD
+    Start[사용자 접속: typediag.com] --> Root{루트 / 접속}
+    
+    Root -- "한국어 사용자 (ko-KR)" --> Redir[/[lang]/page.tsx 로 리다이렉트]
+    Root -- "그 외 언어 사용자 (Default)" --> ENWorkspace[/[lang]/page.tsx - English Workspace]
+    
+    Redir --> KOWorkspace[/[lang]/page.tsx - Korean Workspace]
+    
+    KOWorkspace -- "쿼리 파라미터 ?tab=" --> Tabs{SPA 탭 제어}
+    Tabs -- "?tab=practice (기본)" --> WorkspacePractice[연습 화면]
+    Tabs -- "?tab=dashboard" --> WorkspaceDashboard[분석 대시보드]
+    Tabs -- "?tab=settings" --> WorkspaceSettings[설정 화면]
+    
+    KOWorkspace -- "헤더/푸터 링크 클릭" --> AboutPage[/about - 상세 소개 및 기술 원리 랜딩 페이지]
+    ENWorkspace -- "헤더/푸터 링크 클릭" --> AboutPage
+```
 
-## Proposed Execution Plan
+---
 
-### Phase 1: MVP Project Setup & UI Foundation
-- `npx create-next-app`으로 Next.js 기반 뼈대 구축.
-- 바닐라 CSS 기반 다크 테마 디자인 시스템 (기계식 키보드 감성) 초기화.
-- 상태 관리(Zustand) 설정 및 기본 레이아웃 구성.
-### Phase 2: Core Logic Porting & Client-Side Event Capture
-- Python 수학 로직을 TypeScript(JS)로 포팅 (`d3-delaunay` 활용) 및 브라우저에서 실행 가능한 구조로 모듈화.
-- Zustand를 활용한 물리적 키보드 이벤트(`keydown`, `keyup`) 캡처 및 상태 관리 훅(Hook) 작성.
-- 프론트엔드 `/ko` 연습 페이지 구축 및 로컬 타건 데이터 수집.
+## 2. 세부 라우팅 설계
 
-### Phase 3: 3D Visualization & Local Analytics
-- React Three Fiber를 도입하여 클라이언트에서 연산된 수학 모델 결과를 3D 시각화 (Dashboard 구성).
-- 로컬 데이터를 기반으로 한 즉각적인 통계 피드백 UI 연동.
+### 2.1. 루트 경로 (`/`) 및 언어 감지
+* **역할:** 기본적으로 영어 타자 연습 SPA 역할을 수행하되, 한국어 환경의 사용자가 들어오면 `/ko`로 즉시 보냅니다.
+* **구현:** Next.js Middleware 또는 `src/app/page.tsx`의 클라이언트 측 리다이렉트를 활용하여 브라우저의 `navigator.language`를 감지해 `/ko`로 토스합니다.
 
-## Verification Plan
+### 2.2. 다이나믹 언어 경로 (`/[lang]`) - SPA 워크스페이스
+* **경로:** `/ko` (한국어 워크스페이스), `/en` (영어 워크스페이스)
+* **구현:** Next.js의 다이나믹 라우팅 `src/app/[lang]/page.tsx`에서 모든 연습, 분석 대시보드, 설정을 담당합니다.
+* **SPA 탭 관리:** `?tab=practice`, `?tab=dashboard`, `?tab=settings` 쿼리 스트링에 따라 내부 컴포넌트만 마운트/언마운트 및 CSS 전환 처리하여 연습 데이터와 상태를 100% 보존합니다.
 
-### Automated Tests
-- TypeScript로 포팅된 핵심 로직(SKDM)이 기존 Python 모델과 동일한 계산 결과를 내는지 검증하는 단위 테스트 작성.
+### 2.3. 소개/랜딩 경로 (`/about` 또는 `/homepage`)
+* **경로:** `/about` (or `/about?lang=ko` 형태로 다국어 대응 가능)
+* **역할:** 서비스의 구체적인 특징, **공간 타건 동역학(SKDM)**의 수학적 원리, 라플라시안 평활화 이론 등을 자세하게 기술한 정적 콘텐츠 페이지입니다.
+* **SEO 극대화:** 검색 로봇이 모든 텍스트와 메타 데이터를 온전히 수집할 수 있도록 풍부한 정보성 텍스트와 마크업을 제공합니다.
 
-### Manual Verification
-- 프론트엔드 `/ko` 페이지에서 타자를 칠 때 이벤트가 올바르게 수집되고, JS로 포팅된 모델이 실시간으로 결과를 도출하는지 확인.
-- 수집된 데이터가 백엔드로 전송되고, 분석된 통계가 화면에 화려하게 렌더링되는지 확인.
-- 로그인/로그아웃 흐름 정상 작동 여부 확인.
+---
+
+## 3. 레이아웃 및 UI 개편 사양
+
+기존의 단순하고 끊어져 보였던 화면 배치를 프리미엄 감성으로 재구축합니다.
+
+### 3.1. 타이핑 UI 통합 (Overlay Input)
+* **AS-IS:** 문장 카드 밑에 별도의 대형 `<textarea>`가 배치되어 시선이 분산됨.
+* **TO-BE:** 문장 카드 영역 자체가 입력 타겟이 됩니다. 실제 화면에는 문장만 존재하며, 보이지 않는 (혹은 극도로 정돈된) 입력창을 통해 포커스를 유지하고, 사용자가 타이핑하는 글자(Cursor)가 현재 문장에 바로 오버레이되어 덮어씌워지는 모던한 Monkeytype 스타일 타이핑 방식을 구현합니다.
+
+### 3.2. 가상 키보드 & Delaunay 메쉬 결합
+* [theme_preview.html](file:///Users/kutor/Documents/Projects_Kutor/typediag/theme_preview.html)의 스페이스 그레이 & 코발트 테마를 이식합니다.
+* 연습 중에 키를 누르면 화면 하단 가상 키보드의 해당 키캡이 입체감 있게 내려앉고, 타건 속도/지연시간이 늘어난(망설인) 구간은 코발트 블루 계열로 하이라이트됩니다.
+* 은은한 홀로그램 느낌의 **Delaunay 삼각분할 메쉬**가 가상 키보드 위에 백그라운드 워터마크(SVG)로 실시간 드로잉됩니다.
+
+### 3.3. 사이드바 / 컴팩트 대시보드 레이아웃
+* 세로로 길게 늘어지던 구조를 개선하여, 좌측(혹은 상단)에는 슬림한 탭 전환 바, 중앙에는 타이핑 & 가상 키보드 워크스페이스, 우측 또는 하단에는 컴팩트한 실시간 스탯 카드를 조화롭게 배치합니다.
+
+---
+
+## 4. 제안하는 파일 변경 목록
+
+### [DELETE] 기존 개별 라우트 파일
+* [page.tsx](file:///Users/kutor/Documents/Projects_Kutor/typediag/src/app/page.tsx) (기존 랜딩 페이지 코드 삭제 및 리다이렉트/진입 코드로 변경)
+* `src/app/ko/` 디렉토리 전체 삭제 (신규 `[lang]` 구조로 통합)
+* `src/app/dashboard/` 디렉토리 전체 삭제 (워크스페이스 내부 탭으로 흡수)
+
+### [NEW] 다이나믹 워크스페이스 구조
+* `src/app/[lang]/page.tsx`: 단일 페이지 앱 컨트롤러
+* `src/app/about/page.tsx`: 검색 엔진 최적화 전용 정보성 랜딩 페이지
+* `src/components/workspace/PracticePanel.tsx`: 모던 오버레이 타이핑 연습 컴포넌트
+* `src/components/workspace/DashboardPanel.tsx`: 3D 히트맵 및 통계 분석 컴포넌트
+* `src/components/workspace/SettingsPanel.tsx`: 자판 설정 및 테마 제어 컴포넌트
+* `src/components/workspace/VirtualKeyboard.tsx`: PBT 키캡 렌더링 및 Delaunay 오버레이 컴포넌트
+
+---
+
+## 5. 검증 계획
+
+### 수동 검증 (Manual Verification)
+1. 브라우저로 `localhost:3000/` 접속 시, 크롬 언어 설정이 한국어이면 자동으로 `localhost:3000/ko`로 넘어가고, 영어이면 `localhost:3000/en`으로 남아있는지 검증.
+2. `/ko` 및 `/en`에서 타자를 직접 쳐보며, 입력 텍스트가 별도 입력창 없이 문장에 바로 매핑되는지 확인.
+3. 타건 중간에 `대시보드` 탭을 눌렀다가 다시 `연습` 탭으로 돌아왔을 때, 진행 중이던 연습 상태와 수집된 타건 이벤트 개수가 변함없이 보존되는지 확인.
+4. `/about` 페이지로 들어갔을 때 공간 타건 동역학 소개 및 메타 데이터가 구글 서치봇 친화적으로 노출되는지 HTML 소스 확인.

@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# python (SKDM reference engine + fixture generation)
+.venv/
+__pycache__/
+*.pyc
