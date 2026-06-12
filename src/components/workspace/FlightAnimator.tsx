@@ -23,8 +23,6 @@ export const FlightAnimator: React.FC<FlightAnimatorProps> = ({ flights, isFlyin
     if (!isFlying || flights.length === 0 || !containerRef.current) return;
 
     const container = containerRef.current;
-    const textKeys = container.querySelectorAll('.flying-char.from-text');
-    const spawnedKeys = container.querySelectorAll('.flying-char.from-spawn');
     const allKeys = container.querySelectorAll('.flying-char');
 
     // Initialize starting positions and make everything visible.
@@ -89,7 +87,7 @@ export const FlightAnimator: React.FC<FlightAnimatorProps> = ({ flights, isFlyin
       tl.kill();
       gsap.set(allKeys, { opacity: 0 });
     };
-  }, [isFlying, flights]);
+  }, [isFlying, flights, onComplete]);
 
   return (
     <div ref={containerRef} style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 9999 }}>

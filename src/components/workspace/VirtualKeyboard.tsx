@@ -36,7 +36,6 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
   mode,
   uiState = "diagnostics",
   focusedKey,
-  onKeyClick,
   keyDelays = {},
 }) => {
   const is3D = mode === "diagnostics";

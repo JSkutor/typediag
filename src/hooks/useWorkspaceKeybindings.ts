@@ -1,13 +1,8 @@
 import { useEffect } from "react";
 import { useTypingStore } from "@/store/useTypingStore";
-import { UiState } from "@/app/page";
-import { DiagnosticsMode } from "@/components/workspace/VirtualKeyboard";
+import { useWorkspaceStore } from "@/store/useWorkspaceStore";
 
 interface WorkspaceKeybindingsProps {
-  uiState: UiState;
-  setUiState: (state: UiState) => void;
-  setDiagnosticMode: (mode: DiagnosticsMode) => void;
-  setFocusedKey: (key: string | null) => void;
   onTransition: () => void;
 }
 
@@ -19,16 +14,11 @@ const PHYSICAL_KEY_MAP: Record<string, string> = {
   Comma: ",", Period: "."
 };
 
-export function useWorkspaceKeybindings({
-  uiState,
-  setUiState,
-  setDiagnosticMode,
-  setFocusedKey,
-  onTransition
-}: WorkspaceKeybindingsProps) {
-
+export function useWorkspaceKeybindings({ onTransition }: WorkspaceKeybindingsProps) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const { uiState, setUiState, setDiagnosticMode, setFocusedKey } = useWorkspaceStore.getState();
+
       if (e.key === "Tab") {
         e.preventDefault();
         
@@ -78,5 +68,5 @@ export function useWorkspaceKeybindings({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [uiState, onTransition, setUiState, setDiagnosticMode, setFocusedKey]);
+  }, [onTransition]);
 }

@@ -1,10 +1,8 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useTypingStore } from "@/store/useTypingStore";
+import { useWorkspaceStore } from "@/store/useWorkspaceStore";
 import { Flight } from "@/components/workspace/flightChoreography";
 import { calculateFlights } from "@/components/workspace/flightCalculations";
-import { UiState } from "@/app/page";
-
-const rand = (min: number, max: number) => min + Math.random() * (max - min);
 
 interface LocalRect {
   left: number;
@@ -13,7 +11,10 @@ interface LocalRect {
   height: number;
 }
 
-export function useFlightChoreography(uiState: UiState, dynamicScale: number) {
+export function useFlightChoreography() {
+  const uiState = useWorkspaceStore((state) => state.uiState);
+  const dynamicScale = useWorkspaceStore((state) => state.dynamicScale);
+
   const [flights, setFlights] = useState<Flight[]>([]);
   const [targetKeys, setTargetKeys] = useState<Set<string>>(new Set());
   const [keyDelays, setKeyDelays] = useState<Record<string, number>>({});
