@@ -21,7 +21,10 @@ export function useFlightChoreography(uiState: UiState, dynamicScale: number) {
   
   const localRectsRef = useRef<Record<string, LocalRect>>({});
   const uiStateRef = useRef(uiState);
-  uiStateRef.current = uiState;
+
+  useEffect(() => {
+    uiStateRef.current = uiState;
+  }, [uiState]);
 
   const precalculateFlights = useCallback(() => {
     const isFlat = uiStateRef.current === "practice" || uiStateRef.current === "measuring";
@@ -124,6 +127,7 @@ export function useFlightChoreography(uiState: UiState, dynamicScale: number) {
 
   // 3. Immediate update when dynamicScale changes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     precalculateFlights();
   }, [dynamicScale, precalculateFlights]);
 

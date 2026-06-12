@@ -11,6 +11,14 @@ interface WorkspaceKeybindingsProps {
   onTransition: () => void;
 }
 
+// Map physical keyboard codes (e.code) to virtual keyboard keys (independent of language layout)
+const PHYSICAL_KEY_MAP: Record<string, string> = {
+  KeyQ: "q", KeyW: "w", KeyE: "e", KeyR: "r", KeyT: "t", KeyY: "y", KeyU: "u", KeyI: "i", KeyO: "o", KeyP: "p",
+  KeyA: "a", KeyS: "s", KeyD: "d", KeyF: "f", KeyG: "g", KeyH: "h", KeyJ: "j", KeyK: "k", KeyL: "l",
+  KeyZ: "z", KeyX: "x", KeyC: "c", KeyV: "v", KeyB: "b", KeyN: "n", KeyM: "m",
+  Comma: ",", Period: "."
+};
+
 export function useWorkspaceKeybindings({
   uiState,
   setUiState,
@@ -39,16 +47,31 @@ export function useWorkspaceKeybindings({
       }
 
       if (uiState === "diagnostics") {
-        const key = e.key;
-        if (key === "Backspace") {
+        const code = e.code;
+        
+        if (code === "Escape") {
+          e.preventDefault();
+          setDiagnosticMode("surface");
+          setFocusedKey(null);
+          return;
+        }
+
+        if (code === "Backspace") {
           setDiagnosticMode("backspace");
-        } else if (key === "Shift") {
+          setFocusedKey(null);
+        } else if (code === "ShiftLeft" || code === "ShiftRight") {
           setDiagnosticMode("shift");
-        } else if (key === " ") {
+          setFocusedKey(null);
+        } else if (code === "Space") {
+          e.preventDefault(); // Prevent page scrolling
           setDiagnosticMode("space");
-        } else if (key.length === 1) {
-          setDiagnosticMode("cylindrical");
-          setFocusedKey(key);
+          setFocusedKey(null);
+        } else {
+          const mappedKey = PHYSICAL_KEY_MAP[code];
+          if (mappedKey) {
+            setDiagnosticMode("cylindrical");
+            setFocusedKey(mappedKey);
+          }
         }
       }
     };

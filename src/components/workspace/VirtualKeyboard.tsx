@@ -127,6 +127,7 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
       height: "3rem",
       boxShadow: "none",
       transform: `translateZ(${zOffset}px)`,
+      pointerEvents: "none", // disable mouse interactions on keycaps
     };
 
     return (
@@ -136,7 +137,6 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
         data-testid={`keycap-${lowerKey}`}
         className={`keycap-3d keycap-base ${keyClass} ${highlightClass}`}
         style={inlineStyle}
-        onClick={() => onKeyClick?.(keyLabel)}
       >
         <span style={{ transform: "translateZ(1px)" }}>
           {label}

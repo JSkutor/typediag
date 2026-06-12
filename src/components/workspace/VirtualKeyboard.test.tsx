@@ -29,7 +29,7 @@ describe("VirtualKeyboard", () => {
     // We just verify it mounted safely.
   });
 
-  it("should render in diagnostics mode and call onKeyClick on virtual key click", () => {
+  it("should render in diagnostics mode and not call onKeyClick on virtual key click since mouse click is disabled", () => {
     const handleKeyClick = vi.fn();
 
     render(
@@ -50,6 +50,6 @@ describe("VirtualKeyboard", () => {
 
     fireEvent.click(qKeys[0]);
 
-    expect(handleKeyClick).toHaveBeenCalledWith("q");
+    expect(handleKeyClick).not.toHaveBeenCalled();
   });
 });
