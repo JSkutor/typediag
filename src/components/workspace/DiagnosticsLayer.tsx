@@ -1,7 +1,8 @@
 import React from "react";
-import { useWorkspaceStore } from "@/store/useWorkspaceStore";
+import { useWorkspaceStore, DiagnosticsMode } from "@/store/useWorkspaceStore";
 import { VirtualKeyboard } from "./VirtualKeyboard";
 import { LatencySurface3D } from "./LatencySurface3D";
+import { CylindricalVector3D } from "./CylindricalVector3D";
 import { DashboardPanel } from "./DashboardPanel";
 import { Flight } from "./flightChoreography";
 
@@ -11,6 +12,8 @@ interface DiagnosticsLayerProps {
   keyDelays: Record<string, number>;
   keycapRects: Record<string, DOMRect>;
 }
+
+
 
 export const DiagnosticsLayer: React.FC<DiagnosticsLayerProps> = ({
   flights,
@@ -29,67 +32,104 @@ export const DiagnosticsLayer: React.FC<DiagnosticsLayerProps> = ({
   const setFocusedKey = useWorkspaceStore((state) => state.setFocusedKey);
 
   const isVisible = uiState !== "practice" && uiState !== "measuring";
+  const isDiag = uiState === "diagnostics";
 
   return (
     <div className={`screen-diagnostics ${!isVisible ? "invisible" : ""}`}>
-      <div className={`kbd-wrap ${uiState}`} style={{ transform: `scale(${dynamicScale})` }}>
-        <div style={{ position: "relative", width: 1000, height: 650, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          {/* 2D HTML/CSS Virtual Keyboard */}
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              transition: "opacity 0.22s ease-in-out",
-              opacity: uiState === "diagnostics" && diagnosticMode === "surface" ? 0 : 1,
-              pointerEvents: uiState === "diagnostics" && diagnosticMode === "surface" ? "none" : "auto",
-              zIndex: 2,
-            }}
-          >
-            <VirtualKeyboard 
-              mode={uiState === "diagnostics" ? "diagnostics" : "practice"} 
-              uiState={uiState}
-              targetKeys={targetKeys}
-              diagnosticMode={diagnosticMode} 
-              keyStats={keyStats} 
-              focusedKey={focusedKey}
-              keyDelays={keyDelays}
-            />
-          </div>
-
-          {/* 3D WebGL Latency Surface */}
-          {triangles && (
+      {/* Keyboard + Surface (non-cylindrical modes) */}
+      {diagnosticMode !== "cylindrical" && (
+        <div className={`kbd-wrap ${uiState}`} style={{ transform: `scale(${dynamicScale})` }}>
+          <div style={{ position: "relative", width: 1000, height: 650, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            {/* 2D HTML/CSS Virtual Keyboard */}
             <div
               style={{
                 position: "absolute",
                 inset: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
                 transition: "opacity 0.22s ease-in-out",
-                opacity: uiState === "diagnostics" && diagnosticMode === "surface" ? 1 : 0,
-                pointerEvents: uiState === "diagnostics" && diagnosticMode === "surface" ? "auto" : "none",
-                zIndex: 1,
+                opacity: isDiag && diagnosticMode === "surface" ? 0 : 1,
+                pointerEvents: isDiag && diagnosticMode === "surface" ? "none" : "auto",
+                zIndex: 2,
               }}
             >
-              <LatencySurface3D 
+              <VirtualKeyboard 
+                mode={isDiag ? "diagnostics" : "practice"} 
+                uiState={uiState}
+                targetKeys={targetKeys}
+                diagnosticMode={diagnosticMode} 
                 keyStats={keyStats} 
-                triangles={triangles} 
-                width={1000} 
-                height={650} 
-                flights={flights} 
-                keycapRects={keycapRects} 
-                isActivated={uiState === "diagnostics" && diagnosticMode === "surface"}
-                dynamicScale={dynamicScale}
+                focusedKey={focusedKey}
+                keyDelays={keyDelays}
+                onKeyClick={(key) => {
+                  if (key === "space") {
+                    setDiagnosticMode("space");
+                    setFocusedKey(null);
+                  } else if (key === "backspace") {
+                    setDiagnosticMode("backspace");
+                    setFocusedKey(null);
+                  } else if (key === "shift") {
+                    setDiagnosticMode("shift");
+                    setFocusedKey(null);
+                  } else {
+                    setDiagnosticMode("cylindrical");
+                    setFocusedKey(key);
+                  }
+                }}
               />
             </div>
-          )}
+
+            {/* 3D WebGL Latency Surface */}
+            {triangles && (
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  transition: "opacity 0.22s ease-in-out",
+                  opacity: isDiag && diagnosticMode === "surface" ? 1 : 0,
+                  pointerEvents: isDiag && diagnosticMode === "surface" ? "auto" : "none",
+                  zIndex: 1,
+                }}
+              >
+                <LatencySurface3D 
+                  keyStats={keyStats} 
+                  triangles={triangles} 
+                  width={1000} 
+                  height={650} 
+                  flights={flights} 
+                  keycapRects={keycapRects} 
+                  isActivated={isDiag && diagnosticMode === "surface"}
+                  dynamicScale={dynamicScale}
+                />
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-      <DashboardPanel 
-        mode={uiState === "diagnostics" ? "diagnostics" : "practice"} 
-        diagnosticMode={diagnosticMode} 
-        focusedKey={focusedKey} 
-      />
+      )}
+
+      {/* Cylindrical Vector 3D (full viewport) */}
+      {diagnosticMode === "cylindrical" && (
+        <CylindricalVector3D
+          isActivated={isDiag && diagnosticMode === "cylindrical"}
+          initialCenterKey={focusedKey ?? undefined}
+          onClose={() => {
+            setDiagnosticMode("surface");
+            setFocusedKey(null);
+          }}
+        />
+      )}
+
+      {/* Dashboard Panel (non-cylindrical — cylindrical has its own panel) */}
+      {diagnosticMode !== "cylindrical" && (
+        <DashboardPanel 
+          mode={isDiag ? "diagnostics" : "practice"} 
+          diagnosticMode={diagnosticMode} 
+          focusedKey={focusedKey} 
+        />
+      )}
+
+
     </div>
   );
 };

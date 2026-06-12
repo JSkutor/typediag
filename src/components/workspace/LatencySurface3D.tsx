@@ -4,6 +4,7 @@ import React, { useRef, useEffect, useState } from "react";
 import { KeyResult } from "@/lib/skdm";
 import { Flight } from "./flightChoreography";
 import { Surface3DManager } from "./Surface3DManager";
+import { useWorkspaceStore } from "@/store/useWorkspaceStore";
 
 interface LatencySurface3DProps {
   keyStats: Record<string, KeyResult>;
@@ -124,6 +125,12 @@ export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
             <div
               key={k.key}
               id={`hud-label-${k.key}`}
+              className="hud-label-btn"
+              onClick={() => {
+                const { setDiagnosticMode, setFocusedKey } = useWorkspaceStore.getState();
+                setDiagnosticMode("cylindrical");
+                setFocusedKey(k.key);
+              }}
               style={{
                 position: "absolute",
                 top: 0,
@@ -131,10 +138,27 @@ export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
                 color: "rgba(228, 230, 235, 0.9)",
                 fontFamily: "var(--font-mono, monospace)",
                 fontWeight: "bold",
-                fontSize: "12px",
+                fontSize: "13px",
                 textShadow: "0 2px 4px rgba(0,0,0,0.5)",
                 willChange: "transform, opacity",
                 opacity: 0,
+                cursor: "pointer",
+                pointerEvents: "auto",
+                background: "rgba(30, 41, 59, 0.4)",
+                border: "1px solid rgba(99, 102, 241, 0.3)",
+                padding: "2px 6px",
+                borderRadius: "4px",
+                transition: "border-color 0.2s, background-color 0.2s, color 0.2s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = "rgba(99, 102, 241, 0.8)";
+                e.currentTarget.style.backgroundColor = "rgba(99, 102, 241, 0.2)";
+                e.currentTarget.style.color = "#ffffff";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = "rgba(99, 102, 241, 0.3)";
+                e.currentTarget.style.backgroundColor = "rgba(30, 41, 59, 0.4)";
+                e.currentTarget.style.color = "rgba(228, 230, 235, 0.9)";
               }}
             >
               {label}

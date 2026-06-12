@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SKDM - Cylindrical Vector Visualizer</title>
+    <!-- Google Fonts: Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Three.js & OrbitControls CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <link rel="stylesheet" href="/static/three_test.css">
+</head>
+<body>
+    <div id="canvas-container"></div>
+    
+    <!-- 3D 뷰포트 내 좌표 노드 위에 띄울 동적 HTML 라벨 -->
+    <div id="label-origin" class="three-label">원점(To): Q</div>
+    <div id="label-target" class="three-label">벡터(From): W</div>
+
+    <!-- 대시보드 UI 패널 -->
+    <div class="dashboard">
+        <div class="header">
+            <span class="subtitle">Spatial Keystroke Dynamics Model</span>
+            <h1 class="title">Cylindrical Vector Lab</h1>
+        </div>
+
+        <!-- 키 쌍 선택 드롭다운 -->
+        <div class="control-group">
+            <span class="label">타건 쌍 선택 (Transition Pair)</span>
+            <div class="selectors">
+                <div>
+                    <span class="label" style="font-size: 0.6rem; color: var(--accent-pink);">To Key (원점)</span>
+                    <select id="select-to"></select>
+                </div>
+                <div>
+                    <span class="label" style="font-size: 0.6rem; color: var(--accent-cyan);">From Key (방향)</span>
+                    <select id="select-from"></select>
+                </div>
+            </div>
+        </div>
+
+        <!-- 좌표 정보 보드 -->
+        <div class="info-card">
+            <div class="pair-header">
+                <span class="key-badge from" id="badge-from">-</span>
+                <span class="arrow-indicator">──🖚──</span>
+                <span class="key-badge origin" id="badge-to">-</span>
+            </div>
+
+            <div class="control-group">
+                <span class="label">원통형 좌표 (Cylindrical Coordinates)</span>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>축 (Axis)</th>
+                            <th>속성 (Property)</th>
+                            <th>값 (Value)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="coord-type">반지름 (r)</td>
+                            <td>타건 빈도 (Frequency)</td>
+                            <td class="val-r" id="cell-r">-</td>
+                        </tr>
+                        <tr>
+                            <td class="coord-type">각도 (θ)</td>
+                            <td>시작 키 방향 (Angle)</td>
+                            <td class="val-theta" id="cell-theta">-</td>
+                        </tr>
+                        <tr>
+                            <td class="coord-type">높이 (z)</td>
+                            <td>타건 지연 시간 (Latency)</td>
+                            <td class="val-z" id="cell-z">-</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="control-group" style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px;">
+                <span class="label">데카르트 좌표 (Three.js Cartesian)</span>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>축 (Axis)</th>
+                            <th>공식 (Formula)</th>
+                            <th>값 (Scaled Unit)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="coord-type">X축 (가로)</td>
+                            <td>r * cos(θ)</td>
+                            <td class="val-x" id="cell-x">-</td>
+                        </tr>
+                        <tr>
+                            <td class="coord-type">Y축 (높이)</td>
+                            <td>z_latency</td>
+                            <td class="val-y" id="cell-y">-</td>
+                        </tr>
+                        <tr>
+                            <td class="coord-type">Z축 (세로)</td>
+                            <td>r * sin(θ)</td>
+                            <td class="val-z-cart" id="cell-z-cart">-</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 수학 변환 공식 설명 -->
+        <div class="math-box">
+            <div class="math-title">좌표계 변환 계산식</div>
+            <div>
+                θ(라디안) = θ(도) * π / 180<br>
+                <div class="formula" id="formula-x">X = r * cos(θ)</div><br>
+                <div class="formula" id="formula-z">Z = r * sin(θ)</div><br>
+                <span style="font-size: 0.65rem; color: var(--text-muted); display: block; margin-top: 4px;">
+                    ※ 시각화 크기 조정을 위해 가로 평면 축은 <strong>0.3배</strong>, 높이 축은 <strong>0.015배</strong> 스케일이 적용되었습니다. (3D 상 1 unit = 빈도 3.3회 또는 지연시간 66.7ms)
+                </span>
+            </div>
+        </div>
+
+        <!-- 옵션 토글 -->
+        <div class="control-group">
+            <span class="label">시각화 설정 (Viewport Settings)</span>
+            <div class="toggles">
+                <div class="toggle-item">
+                    <span>원통형 가이드망 (Cylinder Grid)</span>
+                    <label class="switch">
+                        <input type="checkbox" id="toggle-cylinder" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="toggle-item">
+                    <span>격자 바닥판 (Ground Grid)</span>
+                    <label class="switch">
+                        <input type="checkbox" id="toggle-grid" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="toggle-item">
+                    <span>투영 점선 가이드 (Projections)</span>
+                    <label class="switch">
+                        <input type="checkbox" id="toggle-projections" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="toggle-item">
+                    <span>꽃잎형 곡면 (Petal Surface)</span>
+                    <label class="switch">
+                        <input type="checkbox" id="toggle-petal" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="toggle-item">
+                    <span>카메라 자동 회전 (Auto Orbit)</span>
+                    <label class="switch">
+                        <input type="checkbox" id="toggle-rotation">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-guide">
+            💡 마우스 좌클릭 드래그로 화면을 <strong>회전</strong>하고, 우클릭 드래그로 <strong>이동</strong>하며, 휠을 사용해 <strong>확대/축소</strong>할 수 있습니다.
+        </div>
+    </div>
+
+    <script src="/static/three_test.js"></script>
+</body>
+</html>

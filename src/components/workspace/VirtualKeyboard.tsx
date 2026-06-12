@@ -3,7 +3,7 @@
 import React, { useEffect, useRef } from "react";
 import { KeyResult } from "@/lib/skdm";
 import { LANDING_START } from "./flightChoreography";
-import { UiState } from "@/app/page";
+import { UiState } from "@/store/useWorkspaceStore";
 
 export type DiagnosticsMode =
   | "surface"
@@ -37,6 +37,7 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
   uiState = "diagnostics",
   focusedKey,
   keyDelays = {},
+  onKeyClick,
 }) => {
   const is3D = mode === "diagnostics";
   const isFlying = uiState === "flying";
@@ -126,7 +127,8 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
       height: "3rem",
       boxShadow: "none",
       transform: `translateZ(${zOffset}px)`,
-      pointerEvents: "none", // disable mouse interactions on keycaps
+      pointerEvents: is3D ? "auto" : "none", // enable mouse interactions in diagnostics mode
+      cursor: is3D ? "pointer" : "default",
     };
 
     return (
@@ -136,6 +138,11 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
         data-testid={`keycap-${lowerKey}`}
         className={`keycap-3d keycap-base ${keyClass} ${highlightClass}`}
         style={inlineStyle}
+        onClick={() => {
+          if (is3D && onKeyClick) {
+            onKeyClick(lowerKey);
+          }
+        }}
       >
         <span style={{ transform: "translateZ(1px)" }}>
           {label}

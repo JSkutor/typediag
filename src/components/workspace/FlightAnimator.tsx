@@ -12,6 +12,12 @@ interface FlightAnimatorProps {
 
 export const FlightAnimator: React.FC<FlightAnimatorProps> = ({ flights, isFlying, onComplete }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const onCompleteRef = useRef(onComplete);
+
+  // Keep the ref up-to-date with the latest callback without triggering re-runs
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
   
   // We don't use refs array here, we can just select by class using GSAP within the container.
   // Using memo to create the stable pool
@@ -78,8 +84,8 @@ export const FlightAnimator: React.FC<FlightAnimatorProps> = ({ flights, isFlyin
 
     // Call onComplete at the start of the handoff to begin the 3D cross-fade concurrently
     tl.call(() => {
-      if (onComplete) {
-        onComplete();
+      if (onCompleteRef.current) {
+        onCompleteRef.current();
       }
     }, [], "handoff");
 
@@ -87,7 +93,7 @@ export const FlightAnimator: React.FC<FlightAnimatorProps> = ({ flights, isFlyin
       tl.kill();
       gsap.set(allKeys, { opacity: 0 });
     };
-  }, [isFlying, flights, onComplete]);
+  }, [isFlying, flights]);
 
   return (
     <div ref={containerRef} style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 9999 }}>
