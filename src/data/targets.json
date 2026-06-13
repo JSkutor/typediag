@@ -1,0 +1,32 @@
+[
+  {
+    "id": "target_001",
+    "content": "물은 수소와 산소로 이루어진 화학 물질로 온도가 내려가면 얼음이 됩니다.",
+    "language": "ko"
+  },
+  {
+    "id": "target_002",
+    "content": "Light travels at a very high speed, and it is the fastest thing in the universe.",
+    "language": "en"
+  },
+  {
+    "id": "target_003",
+    "content": "식물은 햇빛을 받아 광합성을 하며 이를 통해 산소를 만들어냅니다.",
+    "language": "ko"
+  },
+  {
+    "id": "target_004",
+    "content": "Regular exercise helps to strengthen the heart and improve physical endurance.",
+    "language": "en"
+  },
+  {
+    "id": "target_005",
+    "content": "지구는 태양 주위를 도는 행성 중 하나이며 대기 중에 산소가 풍부합니다.",
+    "language": "ko"
+  },
+  {
+    "id": "target_006",
+    "content": "Reading books is a great way to expand your knowledge and improve focus.",
+    "language": "en"
+  }
+]

@@ -12,6 +12,8 @@ import { WorkspaceControls } from "@/components/workspace/WorkspaceControls";
 import { PracticeLayer } from "@/components/workspace/PracticeLayer";
 import { DiagnosticsLayer } from "@/components/workspace/DiagnosticsLayer";
 
+import targets from "@/data/targets.json";
+
 export default function Workspace() {
   const uiState = useWorkspaceStore((state) => state.uiState);
   const setUiState = useWorkspaceStore((state) => state.setUiState);
@@ -42,7 +44,9 @@ export default function Workspace() {
 
   // Initialize practice text
   useEffect(() => {
-    setTarget("The quick brown fox jumps over the lazy dog. Try typing some text to gather SKDM data, then press Tab to analyze the 3D latency surface.");
+    if (targets.length > 0) {
+      setTarget(targets[0].content);
+    }
   }, [setTarget]);
 
   // Pipeline calculation moved to Tab key handler to avoid lagging the 3D tilt transition

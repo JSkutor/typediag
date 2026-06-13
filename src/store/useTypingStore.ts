@@ -3,6 +3,7 @@ import { create } from "zustand";
 import type { KeyEvent } from "@/lib/skdm";
 import reference from "@/lib/skdm/__fixtures__/python-reference.json";
 import { getQwertyChar, assembleHangulWithPunctuation } from "@/utils/keyboardMap";
+import targets from "@/data/targets.json";
 
 export type SessionStatus = "idle" | "running" | "done";
 
@@ -158,7 +159,7 @@ export const useTypingStore = create<TypingState>((set, get) => ({
     }
     
     const dummyEvents = [...baseEvents, ...extraEvents];
-    const targetText = get().targetText || "The quick brown fox jumps over the lazy dog. Try typing some text to gather SKDM data, then press Tab to analyze the 3D latency surface.";
+    const targetText = get().targetText || (targets.length > 0 ? targets[0].content : "");
     
     set({
       typedText: targetText,
