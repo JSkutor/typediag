@@ -879,3 +879,31 @@ h4 {
   box-shadow: 0 2px 8px rgba(56, 97, 251, 0.35);
 }
 
+/* ==========================================================================
+   TypeDiag — Typing Cursor Styles
+   ========================================================================== */
+
+@keyframes typing-cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.typing-cursor {
+  position: absolute;
+  top: 15%;
+  width: 2px;
+  height: 70%;
+  background-color: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+  animation: typing-cursor-blink 1s steps(2, start) infinite;
+  z-index: 10;
+}
+
+.typing-cursor.left {
+  left: -1px;
+}
+
+.typing-cursor.right {
+  right: -1px;
+}
+
