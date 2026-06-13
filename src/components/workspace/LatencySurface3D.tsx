@@ -12,18 +12,12 @@ interface LatencySurface3DProps {
   width?: number;
   height?: number;
   flights?: Flight[];
-  keycapRects?: Record<string, DOMRect | { left: number; top: number; width: number; height: number }>;
   isActivated?: boolean;
-  dynamicScale?: number;
 }
 
 export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
   keyStats,
-  width = 800,
-  height = 500,
-  keycapRects = {},
   isActivated = false,
-  dynamicScale = 1,
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const labelsContainerRef = useRef<HTMLDivElement>(null);
@@ -34,14 +28,20 @@ export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
   // Initialize and dispose manager
   useEffect(() => {
     if (!mountRef.current) return;
-    const manager = new Surface3DManager(mountRef.current, width, height);
+    const el = mountRef.current;
+    const w = el.clientWidth || window.innerWidth;
+    const h = el.clientHeight || window.innerHeight;
+
+    const manager = new Surface3DManager(el, w, h);
     managerRef.current = manager;
 
     manager.onUpdateHUD = (surfaceKeys, elevationScale, camera, opacity) => {
       setKeys(surfaceKeys);
       
-      if (!labelsContainerRef.current) return;
+      if (!labelsContainerRef.current || !mountRef.current) return;
       const TARGET_ELEVATION_SCALE = 120;
+      const currentWidth = mountRef.current.clientWidth;
+      const currentHeight = mountRef.current.clientHeight;
 
       surfaceKeys.forEach((k) => {
         const vec = manager.get3DPos(k, elevationScale);
@@ -50,8 +50,8 @@ export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
 
         vec.project(camera);
 
-        const x = (vec.x * 0.5 + 0.5) * width;
-        const y = (vec.y * -0.5 + 0.5) * height;
+        const x = (vec.x * 0.5 + 0.5) * currentWidth;
+        const y = (vec.y * -0.5 + 0.5) * currentHeight;
 
         const el = document.getElementById(`hud-label-${k.key}`);
         if (el) {
@@ -66,18 +66,28 @@ export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
       });
     };
 
+    const handleResize = () => {
+      if (!mountRef.current || !managerRef.current) return;
+      const w = mountRef.current.clientWidth;
+      const h = mountRef.current.clientHeight;
+      managerRef.current.resize(w, h);
+    };
+
+    window.addEventListener("resize", handleResize);
+
     return () => {
+      window.removeEventListener("resize", handleResize);
       manager.dispose();
       managerRef.current = null;
     };
-  }, [width, height]);
+  }, []);
 
   // Update geometry/layout when data changes
   useEffect(() => {
     if (managerRef.current && Object.keys(keyStats).length > 0) {
-      managerRef.current.updateData(keyStats, keycapRects, dynamicScale);
+      managerRef.current.updateData(keyStats);
     }
-  }, [keyStats, keycapRects, dynamicScale]);
+  }, [keyStats]);
 
   // Handle activation timeline
   useEffect(() => {
@@ -92,7 +102,7 @@ export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
 
   return (
     <div
-      style={{ position: "relative", width, height, overflow: "hidden" }}
+      style={{ position: "relative", width: "100%", height: "100%", overflow: "visible" }}
       onTouchStart={handleTouch}
       onTouchMove={handleTouch}
     >

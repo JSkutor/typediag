@@ -131,7 +131,10 @@ export class Cylindrical3DManager {
     // Controls
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
-    this.controls.dampingFactor = 0.05;
+    this.controls.dampingFactor = 0.2;
+    this.controls.rotateSpeed = 1.2;
+    this.controls.zoomSpeed = 1.2;
+    this.controls.panSpeed = 1.2;
     this.controls.maxPolarAngle = Math.PI / 2 + 0.05;
     this.controls.minDistance = 3;
     this.controls.maxDistance = 25;

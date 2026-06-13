@@ -10,6 +10,50 @@ const IS_SURFACE_KEY = (key: string) => {
   return /^[a-z]$/.test(lower) || lower === "," || lower === ".";
 };
 
+// --- Keyboard 3D Layout Definition ---
+const KEY_LAYOUT: Record<string, { x: number; z: number; w: number; h: number }> = {};
+const GAP = 0.1667; // matches 8px gap relative to 48px key width (3rem)
+const ROW_Z = [0, 1 + GAP, 2 * (1 + GAP)];
+const KEY_H = 1;
+
+// Row 0: margin = 0
+let curX = 0;
+["q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "backspace"].forEach((k) => {
+  let w = k === "backspace" ? 1.6667 : 1.0;
+  KEY_LAYOUT[k] = { x: curX + w / 2, z: ROW_Z[0], w, h: KEY_H };
+  curX += w + GAP;
+});
+const row0Width = curX - GAP;
+
+// Row 1: margin = 1.5rem = 0.5 U
+curX = 0.5;
+["a", "s", "d", "f", "g", "h", "j", "k", "l", "enter"].forEach((k) => {
+  let w = k === "enter" ? 1.6667 : 1.0;
+  KEY_LAYOUT[k] = { x: curX + w / 2, z: ROW_Z[1], w, h: KEY_H };
+  curX += w + GAP;
+});
+const row1Width = curX - GAP;
+
+// Row 2: margin = 3rem = 1.0 U
+curX = 1.0;
+["shift", "z", "x", "c", "v", "b", "n", "m", ",", "."].forEach((k) => {
+  let w = k === "shift" ? 1.6667 : 1.0;
+  KEY_LAYOUT[k] = { x: curX + w / 2, z: ROW_Z[2], w, h: KEY_H };
+  curX += w + GAP;
+});
+const row2Width = curX - GAP;
+
+const LAYOUT_WIDTH = Math.max(row0Width, row1Width, row2Width);
+const LAYOUT_DEPTH = ROW_Z[2] + KEY_H;
+const SCALE = 70; // Map unit scale to match the desired size
+
+for (const k in KEY_LAYOUT) {
+  KEY_LAYOUT[k].x = (KEY_LAYOUT[k].x - LAYOUT_WIDTH / 2) * SCALE;
+  KEY_LAYOUT[k].z = (KEY_LAYOUT[k].z - LAYOUT_DEPTH / 2) * SCALE;
+  KEY_LAYOUT[k].w *= SCALE;
+  KEY_LAYOUT[k].h *= SCALE;
+}
+
 export class Surface3DManager {
   private container: HTMLDivElement;
   private scene: THREE.Scene;
@@ -42,18 +86,15 @@ export class Surface3DManager {
   // Callback for updating HUD labels
   public onUpdateHUD?: (surfaceKeys: KeyResult[], elevationScale: number, camera: THREE.Camera, opacity: number) => void;
 
-  // Stored for fallback/computation
-  private canvasRect: DOMRect;
-  private scaleX: number;
-  private scaleY: number;
-  private keycapRects: Record<string, DOMRect | { left: number; top: number; width: number; height: number }> = {};
-  
   constructor(container: HTMLDivElement, width: number, height: number) {
     this.container = container;
     this.width = width;
     this.height = height;
     
     this.scene = new THREE.Scene();
+    this.scene.background = new THREE.Color(0x1a1b1e);
+    this.scene.fog = new THREE.FogExp2(0x1a1b1e, 0.001);
+
     this.camera = new THREE.PerspectiveCamera(45, width / height, 1, 3000);
     
     const fovRad = (45 * Math.PI) / 180;
@@ -62,7 +103,7 @@ export class Surface3DManager {
     
     this.animState.camY = this.dist;
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
     this.renderer.setSize(width, height);
     this.renderer.setPixelRatio(window.devicePixelRatio || 1);
     this.container.appendChild(this.renderer.domElement);
@@ -78,53 +119,25 @@ export class Surface3DManager {
     directionalLight2.position.set(-100, 150, -50);
     this.scene.add(directionalLight2);
     
+    const gridHelper = new THREE.GridHelper(1000, 40, 0x3d3e42, 0x323336);
+    gridHelper.position.y = -10;
+    this.scene.add(gridHelper);
+    
     this.geometry = new THREE.BufferGeometry();
     
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
-    this.controls.dampingFactor = 0.05;
+    this.controls.dampingFactor = 0.2;
+    this.controls.rotateSpeed = 1.2;
+    this.controls.zoomSpeed = 1.2;
+    this.controls.panSpeed = 1.2;
     this.controls.maxPolarAngle = Math.PI / 2 - 0.05;
-    
-    this.canvasRect = container.getBoundingClientRect();
-    this.scaleX = 1;
-    this.scaleY = 1;
 
     this.renderLoop = this.renderLoop.bind(this);
     this.reqId = requestAnimationFrame(this.renderLoop);
   }
 
-  public updateData(
-    keyStats: Record<string, KeyResult>, 
-    keycapRects: Record<string, DOMRect | { left: number; top: number; width: number; height: number }>, 
-    dynamicScale: number
-  ) {
-    this.scaleX = dynamicScale;
-    this.scaleY = dynamicScale;
-    this.keycapRects = keycapRects;
-    
-    const expectedWidth = this.width * dynamicScale;
-    const expectedHeight = this.height * dynamicScale;
-    let rect = this.container.getBoundingClientRect();
-
-    if (Math.abs(rect.width - expectedWidth) > 2 || Math.abs(rect.height - expectedHeight) > 2) {
-      const winW = typeof window !== "undefined" ? window.innerWidth : 1024;
-      const winH = typeof window !== "undefined" ? window.innerHeight : 768;
-      const expectedLeft = (winW - expectedWidth) / 2;
-      const expectedTop = (winH - expectedHeight) / 2;
-      rect = {
-        left: expectedLeft,
-        top: expectedTop,
-        right: expectedLeft + expectedWidth,
-        bottom: expectedTop + expectedHeight,
-        width: expectedWidth,
-        height: expectedHeight,
-        x: expectedLeft,
-        y: expectedTop,
-        toJSON: () => {},
-      } as DOMRect;
-    }
-    this.canvasRect = rect;
-
+  public updateData(keyStats: Record<string, KeyResult>) {
     const keyArray = Object.values(keyStats);
     this.surfaceKeys = keyArray.filter((k) => IS_SURFACE_KEY(k.key));
     if (this.surfaceKeys.length === 0) return;
@@ -132,7 +145,7 @@ export class Surface3DManager {
     this.positions = new Float32Array(this.surfaceKeys.length * 3);
     
     // Clear previous meshes
-    this.scene.children = this.scene.children.filter(c => c instanceof THREE.Light);
+    this.scene.children = this.scene.children.filter(c => c instanceof THREE.Light || c instanceof THREE.GridHelper);
     this.dropLineGeometries = [];
     
     // Recreate geometry and materials
@@ -148,10 +161,9 @@ export class Surface3DManager {
 
     if (this.surfaceKeys.length >= 3) {
       const points: Array<[number, number]> = this.surfaceKeys.map((k) => {
-        const keyName = k.key.toLowerCase();
-        const r = this.keycapRects[keyName];
-        if (r) {
-          return [r.left + r.width / 2, r.top + r.height / 2];
+        const layout = KEY_LAYOUT[k.key.toLowerCase()];
+        if (layout) {
+          return [layout.x, layout.z];
         }
         return [k.x, k.y];
       });
@@ -191,10 +203,11 @@ export class Surface3DManager {
       transparent: true,
       opacity: 0.3,
     });
-    const baseMaterial = new THREE.LineBasicMaterial({
-      color: 0x8d929b,
-      transparent: true,
-      opacity: 0.15,
+
+    const keycapMaterial = new THREE.MeshStandardMaterial({
+      color: 0x2d3139,
+      roughness: 0.6,
+      metalness: 0.2,
     });
 
     this.surfaceKeys.forEach((k) => {
@@ -207,52 +220,43 @@ export class Surface3DManager {
     });
 
     keyArray.forEach((k) => {
-      const r = this.keycapRects[k.key.toLowerCase()];
-      if (!r) return;
+      const layout = KEY_LAYOUT[k.key.toLowerCase()];
+      if (!layout) return;
 
-      const tx = r.left + r.width / 2;
-      const ty = r.top + r.height / 2;
-      const lx = (tx - this.canvasRect.left) / this.scaleX;
-      const ly = (ty - this.canvasRect.top) / this.scaleY;
-
-      const halfW = (r.width / 2) / this.scaleX;
-      const halfH = (r.height / 2) / this.scaleY;
-
-      const px = lx - this.width / 2;
-      const pz = ly - this.height / 2;
-
-      const p1 = new THREE.Vector3(px - halfW, 0, pz - halfH);
-      const p2 = new THREE.Vector3(px + halfW, 0, pz - halfH);
-      const p3 = new THREE.Vector3(px + halfW, 0, pz + halfH);
-      const p4 = new THREE.Vector3(px - halfW, 0, pz + halfH);
-
-      const boxGeom = new THREE.BufferGeometry().setFromPoints([p1, p2, p3, p4, p1]);
-      const baseBox = new THREE.Line(boxGeom, baseMaterial);
-      this.scene.add(baseBox);
+      const boxW = layout.w - (GAP * SCALE);
+      const boxD = layout.h - (GAP * SCALE);
+      const boxGeom = new THREE.BoxGeometry(boxW, 10, boxD);
+      const boxMesh = new THREE.Mesh(boxGeom, keycapMaterial);
+      // y=0 is the top of the keycaps (base level), so center y at -5
+      boxMesh.position.set(layout.x, -5, layout.z);
+      this.scene.add(boxMesh);
     });
     
     // Apply current animState to geometry
-    this.applyAnimState();
+    this.applyAnimState(false);
   }
   
   public get3DPos(k: KeyResult, elevationScale: number) {
     const keyName = k.key.toLowerCase();
-    const rect = this.keycapRects[keyName];
+    const layout = KEY_LAYOUT[keyName];
 
-    if (rect) {
-      const tx = rect.left + rect.width / 2;
-      const ty = rect.top + rect.height / 2;
-      const lx = (tx - this.canvasRect.left) / this.scaleX;
-      const ly = (ty - this.canvasRect.top) / this.scaleY;
-
+    if (layout) {
       return new THREE.Vector3(
-        lx - this.width / 2,
+        layout.x,
         k.zSmoothed * elevationScale,
-        ly - this.height / 2
+        layout.z
       );
     }
     
-    return new THREE.Vector3(0, k.zSmoothed * elevationScale, 0); // fallback is less important here
+    return new THREE.Vector3(0, k.zSmoothed * elevationScale, 0);
+  }
+
+  public resize(w: number, h: number): void {
+    this.width = w;
+    this.height = h;
+    this.camera.aspect = w / h;
+    this.camera.updateProjectionMatrix();
+    this.renderer.setSize(w, h);
   }
 
   public setActivated(activated: boolean) {
@@ -270,8 +274,8 @@ export class Surface3DManager {
       });
       
       const TARGET_ELEVATION_SCALE = 120;
-      const CAM_TARGET_Y = 360;
-      const CAM_TARGET_Z = 360;
+      const CAM_TARGET_Y = 480;
+      const CAM_TARGET_Z = 480;
       
       // Delay for cross-fade
       this.timeline.to({}, { duration: TRANSITION_TIMING.surfaceCrossFadeDelay });
@@ -300,9 +304,11 @@ export class Surface3DManager {
     }
   }
 
-  private applyAnimState() {
-    this.camera.position.set(0, this.animState.camY, this.animState.camZ);
-    this.camera.lookAt(0, 0, 0);
+  private applyAnimState(updateCamera = true) {
+    if (updateCamera) {
+      this.camera.position.set(0, this.animState.camY, this.animState.camZ);
+      this.camera.lookAt(0, 0, 0);
+    }
     
     this.surfaceKeys.forEach((k, i) => {
       const currentY = k.zSmoothed * this.animState.elevationScale;
@@ -339,6 +345,7 @@ export class Surface3DManager {
   public dispose() {
     cancelAnimationFrame(this.reqId);
     if (this.timeline) this.timeline.kill();
+    this.controls.dispose();
     if (this.container.contains(this.renderer.domElement)) {
       this.container.removeChild(this.renderer.domElement);
     }

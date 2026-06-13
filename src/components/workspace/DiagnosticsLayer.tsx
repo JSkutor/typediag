@@ -36,7 +36,7 @@ export const DiagnosticsLayer: React.FC<DiagnosticsLayerProps> = ({
 
   return (
     <div className={`screen-diagnostics ${!isVisible ? "invisible" : ""}`}>
-      {/* Keyboard + Surface (non-cylindrical modes) */}
+      {/* Keyboard (non-cylindrical modes) */}
       {diagnosticMode !== "cylindrical" && (
         <div className={`kbd-wrap ${uiState}`} style={{ transform: `scale(${dynamicScale})` }}>
           <div style={{ position: "relative", width: 1000, height: 650, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -79,32 +79,26 @@ export const DiagnosticsLayer: React.FC<DiagnosticsLayerProps> = ({
                 }}
               />
             </div>
-
-            {/* 3D WebGL Latency Surface */}
-            {triangles && (
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  transition: "opacity 0.22s ease-in-out",
-                  opacity: isDiag && diagnosticMode === "surface" ? 1 : 0,
-                  pointerEvents: isDiag && diagnosticMode === "surface" ? "auto" : "none",
-                  zIndex: 1,
-                }}
-              >
-                <LatencySurface3D 
-                  keyStats={keyStats} 
-                  triangles={triangles} 
-                  width={1000} 
-                  height={650} 
-                  flights={flights} 
-                  keycapRects={keycapRects} 
-                  isActivated={isDiag && diagnosticMode === "surface"}
-                  dynamicScale={dynamicScale}
-                />
-              </div>
-            )}
           </div>
+        </div>
+      )}
+
+      {/* 3D WebGL Latency Surface (full viewport) */}
+      {diagnosticMode === "surface" && triangles && (
+        <div
+          className="cyl-viewport"
+          style={{
+            zIndex: 1,
+            transition: "opacity 0.22s ease-in-out",
+            opacity: isDiag ? 1 : 0,
+            pointerEvents: isDiag ? "auto" : "none",
+          }}
+        >
+          <LatencySurface3D 
+            keyStats={keyStats} 
+            triangles={triangles} 
+            isActivated={isDiag && diagnosticMode === "surface"}
+          />
         </div>
       )}
 
@@ -128,8 +122,6 @@ export const DiagnosticsLayer: React.FC<DiagnosticsLayerProps> = ({
           focusedKey={focusedKey} 
         />
       )}
-
-
     </div>
   );
 };

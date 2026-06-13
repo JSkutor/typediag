@@ -24,7 +24,7 @@ export const WorkspaceControls: React.FC<WorkspaceControlsProps> = ({ onStartDia
         }}
         className="mode-toggle-btn"
       >
-        {uiState === "practice" ? "Enter TypeDiag Lab (Tab)" : "Return to Practice (Tab)"}
+        {uiState === "practice" ? "Enter Diagnostics (Tab)" : "Return to Practice (Tab)"}
       </button>
 
       {/* Developer Dummy Data Loader */}

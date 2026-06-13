@@ -208,7 +208,7 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
           <span className="cyl-panel__subtitle">
             Spatial Keystroke Dynamics Model
           </span>
-          <h2 className="cyl-panel__title">Cylindrical Vector Lab</h2>
+          <h2 className="cyl-panel__title">Cylindrical Vector Diagnostics</h2>
         </div>
 
         {/* Key pair selectors */}
