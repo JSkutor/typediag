@@ -32,6 +32,12 @@ export function useWorkspaceKeybindings({ onTransition }: WorkspaceKeybindingsPr
 
       if (uiState === "practice") {
         if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+        // Prevent default browser behavior for navigation and spacing keys
+        if (e.code === "Space" || e.code === "ArrowRight" || e.code === "Enter") {
+          e.preventDefault();
+        }
+
         useTypingStore.getState().handlePhysicalKeyPress(e.code, e.shiftKey, performance.now());
         return;
       }

@@ -25,6 +25,7 @@ interface TypingState {
   lastKeyAt: number | null;
 
   setTarget: (text: string) => void;
+  nextTarget: () => void;
   /** Record one physical key press (already normalized) at time `at` (ms). */
   recordKey: (token: string, at: number) => void;
   setTypedText: (value: string) => void;
@@ -59,6 +60,12 @@ export const useTypingStore = create<TypingState>((set, get) => ({
       lastKeyAt: null,
     }),
 
+  nextTarget: () => {
+    const currentIndex = targets.findIndex((t) => t.content === get().targetText);
+    const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % targets.length;
+    get().setTarget(targets[nextIndex].content);
+  },
+
   recordKey: (token, at) => {
     const { lastKey, lastKeyAt, status } = get();
 
@@ -88,7 +95,18 @@ export const useTypingStore = create<TypingState>((set, get) => ({
 
   handlePhysicalKeyPress: (code, shiftKey, timestamp) => {
     const state = get();
-    if (state.status === "done") return;
+    
+    if (code === "ArrowRight") {
+      get().nextTarget();
+      return;
+    }
+
+    if (state.status === "done") {
+      if (code === "Space" || code === "Enter") {
+        get().nextTarget();
+      }
+      return;
+    }
 
     let keyToken = code.toLowerCase().replace("key", "");
     if (code === "Space") keyToken = "space";
