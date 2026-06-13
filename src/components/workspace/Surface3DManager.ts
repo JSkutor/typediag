@@ -5,6 +5,8 @@ import { KeyResult } from "@/lib/skdm";
 import gsap from "gsap";
 import { TRANSITION_TIMING } from "./flightChoreography";
 
+import { buildLayout } from "@/lib/skdm/layout";
+
 const IS_SURFACE_KEY = (key: string) => {
   const lower = key.toLowerCase();
   return /^[a-z]$/.test(lower) || lower === "," || lower === ".";
@@ -13,43 +15,55 @@ const IS_SURFACE_KEY = (key: string) => {
 // --- Keyboard 3D Layout Definition ---
 const KEY_LAYOUT: Record<string, { x: number; z: number; w: number; h: number }> = {};
 const GAP = 0.1667; // matches 8px gap relative to 48px key width (3rem)
-const ROW_Z = [0, 1 + GAP, 2 * (1 + GAP)];
-const KEY_H = 1;
-
-// Row 0: margin = 0
-let curX = 0;
-["q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "backspace"].forEach((k) => {
-  let w = k === "backspace" ? 1.6667 : 1.0;
-  KEY_LAYOUT[k] = { x: curX + w / 2, z: ROW_Z[0], w, h: KEY_H };
-  curX += w + GAP;
-});
-const row0Width = curX - GAP;
-
-// Row 1: margin = 1.5rem = 0.5 U
-curX = 0.5;
-["a", "s", "d", "f", "g", "h", "j", "k", "l", "enter"].forEach((k) => {
-  let w = k === "enter" ? 1.6667 : 1.0;
-  KEY_LAYOUT[k] = { x: curX + w / 2, z: ROW_Z[1], w, h: KEY_H };
-  curX += w + GAP;
-});
-const row1Width = curX - GAP;
-
-// Row 2: margin = 3rem = 1.0 U
-curX = 1.0;
-["shift", "z", "x", "c", "v", "b", "n", "m", ",", "."].forEach((k) => {
-  let w = k === "shift" ? 1.6667 : 1.0;
-  KEY_LAYOUT[k] = { x: curX + w / 2, z: ROW_Z[2], w, h: KEY_H };
-  curX += w + GAP;
-});
-const row2Width = curX - GAP;
-
-const LAYOUT_WIDTH = Math.max(row0Width, row1Width, row2Width);
-const LAYOUT_DEPTH = ROW_Z[2] + KEY_H;
 const SCALE = 70; // Map unit scale to match the desired size
+const SURFACE_Y_OFFSET = 2.0; // Avoid z-fighting with 3D keycaps when elevation is 0
+
+const rawLayout = buildLayout();
+
+// Map raw 2D layout to 3D KEY_LAYOUT
+for (const [keyName, pos] of Object.entries(rawLayout)) {
+  const w = 1.0;
+  const h = 1.0; // depth
+
+  // 3D coordinate mapping:
+  // x is the same
+  // z represents the row depth. Since pos.y is larger for top rows, we invert it.
+  // We use 2.0 (QWERTY row) as the reference z = 0.
+  const z = (2.0 - pos.y) * (1 + GAP);
+  
+  KEY_LAYOUT[keyName] = {
+    x: pos.x,
+    z,
+    w,
+    h,
+  };
+}
+
+// Calculate bounding box for center alignment
+let rawMinX = Infinity;
+let rawMaxX = -Infinity;
+let rawMinZ = Infinity;
+let rawMaxZ = -Infinity;
 
 for (const k in KEY_LAYOUT) {
-  KEY_LAYOUT[k].x = (KEY_LAYOUT[k].x - LAYOUT_WIDTH / 2) * SCALE;
-  KEY_LAYOUT[k].z = (KEY_LAYOUT[k].z - LAYOUT_DEPTH / 2) * SCALE;
+  const layout = KEY_LAYOUT[k];
+  const halfW = layout.w / 2;
+  const halfH = layout.h / 2;
+  if (layout.x - halfW < rawMinX) rawMinX = layout.x - halfW;
+  if (layout.x + halfW > rawMaxX) rawMaxX = layout.x + halfW;
+  if (layout.z - halfH < rawMinZ) rawMinZ = layout.z - halfH;
+  if (layout.z + halfH > rawMaxZ) rawMaxZ = layout.z + halfH;
+}
+
+const LAYOUT_WIDTH = rawMaxX - rawMinX;
+const LAYOUT_DEPTH = rawMaxZ - rawMinZ;
+const centerX = (rawMinX + rawMaxX) / 2;
+const centerZ = (rawMinZ + rawMaxZ) / 2;
+
+// Apply scale and centering offset
+for (const k in KEY_LAYOUT) {
+  KEY_LAYOUT[k].x = (KEY_LAYOUT[k].x - centerX) * SCALE;
+  KEY_LAYOUT[k].z = (KEY_LAYOUT[k].z - centerZ) * SCALE;
   KEY_LAYOUT[k].w *= SCALE;
   KEY_LAYOUT[k].h *= SCALE;
 }
@@ -65,6 +79,8 @@ export class Surface3DManager {
   private dropLineGeometries: THREE.BufferGeometry[] = [];
   private positions: Float32Array = new Float32Array();
   private surfaceKeys: KeyResult[] = [];
+  private innerBorderPoints: Array<[number, number]> = [];
+  private outerBorderPoints: Array<[number, number]> = [];
   
   private reqId: number = 0;
   
@@ -124,6 +140,132 @@ export class Surface3DManager {
     this.scene.add(gridHelper);
     
     this.geometry = new THREE.BufferGeometry();
+
+    // 1. Calculate Inner Border Points along the actual staggered keyboard silhouette
+    const q = KEY_LAYOUT["q"];
+    const p = KEY_LAYOUT["p"];
+    const l = KEY_LAYOUT["l"];
+    const dot = KEY_LAYOUT["."];
+    const z = KEY_LAYOUT["z"];
+    const a = KEY_LAYOUT["a"];
+
+    if (q && p && l && dot && z && a) {
+      // Order of vertices around the alphanumeric key region to form a closed loop
+      const vertices: Array<[number, number]> = [
+        [q.x - q.w / 2, q.z - q.h / 2], // 1. QWERTY Top-Left
+        [p.x + p.w / 2, p.z - p.h / 2], // 2. QWERTY Top-Right
+        [p.x + p.w / 2, p.z + p.h / 2], // 3. QWERTY Bottom-Right (stagger transition start)
+        [l.x + l.w / 2, l.z - l.h / 2], // 4. ASDF Top-Right (stagger transition end)
+        [l.x + l.w / 2, l.z + l.h / 2], // 5. ASDF Bottom-Right (stagger transition start)
+        [dot.x + dot.w / 2, dot.z - dot.h / 2], // 6. ZXCV Top-Right (stagger transition end)
+        [dot.x + dot.w / 2, dot.z + dot.h / 2], // 7. ZXCV Bottom-Right
+        [z.x - z.w / 2, z.z + z.h / 2], // 8. ZXCV Bottom-Left
+        [z.x - z.w / 2, z.z - z.h / 2], // 9. ZXCV Top-Left (stagger transition end)
+        [a.x - a.w / 2, a.z + a.h / 2], // 10. ASDF Bottom-Left (stagger transition start)
+        [a.x - a.w / 2, a.z - a.h / 2], // 11. ASDF Top-Left (stagger transition end)
+        [q.x - q.w / 2, q.z + q.h / 2], // 12. QWERTY Bottom-Left (stagger transition start)
+      ];
+
+      const innerPoints: Array<[number, number]> = [];
+      const step = SCALE;
+
+      for (let i = 0; i < vertices.length; i++) {
+        const p1 = vertices[i];
+        const p2 = vertices[(i + 1) % vertices.length];
+        
+        const dx = p2[0] - p1[0];
+        const dz = p2[1] - p1[1];
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        const steps = Math.max(1, Math.ceil(dist / step));
+        
+        for (let j = 0; j < steps; j++) {
+          const t = j / steps;
+          innerPoints.push([p1[0] + dx * t, p1[1] + dz * t]);
+        }
+      }
+      this.innerBorderPoints = innerPoints;
+    } else {
+      // Fallback: calculate raw alphanumeric bounding box if keys are missing
+      let innerMinX = Infinity;
+      let innerMaxX = -Infinity;
+      let innerMinZ = Infinity;
+      let innerMaxZ = -Infinity;
+      for (const k in KEY_LAYOUT) {
+        if (!IS_SURFACE_KEY(k)) continue;
+        const layout = KEY_LAYOUT[k];
+        const halfW = layout.w / 2;
+        const halfH = layout.h / 2;
+        if (layout.x - halfW < innerMinX) innerMinX = layout.x - halfW;
+        if (layout.x + halfW > innerMaxX) innerMaxX = layout.x + halfW;
+        if (layout.z - halfH < innerMinZ) innerMinZ = layout.z - halfH;
+        if (layout.z + halfH > innerMaxZ) innerMaxZ = layout.z + halfH;
+      }
+      
+      const step = SCALE;
+      const generateBoxPoints = (bMinX: number, bMaxX: number, bMinZ: number, bMaxZ: number) => {
+        const points: Array<[number, number]> = [];
+        const xSteps = Math.ceil((bMaxX - bMinX) / step);
+        for (let i = 0; i <= xSteps; i++) {
+          const t = i / xSteps;
+          const x = bMinX + t * (bMaxX - bMinX);
+          points.push([x, bMinZ]);
+          points.push([x, bMaxZ]);
+        }
+        const zSteps = Math.ceil((bMaxZ - bMinZ) / step);
+        for (let i = 1; i < zSteps; i++) {
+          const t = i / zSteps;
+          const z = bMinZ + t * (bMaxZ - bMinZ);
+          points.push([bMinX, z]);
+          points.push([bMaxX, z]);
+        }
+        return points;
+      };
+      this.innerBorderPoints = generateBoxPoints(innerMinX, innerMaxX, innerMinZ, innerMaxZ);
+    }
+
+    // 2. Calculate Outer Bounding Box for the entire keyboard layout (rectangular base)
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minZ = Infinity;
+    let maxZ = -Infinity;
+    for (const k in KEY_LAYOUT) {
+      const layout = KEY_LAYOUT[k];
+      const halfW = layout.w / 2;
+      const halfH = layout.h / 2;
+      if (layout.x - halfW < minX) minX = layout.x - halfW;
+      if (layout.x + halfW > maxX) maxX = layout.x + halfW;
+      if (layout.z - halfH < minZ) minZ = layout.z - halfH;
+      if (layout.z + halfH > maxZ) maxZ = layout.z + halfH;
+    }
+
+    // Add a small padding for the outer edge of the keyboard
+    const PADDING = 0.5 * SCALE;
+    const outerMinX = minX - PADDING;
+    const outerMaxX = maxX + PADDING;
+    const outerMinZ = minZ - PADDING;
+    const outerMaxZ = maxZ + PADDING;
+
+    const step = SCALE;
+    const generateBoxPoints = (bMinX: number, bMaxX: number, bMinZ: number, bMaxZ: number) => {
+      const points: Array<[number, number]> = [];
+      const xSteps = Math.ceil((bMaxX - bMinX) / step);
+      for (let i = 0; i <= xSteps; i++) {
+        const t = i / xSteps;
+        const x = bMinX + t * (bMaxX - bMinX);
+        points.push([x, bMinZ]);
+        points.push([x, bMaxZ]);
+      }
+      const zSteps = Math.ceil((bMaxZ - bMinZ) / step);
+      for (let i = 1; i < zSteps; i++) {
+        const t = i / zSteps;
+        const z = bMinZ + t * (bMaxZ - bMinZ);
+        points.push([bMinX, z]);
+        points.push([bMaxX, z]);
+      }
+      return points;
+    };
+
+    this.outerBorderPoints = generateBoxPoints(outerMinX, outerMaxX, outerMinZ, outerMaxZ);
     
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
@@ -142,13 +284,17 @@ export class Surface3DManager {
     this.surfaceKeys = keyArray.filter((k) => IS_SURFACE_KEY(k.key));
     if (this.surfaceKeys.length === 0) return;
 
-    this.positions = new Float32Array(this.surfaceKeys.length * 3);
+    const N = this.surfaceKeys.length;
+    const M1 = this.innerBorderPoints.length;
+    const M2 = this.outerBorderPoints.length;
+    this.positions = new Float32Array((N + M1 + M2) * 3);
     
     // Clear previous meshes
     this.scene.children = this.scene.children.filter(c => c instanceof THREE.Light || c instanceof THREE.GridHelper);
     this.dropLineGeometries = [];
     
     // Recreate geometry and materials
+    // 1. Fill active key positions
     this.surfaceKeys.forEach((k, i) => {
       const pos = this.get3DPos(k, 0);
       this.positions[i * 3] = pos.x;
@@ -156,17 +302,47 @@ export class Surface3DManager {
       this.positions[i * 3 + 2] = pos.z;
     });
 
+    // 2. Fill inner boundary positions (always y = SURFACE_Y_OFFSET)
+    this.innerBorderPoints.forEach((bp, i) => {
+      const idx = (N + i) * 3;
+      this.positions[idx] = bp[0];
+      this.positions[idx + 1] = SURFACE_Y_OFFSET;
+      this.positions[idx + 2] = bp[1];
+    });
+
+    // 3. Fill outer boundary positions (always y = SURFACE_Y_OFFSET)
+    this.outerBorderPoints.forEach((bp, i) => {
+      const idx = (N + M1 + i) * 3;
+      this.positions[idx] = bp[0];
+      this.positions[idx + 1] = SURFACE_Y_OFFSET;
+      this.positions[idx + 2] = bp[1];
+    });
+
     this.geometry = new THREE.BufferGeometry();
     this.geometry.setAttribute("position", new THREE.BufferAttribute(this.positions, 3));
 
-    if (this.surfaceKeys.length >= 3) {
-      const points: Array<[number, number]> = this.surfaceKeys.map((k) => {
+    if (N >= 3) {
+      const points: Array<[number, number]> = [];
+      // Add active keys
+      this.surfaceKeys.forEach((k) => {
         const layout = KEY_LAYOUT[k.key.toLowerCase()];
         if (layout) {
-          return [layout.x, layout.z];
+          points.push([layout.x, layout.z]);
+        } else {
+          const x = (k.x - centerX) * SCALE;
+          const z = (((2.0 - k.y) * (1 + GAP)) - centerZ) * SCALE;
+          points.push([x, z]);
         }
-        return [k.x, k.y];
       });
+      // Add inner boundary points
+      this.innerBorderPoints.forEach((bp) => {
+        points.push([bp[0], bp[1]]);
+      });
+      // Add outer boundary points
+      this.outerBorderPoints.forEach((bp) => {
+        points.push([bp[0], bp[1]]);
+      });
+
       const delaunay = Delaunay.from(points);
       this.geometry.setIndex(Array.from(delaunay.triangles));
       this.geometry.computeVertexNormals();
@@ -243,12 +419,15 @@ export class Surface3DManager {
     if (layout) {
       return new THREE.Vector3(
         layout.x,
-        k.zSmoothed * elevationScale,
+        SURFACE_Y_OFFSET + k.zSmoothed * elevationScale,
         layout.z
       );
     }
     
-    return new THREE.Vector3(0, k.zSmoothed * elevationScale, 0);
+    // Fallback: apply same transformation as KEY_LAYOUT
+    const x = (k.x - centerX) * SCALE;
+    const z = (((2.0 - k.y) * (1 + GAP)) - centerZ) * SCALE;
+    return new THREE.Vector3(x, SURFACE_Y_OFFSET + k.zSmoothed * elevationScale, z);
   }
 
   public resize(w: number, h: number): void {
@@ -311,7 +490,7 @@ export class Surface3DManager {
     }
     
     this.surfaceKeys.forEach((k, i) => {
-      const currentY = k.zSmoothed * this.animState.elevationScale;
+      const currentY = SURFACE_Y_OFFSET + k.zSmoothed * this.animState.elevationScale;
       this.positions[i * 3 + 1] = currentY;
 
       if (this.dropLineGeometries[i]) {

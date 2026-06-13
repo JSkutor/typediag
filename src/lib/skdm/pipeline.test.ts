@@ -10,8 +10,7 @@ describe("SKDM Pipeline", () => {
     const events: KeyEvent[] = [
       { fromKey: "t", toKey: "h", latencyMs: 120 },
       { fromKey: "h", toKey: "e", latencyMs: 110 },
-      { fromKey: "e", toKey: "space", latencyMs: 130 },
-      { fromKey: "space", toKey: "q", latencyMs: 180 },
+      { fromKey: "e", toKey: "q", latencyMs: 150 },
       { fromKey: "q", toKey: "u", latencyMs: 90 },
       { fromKey: "u", toKey: "i", latencyMs: 100 },
       { fromKey: "i", toKey: "c", latencyMs: 115 },
@@ -26,7 +25,7 @@ describe("SKDM Pipeline", () => {
     // Validate some known keys were processed
     expect(results).toHaveProperty("t");
     expect(results).toHaveProperty("h");
-    expect(results).toHaveProperty("space");
+    expect(results).toHaveProperty("e");
 
     // The result for 'h' should have computed latency based on its transition from 't'
     const hResult = results["h"];

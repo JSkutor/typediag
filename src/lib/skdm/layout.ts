@@ -11,7 +11,6 @@ export const DEFAULT_ROWS: string[][] = [
   ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "backspace"],
   ["a", "s", "d", "f", "g", "h", "j", "k", "l", "enter"],
   ["shift", "z", "x", "c", "v", "b", "n", "m", ",", "."],
-  ["space"],
 ];
 
 /**
@@ -30,12 +29,7 @@ export function buildLayout(
     const stagger = ROW_STAGGER_U[rowIdx] ?? 0.0;
     const y = (nRows - 1 - rowIdx) * ROW_HEIGHT_U;
     rowKeys.forEach((key, colIdx) => {
-      let x = colIdx * KEY_UNIT + stagger;
-      
-      // Custom positioning to center the wide spacebar
-      if (key === "space") {
-        x = 5.0; // Center in the 10-key span
-      }
+      const x = colIdx * KEY_UNIT + stagger;
       
       layout[key] = { key, row: rowIdx, col: colIdx, x, y };
     });
