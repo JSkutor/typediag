@@ -9,30 +9,11 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import type { CylindricalVector } from "@/lib/skdm/cylindrical";
+import { CYLINDRICAL_SCALE_R, CYL_COLORS as C, toCylindricalCartesian } from "./geometryUtils";
 
 // ---------------------------------------------------------------------------
-// Constants
+// Constants moved to geometryUtils.ts
 // ---------------------------------------------------------------------------
-
-const SCALE_R = 0.3; // frequency → XZ radius
-const SCALE_Z = 0.015; // latency ms → Y height
-
-/** Functional colors for 3D data elements (kept for visual clarity). */
-const C = {
-  sceneBg: 0x202123,
-  originNode: 0xec4899,
-  targetNode: 0x06b6d4,
-  vectorArrow: 0xf59e0b,
-  inactive: 0x3b82f6,
-  inactiveNode: 0x06b6d4,
-  cylinder: 0x3b82f6,
-  dropLine: 0x57d68d,
-  radLine: 0x8d929b,
-  angleArc: 0xfbbf24,
-  gridMain: 0x3d3e42,
-  gridSub: 0x323336,
-  petalBorder: 0x3861fb,
-};
 
 // ---------------------------------------------------------------------------
 // Types
@@ -273,7 +254,7 @@ export class Cylindrical3DManager {
     this.pointLight.color.setHex(C.targetNode);
 
     const thetaRad = v.theta;
-    const cylRadius = v.r * SCALE_R;
+    const cylRadius = v.r * CYLINDRICAL_SCALE_R;
 
     // [1] Origin sphere
     const oGeom = new THREE.SphereGeometry(0.25, 32, 32);
@@ -469,16 +450,8 @@ export class Cylindrical3DManager {
   // -----------------------------------------------------------------------
 
   /** Cylindrical → Three.js Cartesian (Y-up). */
-  private toCartesian(v: CylindricalVector): {
-    vx: number;
-    vy: number;
-    vz: number;
-  } {
-    return {
-      vx: v.r * SCALE_R * Math.cos(v.theta),
-      vy: v.z * SCALE_Z,
-      vz: v.r * SCALE_R * Math.sin(v.theta),
-    };
+  private toCartesian(v: CylindricalVector): { vx: number; vy: number; vz: number; } {
+    return toCylindricalCartesian(v);
   }
 
   /** Volumetric 3D arrow (cylinder shaft + cone tip). */

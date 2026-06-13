@@ -5,6 +5,8 @@ import { KeyResult } from "@/lib/skdm";
 import { Flight } from "./flightChoreography";
 import { Surface3DManager } from "./Surface3DManager";
 import { useWorkspaceStore } from "@/store/useWorkspaceStore";
+import { useThreeManager } from "@/hooks/useThreeManager";
+import { useCallback } from "react";
 
 interface LatencySurface3DProps {
   keyStats: Record<string, KeyResult>;
@@ -21,20 +23,10 @@ export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const labelsContainerRef = useRef<HTMLDivElement>(null);
-  const managerRef = useRef<Surface3DManager | null>(null);
-
   const [keys, setKeys] = useState<KeyResult[]>([]);
 
   // Initialize and dispose manager
-  useEffect(() => {
-    if (!mountRef.current) return;
-    const el = mountRef.current;
-    const w = el.clientWidth || window.innerWidth;
-    const h = el.clientHeight || window.innerHeight;
-
-    const manager = new Surface3DManager(el, w, h);
-    managerRef.current = manager;
-
+  const handleInit = useCallback((manager: Surface3DManager) => {
     manager.onUpdateHUD = (surfaceKeys, elevationScale, camera, opacity) => {
       setKeys(surfaceKeys);
       
@@ -65,22 +57,9 @@ export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
         }
       });
     };
-
-    const handleResize = () => {
-      if (!mountRef.current || !managerRef.current) return;
-      const w = mountRef.current.clientWidth;
-      const h = mountRef.current.clientHeight;
-      managerRef.current.resize(w, h);
-    };
-
-    window.addEventListener("resize", handleResize);
-
-    return () => {
-      window.removeEventListener("resize", handleResize);
-      manager.dispose();
-      managerRef.current = null;
-    };
   }, []);
+
+  const managerRef = useThreeManager(Surface3DManager, mountRef, true, handleInit);
 
   // Update geometry/layout when data changes
   useEffect(() => {

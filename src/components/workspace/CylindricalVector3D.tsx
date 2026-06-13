@@ -2,6 +2,7 @@
 
 import React, { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import { useTypingStore } from "@/store/useTypingStore";
+import { useThreeManager } from "@/hooks/useThreeManager";
 import {
   buildCylindricalVectors,
   getAvailableCenterKeys,
@@ -28,7 +29,6 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
   onClose,
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
-  const managerRef = useRef<Cylindrical3DManager | null>(null);
 
   const events = useTypingStore((state) => state.events);
 
@@ -71,35 +71,11 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
   }, [fromKeys, selectedFrom]);
 
   // --- Manager lifecycle ---
-  useEffect(() => {
-    if (!mountRef.current || !isActivated) return;
-
-    const el = mountRef.current;
-    const w = el.clientWidth || window.innerWidth;
-    const h = el.clientHeight || window.innerHeight;
-
-    const mgr = new Cylindrical3DManager(el, w, h);
+  const handleInit = useCallback((mgr: Cylindrical3DManager) => {
     mgr.onLabelsUpdate = setLabels;
-    managerRef.current = mgr;
+  }, []);
 
-    return () => {
-      mgr.dispose();
-      managerRef.current = null;
-    };
-  }, [isActivated]);
-
-  // Resize handler
-  useEffect(() => {
-    if (!isActivated) return;
-    const handleResize = () => {
-      if (!mountRef.current || !managerRef.current) return;
-      const w = mountRef.current.clientWidth;
-      const h = mountRef.current.clientHeight;
-      managerRef.current.resize(w, h);
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [isActivated]);
+  const managerRef = useThreeManager(Cylindrical3DManager, mountRef, isActivated, handleInit);
 
   // Update scene when data or selection changes
   useEffect(() => {

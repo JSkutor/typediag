@@ -18,10 +18,10 @@ describe("flightCalculations", () => {
       ".": { left: 70, top: 30, width: 20, height: 20 } as DOMRect,
     };
 
-    const charRects = Array.from({ length: targetText.length }).reduce((acc, _, i) => {
-      acc[i] = { left: i * 10, top: 0, width: 10, height: 10 };
-      return acc;
-    }, {} as Record<number, { left: number; top: number; width: number; height: number }>);
+    const charRects: Record<number, { left: number; top: number; width: number; height: number }> = {};
+    for (let i = 0; i < targetText.length; i++) {
+      charRects[i] = { left: i * 10, top: 0, width: 10, height: 10 };
+    }
 
     const winW = 1000;
     const winH = 800;
