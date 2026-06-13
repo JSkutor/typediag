@@ -55,7 +55,7 @@ flowchart TD
 * **TO-BE:** 문장 카드 영역 자체가 입력 타겟이 됩니다. 실제 화면에는 문장만 존재하며, 보이지 않는 (혹은 극도로 정돈된) 입력창을 통해 포커스를 유지하고, 사용자가 타이핑하는 글자(Cursor)가 현재 문장에 바로 오버레이되어 덮어씌워지는 모던한 Monkeytype 스타일 타이핑 방식을 구현합니다.
 
 ### 3.2. 가상 키보드 & Delaunay 메쉬 결합
-* [theme_preview.html](file:///Users/kutor/Documents/Projects_Kutor/typediag/theme_preview.html)의 스페이스 그레이 & 코발트 테마를 이식합니다.
+* [theme_preview.html](file:///Users/kutor/Documents/Projects_Kutor/typediag/public/three_test/theme_preview.html)의 스페이스 그레이 & 코발트 테마를 이식합니다.
 * 연습 중에 키를 누르면 화면 하단 가상 키보드의 해당 키캡이 입체감 있게 내려앉고, 타건 속도/지연시간이 늘어난(망설인) 구간은 코발트 블루 계열로 하이라이트됩니다.
 * 은은한 홀로그램 느낌의 **Delaunay 삼각분할 메쉬**가 가상 키보드 위에 백그라운드 워터마크(SVG)로 실시간 드로잉됩니다.
 

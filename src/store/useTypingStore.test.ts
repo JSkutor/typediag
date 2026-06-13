@@ -7,6 +7,7 @@ describe("useTypingStore", () => {
     useTypingStore.setState({
       targetText: "hello",
       typedText: "",
+      qwertyBuffer: "",
       events: [],
       status: "idle",
       startedAt: null,
@@ -23,18 +24,18 @@ describe("useTypingStore", () => {
     expect(state.events).toHaveLength(0);
   });
 
-  it("should update typed text and record key on handleKeyPress", () => {
+  it("should update typed text and record key on handlePhysicalKeyPress", () => {
     const store = useTypingStore.getState();
     
     // Press 'h'
-    store.handleKeyPress("h", 1000);
+    store.handlePhysicalKeyPress("KeyH", false, 1000);
     expect(useTypingStore.getState().typedText).toBe("h");
     expect(useTypingStore.getState().status).toBe("running");
     expect(useTypingStore.getState().startedAt).toBe(1000);
     expect(useTypingStore.getState().events).toHaveLength(0); // No transition yet
 
     // Press 'e'
-    useTypingStore.getState().handleKeyPress("e", 1100);
+    useTypingStore.getState().handlePhysicalKeyPress("KeyE", false, 1100);
     expect(useTypingStore.getState().typedText).toBe("he");
     expect(useTypingStore.getState().events).toHaveLength(1);
     expect(useTypingStore.getState().events[0]).toEqual({
@@ -46,11 +47,11 @@ describe("useTypingStore", () => {
 
   it("should handle backspace correctly", () => {
     const store = useTypingStore.getState();
-    store.handleKeyPress("h", 1000);
-    store.handleKeyPress("e", 1100);
+    store.handlePhysicalKeyPress("KeyH", false, 1000);
+    store.handlePhysicalKeyPress("KeyE", false, 1100);
     expect(useTypingStore.getState().typedText).toBe("he");
 
-    store.handleKeyPress("Backspace", 1200);
+    store.handlePhysicalKeyPress("Backspace", false, 1200);
     expect(useTypingStore.getState().typedText).toBe("h");
     
     // The physical key for backspace is also recorded as an event transition
@@ -66,18 +67,18 @@ describe("useTypingStore", () => {
     const store = useTypingStore.getState();
     store.setTarget("he"); // Target is 'he'
     
-    store.handleKeyPress("h", 1000);
+    store.handlePhysicalKeyPress("KeyH", false, 1000);
     expect(useTypingStore.getState().status).toBe("running");
     
-    store.handleKeyPress("e", 1100);
+    store.handlePhysicalKeyPress("KeyE", false, 1100);
     expect(useTypingStore.getState().status).toBe("done");
     expect(typeof useTypingStore.getState().finishedAt).toBe("number");
   });
 
   it("should clear events and reset status on reset", () => {
     const store = useTypingStore.getState();
-    store.handleKeyPress("h", 1000);
-    store.handleKeyPress("e", 1100);
+    store.handlePhysicalKeyPress("KeyH", false, 1000);
+    store.handlePhysicalKeyPress("KeyE", false, 1100);
     
     expect(useTypingStore.getState().events).toHaveLength(1);
     

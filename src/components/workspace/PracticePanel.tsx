@@ -15,12 +15,15 @@ export const PracticePanel: React.FC = () => {
           const typedChar = isTyped ? (typedText[i] === " " ? "\u00A0" : typedText[i]) : null;
 
           return (
-            <span key={i} id={`text-char-${i}`} className="text-char-container">
+            <span key={i} id={`text-char-${i}`} className="text-char-container relative">
               <span className="text-char-muted">{displayChar}</span>
               {isTyped && (
                 <span className={typedChar === displayChar ? "text-char-primary" : "text-char-error"}>
                   {typedChar}
                 </span>
+              )}
+              {i === typedText.length && (
+                <span className="absolute left-0 bottom-1 w-full h-1 bg-white animate-pulse rounded-full opacity-70" />
               )}
             </span>
           );

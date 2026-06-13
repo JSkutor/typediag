@@ -32,7 +32,7 @@ export function useWorkspaceKeybindings({ onTransition }: WorkspaceKeybindingsPr
 
       if (uiState === "practice") {
         if (e.ctrlKey || e.metaKey || e.altKey) return;
-        useTypingStore.getState().handleKeyPress(e.key, performance.now());
+        useTypingStore.getState().handlePhysicalKeyPress(e.code, e.shiftKey, performance.now());
         return;
       }
 

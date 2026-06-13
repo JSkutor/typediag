@@ -240,5 +240,5 @@ key table에 행으로 다 넣어놔도 성능은 알아서 한다니까.
 
 
 프로젝트 분리해서 서로 독립적으로 가져가려 했는데 포기함.
-[[skdm_logic_flow]]
+[skdm_logic_flow.md](file:///Users/kutor/Documents/Projects_Kutor/typediag/skdm/skdm_logic_flow.md)
 여기까지 구현됐음.
