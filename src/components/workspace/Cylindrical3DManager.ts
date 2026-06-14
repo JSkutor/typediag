@@ -103,7 +103,11 @@ export class Cylindrical3DManager {
     this.camera.position.set(7, 8, 10);
 
     // Renderer
-    this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    this.renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      powerPreference: "high-performance",
+      precision: "highp",
+    });
     this.renderer.setSize(width, height);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = true;
@@ -112,7 +116,7 @@ export class Cylindrical3DManager {
     // Controls
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
-    this.controls.dampingFactor = 0.2;
+    this.controls.dampingFactor = 0.05;
     this.controls.rotateSpeed = 1.2;
     this.controls.zoomSpeed = 1.2;
     this.controls.panSpeed = 1.2;

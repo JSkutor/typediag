@@ -3,7 +3,6 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { Delaunay } from "d3-delaunay";
 import { KeyResult } from "@/lib/skdm";
 import gsap from "gsap";
-import { TRANSITION_TIMING } from "./flightChoreography";
 
 import {
   IS_SURFACE_KEY,
@@ -42,14 +41,22 @@ export class Surface3DManager {
     elevationScale: 0,
     camY: 0,
     camZ: 0.1,
-    opacity: 0
+    opacity: 0,
+    fov: 45
   };
   
   private timeline: gsap.core.Timeline | null = null;
   private isActivated: boolean = false;
   
   // Callback for updating HUD labels
-  public onUpdateHUD?: (surfaceKeys: KeyResult[], elevationScale: number, camera: THREE.Camera, opacity: number) => void;
+  public onUpdateHUD?: (
+    surfaceKeys: KeyResult[],
+    elevationScale: number,
+    camera: THREE.Camera,
+    opacity: number,
+    width: number,
+    height: number
+  ) => void;
 
   constructor(container: HTMLElement, width: number, height: number) {
     this.container = container;
@@ -68,9 +75,14 @@ export class Surface3DManager {
     
     this.animState.camY = this.dist;
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    this.renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: false,
+      powerPreference: "high-performance",
+      precision: "highp",
+    });
     this.renderer.setSize(width, height);
-    this.renderer.setPixelRatio(window.devicePixelRatio || 1);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.container.appendChild(this.renderer.domElement);
 
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
@@ -94,7 +106,7 @@ export class Surface3DManager {
     
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
-    this.controls.dampingFactor = 0.2;
+    this.controls.dampingFactor = 0.05;
     this.controls.rotateSpeed = 1.2;
     this.controls.zoomSpeed = 1.2;
     this.controls.panSpeed = 1.2;
@@ -237,6 +249,10 @@ export class Surface3DManager {
     this.applyAnimState(false);
   }
   
+  public getSurfaceKeys(): KeyResult[] {
+    return this.surfaceKeys;
+  }
+
   public get3DPos(k: KeyResult, elevationScale: number) {
     const keyName = k.key.toLowerCase();
     const layout = KEY_LAYOUT[keyName];
@@ -273,28 +289,55 @@ export class Surface3DManager {
     }
 
     if (activated) {
-      this.timeline = gsap.timeline({
-        onUpdate: () => this.applyAnimState()
-      });
-      
-      const TARGET_ELEVATION_SCALE = 120;
-      const CAM_TARGET_Y = 480;
-      const CAM_TARGET_Z = 480;
-      
-      // Delay for cross-fade
-      this.timeline.to({}, { duration: TRANSITION_TIMING.surfaceCrossFadeDelay });
+      // 1. Set warp close-up starting state
+      this.animState.elevationScale = 0;
+      this.animState.camY = 250;     // Raised from 80 to prevent clipping
+      this.animState.camZ = -500;    // Pushed back from -350
+      this.animState.fov = 60;       // Moderated from 75 for comfortable perspective
+      this.animState.opacity = 0;
+      this.applyAnimState(true);
+      this.controls.enabled = false;
 
-      // Then animate elevation and camera
-      this.timeline.to(this.animState, {
-        elevationScale: TARGET_ELEVATION_SCALE,
-        camY: CAM_TARGET_Y,
-        camZ: CAM_TARGET_Z,
-        opacity: 1,
-        duration: TRANSITION_TIMING.surfaceElevationDuration,
-        ease: "power3.out", // Equivalent to 1 - (1-p)^3
-        onComplete: () => {
-          this.controls.target.set(0, 0, 0);
+      // Defer transition by 1 frame to let Three.js load/render initial frames smoothly
+      requestAnimationFrame(() => {
+        if (!this.isActivated) return;
+
+        if (this.timeline) {
+          this.timeline.kill();
         }
+
+        this.timeline = gsap.timeline({
+          onUpdate: () => this.applyAnimState(true),
+          onComplete: () => {
+            this.controls.enabled = true;
+            this.controls.update();
+          }
+        });
+        
+        const TARGET_ELEVATION_SCALE = 120;
+        const CAM_TARGET_Y = 480;
+        const CAM_TARGET_Z = 480;
+
+        // 2. Cinematic dive transition (0.8s) - smooth power2.out
+        this.timeline.to(this.animState, {
+          camY: CAM_TARGET_Y,
+          camZ: CAM_TARGET_Z,
+          fov: 45,
+          duration: 0.8,
+          ease: "power2.out"
+        }, 0);
+
+        // 3. Elastic mesh rise (starts at 0.15s, finishes at 0.65s)
+        this.timeline.to(this.animState, {
+          elevationScale: TARGET_ELEVATION_SCALE,
+          opacity: 1,
+          duration: 0.5,
+          ease: "back.out(1.2)" // Gentler bounce
+        }, 0.15);
+
+        this.timeline.add(() => {
+          this.controls.target.set(0, 0, 0);
+        });
       });
     } else {
       // Reset immediately
@@ -302,15 +345,16 @@ export class Surface3DManager {
       this.animState.camY = this.dist;
       this.animState.camZ = 0.1;
       this.animState.opacity = 0;
-      this.camera.position.set(0, this.dist, 0.1);
-      this.camera.lookAt(0, 0, 0);
-      this.applyAnimState();
+      this.animState.fov = 45;
+      this.applyAnimState(true);
     }
   }
 
   private applyAnimState(updateCamera = true) {
     if (updateCamera) {
       this.camera.position.set(0, this.animState.camY, this.animState.camZ);
+      this.camera.fov = this.animState.fov;
+      this.camera.updateProjectionMatrix();
       this.camera.lookAt(0, 0, 0);
     }
     
@@ -342,7 +386,14 @@ export class Surface3DManager {
     this.renderer.render(this.scene, this.camera);
     
     if (this.onUpdateHUD) {
-      this.onUpdateHUD(this.surfaceKeys, this.animState.elevationScale, this.camera, this.animState.opacity);
+      this.onUpdateHUD(
+        this.surfaceKeys,
+        this.animState.elevationScale,
+        this.camera,
+        this.animState.opacity,
+        this.width,
+        this.height
+      );
     }
   }
 

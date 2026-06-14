@@ -35,7 +35,8 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
   // --- Local state ---
   const [selectedTo, setSelectedTo] = useState(initialCenterKey ?? "");
   const [selectedFrom, setSelectedFrom] = useState("");
-  const [labels, setLabels] = useState<LabelProjection | null>(null);
+  const originLabelRef = useRef<HTMLDivElement>(null);
+  const targetLabelRef = useRef<HTMLDivElement>(null);
   const [toggles, setToggles] = useState<CylindricalToggles>({
     cylinder: true,
     grid: true,
@@ -72,7 +73,24 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
 
   // --- Manager lifecycle ---
   const handleInit = useCallback((mgr: Cylindrical3DManager) => {
-    mgr.onLabelsUpdate = setLabels;
+    mgr.onLabelsUpdate = (proj: LabelProjection) => {
+      if (originLabelRef.current) {
+        if (proj.originVisible) {
+          originLabelRef.current.style.display = "block";
+          originLabelRef.current.style.transform = `translate3d(${proj.originX}px, ${proj.originY - 18}px, 0)`;
+        } else {
+          originLabelRef.current.style.display = "none";
+        }
+      }
+      if (targetLabelRef.current) {
+        if (proj.targetVisible) {
+          targetLabelRef.current.style.display = "block";
+          targetLabelRef.current.style.transform = `translate3d(${proj.targetX}px, ${proj.targetY - 18}px, 0)`;
+        } else {
+          targetLabelRef.current.style.display = "none";
+        }
+      }
+    };
   }, []);
 
   const managerRef = useThreeManager(Cylindrical3DManager, mountRef, isActivated, handleInit);
@@ -134,23 +152,35 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
       <div ref={mountRef} className="cyl-canvas" />
 
       {/* 2D floating labels */}
-      {labels?.originVisible && (
-        <div
-          className="cyl-label cyl-label--origin"
-          style={{ left: labels.originX, top: labels.originY - 18 }}
-        >
-          Origin (To): {selectedTo.toUpperCase()} [0, 0, 0]
-        </div>
-      )}
-      {labels?.targetVisible && currentVector && (
-        <div
-          className="cyl-label cyl-label--target"
-          style={{ left: labels.targetX, top: labels.targetY - 18 }}
-        >
-          Vector (From): {selectedFrom.toUpperCase()} [{display.x}, {display.y},{" "}
-          {display.zCart}]
-        </div>
-      )}
+      <div
+        ref={originLabelRef}
+        className="cyl-label cyl-label--origin"
+        style={{
+          position: "absolute",
+          left: 0,
+          top: 0,
+          transform: "translate3d(0, 0, 0)",
+          display: "none",
+          willChange: "transform",
+        }}
+      >
+        Origin (To): {selectedTo.toUpperCase()} [0, 0, 0]
+      </div>
+      <div
+        ref={targetLabelRef}
+        className="cyl-label cyl-label--target"
+        style={{
+          position: "absolute",
+          left: 0,
+          top: 0,
+          transform: "translate3d(0, 0, 0)",
+          display: "none",
+          willChange: "transform",
+        }}
+      >
+        Vector (From): {selectedFrom.toUpperCase()} [{display.x}, {display.y},{" "}
+        {display.zCart}]
+      </div>
 
       {/* Dashboard panel */}
       <div className="cyl-panel glass-panel">

@@ -1,33 +1,15 @@
 import React from "react";
-import { useWorkspaceStore, DiagnosticsMode } from "@/store/useWorkspaceStore";
-import { VirtualKeyboard } from "./VirtualKeyboard";
+import { useWorkspaceStore } from "@/store/useWorkspaceStore";
 import { LatencySurface3D } from "./LatencySurface3D";
 import { CylindricalVector3D } from "./CylindricalVector3D";
 import { DashboardPanel } from "./DashboardPanel";
-import { Flight } from "./flightChoreography";
 
-interface DiagnosticsLayerProps {
-  flights: Flight[];
-  targetKeys: Set<string>;
-  keyDelays: Record<string, number>;
-  keycapRects: Record<string, DOMRect>;
-}
-
-
-
-export const DiagnosticsLayer: React.FC<DiagnosticsLayerProps> = ({
-  flights,
-  targetKeys,
-  keyDelays,
-  keycapRects,
-}) => {
+export const DiagnosticsLayer: React.FC = () => {
   const uiState = useWorkspaceStore((state) => state.uiState);
   const diagnosticMode = useWorkspaceStore((state) => state.diagnosticMode);
   const focusedKey = useWorkspaceStore((state) => state.focusedKey);
   const keyStats = useWorkspaceStore((state) => state.keyStats);
   const triangles = useWorkspaceStore((state) => state.triangles);
-  const dynamicScale = useWorkspaceStore((state) => state.dynamicScale);
-
   const setDiagnosticMode = useWorkspaceStore((state) => state.setDiagnosticMode);
   const setFocusedKey = useWorkspaceStore((state) => state.setFocusedKey);
 
@@ -36,52 +18,6 @@ export const DiagnosticsLayer: React.FC<DiagnosticsLayerProps> = ({
 
   return (
     <div className={`screen-diagnostics ${!isVisible ? "invisible" : ""}`}>
-      {/* Keyboard (non-cylindrical modes) */}
-      {diagnosticMode !== "cylindrical" && (
-        <div className={`kbd-wrap ${uiState}`} style={{ transform: `scale(${dynamicScale})` }}>
-          <div style={{ position: "relative", width: 1000, height: 650, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            {/* 2D HTML/CSS Virtual Keyboard */}
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                transition: "opacity 0.22s ease-in-out",
-                opacity: isDiag && diagnosticMode === "surface" ? 0 : 1,
-                pointerEvents: isDiag && diagnosticMode === "surface" ? "none" : "auto",
-                zIndex: 2,
-              }}
-            >
-              <VirtualKeyboard 
-                mode={isDiag ? "diagnostics" : "practice"} 
-                uiState={uiState}
-                targetKeys={targetKeys}
-                diagnosticMode={diagnosticMode} 
-                keyStats={keyStats} 
-                focusedKey={focusedKey}
-                keyDelays={keyDelays}
-                onKeyClick={(key) => {
-                  if (key === "space") {
-                    setDiagnosticMode("space");
-                    setFocusedKey(null);
-                  } else if (key === "backspace") {
-                    setDiagnosticMode("backspace");
-                    setFocusedKey(null);
-                  } else if (key === "shift") {
-                    setDiagnosticMode("shift");
-                    setFocusedKey(null);
-                  } else {
-                    setDiagnosticMode("cylindrical");
-                    setFocusedKey(key);
-                  }
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 3D WebGL Latency Surface (full viewport) */}
       {diagnosticMode === "surface" && triangles && (
@@ -89,7 +25,7 @@ export const DiagnosticsLayer: React.FC<DiagnosticsLayerProps> = ({
           className="cyl-viewport"
           style={{
             zIndex: 1,
-            transition: "opacity 0.22s ease-in-out",
+            transition: "opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1)",
             opacity: isDiag ? 1 : 0,
             pointerEvents: isDiag ? "auto" : "none",
           }}

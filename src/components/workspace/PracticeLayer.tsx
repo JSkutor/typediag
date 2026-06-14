@@ -4,7 +4,7 @@ import { useWorkspaceStore } from "@/store/useWorkspaceStore";
 
 export const PracticeLayer: React.FC = () => {
   const uiState = useWorkspaceStore((state) => state.uiState);
-  const isHidden = uiState === "flying" || uiState === "diagnostics";
+  const isHidden = uiState === "diagnostics";
 
   return (
     <div className={`screen-practice ${isHidden ? "hidden-down" : ""}`}>

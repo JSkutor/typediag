@@ -4,10 +4,8 @@ import React, { useEffect, useCallback } from "react";
 import { useTypingStore } from "@/store/useTypingStore";
 import { useWorkspaceStore } from "@/store/useWorkspaceStore";
 import { runPipeline, buildLayout, triangulate } from "@/lib/skdm";
-import { useFlightChoreography } from "@/hooks/useFlightChoreography";
 import { useWorkspaceKeybindings } from "@/hooks/useWorkspaceKeybindings";
 
-import { FlightAnimator } from "@/components/workspace/FlightAnimator";
 import { WorkspaceControls } from "@/components/workspace/WorkspaceControls";
 import { PracticeLayer } from "@/components/workspace/PracticeLayer";
 import { DiagnosticsLayer } from "@/components/workspace/DiagnosticsLayer";
@@ -38,8 +36,6 @@ export default function Workspace() {
     return () => window.removeEventListener("resize", handleResize);
   }, [setDynamicScale]);
 
-  const { flights, targetKeys, keyDelays, keycapRects, precalculateFlights } = useFlightChoreography();
-
   const setTarget = useTypingStore((state) => state.setTarget);
 
   // Initialize practice text
@@ -57,9 +53,9 @@ export default function Workspace() {
     const { triangles } = triangulate(results);
     
     setAnalysisData(results, triangles);
-    precalculateFlights();
-    setUiState("flying");
-  }, [precalculateFlights, setAnalysisData, setUiState]);
+    setUiState("diagnostics");
+    setDiagnosticMode("surface");
+  }, [setAnalysisData, setUiState, setDiagnosticMode]);
 
   useWorkspaceKeybindings({
     onTransition: startDiagnosticsTransition,
@@ -68,25 +64,11 @@ export default function Workspace() {
   return (
     <div className="workspace-container" style={{ position: "relative", width: "100vw", height: "100vh", overflow: "hidden" }}>
       
-      <FlightAnimator 
-        flights={flights} 
-        isFlying={uiState === "flying" || uiState === "diagnostics"} 
-        onComplete={() => {
-          setUiState("diagnostics");
-          setDiagnosticMode("surface");
-        }}
-      />
-
       <WorkspaceControls onStartDiagnostics={startDiagnosticsTransition} />
 
       <PracticeLayer />
       
-      <DiagnosticsLayer 
-        flights={flights}
-        targetKeys={targetKeys}
-        keyDelays={keyDelays}
-        keycapRects={keycapRects}
-      />
+      <DiagnosticsLayer />
     </div>
   );
 }

@@ -174,67 +174,7 @@ h4 {
   align-items: center;
 }
 
-/* Virtual Keyboard 3D Transform */
-.keyboard-container {
-  position: relative;
-  transform-style: preserve-3d;
-  transition: transform 1.2s cubic-bezier(0.25, 1, 0.5, 1);
-  will-change: transform;
-}
 
-.keyboard-container.mode-practice {
-  transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg) translateZ(0);
-}
-
-.keyboard-container.mode-diagnostics {
-  transform: rotateX(45deg) rotateY(0deg) rotateZ(-10deg) translateZ(30px);
-}
-
-/* Individual Keycap.
-   Assembly (pop-in) and the invisible-until-landed start state are driven by
-   the Web Animations API in VirtualKeyboard, so the only thing CSS does here is
-   provide gentle transitions for the diagnostics-mode highlight changes (clicks).
-   will-change is applied imperatively, only while a keycap is animating. */
-.keycap-3d {
-  transition:
-    box-shadow 0.25s ease,
-    background-color 0.25s ease,
-    border-color 0.25s ease;
-  transform-style: preserve-3d;
-}
-
-/* Flying glyphs. All motion is run via WAAPI with concrete keyframes so the
-   browser composites it on the GPU thread. will-change is applied imperatively
-   (only for active animations) to avoid pre-promoting the entire 64-element pool. */
-.flying-char {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 100;
-  pointer-events: none;
-  font-family: var(--font-mono);
-  font-size: 1.875rem;
-  line-height: 1.625;
-  color: var(--text-primary);
-}
-
-@keyframes frameFadeIn {
-  0% { opacity: 0; }
-  100% { opacity: 1; }
-}
-
-.kbd-wrap {
-  /* opacity animated via keyframes during flight, otherwise 1 */
-}
-.kbd-wrap.flying {
-  animation: frameFadeIn 0.16s ease forwards;
-  /* LANDING_START is 980ms. Delay it so it fades in just as glyphs land */
-  animation-delay: 0.98s;
-  opacity: 0;
-}
-.kbd-wrap.diagnostics, .kbd-wrap.practice {
-  opacity: 1;
-}
 
 /* Glassmorphism Panels */
 .glass-panel {
@@ -246,24 +186,7 @@ h4 {
   box-shadow: var(--shadow-panel);
 }
 
-/* Diagnostic Mode Key Highlights */
-.key-highlight-error {
-  background-color: rgba(239, 91, 91, 0.2) !important;
-  color: var(--error) !important;
-  box-shadow: inset 0 0 0 1px var(--error), 0 4px 6px var(--keycap-shadow) !important;
-}
 
-.key-highlight-shift {
-  background-color: rgba(56, 97, 251, 0.2) !important;
-  color: var(--accent) !important;
-  box-shadow: inset 0 0 0 1px var(--accent), 0 4px 6px var(--keycap-shadow) !important;
-}
-
-.key-highlight-space {
-  background-color: rgba(87, 214, 141, 0.2) !important;
-  color: var(--success) !important;
-  box-shadow: inset 0 0 0 1px var(--success), 0 4px 6px var(--keycap-shadow) !important;
-}
 
 /* SVG Delaunay Overlay */
 .delaunay-mesh {
@@ -292,6 +215,8 @@ h4 {
   align-items: center;
   justify-content: center;
   padding-top: 32px;
+  perspective: 1200px;
+  perspective-origin: 50% 50%;
 }
 .mode-toggle-btn {
   position: absolute;
@@ -360,45 +285,7 @@ h4 {
   color: var(--text-primary);
 }
 
-/* Virtual Keyboard */
-.keyboard-layout {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 16px;
-  border-radius: var(--radius-lg);
-  border: none;
-  background-color: transparent;
-  width: fit-content;
-}
-.keyboard-row {
-  display: flex;
-  flex-direction: row;
-  gap: 8px;
-}
-.keycap-base {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  user-select: none;
-  border: 1px solid rgba(141, 146, 155, 0.15); /* Exact match with 3D base layer outline */
-  background-color: transparent;
-}
-.keycap-alpha {
-  color: rgba(141, 146, 155, 0.3); /* Exact match with 3D base layer text */
-  font-family: var(--font-mono);
-  font-size: 10px;
-}
-.keycap-alpha:hover {
-  background-color: rgba(141, 146, 155, 0.05);
-}
-.keycap-mod {
-  color: rgba(141, 146, 155, 0.3);
-  font-family: var(--font-mono);
-  font-size: 10px;
-}
+
 
 /* Dashboard Panel */
 .dashboard-panel {
@@ -465,19 +352,22 @@ h4 {
   display: flex;
   align-items: center; /* Centered vertically */
   justify-content: center;
-  /* Transition to slide down practice text */
-  transition: transform 1.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.6s ease;
+  /* Cinematic Z-push transition - synchronized timing and easing across properties */
+  transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1), 
+              opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1), 
+              filter 0.55s cubic-bezier(0.16, 1, 0.3, 1);
   z-index: 20;
-  will-change: transform, opacity;
+  will-change: transform, opacity, filter;
+  transform-style: preserve-3d;
 }
 
-/* Practice screen moves DOWN out of view (stage 2 visual: text slides down).
-   Delay the slide down by 0.42s (30% of FLIGHT_D) to allow the glow effect to complete on the stationary text. */
+/* Practice screen moves BACKWARD (Z-push) into deep space - moderated for smoother transition */
 .screen-practice.hidden-down {
-  transform: translateY(100vh);
+  transform: translateZ(-250px) rotateX(8deg) translateY(20px);
+  filter: blur(6px);
   opacity: 0;
   pointer-events: none;
-  transition-delay: 0.42s;
+  transition-delay: 0s;
 }
 
 /* The Diagnostics (Keyboard) layer */
@@ -491,20 +381,19 @@ h4 {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  /* NOTE: filter:blur() was removed — animating a full-screen blur was the
-     primary cause of the stutter. Only opacity animates here now. */
-  transition: opacity 0.6s ease;
-  /* Pre-promoted so the layer exists before Tab is pressed; no layer
-     creation cost at animation start time. */
-  will-change: opacity;
+  /* Synchronized transition with the practice layer */
+  transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1), 
+              opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity;
   z-index: 10;
-  transform: translateY(0);
+  transform: scale(1) translateY(0);
   opacity: 1;
 }
 
 /* Invisible state: present in DOM for measuring keycap rects, but hidden.
-   No blur filter (kept compositor-cheap). */
+   Added subtle scale-down and translation for seamless blending */
 .screen-diagnostics.invisible {
+  transform: scale(0.97) translateY(10px);
   opacity: 0;
   pointer-events: none;
 }
@@ -842,42 +731,7 @@ h4 {
   border: 1px dashed var(--border-subtle);
 }
 
-/* Diagnostic mode tab bar */
-.diag-mode-bar {
-  position: absolute;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 50;
-  display: flex;
-  gap: 4px;
-  padding: 4px;
-  border-radius: 9999px;
-  background: var(--bg-raised);
-  border: 1px solid var(--border-strong);
-  box-shadow: var(--shadow-panel);
-}
-.diag-mode-btn {
-  padding: 6px 16px;
-  border-radius: 9999px;
-  border: none;
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-.diag-mode-btn:hover {
-  color: var(--text-primary);
-  background: var(--bg-overlay);
-}
-.diag-mode-btn.active {
-  color: var(--text-inverse);
-  background: var(--accent);
-  box-shadow: 0 2px 8px rgba(56, 97, 251, 0.35);
-}
+
 
 /* ==========================================================================
    TypeDiag — Typing Cursor Styles

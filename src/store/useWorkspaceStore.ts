@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { KeyResult } from "@/lib/skdm";
 
-export type UiState = "practice" | "measuring" | "flying" | "diagnostics";
+export type UiState = "practice" | "measuring" | "diagnostics";
 
 export type DiagnosticsMode =
   | "surface"

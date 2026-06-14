@@ -2,7 +2,7 @@
 
 import React, { useRef, useEffect, useState } from "react";
 import { KeyResult } from "@/lib/skdm";
-import { Flight } from "./flightChoreography";
+
 import { Surface3DManager } from "./Surface3DManager";
 import { useWorkspaceStore } from "@/store/useWorkspaceStore";
 import { useThreeManager } from "@/hooks/useThreeManager";
@@ -13,7 +13,7 @@ interface LatencySurface3DProps {
   triangles?: Uint32Array;
   width?: number;
   height?: number;
-  flights?: Flight[];
+
   isActivated?: boolean;
 }
 
@@ -24,16 +24,31 @@ export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
   const mountRef = useRef<HTMLDivElement>(null);
   const labelsContainerRef = useRef<HTMLDivElement>(null);
   const [keys, setKeys] = useState<KeyResult[]>([]);
+  const [shouldRenderThree, setShouldRenderThree] = useState(false);
+  const labelRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  // Delay Three.js initialization until the initial heavy frames of the CSS transition complete
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (isActivated) {
+      // Transition is 0.55s. Starting initialization at 350ms allows the browser 
+      // to execute the initial rapid transition frames smoothly without GPU/main-thread blocking.
+      timer = setTimeout(() => {
+        setShouldRenderThree(true);
+      }, 350);
+    } else {
+      setShouldRenderThree(false);
+    }
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [isActivated]);
 
   // Initialize and dispose manager
   const handleInit = useCallback((manager: Surface3DManager) => {
-    manager.onUpdateHUD = (surfaceKeys, elevationScale, camera, opacity) => {
-      setKeys(surfaceKeys);
-      
+    manager.onUpdateHUD = (surfaceKeys, elevationScale, camera, opacity, managerWidth, managerHeight) => {
       if (!labelsContainerRef.current || !mountRef.current) return;
       const TARGET_ELEVATION_SCALE = 120;
-      const currentWidth = mountRef.current.clientWidth;
-      const currentHeight = mountRef.current.clientHeight;
 
       surfaceKeys.forEach((k) => {
         const vec = manager.get3DPos(k, elevationScale);
@@ -42,16 +57,16 @@ export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
 
         vec.project(camera);
 
-        const x = (vec.x * 0.5 + 0.5) * currentWidth;
-        const y = (vec.y * -0.5 + 0.5) * currentHeight;
+        const x = (vec.x * 0.5 + 0.5) * managerWidth;
+        const y = (vec.y * -0.5 + 0.5) * managerHeight;
 
-        const el = document.getElementById(`hud-label-${k.key}`);
+        const el = labelRefs.current[k.key];
         if (el) {
           if (vec.z > 1) {
             el.style.display = "none";
           } else {
             el.style.display = "block";
-            el.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px)`;
+            el.style.transform = `translate3d(-50%, -50%, 0) translate3d(${x}px, ${y}px, 0)`;
             el.style.opacity = `${opacity}`;
           }
         }
@@ -59,21 +74,22 @@ export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
     };
   }, []);
 
-  const managerRef = useThreeManager(Surface3DManager, mountRef, true, handleInit);
+  const managerRef = useThreeManager(Surface3DManager, mountRef, shouldRenderThree, handleInit);
 
-  // Update geometry/layout when data changes
+  // Update geometry/layout when data changes or Three.js is initialized
   useEffect(() => {
-    if (managerRef.current && Object.keys(keyStats).length > 0) {
+    if (shouldRenderThree && managerRef.current && Object.keys(keyStats).length > 0) {
       managerRef.current.updateData(keyStats);
+      setKeys(managerRef.current.getSurfaceKeys());
     }
-  }, [keyStats]);
+  }, [keyStats, shouldRenderThree]);
 
   // Handle activation timeline
   useEffect(() => {
-    if (managerRef.current) {
+    if (shouldRenderThree && managerRef.current) {
       managerRef.current.setActivated(isActivated);
     }
-  }, [isActivated]);
+  }, [isActivated, shouldRenderThree]);
 
   const handleTouch = (e: React.TouchEvent) => {
     e.preventDefault();
@@ -113,6 +129,9 @@ export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
           return (
             <div
               key={k.key}
+              ref={(el) => {
+                labelRefs.current[k.key] = el;
+              }}
               id={`hud-label-${k.key}`}
               className="hud-label-btn"
               onClick={() => {

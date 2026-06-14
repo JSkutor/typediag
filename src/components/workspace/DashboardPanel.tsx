@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { DiagnosticsMode } from "./VirtualKeyboard";
+import { DiagnosticsMode } from "@/store/useWorkspaceStore";
 
 interface DashboardPanelProps {
   mode: "practice" | "diagnostics";
