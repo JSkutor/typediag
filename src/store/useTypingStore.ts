@@ -1,7 +1,7 @@
 import { create } from "zustand";
 
 import type { KeyEvent } from "@/lib/skdm";
-import { generateDummyTypingState } from "@/utils/mockData";
+import { generateDummyTypingState, populateDummyDatabase } from "@/utils/mockData";
 import { getQwertyChar, assembleHangulWithPunctuation } from "@/utils/keyboardMap";
 import { evaluateKeystroke } from "@/utils/typingEvaluator";
 import { db } from "@/utils/db";
@@ -42,7 +42,7 @@ interface TypingState {
   handlePhysicalKeyPress: (code: string, shiftKey: boolean, timestamp: number) => void;
   finish: (timestamp?: number) => void;
   reset: () => void;
-  loadDummyData: () => void;
+  loadDummyData: () => Promise<void>;
   startNewRun: () => void;
   initializeRun: (now: Date) => Promise<string>;
 }
@@ -308,8 +308,21 @@ export const useTypingStore = create<TypingState>((set, get) => ({
       currentRunId: null, // Resetting explicitly starts a new run
     })),
 
-  loadDummyData: () => {
-    set(generateDummyTypingState(get().targetText));
+  loadDummyData: async () => {
+    const targetText = get().targetText || (targets.length > 0 ? targets[0].content : "");
+    const stateUpdate = generateDummyTypingState(targetText);
+    
+    const runId = `run_dummy_${Date.now()}`;
+    set({
+      ...stateUpdate,
+      currentRunId: runId,
+    });
+
+    try {
+      await populateDummyDatabase(runId, stateUpdate.events, targetText);
+    } catch (err) {
+      console.error("Failed to populate dummy database:", err);
+    }
   },
 
   startNewRun: () => {

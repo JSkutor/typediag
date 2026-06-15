@@ -30,9 +30,8 @@ export const WorkspaceControls: React.FC<WorkspaceControlsProps> = ({ onStartDia
       {/* Developer Dummy Data Loader */}
       {uiState === "practice" && (
         <button 
-          onClick={() => {
-            useTypingStore.getState().loadDummyData();
-            onStartDiagnostics();
+          onClick={async () => {
+            await useTypingStore.getState().loadDummyData();
           }}
           style={{
             position: "absolute",

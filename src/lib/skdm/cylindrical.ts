@@ -43,6 +43,7 @@ export function buildCylindricalVectors(
   const buckets = new Map<string, number[]>();
   for (const ev of cleaned) {
     if (ev.toKey.toLowerCase() !== center) continue;
+    if (ev.fromKey === null) continue;
     const from = ev.fromKey.toLowerCase();
     if (from === center) continue;
     // Alpha + punctuation keys only (skip modifiers)

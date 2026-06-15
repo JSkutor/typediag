@@ -50,7 +50,7 @@ export function filterBackspaces(events: KeyEvent[]): KeyEvent[] {
 
   for (const ev of events) {
     const sKey = ev.toKey.toLowerCase();
-    const fKey = ev.fromKey.toLowerCase();
+    const fKey = ev.fromKey ? ev.fromKey.toLowerCase() : "";
 
     if (sKey === "backspace") {
       if (stack.length > 0) stack.pop();
@@ -119,6 +119,7 @@ export function aggregatePairs(
   const buckets = new Map<string, number[]>();
   const meta = new Map<string, { fromKey: string; toKey: string }>();
   for (const ev of validEvents) {
+    if (ev.fromKey === null) continue;
     const key = pairKey(ev.fromKey, ev.toKey);
     const sig = sigmoidLatency(ev.latencyMs, maxClipMs);
     const arr = buckets.get(key);
