@@ -12,9 +12,11 @@ import {
   FREQUENCY_WEIGHT_POWER,
   LAPLACIAN_ITERATIONS,
   LAPLACIAN_SMOOTHING_ALPHA,
-  OUTLIER_IQR_MIN_EVENTS,
+  OUTLIER_HARD_CUTOFF_MS,
+  OUTLIER_BLEND_START_EVENTS,
+  OUTLIER_BLEND_END_EVENTS,
+  OUTLIER_IQR_MIN_UPPER_BOUND_MS,
   OUTLIER_IQR_MULTIPLIER,
-  OUTLIER_STATIC_MAX_MS,
 } from "./config";
 import { mean, median, percentile, std } from "./stats";
 import type { KeyEvent, KeyPosition, KeyResult, PairStat } from "./types";
@@ -48,14 +50,16 @@ export function filterBackspaces(events: KeyEvent[]): KeyEvent[] {
   // Logical stack tracking text assembly: [toKey, originating event | null].
   const stack: Array<[string, KeyEvent | null]> = [];
 
+  const isControlKey = (k: string) => k.length > 1 && k !== "backspace" && k !== "space";
+
   for (const ev of events) {
     const sKey = ev.toKey.toLowerCase();
     const fKey = ev.fromKey ? ev.fromKey.toLowerCase() : "";
 
     if (sKey === "backspace") {
       if (stack.length > 0) stack.pop();
-    } else if (fKey === "backspace") {
-      // First normal key after a backspace: flow is broken, drop the transition.
+    } else if (fKey === "backspace" || isControlKey(fKey) || isControlKey(sKey)) {
+      // Flow is broken by a backspace or control key, drop the transition.
       stack.push([sKey, null]);
     } else {
       stack.push([sKey, ev]);
@@ -71,50 +75,64 @@ export function filterBackspaces(events: KeyEvent[]): KeyEvent[] {
 
 /**
  * Remove upper outliers and return the effective max latency (clip bound).
- * Static 1500ms cutoff below the IQR threshold, dynamic log-IQR above it.
+ * 1. Hard cutoff (e.g. 2000ms).
+ * 2. If events >= min_events, dynamic log-IQR threshold (with min guard).
+ * 3. Returns [validEvents, maxObserved].
  */
 export function filterOutliers(events: KeyEvent[]): [KeyEvent[], number] {
-  if (events.length < OUTLIER_IQR_MIN_EVENTS) {
-    const cutoff = OUTLIER_STATIC_MAX_MS;
-    const validEvents = events.filter((ev) => ev.latencyMs <= cutoff);
+  // 1. Hard Cutoff
+  let validEvents = events.filter((ev) => ev.latencyMs <= OUTLIER_HARD_CUTOFF_MS);
+
+  // 2. Count Check
+  if (validEvents.length < OUTLIER_BLEND_START_EVENTS) {
     const maxObserved =
       validEvents.length > 0
         ? Math.max(...validEvents.map((ev) => ev.latencyMs))
-        : cutoff;
+        : OUTLIER_HARD_CUTOFF_MS;
     return [validEvents, maxObserved];
   }
 
-  const latencies = events
+  // 3. IQR
+  const latencies = validEvents
     .filter((ev) => ev.latencyMs > 0)
     .map((ev) => ev.latencyMs);
+
   if (latencies.length === 0) {
-    const maxObserved =
-      events.length > 0
-        ? Math.max(...events.map((ev) => ev.latencyMs))
-        : OUTLIER_STATIC_MAX_MS;
-    return [events, maxObserved];
+    return [validEvents, OUTLIER_HARD_CUTOFF_MS];
   }
 
   const logLatencies = latencies.map((v) => Math.log(v));
   const q1 = percentile(logLatencies, 25);
   const q3 = percentile(logLatencies, 75);
   const iqr = q3 - q1;
-  const upperBound = Math.exp(q3 + OUTLIER_IQR_MULTIPLIER * iqr);
+  const iqrBound = Math.exp(q3 + OUTLIER_IQR_MULTIPLIER * iqr);
 
-  const validEvents = events.filter((ev) => ev.latencyMs <= upperBound);
+  const finalIqrBound = Math.max(iqrBound, OUTLIER_IQR_MIN_UPPER_BOUND_MS);
+
+  // 4. Blend interpolation
+  let finalUpperBound = OUTLIER_HARD_CUTOFF_MS;
+  const count = validEvents.length;
+  if (count >= OUTLIER_BLEND_END_EVENTS) {
+    finalUpperBound = finalIqrBound;
+  } else {
+    const weight = (count - OUTLIER_BLEND_START_EVENTS) / (OUTLIER_BLEND_END_EVENTS - OUTLIER_BLEND_START_EVENTS);
+    finalUpperBound = (1.0 - weight) * OUTLIER_HARD_CUTOFF_MS + weight * finalIqrBound;
+  }
+
+  validEvents = validEvents.filter((ev) => ev.latencyMs <= finalUpperBound);
   const maxObserved =
     validEvents.length > 0
       ? Math.max(...validEvents.map((ev) => ev.latencyMs))
-      : upperBound;
+      : finalUpperBound;
 
   return [validEvents, maxObserved];
 }
 
 /** Aggregate raw events into (from, to) pair statistics. */
 export function aggregatePairs(
-  events: KeyEvent[],
+  validEvents: KeyEvent[],
+  maxClipMs: number,
 ): Map<string, PairStat> {
-  const [validEvents, maxClipMs] = filterOutliers(events);
 
   const buckets = new Map<string, number[]>();
   const meta = new Map<string, { fromKey: string; toKey: string }>();
@@ -309,7 +327,8 @@ export function smooth(
       if (!neighbors || neighbors.size === 0) continue;
       const neighborMeanZ = mean([...neighbors].map((j) => z[j]));
       const neighborMeanStdev = mean([...neighbors].map((j) => stdev[j]));
-      const alpha = LAPLACIAN_SMOOTHING_ALPHA * (1.0 - normConf[i]);
+      let alpha = LAPLACIAN_SMOOTHING_ALPHA * (1.0 - normConf[i]);
+      if (normConf[i] === 0) alpha = 0.8;
       newZ[i] = (1.0 - alpha) * z[i] + alpha * neighborMeanZ;
       newStdev[i] = (1.0 - alpha) * stdev[i] + alpha * neighborMeanStdev;
     }
@@ -334,8 +353,8 @@ export function runPipeline(
   layout: Record<string, KeyPosition>,
 ): Record<string, KeyResult> {
   const cleanedEvents = filterBackspaces(events);
-  const [validEvents] = filterOutliers(cleanedEvents);
-  const pairStats = aggregatePairs(cleanedEvents);
+  const [validEvents, maxClipMs] = filterOutliers(cleanedEvents);
+  const pairStats = aggregatePairs(validEvents, maxClipMs);
   let results = summarizeKeys(pairStats, layout, validEvents);
   results = smooth(results);
   return results;

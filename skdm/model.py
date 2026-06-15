@@ -124,6 +124,9 @@ def filter_backspaces(events: list[KeyEvent]) -> list[KeyEvent]:
     
     결과적으로 오타와 백스페이스 전이가 모두 제거된 순수 정상 타건들의 리스트를 반환합니다.
     """
+    def is_control_key(k: str) -> bool:
+        return len(k) > 1 and k != "backspace" and k != "space"
+
     # 텍스트가 조립되는 과정을 추적하기 위한 논리적 스택
     # 요소: (문자열 self_key, 해당 키를 만들어낸 KeyEvent)
     stack: list[tuple[str, KeyEvent | None]] = []
@@ -136,14 +139,12 @@ def filter_backspaces(events: list[KeyEvent]) -> list[KeyEvent]:
             # 백스페이스가 입력되면 직전에 친 글자를 지운다.
             if stack:
                 stack.pop()
+        elif f_key == 'backspace' or is_control_key(f_key) or is_control_key(s_key):
+            # 백스페이스나 컨트롤 키 이후 또는 해당 키가 컨트롤 키인 경우 흐름이 단절된 것으로 봄
+            stack.append((s_key, None))
         else:
-            if f_key == 'backspace':
-                # 백스페이스 이후 첫 일반 키 입력은 흐름이 단절된 것으로 봄
-                # 따라서 이전 타건과의 연결 고리(전이)를 기록하지 않음.
-                stack.append((s_key, None))
-            else:
-                # 일반 문자 -> 일반 문자 전이
-                stack.append((s_key, ev))
+            # 일반 문자 -> 일반 문자 전이
+            stack.append((s_key, ev))
                 
     # 스택에 최종적으로 살아남은 유효한 전이(KeyEvent)들만 추출
     cleaned_events = []
@@ -155,53 +156,62 @@ def filter_backspaces(events: list[KeyEvent]) -> list[KeyEvent]:
 
 
 def filter_outliers(events: list[KeyEvent]) -> tuple[list[KeyEvent], float]:
-    """이상치 제거 및 임계치 반환.
+    """상위 이상치를 제거하고 효과적인 최대 지연시간(클립 기준선)을 반환한다.
     
-    - 하한(최소시간) 이상치는 제거하지 않음 (모든 입력 허용).
-    - 상한(최대시간) 이상치는:
-      1) 데이터가 기준치(OUTLIER_IQR_MIN_EVENTS) 미만일 땐 고정값(1500ms)으로 자름.
-      2) 데이터가 충분히 쌓이면 로그 변환 후 IQR 방식으로 동적 상한선을 구해 자름.
-
-    반환: (필터링된 이벤트 리스트, 실제 관측된 유효 최댓값(max_clip_ms))
+    1. 하드 컷오프(2000ms) 적용.
+    2. 데이터 개수가 적으면 (OUTLIER_BLEND_START_EVENTS 미만) 하드 컷오프 내 최댓값.
+    3. 충분하면 로그 IQR 상한선 도출 (최소 500ms 보장).
+    4. 데이터 개수에 따라 하드 컷오프와 IQR 상한선을 블렌딩.
     """
-    if len(events) < config.OUTLIER_IQR_MIN_EVENTS:
-        cutoff = config.OUTLIER_STATIC_MAX_MS
-        valid_events = [ev for ev in events if ev.latency_ms <= cutoff]
-        max_observed = max((ev.latency_ms for ev in valid_events), default=cutoff)
-        return valid_events, max_observed
+    # 1. Hard Cutoff
+    valid_events = [ev for ev in events if ev.latency_ms <= config.OUTLIER_HARD_CUTOFF_MS]
 
-    latencies = [ev.latency_ms for ev in events if ev.latency_ms > 0]
+    # 2. Count Check
+    if len(valid_events) < config.OUTLIER_BLEND_START_EVENTS:
+        max_observed = max((ev.latency_ms for ev in valid_events), default=config.OUTLIER_HARD_CUTOFF_MS)
+        return valid_events, float(max_observed)
+
+    # 3. IQR
+    latencies = [ev.latency_ms for ev in valid_events if ev.latency_ms > 0]
     if not latencies:
-        max_observed = max((ev.latency_ms for ev in events), default=config.OUTLIER_STATIC_MAX_MS)
-        return events, max_observed
+        return valid_events, config.OUTLIER_HARD_CUTOFF_MS
 
     log_latencies = np.log(latencies)
     q1 = float(np.percentile(log_latencies, 25))
     q3 = float(np.percentile(log_latencies, 75))
     iqr = q3 - q1
-    upper_bound = math.exp(q3 + config.OUTLIER_IQR_MULTIPLIER * iqr)
+    iqr_bound = math.exp(q3 + config.OUTLIER_IQR_MULTIPLIER * iqr)
     
-    valid_events = [ev for ev in events if ev.latency_ms <= upper_bound]
+    final_iqr_bound = max(iqr_bound, config.OUTLIER_IQR_MIN_UPPER_BOUND_MS)
+
+    # 4. Blend interpolation
+    count = len(valid_events)
+    if count >= config.OUTLIER_BLEND_END_EVENTS:
+        final_upper_bound = final_iqr_bound
+    else:
+        weight = (count - config.OUTLIER_BLEND_START_EVENTS) / (config.OUTLIER_BLEND_END_EVENTS - config.OUTLIER_BLEND_START_EVENTS)
+        final_upper_bound = (1.0 - weight) * config.OUTLIER_HARD_CUTOFF_MS + weight * final_iqr_bound
+
+    valid_events = [ev for ev in valid_events if ev.latency_ms <= final_upper_bound]
     if valid_events:
         max_observed = max(ev.latency_ms for ev in valid_events)
     else:
-        max_observed = upper_bound
+        max_observed = final_upper_bound
 
-    return valid_events, max_observed
+    return valid_events, float(max_observed)
 
 
-def aggregate_pairs(events: list[KeyEvent]) -> dict[tuple[str, str], PairStat]:
+def aggregate_pairs(valid_events: list[KeyEvent], max_clip_ms: float) -> dict[tuple[str, str], PairStat]:
     """원시 이벤트를 (from, self) 쌍별로 집계한다.
 
     절차:
-      1) 전체 이벤트에서 동적/정적 이상치를 필터링하고 상한선을 가져온다.
-      2) 살아남은 지연시간을 즉시 시그모이드로 변환해 (from, self) 버킷에 쌓는다.
+      1) 이미 필터링된 이벤트와 상한선을 주입받는다.
+      2) 지연시간을 즉시 시그모이드로 변환해 (from, self) 버킷에 쌓는다.
       3) 버킷마다 변환값들의 '평균'을 내어 쌍의 대표 z 로 삼고, 개수를 빈도로 기록한다.
          => 평균을 시그모이드 '이후'에 내는 이유: 먼저 비선형 변환을 적용해야
             긴 지연 하나가 평균을 과하게 끌어올리는 일이 줄고, 의도한
             '둔감/민감/포화' 특성이 평균에도 반영된다. (t -> sigmoid -> mean)
     """
-    valid_events, max_clip_ms = filter_outliers(events)
     
     buckets: dict[tuple[str, str], list[float]] = defaultdict(list)
     for ev in valid_events:
@@ -424,6 +434,8 @@ def smooth(results: dict[str, KeyResult]) -> dict[str, KeyResult]:
             # 신뢰도 높으면 alpha 가 0 에 가까워 거의 안 움직이고,
             # 신뢰도 낮으면 alpha 가 ALPHA 에 가까워 이웃값으로 끌려간다.
             alpha = config.LAPLACIAN_SMOOTHING_ALPHA * (1.0 - norm_conf[i])
+            if norm_conf[i] == 0:
+                alpha = 0.8
             new_z[i] = (1.0 - alpha) * z[i] + alpha * neighbor_mean
             new_stdev[i] = (1.0 - alpha) * stdev[i] + alpha * neighbor_mean_stdev
         z = new_z
@@ -447,8 +459,8 @@ def run_pipeline(
     반환: 키 -> KeyResult 딕셔너리. 렌더러는 여기서 z_smoothed 와 (x, y) 를 읽는다.
     """
     cleaned_events = filter_backspaces(events)
-    valid_events, _ = filter_outliers(cleaned_events)
-    pair_stats = aggregate_pairs(cleaned_events)
+    valid_events, max_clip_ms = filter_outliers(cleaned_events)
+    pair_stats = aggregate_pairs(valid_events, max_clip_ms)
     results = summarize_keys(pair_stats, layout, valid_events)
     results = smooth(results)
     return results

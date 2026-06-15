@@ -18,8 +18,10 @@ export const KEY_UNIT = 1.0;
 export const ROW_HEIGHT_U = 1.0;
 
 // --- Outlier filtering ---
-export const OUTLIER_STATIC_MAX_MS = 1500.0;
-export const OUTLIER_IQR_MIN_EVENTS = 200;
+export const OUTLIER_HARD_CUTOFF_MS = 2000.0;
+export const OUTLIER_IQR_MIN_UPPER_BOUND_MS = 500.0;
+export const OUTLIER_BLEND_START_EVENTS = 50;
+export const OUTLIER_BLEND_END_EVENTS = 1500;
 export const OUTLIER_IQR_MULTIPLIER = 1.5;
 
 /** Minimum observed frequency for a pair (kept at 1 = keep all). */

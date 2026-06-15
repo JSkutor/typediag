@@ -72,8 +72,10 @@ NORMALIZE_THETA: bool = True
 # - 최소(하한) 이상치 제거는 없음.
 # - 최대(상한) 이상치: 유의미한 데이터가 모이기 전엔 고정값(1500ms),
 #   이후에는 로그 변환 기반 IQR 을 사용하여 동적으로 자름.
-OUTLIER_STATIC_MAX_MS: float = 1500.0
-OUTLIER_IQR_MIN_EVENTS: int = 200
+OUTLIER_HARD_CUTOFF_MS: float = 2000.0
+OUTLIER_IQR_MIN_UPPER_BOUND_MS: float = 500.0
+OUTLIER_BLEND_START_EVENTS: int = 50
+OUTLIER_BLEND_END_EVENTS: int = 1500
 OUTLIER_IQR_MULTIPLIER: float = 1.5
 
 # 압축 시 해당 키 쌍의 최소 관측 빈도. 미만이면 신뢰도 매우 낮음으로 취급.

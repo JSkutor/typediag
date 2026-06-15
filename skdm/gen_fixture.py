@@ -31,7 +31,7 @@ def make_events() -> list[KeyEvent]:
     Latency is a fixed function of the key pair so both languages reproduce it
     exactly. Includes backspaces and an outlier to exercise those branches.
     """
-    text = "the quick brown fox jumps over the lazy dog and types again slowly"
+    text = "the quick brown fox jumps over the lazy dog and types again slowly " * 50
     events: list[KeyEvent] = []
     prev = None
     for i, ch in enumerate(text):
@@ -62,8 +62,8 @@ def main() -> None:
 
     # adjacency by key name (sorted) for parity check
     cleaned = filter_backspaces(events)
-    valid, _ = filter_outliers(cleaned)
-    pair_stats = aggregate_pairs(cleaned)
+    valid, max_clip_ms = filter_outliers(cleaned)
+    pair_stats = aggregate_pairs(valid, max_clip_ms)
     res2 = summarize_keys(pair_stats, layout, valid)
     keys, tri = triangulate(res2)
     adj_idx = _build_adjacency(keys, tri)

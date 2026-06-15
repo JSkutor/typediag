@@ -41,16 +41,10 @@ describe("sigmoidLatency", () => {
   });
 });
 
-const pythonRows = [
-  "1234567890".split(""),
-  "qwertyuiop".split(""),
-  "asdfghjkl".split(""),
-  "zxcvbnm,.".split(""),
-];
 
 describe("layout parity", () => {
   it("matches Python coordinates for analysed keys", () => {
-    const layout = buildLayout(pythonRows);
+    const layout = buildLayout();
     for (const [key, ref] of Object.entries(reference.results)) {
       expect(layout[key].x).toBeCloseTo(ref.x, 12);
       expect(layout[key].y).toBeCloseTo(ref.y, 12);
@@ -61,10 +55,10 @@ describe("layout parity", () => {
 
 describe("Delaunay adjacency parity", () => {
   it("produces the same neighbour graph as scipy", () => {
-    const layout = buildLayout(pythonRows);
+    const layout = buildLayout();
     const cleaned = filterBackspaces(events);
-    const [valid] = filterOutliers(cleaned);
-    const pairStats = aggregatePairs(cleaned);
+    const [valid, maxClipMs] = filterOutliers(cleaned);
+    const pairStats = aggregatePairs(valid, maxClipMs);
     const results = summarizeKeys(pairStats, layout, valid);
 
     const { keys, triangles } = triangulate(results);
@@ -81,7 +75,7 @@ describe("Delaunay adjacency parity", () => {
 
 describe("full pipeline parity", () => {
   it("matches the Python reference for every key", () => {
-    const layout = buildLayout(pythonRows);
+    const layout = buildLayout();
     const results = runPipeline(events, layout);
 
     const refKeys = Object.keys(reference.results).sort();
