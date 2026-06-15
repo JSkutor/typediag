@@ -50,12 +50,6 @@ export default function Workspace() {
     }
   }, [setTarget]);
 
-  // Clean run state reset when returning to practice mode
-  useEffect(() => {
-    if (uiState === "practice") {
-      useTypingStore.getState().startNewRun();
-    }
-  }, [uiState]);
 
   // Pipeline calculation moved to Tab key handler to avoid lagging the 3D tilt transition
   const startDiagnosticsTransition = useCallback(async () => {
@@ -64,7 +58,6 @@ export default function Workspace() {
 
     if (currentRunId) {
       try {
-        await db.finalizeRun(currentRunId);
         const pages = await db.getPagesForRun(currentRunId);
         
         if (pages.length > 0) {
@@ -95,7 +88,7 @@ export default function Workspace() {
     const results = runPipeline(eventsToAnalyze, layout);
     const { triangles } = triangulate(results);
     
-    setAnalysisData(results, triangles);
+    setAnalysisData(results, triangles, eventsToAnalyze);
     setUiState("diagnostics");
     setDiagnosticMode("surface");
   }, [setAnalysisData, setUiState, setDiagnosticMode]);

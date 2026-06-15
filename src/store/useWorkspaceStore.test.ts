@@ -11,6 +11,7 @@ describe("useWorkspaceStore", () => {
       dynamicScale: 0.95,
       keyStats: {},
       triangles: null,
+      analysisEvents: [],
     });
   });
 
@@ -22,6 +23,7 @@ describe("useWorkspaceStore", () => {
     expect(state.dynamicScale).toBe(0.95);
     expect(state.keyStats).toEqual({});
     expect(state.triangles).toBeNull();
+    expect(state.analysisEvents).toEqual([]);
   });
 
   it("should set uiState", () => {
@@ -47,9 +49,12 @@ describe("useWorkspaceStore", () => {
   it("should set analysis data", () => {
     const stats = { a: { key: "a", score: 100 } } as any;
     const triangles = new Uint32Array([0, 1, 2]);
-    useWorkspaceStore.getState().setAnalysisData(stats, triangles);
+    const events = [{ fromKey: "a", toKey: "b", latencyMs: 100, keyChar: "b" }] as any;
+    useWorkspaceStore.getState().setAnalysisData(stats, triangles, events);
     
     expect(useWorkspaceStore.getState().keyStats).toEqual(stats);
     expect(useWorkspaceStore.getState().triangles).toEqual(triangles);
+    expect(useWorkspaceStore.getState().analysisEvents).toEqual(events);
   });
 });
+

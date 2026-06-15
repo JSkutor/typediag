@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useEffect, useState, useMemo, useCallback } from "react";
-import { useTypingStore } from "@/store/useTypingStore";
+import { useWorkspaceStore } from "@/store/useWorkspaceStore";
 import { useThreeManager } from "@/hooks/useThreeManager";
 import {
   buildCylindricalVectors,
@@ -30,7 +30,7 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
 
-  const events = useTypingStore((state) => state.events);
+  const events = useWorkspaceStore((state) => state.analysisEvents);
 
   // --- Local state ---
   const [selectedTo, setSelectedTo] = useState(initialCenterKey ?? "");
