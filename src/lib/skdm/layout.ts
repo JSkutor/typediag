@@ -8,9 +8,9 @@ import type { KeyPosition } from "./types";
 /** Analysis target rows. Row 0 = number row, 1 = qwerty, 2 = asdf, 3 = zxcv. */
 export const DEFAULT_ROWS: string[][] = [
   "1234567890".split(""),
-  ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "backspace"],
-  ["a", "s", "d", "f", "g", "h", "j", "k", "l", "enter"],
-  ["shift", "z", "x", "c", "v", "b", "n", "m", ",", "."],
+  "qwertyuiop".split(""),
+  "asdfghjkl".split(""),
+  ["z", "x", "c", "v", "b", "n", "m", "_dummy_comma"],
 ];
 
 /**

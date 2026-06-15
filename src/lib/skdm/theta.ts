@@ -18,6 +18,6 @@ export function getTheta(centerKey: string, fromKey: string): number {
   const idx = order.indexOf(from);
   if (idx === -1) return 0; // Not found in order, fallback to 0
   
-  // 27 keys evenly distributed
-  return (idx / 27) * 2 * Math.PI;
+  // 25 keys evenly distributed (26 alphabetic keys - 1 center key)
+  return (idx / 25) * 2 * Math.PI;
 }

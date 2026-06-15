@@ -17,7 +17,7 @@ DEFAULT_ROWS: list[list[str]] = [
     list("1234567890"),
     list("qwertyuiop"),
     list("asdfghjkl"),
-    list("zxcvbnm,."),
+    ["z", "x", "c", "v", "b", "n", "m", "_dummy_comma"],
 ]
 
 

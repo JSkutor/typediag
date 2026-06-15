@@ -7,6 +7,6 @@ function getTheta(centerKey, fromKey) {
   if (!order) return 0;
   const idx = order.indexOf(from);
   if (idx === -1) return 0;
-  return (idx / 27) * 2 * Math.PI;
+  return (idx / 25) * 2 * Math.PI;
 }
 console.log(getTheta('q', 'w'), getTheta('q', 'e'), getTheta('q', 'p'));
