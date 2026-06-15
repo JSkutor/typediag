@@ -15,7 +15,11 @@ describe("useTypingStore", () => {
       finishedAt: null,
       lastKey: null,
       lastKeyAt: null,
+      currentRunId: null,
     });
+    if (typeof window !== "undefined") {
+      localStorage.clear();
+    }
   });
 
   it("should initialize with idle status", () => {
@@ -33,16 +37,29 @@ describe("useTypingStore", () => {
     expect(useTypingStore.getState().typedText).toBe("h");
     expect(useTypingStore.getState().status).toBe("running");
     expect(useTypingStore.getState().startedAt).toBe(1000);
-    expect(useTypingStore.getState().events).toHaveLength(0); // No transition yet
+    expect(useTypingStore.getState().events).toHaveLength(1); // First keystroke recorded
+    expect(useTypingStore.getState().events[0]).toEqual({
+      fromKey: null,
+      toKey: "h",
+      latencyMs: 0,
+      keyChar: "h",
+      holdDurationMs: 50,
+      isCorrect: true,
+      expectedChar: null,
+    });
 
     // Press 'e'
     useTypingStore.getState().handlePhysicalKeyPress("KeyE", false, 1100);
     expect(useTypingStore.getState().typedText).toBe("he");
-    expect(useTypingStore.getState().events).toHaveLength(1);
-    expect(useTypingStore.getState().events[0]).toEqual({
+    expect(useTypingStore.getState().events).toHaveLength(2);
+    expect(useTypingStore.getState().events[1]).toEqual({
       fromKey: "h",
       toKey: "e",
       latencyMs: 100,
+      keyChar: "e",
+      holdDurationMs: 50,
+      isCorrect: true,
+      expectedChar: null,
     });
   });
 
@@ -56,11 +73,15 @@ describe("useTypingStore", () => {
     expect(useTypingStore.getState().typedText).toBe("h");
     
     // The physical key for backspace is also recorded as an event transition
-    expect(useTypingStore.getState().events).toHaveLength(2);
-    expect(useTypingStore.getState().events[1]).toEqual({
+    expect(useTypingStore.getState().events).toHaveLength(3);
+    expect(useTypingStore.getState().events[2]).toEqual({
       fromKey: "e",
       toKey: "backspace",
       latencyMs: 100,
+      keyChar: "backspace",
+      holdDurationMs: 50,
+      isCorrect: true,
+      expectedChar: null,
     });
   });
 
@@ -81,7 +102,7 @@ describe("useTypingStore", () => {
     store.handlePhysicalKeyPress("KeyH", false, 1000);
     store.handlePhysicalKeyPress("KeyE", false, 1100);
     
-    expect(useTypingStore.getState().events).toHaveLength(1);
+    expect(useTypingStore.getState().events).toHaveLength(2);
     
     useTypingStore.getState().reset();
     
@@ -133,5 +154,109 @@ describe("useTypingStore", () => {
     store.handlePhysicalKeyPress("Space", false, 1000);
     expect(useTypingStore.getState().targetText).toBe("he");
     expect(useTypingStore.getState().typedText).toBe(" ");
+  });
+
+  it("should create a run and save a page to the db when typing finishes", async () => {
+    const { db } = await import("@/utils/db");
+    const store = useTypingStore.getState();
+    store.setTarget("he");
+    
+    // Reset DB for clean test state
+    if (typeof window !== "undefined") {
+      localStorage.clear();
+    }
+    
+    // Type 'h'
+    store.handlePhysicalKeyPress("KeyH", false, 1000);
+    
+    // Await run creation in background microtasks
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    const runId = useTypingStore.getState().currentRunId;
+    expect(runId).not.toBeNull();
+    
+    const run = await db.getRun(runId!);
+    expect(run).not.toBeNull();
+    expect(run?.status).toBe("in_progress");
+
+    // Type 'e' -> completes session
+    store.handlePhysicalKeyPress("KeyE", false, 1100);
+    expect(useTypingStore.getState().status).toBe("done");
+
+    // Wait for the async db save to run in microtasks
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    const pages = await db.getPagesForRun(runId!);
+    expect(pages).toHaveLength(1);
+    expect(pages[0].typed_text).toBe("he");
+    expect(pages[0].cpm).toBeGreaterThan(0);
+    expect(pages[0].accuracy).toBe(100);
+    expect(pages[0].key_events).toHaveLength(2); // Null from_key event + transition event
+  });
+
+  it("should create a new run if idle for more than 5 minutes on next session typing start", async () => {
+    const { db } = await import("@/utils/db");
+    const store = useTypingStore.getState();
+    store.setTarget("he");
+    
+    // 1. First session
+    store.handlePhysicalKeyPress("KeyH", false, 1000);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    
+    const runId1 = useTypingStore.getState().currentRunId!;
+    store.handlePhysicalKeyPress("KeyE", false, 1100);
+    
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    const pages1 = await db.getPagesForRun(runId1);
+    expect(pages1).toHaveLength(1);
+    
+    // 2. Idle for 6 minutes (360,000ms)
+    // Manually ensure status is in_progress but keep it in localstorage
+    await db.updateRun(runId1, { status: "in_progress", finished_at: null });
+    
+    // Start next typing after 6 minutes (timestamp = 361,000)
+    store.reset();
+    store.setTarget("he");
+    store.handlePhysicalKeyPress("KeyH", false, 370000);
+    
+    // Wait for async init run
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    
+    const runId2 = useTypingStore.getState().currentRunId;
+    expect(runId2).not.toBeNull();
+    expect(runId2).not.toBe(runId1); // Should be a new run id
+    
+    const prevRun = await db.getRun(runId1);
+    expect(prevRun?.status).toBe("completed");
+  });
+
+  it("should split and finalize session if typing takes more than 10 minutes", async () => {
+    const { db } = await import("@/utils/db");
+    const store = useTypingStore.getState();
+    store.setTarget("he");
+    
+    // Press 'h' at 1,000ms
+    store.handlePhysicalKeyPress("KeyH", false, 1000);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    
+    const runId1 = useTypingStore.getState().currentRunId!;
+    
+    // Press 'e' at 1,000ms + 11 minutes (661,000ms)
+    store.handlePhysicalKeyPress("KeyE", false, 662000);
+    
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    
+    const finalRunId = useTypingStore.getState().currentRunId!;
+    expect(finalRunId).not.toBe(runId1);
+    
+    const prevRun = await db.getRun(runId1);
+    expect(prevRun?.status).toBe("completed");
+    
+    const nextRun = await db.getRun(finalRunId);
+    expect(nextRun?.status).toBe("in_progress");
+    
+    const pages = await db.getPagesForRun(finalRunId);
+    expect(pages).toHaveLength(1);
+    expect(pages[0].run_id).toBe(finalRunId);
   });
 });

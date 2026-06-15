@@ -3,8 +3,10 @@
 import React, { useEffect, useCallback } from "react";
 import { useTypingStore } from "@/store/useTypingStore";
 import { useWorkspaceStore } from "@/store/useWorkspaceStore";
-import { runPipeline, buildLayout, triangulate } from "@/lib/skdm";
+import { runPipeline, buildLayout, triangulate, type KeyEvent } from "@/lib/skdm";
 import { useWorkspaceKeybindings } from "@/hooks/useWorkspaceKeybindings";
+import { db } from "@/utils/db";
+import { mean } from "@/lib/skdm/stats";
 
 import { WorkspaceControls } from "@/components/workspace/WorkspaceControls";
 import { PracticeLayer } from "@/components/workspace/PracticeLayer";
@@ -38,18 +40,59 @@ export default function Workspace() {
 
   const setTarget = useTypingStore((state) => state.setTarget);
 
-  // Initialize practice text
+  // Initialize practice text and sync session
   useEffect(() => {
+    (async () => {
+      await db.syncSessionOnMount();
+    })();
     if (targets.length > 0) {
       setTarget(targets[0].content);
     }
   }, [setTarget]);
 
+  // Clean run state reset when returning to practice mode
+  useEffect(() => {
+    if (uiState === "practice") {
+      useTypingStore.getState().startNewRun();
+    }
+  }, [uiState]);
+
   // Pipeline calculation moved to Tab key handler to avoid lagging the 3D tilt transition
-  const startDiagnosticsTransition = useCallback(() => {
-    const currentEvents = useTypingStore.getState().events;
+  const startDiagnosticsTransition = useCallback(async () => {
+    const currentRunId = useTypingStore.getState().currentRunId;
+    let eventsToAnalyze: KeyEvent[] = [];
+
+    if (currentRunId) {
+      try {
+        await db.finalizeRun(currentRunId);
+        const pages = await db.getPagesForRun(currentRunId);
+        
+        if (pages.length > 0) {
+          // Merge all key events from pages in the current run
+          eventsToAnalyze = pages.flatMap((page) =>
+            page.key_events.map((ev) => ({
+              fromKey: ev.from_key,
+              toKey: ev.to_key,
+              latencyMs: ev.latency,
+              keyChar: ev.key_char,
+              holdDurationMs: ev.hold_duration_ms,
+              isCorrect: ev.is_correct,
+              expectedChar: ev.expected_char,
+            }))
+          );
+        }
+      } catch (err) {
+        console.error("Failed to compile run stats:", err);
+      }
+    }
+
+    // Fallback to currently active typing events if the run has no pages
+    if (eventsToAnalyze.length === 0) {
+      eventsToAnalyze = useTypingStore.getState().events;
+    }
+
     const layout = buildLayout();
-    const results = runPipeline(currentEvents, layout);
+    const results = runPipeline(eventsToAnalyze, layout);
     const { triangles } = triangulate(results);
     
     setAnalysisData(results, triangles);
