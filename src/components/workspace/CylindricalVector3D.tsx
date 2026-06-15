@@ -6,12 +6,14 @@ import { useThreeManager } from "@/hooks/useThreeManager";
 import {
   buildCylindricalVectors,
   getAvailableCenterKeys,
+  getGlobalCylindricalMax,
 } from "@/lib/skdm/cylindrical";
 import {
   Cylindrical3DManager,
   LabelProjection,
   CylindricalToggles,
 } from "./Cylindrical3DManager";
+import { toCylindricalCartesian } from "./geometryUtils";
 
 interface CylindricalVector3DProps {
   isActivated: boolean;
@@ -19,9 +21,6 @@ interface CylindricalVector3DProps {
   initialCenterKey?: string;
   onClose?: () => void;
 }
-
-const SCALE_R = 0.3;
-const SCALE_Z = 0.015;
 
 export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
   isActivated,
@@ -35,21 +34,21 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
   // --- Local state ---
   const [selectedTo, setSelectedTo] = useState(initialCenterKey ?? "");
   const [selectedFrom, setSelectedFrom] = useState("");
-  const originLabelRef = useRef<HTMLDivElement>(null);
-  const targetLabelRef = useRef<HTMLDivElement>(null);
+  const labelRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [toggles, setToggles] = useState<CylindricalToggles>({
     cylinder: true,
     grid: true,
-    projections: true,
+    projections: false,
     petal: true,
     autoRotate: false,
   });
 
   // --- Derived data ---
   const centerKeys = useMemo(() => getAvailableCenterKeys(events), [events]);
+  const globalMax = useMemo(() => getGlobalCylindricalMax(events), [events]);
   const vectors = useMemo(
-    () => (selectedTo ? buildCylindricalVectors(events, selectedTo) : []),
-    [events, selectedTo],
+    () => (selectedTo ? buildCylindricalVectors(events, selectedTo, globalMax) : []),
+    [events, selectedTo, globalMax],
   );
   const fromKeys = useMemo(() => vectors.map((v) => v.fromKey), [vectors]);
   const currentVector = useMemo(
@@ -74,21 +73,18 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
   // --- Manager lifecycle ---
   const handleInit = useCallback((mgr: Cylindrical3DManager) => {
     mgr.onLabelsUpdate = (proj: LabelProjection) => {
-      if (originLabelRef.current) {
-        if (proj.originVisible) {
-          originLabelRef.current.style.display = "block";
-          originLabelRef.current.style.transform = `translate3d(${proj.originX}px, ${proj.originY - 18}px, 0)`;
-        } else {
-          originLabelRef.current.style.display = "none";
-        }
-      }
-      if (targetLabelRef.current) {
-        if (proj.targetVisible) {
-          targetLabelRef.current.style.display = "block";
-          targetLabelRef.current.style.transform = `translate3d(${proj.targetX}px, ${proj.targetY - 18}px, 0)`;
-        } else {
-          targetLabelRef.current.style.display = "none";
-        }
+      if (proj.vectorCoords) {
+        proj.vectorCoords.forEach((item) => {
+          const el = labelRefs.current[item.fromKey];
+          if (el) {
+            if (item.visible) {
+              el.style.display = "block";
+              el.style.transform = `translate3d(-50%, -50%, 0) translate3d(${item.x}px, ${item.y}px, 0)`;
+            } else {
+              el.style.display = "none";
+            }
+          }
+        });
       }
     };
   }, []);
@@ -128,9 +124,7 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
     }
     const v = currentVector;
     const thetaRad = v.theta;
-    const vx = v.r * SCALE_R * Math.cos(thetaRad);
-    const vy = v.z * SCALE_Z;
-    const vz = v.r * SCALE_R * Math.sin(thetaRad);
+    const { vx, vy, vz } = toCylindricalCartesian(v);
 
     return {
       r: `${v.r}`,
@@ -139,8 +133,8 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
       x: vx.toFixed(3),
       y: vy.toFixed(3),
       zCart: vz.toFixed(3),
-      formulaX: `X = ${v.r} × cos(${v.thetaDeg.toFixed(1)}°) = ${vx.toFixed(3)}`,
-      formulaZ: `Z = ${v.r} × sin(${v.thetaDeg.toFixed(1)}°) = ${vz.toFixed(3)}`,
+      formulaX: `X = norm(r) × MAX_R × cos(${v.thetaDeg.toFixed(1)}°) = ${vx.toFixed(3)}`,
+      formulaZ: `Z = norm(r) × MAX_R × sin(${v.thetaDeg.toFixed(1)}°) = ${vz.toFixed(3)}`,
     };
   }, [currentVector]);
 
@@ -151,35 +145,69 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
       {/* Three.js mount point */}
       <div ref={mountRef} className="cyl-canvas" />
 
-      {/* 2D floating labels */}
       <div
-        ref={originLabelRef}
-        className="cyl-label cyl-label--origin"
+        className="cyl-labels-container"
         style={{
           position: "absolute",
-          left: 0,
           top: 0,
-          transform: "translate3d(0, 0, 0)",
-          display: "none",
-          willChange: "transform",
+          left: 0,
+          width: "100%",
+          height: "100%",
+          pointerEvents: "none",
+          overflow: "hidden"
         }}
       >
-        Origin (To): {selectedTo.toUpperCase()} [0, 0, 0]
-      </div>
-      <div
-        ref={targetLabelRef}
-        className="cyl-label cyl-label--target"
-        style={{
-          position: "absolute",
-          left: 0,
-          top: 0,
-          transform: "translate3d(0, 0, 0)",
-          display: "none",
-          willChange: "transform",
-        }}
-      >
-        Vector (From): {selectedFrom.toUpperCase()} [{display.x}, {display.y},{" "}
-        {display.zCart}]
+        {vectors.map((v) => {
+          const label = v.fromKey.toUpperCase();
+          const isSelected = v.fromKey === selectedFrom;
+          
+          return (
+            <div
+              key={v.fromKey}
+              ref={(el) => {
+                labelRefs.current[v.fromKey] = el;
+              }}
+              className={`hud-label-btn ${isSelected ? "hud-label-btn--selected" : ""}`}
+              onClick={() => setSelectedFrom(v.fromKey)}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                color: isSelected ? "#ffffff" : "rgba(228, 230, 235, 0.9)",
+                fontFamily: "var(--font-mono, monospace)",
+                fontWeight: "bold",
+                fontSize: "12px",
+                textShadow: "0 2px 4px rgba(0,0,0,0.5)",
+                willChange: "transform, opacity",
+                display: "none",
+                cursor: "pointer",
+                pointerEvents: "auto",
+                background: isSelected ? "rgba(99, 102, 241, 0.85)" : "rgba(30, 41, 59, 0.4)",
+                border: isSelected ? "1px solid #6366f1" : "1px solid rgba(99, 102, 241, 0.3)",
+                padding: "1px 4px",
+                borderRadius: "3px",
+                transition: "border-color 0.2s, background-color 0.2s, color 0.2s",
+                boxShadow: isSelected ? "0 0 8px rgba(99, 102, 241, 0.5)" : "none",
+              }}
+              onMouseEnter={(e) => {
+                if (!isSelected) {
+                  e.currentTarget.style.borderColor = "rgba(99, 102, 241, 0.8)";
+                  e.currentTarget.style.backgroundColor = "rgba(99, 102, 241, 0.2)";
+                  e.currentTarget.style.color = "#ffffff";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isSelected) {
+                  e.currentTarget.style.borderColor = "rgba(99, 102, 241, 0.3)";
+                  e.currentTarget.style.backgroundColor = "rgba(30, 41, 59, 0.4)";
+                  e.currentTarget.style.color = "rgba(228, 230, 235, 0.9)";
+                }
+              }}
+            >
+              {label}
+            </div>
+          );
+        })}
       </div>
 
       {/* Dashboard panel */}
@@ -352,7 +380,7 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
             <code className="cyl-formula">{display.formulaZ}</code>
             <br />
             <span className="cyl-formula-note">
-              ※ Scale: R × 0.3, Z × 0.015 (1 unit ≈ freq 3.3 or 66.7ms)
+              ※ Scale: R(sq root), Z(linear). Max R/Z bound to 6.0
             </span>
           </div>
         </div>

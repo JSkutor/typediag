@@ -4,20 +4,21 @@ import {
   generateSurfaceLayout,
   calculateSurfaceBorders,
   generateBoxPoints,
-  CYLINDRICAL_SCALE_R,
-  CYLINDRICAL_SCALE_Z
+  CYLINDRICAL_MAX_RADIUS,
+  CYLINDRICAL_MAX_HEIGHT
 } from "./geometryUtils";
 
 describe("geometryUtils", () => {
   describe("toCylindricalCartesian", () => {
     it("converts cylindrical vector to cartesian properly", () => {
-      const v = { r: 10, theta: Math.PI / 2, thetaDeg: 90, z: 100, fromKey: "a", toKey: "b" };
+      // With raw values missing normalized fields, fallback math is used
+      const v = { r: 10, theta: Math.PI / 2, thetaDeg: 90, z: 100, fromKey: "a" };
       const cartesian = toCylindricalCartesian(v as any);
       
-      expect(cartesian.vy).toBe(100 * CYLINDRICAL_SCALE_Z);
+      expect(cartesian.vy).toBe(100 * 0.015);
       // cos(PI/2) is close to 0
       expect(Math.abs(cartesian.vx)).toBeLessThan(1e-10);
-      expect(cartesian.vz).toBeCloseTo(10 * CYLINDRICAL_SCALE_R, 5);
+      expect(cartesian.vz).toBeCloseTo(10 * 0.3, 5);
     });
   });
 

@@ -3,7 +3,7 @@
 import React, { useRef, useEffect, useState } from "react";
 import { KeyResult } from "@/lib/skdm";
 
-import { Surface3DManager } from "./Surface3DManager";
+import { Surface3DManager, LATENCY_POWER } from "./Surface3DManager";
 import { useWorkspaceStore } from "@/store/useWorkspaceStore";
 import { useThreeManager } from "@/hooks/useThreeManager";
 import { useCallback } from "react";
@@ -48,12 +48,13 @@ export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
   const handleInit = useCallback((manager: Surface3DManager) => {
     manager.onUpdateHUD = (surfaceKeys, elevationScale, camera, opacity, managerWidth, managerHeight) => {
       if (!labelsContainerRef.current || !mountRef.current) return;
-      const TARGET_ELEVATION_SCALE = 120;
+      const TARGET_ELEVATION_SCALE = 180;
 
       surfaceKeys.forEach((k) => {
         const vec = manager.get3DPos(k, elevationScale);
         const scaleRatio = elevationScale / TARGET_ELEVATION_SCALE;
-        vec.y += (10 + k.zSmoothed * 5) * scaleRatio;
+        const amplifiedZ = Math.pow(k.zSmoothed, LATENCY_POWER);
+        vec.y += (10 + amplifiedZ * 5) * scaleRatio;
 
         vec.project(camera);
 
@@ -122,6 +123,7 @@ export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
         }}
       >
         {keys.map((k) => {
+          if (k.key === "_dummy_comma") return null;
           let label = k.key.toUpperCase();
           if (["SPACE", "SHIFT", "ENTER", "BACKSPACE"].includes(label)) label = "";
           if (!label) return null;

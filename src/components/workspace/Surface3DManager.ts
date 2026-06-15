@@ -16,6 +16,8 @@ import {
 const { layoutMap: KEY_LAYOUT, centerX, centerZ } = generateSurfaceLayout();
 const { innerBorderPoints: _innerBorderPoints, outerBorderPoints: _outerBorderPoints } = calculateSurfaceBorders(KEY_LAYOUT);
 
+export const LATENCY_POWER = 1.5;
+
 export class Surface3DManager {
   private container: HTMLElement;
   private scene: THREE.Scene;
@@ -124,39 +126,62 @@ export class Surface3DManager {
     const N = this.surfaceKeys.length;
     const M1 = this.innerBorderPoints.length;
     const M2 = this.outerBorderPoints.length;
-    this.positions = new Float32Array((N + M1 + M2) * 3);
+    const totalVertices = N + M1 + M2;
+    
+    this.positions = new Float32Array(totalVertices * 3);
+    const colors = new Float32Array(totalVertices * 3);
     
     // Clear previous meshes
     this.scene.children = this.scene.children.filter(c => c instanceof THREE.Light || c instanceof THREE.GridHelper);
     this.dropLineGeometries = [];
     
+    const colorStart = new THREE.Color(0x3861fb); // Fast key (Blue)
+    const colorEnd = new THREE.Color(0xff2a5f);   // Slow key (Hot Pink / Magenta)
+    const tempColor = new THREE.Color();
+
     // Recreate geometry and materials
-    // 1. Fill active key positions
+    // 1. Fill active key positions and colors
     this.surfaceKeys.forEach((k, i) => {
       const pos = this.get3DPos(k, 0);
       this.positions[i * 3] = pos.x;
       this.positions[i * 3 + 1] = pos.y;
       this.positions[i * 3 + 2] = pos.z;
+
+      // Interpolate color based on amplified zSmoothed (using LATENCY_POWER)
+      const amplifiedZ = Math.pow(k.zSmoothed, LATENCY_POWER);
+      tempColor.copy(colorStart).lerp(colorEnd, amplifiedZ);
+      colors[i * 3] = tempColor.r;
+      colors[i * 3 + 1] = tempColor.g;
+      colors[i * 3 + 2] = tempColor.b;
     });
 
-    // 2. Fill inner boundary positions (always y = SURFACE_Y_OFFSET)
+    // 2. Fill inner boundary positions and colors (always y = SURFACE_Y_OFFSET, fast color)
     this.innerBorderPoints.forEach((bp, i) => {
       const idx = (N + i) * 3;
       this.positions[idx] = bp[0];
       this.positions[idx + 1] = SURFACE_Y_OFFSET;
       this.positions[idx + 2] = bp[1];
+
+      colors[idx] = colorStart.r;
+      colors[idx + 1] = colorStart.g;
+      colors[idx + 2] = colorStart.b;
     });
 
-    // 3. Fill outer boundary positions (always y = SURFACE_Y_OFFSET)
+    // 3. Fill outer boundary positions and colors (always y = SURFACE_Y_OFFSET, fast color)
     this.outerBorderPoints.forEach((bp, i) => {
       const idx = (N + M1 + i) * 3;
       this.positions[idx] = bp[0];
       this.positions[idx + 1] = SURFACE_Y_OFFSET;
       this.positions[idx + 2] = bp[1];
+
+      colors[idx] = colorStart.r;
+      colors[idx + 1] = colorStart.g;
+      colors[idx + 2] = colorStart.b;
     });
 
     this.geometry = new THREE.BufferGeometry();
     this.geometry.setAttribute("position", new THREE.BufferAttribute(this.positions, 3));
+    this.geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
 
     if (N >= 3) {
       const points: Array<[number, number]> = [];
@@ -186,7 +211,7 @@ export class Surface3DManager {
     }
 
     const glassMaterial = new THREE.MeshPhysicalMaterial({
-      color: 0x3861fb,
+      vertexColors: true,
       metalness: 0.1,
       roughness: 0.2,
       transmission: 0.6,
@@ -228,11 +253,14 @@ export class Surface3DManager {
       const pBase = new THREE.Vector3(pTop.x, 0, pTop.z);
       const lineGeom = new THREE.BufferGeometry().setFromPoints([pTop, pBase]);
       const line = new THREE.Line(lineGeom, lineMaterial);
-      this.scene.add(line);
+      if (k.key !== "_dummy_comma") {
+        this.scene.add(line);
+      }
       this.dropLineGeometries.push(lineGeom);
     });
 
     this.surfaceKeys.forEach((k) => {
+      if (k.key === "_dummy_comma") return;
       const layout = KEY_LAYOUT[k.key.toLowerCase()];
       if (!layout) return;
 
@@ -257,10 +285,12 @@ export class Surface3DManager {
     const keyName = k.key.toLowerCase();
     const layout = KEY_LAYOUT[keyName];
 
+    const amplifiedZ = Math.pow(k.zSmoothed, LATENCY_POWER);
+
     if (layout) {
       return new THREE.Vector3(
         layout.x,
-        SURFACE_Y_OFFSET + k.zSmoothed * elevationScale,
+        SURFACE_Y_OFFSET + amplifiedZ * elevationScale,
         layout.z
       );
     }
@@ -268,7 +298,7 @@ export class Surface3DManager {
     // Fallback: apply same transformation as KEY_LAYOUT
     const x = (k.x - centerX) * SURFACE_SCALE;
     const z = (((2.0 - k.y) * (1 + SURFACE_GAP)) - centerZ) * SURFACE_SCALE;
-    return new THREE.Vector3(x, SURFACE_Y_OFFSET + k.zSmoothed * elevationScale, z);
+    return new THREE.Vector3(x, SURFACE_Y_OFFSET + amplifiedZ * elevationScale, z);
   }
 
   public resize(w: number, h: number): void {
@@ -314,7 +344,7 @@ export class Surface3DManager {
           }
         });
         
-        const TARGET_ELEVATION_SCALE = 120;
+        const TARGET_ELEVATION_SCALE = 180;
         const CAM_TARGET_Y = 480;
         const CAM_TARGET_Z = 480;
 
@@ -359,7 +389,8 @@ export class Surface3DManager {
     }
     
     this.surfaceKeys.forEach((k, i) => {
-      const currentY = SURFACE_Y_OFFSET + k.zSmoothed * this.animState.elevationScale;
+      const amplifiedZ = Math.pow(k.zSmoothed, LATENCY_POWER);
+      const currentY = SURFACE_Y_OFFSET + amplifiedZ * this.animState.elevationScale;
       this.positions[i * 3 + 1] = currentY;
 
       if (this.dropLineGeometries[i]) {

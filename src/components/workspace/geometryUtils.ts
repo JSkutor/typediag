@@ -4,8 +4,8 @@ import type { CylindricalVector } from "@/lib/skdm/cylindrical";
 // ---------------------------------------------------------------------------
 // Cylindrical 3D Constants & Utils
 // ---------------------------------------------------------------------------
-export const CYLINDRICAL_SCALE_R = 0.3; // frequency → XZ radius
-export const CYLINDRICAL_SCALE_Z = 0.015; // latency ms → Y height
+export const CYLINDRICAL_MAX_RADIUS = 6.0; // max XZ radius
+export const CYLINDRICAL_MAX_HEIGHT = 6.0; // max Y height
 
 /** Functional colors for 3D data elements */
 export const CYL_COLORS = {
@@ -15,7 +15,7 @@ export const CYL_COLORS = {
   vectorArrow: 0xf59e0b,
   inactive: 0x3b82f6,
   inactiveNode: 0x06b6d4,
-  cylinder: 0x3b82f6,
+  cylinder: 0x8b5cf6,
   dropLine: 0x57d68d,
   radLine: 0x8d929b,
   angleArc: 0xfbbf24,
@@ -26,10 +26,14 @@ export const CYL_COLORS = {
 
 /** Cylindrical → Three.js Cartesian (Y-up) */
 export function toCylindricalCartesian(v: CylindricalVector) {
+  // Use normalized values if available, otherwise fallback to old linear scale
+  const normR = v.normalizedR ?? (v.r * 0.3 / CYLINDRICAL_MAX_RADIUS);
+  const normZ = v.normalizedZ ?? (v.z * 0.015 / CYLINDRICAL_MAX_HEIGHT);
+
   return {
-    vx: v.r * CYLINDRICAL_SCALE_R * Math.cos(v.theta),
-    vy: v.z * CYLINDRICAL_SCALE_Z,
-    vz: v.r * CYLINDRICAL_SCALE_R * Math.sin(v.theta),
+    vx: normR * CYLINDRICAL_MAX_RADIUS * Math.cos(v.theta),
+    vy: normZ * CYLINDRICAL_MAX_HEIGHT,
+    vz: normR * CYLINDRICAL_MAX_RADIUS * Math.sin(v.theta),
   };
 }
 
@@ -38,7 +42,7 @@ export function toCylindricalCartesian(v: CylindricalVector) {
 // ---------------------------------------------------------------------------
 export const IS_SURFACE_KEY = (key: string) => {
   const lower = key.toLowerCase();
-  return /^[a-z]$/.test(lower) || lower === "," || lower === ".";
+  return /^[a-z]$/.test(lower) || lower === "_dummy_comma";
 };
 
 export const SURFACE_GAP = 0.1667; 
@@ -114,21 +118,21 @@ export function calculateSurfaceBorders(layoutMap: Record<string, SurfaceLayoutC
   const q = layoutMap["q"];
   const p = layoutMap["p"];
   const l = layoutMap["l"];
-  const dot = layoutMap["."];
+  const m = layoutMap["m"];
   const z = layoutMap["z"];
   const a = layoutMap["a"];
 
   let innerBorderPoints: Array<[number, number]> = [];
 
-  if (q && p && l && dot && z && a) {
+  if (q && p && l && m && z && a) {
     const vertices: Array<[number, number]> = [
       [q.x - q.w / 2, q.z - q.h / 2],
       [p.x + p.w / 2, p.z - p.h / 2],
       [p.x + p.w / 2, p.z + p.h / 2],
       [l.x + l.w / 2, l.z - l.h / 2],
       [l.x + l.w / 2, l.z + l.h / 2],
-      [dot.x + dot.w / 2, dot.z - dot.h / 2],
-      [dot.x + dot.w / 2, dot.z + dot.h / 2],
+      [m.x + m.w / 2, m.z - m.h / 2],
+      [m.x + m.w / 2, m.z + m.h / 2],
       [z.x - z.w / 2, z.z + z.h / 2],
       [z.x - z.w / 2, z.z - z.h / 2],
       [a.x - a.w / 2, a.z + a.h / 2],

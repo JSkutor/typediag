@@ -9,7 +9,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import type { CylindricalVector } from "@/lib/skdm/cylindrical";
-import { CYLINDRICAL_SCALE_R, CYL_COLORS as C, toCylindricalCartesian } from "./geometryUtils";
+import { CYL_COLORS as C, toCylindricalCartesian } from "./geometryUtils";
 
 // ---------------------------------------------------------------------------
 // Constants moved to geometryUtils.ts
@@ -34,6 +34,12 @@ export interface LabelProjection {
   targetX: number;
   targetY: number;
   targetVisible: boolean;
+  vectorCoords?: {
+    fromKey: string;
+    x: number;
+    y: number;
+    visible: boolean;
+  }[];
 }
 
 export interface CartesianCoords {
@@ -58,7 +64,7 @@ export class Cylindrical3DManager {
   private pointLight: THREE.PointLight;
 
   // Toggle-controlled mesh references
-  private cylinderGuide: THREE.Mesh | null = null;
+  private cylinderGuide: THREE.Object3D | null = null;
   private cylinderTopRing: THREE.Mesh | null = null;
   private cylinderBottomRing: THREE.Mesh | null = null;
   private projectionGroup: THREE.Group | null = null;
@@ -68,6 +74,7 @@ export class Cylindrical3DManager {
   // Target mesh for label projection
   private targetMesh: THREE.Mesh | null = null;
   private curCartesian: CartesianCoords = { x: 0, y: 0, z: 0 };
+  private vectors: CylindricalVector[] = [];
 
   private reqId = 0;
   private width: number;
@@ -75,7 +82,7 @@ export class Cylindrical3DManager {
   private toggles: CylindricalToggles = {
     cylinder: true,
     grid: true,
-    projections: true,
+    projections: false,
     petal: true,
     autoRotate: false,
   };
@@ -143,10 +150,6 @@ export class Cylindrical3DManager {
     this.gridHelper = new THREE.GridHelper(24, 24, C.gridMain, C.gridSub);
     this.scene.add(this.gridHelper);
 
-    // Axes
-    const axes = new THREE.AxesHelper(1.5);
-    this.scene.add(axes);
-
     // Start render loop
     this.animate = this.animate.bind(this);
     this.reqId = requestAnimationFrame(this.animate);
@@ -161,6 +164,7 @@ export class Cylindrical3DManager {
     vectors: CylindricalVector[],
     selectedFrom: string,
   ): void {
+    this.vectors = vectors;
     this.clearVisualGroup();
     if (vectors.length === 0) return;
 
@@ -224,28 +228,9 @@ export class Cylindrical3DManager {
     this.targetMesh = null;
   }
 
-  /** Draw a dim line + small sphere for a non-selected vector. */
+  /** Draw a dim line + small sphere for a non-selected vector. (Removed by user request) */
   private addInactiveVector(v: CylindricalVector): void {
-    const { vx, vy, vz } = this.toCartesian(v);
-
-    const pts = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(vx, vy, vz)];
-    const lineGeom = new THREE.BufferGeometry().setFromPoints(pts);
-    const lineMat = new THREE.LineBasicMaterial({
-      color: C.inactive,
-      transparent: true,
-      opacity: 0.25,
-    });
-    this.visualGroup.add(new THREE.Line(lineGeom, lineMat));
-
-    const sGeom = new THREE.SphereGeometry(0.05, 16, 16);
-    const sMat = new THREE.MeshBasicMaterial({
-      color: C.inactiveNode,
-      transparent: true,
-      opacity: 0.35,
-    });
-    const sphere = new THREE.Mesh(sGeom, sMat);
-    sphere.position.set(vx, vy, vz);
-    this.visualGroup.add(sphere);
+    // Left empty to only show petal
   }
 
   /** Build the fully highlighted active vector with all helpers. */
@@ -258,101 +243,87 @@ export class Cylindrical3DManager {
     this.pointLight.color.setHex(C.targetNode);
 
     const thetaRad = v.theta;
-    const cylRadius = v.r * CYLINDRICAL_SCALE_R;
+    const cylRadius = Math.sqrt(vx * vx + vz * vz);
 
-    // [1] Origin sphere
-    const oGeom = new THREE.SphereGeometry(0.25, 32, 32);
-    const oMat = new THREE.MeshStandardMaterial({
-      color: C.originNode,
-      emissive: C.originNode,
-      emissiveIntensity: 0.6,
-      roughness: 0.1,
-      metalness: 0.9,
-    });
-    const origin = new THREE.Mesh(oGeom, oMat);
-    this.visualGroup.add(origin);
-
-    // [2] Target sphere
-    const tGeom = new THREE.SphereGeometry(0.2, 32, 32);
-    const tMat = new THREE.MeshStandardMaterial({
-      color: C.targetNode,
-      emissive: C.targetNode,
-      emissiveIntensity: 0.8,
-      roughness: 0.1,
-      metalness: 0.9,
-    });
+    // Target mesh is needed for labels, but make it invisible
+    const tGeom = new THREE.SphereGeometry(0.01, 8, 8);
+    const tMat = new THREE.MeshBasicMaterial({ visible: false });
     this.targetMesh = new THREE.Mesh(tGeom, tMat);
     this.targetMesh.position.set(vx, vy, vz);
     this.visualGroup.add(this.targetMesh);
 
-    // [3] 3D arrow
-    const arrow = this.create3DArrow(
-      new THREE.Vector3(0, 0, 0),
-      new THREE.Vector3(vx, vy, vz),
-      C.vectorArrow,
-    );
-    this.visualGroup.add(arrow);
-
-    // [4] Cylinder guide wireframe
+    // [4] Cylinder guide hologram (Subtle solid + wireframe)
     if (cylRadius > 0.05 && vy > 0.05) {
-      const cylGeom = new THREE.CylinderGeometry(
+      const cylGroup = new THREE.Group();
+
+      // Translucent solid shell
+      const cylSolidGeom = new THREE.CylinderGeometry(
         cylRadius,
         cylRadius,
         vy,
         32,
+        1,
+        true,
+      );
+      const cylSolidMat = new THREE.MeshBasicMaterial({
+        color: C.cylinder,
+        transparent: true,
+        opacity: 0.035, // Very subtle hologram shell
+        side: THREE.DoubleSide,
+        depthWrite: false,
+      });
+      const cylSolid = new THREE.Mesh(cylSolidGeom, cylSolidMat);
+      cylGroup.add(cylSolid);
+
+      // Faint wireframe overlay
+      const cylWireGeom = new THREE.CylinderGeometry(
+        cylRadius,
+        cylRadius,
+        vy,
+        16,
         4,
         true,
       );
-      const cylMat = new THREE.MeshBasicMaterial({
+      const cylWireMat = new THREE.MeshBasicMaterial({
         color: C.cylinder,
         wireframe: true,
         transparent: true,
-        opacity: 0.1,
+        opacity: 0.06, // Very subtle wireframe lines
         side: THREE.DoubleSide,
+        depthWrite: false,
       });
-      this.cylinderGuide = new THREE.Mesh(cylGeom, cylMat);
+      const cylWire = new THREE.Mesh(cylWireGeom, cylWireMat);
+      cylGroup.add(cylWire);
+
+      this.cylinderGuide = cylGroup;
       this.cylinderGuide.position.set(0, vy / 2, 0);
       this.visualGroup.add(this.cylinderGuide);
 
       // Bottom ring
       const ringGeom = new THREE.RingGeometry(
-        cylRadius - 0.02,
-        cylRadius + 0.02,
+        cylRadius - 0.015,
+        cylRadius + 0.015,
         64,
       );
       const ringMat = new THREE.MeshBasicMaterial({
         color: C.cylinder,
         transparent: true,
-        opacity: 0.3,
+        opacity: 0.12, // Subtle ring glow
         side: THREE.DoubleSide,
+        depthWrite: false,
       });
       this.cylinderBottomRing = new THREE.Mesh(ringGeom, ringMat);
       this.cylinderBottomRing.rotation.x = Math.PI / 2;
       this.visualGroup.add(this.cylinderBottomRing);
 
       // Top ring
-      this.cylinderTopRing = this.cylinderBottomRing.clone();
+      this.cylinderTopRing = this.cylinderBottomRing.clone() as THREE.Mesh;
       this.cylinderTopRing.position.y = vy;
       this.visualGroup.add(this.cylinderTopRing);
     }
 
     // [5] Projections group
     this.projectionGroup = new THREE.Group();
-
-    // (A) Vertical drop line
-    const dropPts = [
-      new THREE.Vector3(vx, vy, vz),
-      new THREE.Vector3(vx, 0, vz),
-    ];
-    const dropGeom = new THREE.BufferGeometry().setFromPoints(dropPts);
-    const dropMat = new THREE.LineDashedMaterial({
-      color: C.dropLine,
-      dashSize: 0.2,
-      gapSize: 0.1,
-    });
-    const dropLine = new THREE.Line(dropGeom, dropMat);
-    dropLine.computeLineDistances();
-    this.projectionGroup.add(dropLine);
 
     // (B) Radius guide line
     const radPts = [
@@ -368,11 +339,6 @@ export class Cylindrical3DManager {
     const radLine = new THREE.Line(radGeom, radMat);
     radLine.computeLineDistances();
     this.projectionGroup.add(radLine);
-
-    // (C) Angle arc
-    const arcRadius = Math.min(cylRadius, 1.2);
-    const arc = this.createAngleArc(arcRadius, thetaRad, C.angleArc);
-    this.projectionGroup.add(arc);
 
     this.visualGroup.add(this.projectionGroup);
   }
@@ -603,6 +569,17 @@ export class Cylindrical3DManager {
           ).project(this.camera)
         : oVec.clone();
 
+      const vectorCoords = this.vectors.map((v) => {
+        const { vx, vy, vz } = this.toCartesian(v);
+        const pVec = new THREE.Vector3(vx, vy, vz).project(this.camera);
+        return {
+          fromKey: v.fromKey,
+          x: pVec.x * wh + wh,
+          y: -pVec.y * hh + hh,
+          visible: pVec.z <= 1,
+        };
+      });
+
       this.onLabelsUpdate({
         originX: oVec.x * wh + wh,
         originY: -(oVec.y * hh) + hh,
@@ -610,6 +587,7 @@ export class Cylindrical3DManager {
         targetX: tVec.x * wh + wh,
         targetY: -(tVec.y * hh) + hh,
         targetVisible: tVec.z <= 1,
+        vectorCoords,
       });
     }
   }
