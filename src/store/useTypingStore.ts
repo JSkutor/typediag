@@ -175,8 +175,23 @@ export const useTypingStore = create<TypingState>((set, get) => ({
     let keyToken = code.toLowerCase().replace("key", "");
     if (code === "Space") keyToken = "space";
     if (code === "Backspace") keyToken = "backspace";
+    if (code === "ShiftLeft") keyToken = "shift_l";
+    if (code === "ShiftRight") keyToken = "shift_r";
+    if (code === "Enter") keyToken = "enter";
 
     const isKorean = /[가-힣]/.test(state.targetText);
+
+    if (code === "ShiftLeft" || code === "ShiftRight") {
+      const evalResult = evaluateKeystroke(code, shiftKey, state.qwertyBuffer, state.targetText, isKorean);
+      get().recordKey(keyToken, timestamp, evalResult);
+      return;
+    }
+
+    if (code === "Enter") {
+      const evalResult = evaluateKeystroke(code, shiftKey, state.qwertyBuffer, state.targetText, isKorean);
+      get().recordKey(keyToken, timestamp, evalResult);
+      return;
+    }
 
     if (code === "Backspace") {
       if (state.qwertyBuffer.length > 0) {

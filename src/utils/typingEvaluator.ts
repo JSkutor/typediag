@@ -45,6 +45,24 @@ export function evaluateKeystroke(
     };
   }
 
+  // Handle Shift
+  if (code === "ShiftLeft" || code === "ShiftRight") {
+    return {
+      keyChar: code === "ShiftLeft" ? "shift_l" : "shift_r",
+      isCorrect: true, // Function keys do not invalidate correct text progression
+      expectedChar: null,
+    };
+  }
+
+  // Handle Enter
+  if (code === "Enter") {
+    return {
+      keyChar: "enter",
+      isCorrect: true, // Function/control keys do not invalidate correct text progression
+      expectedChar: null,
+    };
+  }
+
   // 3. Handle regular character codes
   const rawChar = getQwertyChar(code, shiftKey);
   if (rawChar === null) {

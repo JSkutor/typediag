@@ -85,6 +85,53 @@ describe("useTypingStore", () => {
     });
   });
 
+  it("should handle shift and enter correctly", () => {
+    const store = useTypingStore.getState();
+    store.handlePhysicalKeyPress("KeyH", false, 1000);
+    
+    // Press ShiftLeft (should be recorded, but typedText shouldn't change)
+    store.handlePhysicalKeyPress("ShiftLeft", true, 1050);
+    expect(useTypingStore.getState().typedText).toBe("h");
+    expect(useTypingStore.getState().events).toHaveLength(2);
+    expect(useTypingStore.getState().events[1]).toEqual({
+      fromKey: "h",
+      toKey: "shift_l",
+      latencyMs: 50,
+      keyChar: "shift_l",
+      holdDurationMs: 50,
+      isCorrect: true,
+      expectedChar: null,
+    });
+
+    // Press 'e' (with Shift, so 'E')
+    useTypingStore.getState().handlePhysicalKeyPress("KeyE", true, 1100);
+    expect(useTypingStore.getState().typedText).toBe("hE");
+    expect(useTypingStore.getState().events).toHaveLength(3);
+    expect(useTypingStore.getState().events[2]).toEqual({
+      fromKey: "shift_l",
+      toKey: "e",
+      latencyMs: 50,
+      keyChar: "E",
+      holdDurationMs: 50,
+      isCorrect: false, // expected 'e' but got 'E'
+      expectedChar: "e",
+    });
+
+    // Press Enter (should be recorded, but typedText shouldn't change)
+    useTypingStore.getState().handlePhysicalKeyPress("Enter", false, 1150);
+    expect(useTypingStore.getState().typedText).toBe("hE");
+    expect(useTypingStore.getState().events).toHaveLength(4);
+    expect(useTypingStore.getState().events[3]).toEqual({
+      fromKey: "e",
+      toKey: "enter",
+      latencyMs: 50,
+      keyChar: "enter",
+      holdDurationMs: 50,
+      isCorrect: true,
+      expectedChar: null,
+    });
+  });
+
   it("should mark status as done when targetText is fully typed", () => {
     const store = useTypingStore.getState();
     store.setTarget("he"); // Target is 'he'
