@@ -5,9 +5,14 @@
 
 /** A single keystroke event: `fromKey` was pressed, then `toKey` after `latencyMs`. */
 export interface KeyEvent {
-  fromKey: string;
+  fromKey: string | null;
   toKey: string;
   latencyMs: number;
+  // Database schema tracking fields
+  keyChar?: string;
+  holdDurationMs?: number | null;
+  isCorrect?: boolean | null;
+  expectedChar?: string | null;
 }
 
 /** Aggregated statistics for one `(from, to)` key pair. */
