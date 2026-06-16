@@ -97,6 +97,29 @@ describe("useTypingStore", () => {
     });
   });
 
+  it("should handle Korean backspace correctly (deleting full character when correct, and jamo when incorrect)", () => {
+    const store = useTypingStore.getState();
+    store.setTarget("한글");
+    
+    // Type '한' (gks)
+    store.handlePhysicalKeyPress("KeyG", false, 1000);
+    store.handlePhysicalKeyPress("KeyK", false, 1050);
+    store.handlePhysicalKeyPress("KeyS", false, 1100);
+    expect(useTypingStore.getState().typedText).toBe("한");
+    
+    // Type 'ㄱ' (r) -> '한ㄱ'
+    store.handlePhysicalKeyPress("KeyR", false, 1150);
+    expect(useTypingStore.getState().typedText).toBe("한ㄱ");
+    
+    // Press Backspace -> deletes 'ㄱ' (jamo unit) because it is incomplete/incorrect
+    store.handlePhysicalKeyPress("Backspace", false, 1200);
+    expect(useTypingStore.getState().typedText).toBe("한");
+    
+    // Press Backspace again -> deletes '한' entirely because it is correct and completed
+    store.handlePhysicalKeyPress("Backspace", false, 1250);
+    expect(useTypingStore.getState().typedText).toBe("");
+  });
+
   it("should handle shift and enter correctly", () => {
     const store = useTypingStore.getState();
     store.handlePhysicalKeyPress("KeyH", false, 1000);

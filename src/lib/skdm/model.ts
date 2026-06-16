@@ -47,29 +47,27 @@ export function sigmoidLatency(latencyMs: number, maxClipMs: number): number {
  * clean stretches of normal typing.
  */
 export function filterInterruptedTransitions(events: KeyEvent[]): KeyEvent[] {
-  // Logical stack tracking text assembly: [toKey, originating event | null].
-  const stack: Array<[string, KeyEvent | null]> = [];
+  const isControlKey = (k: string) => k.length > 1 && k !== "space";
 
-  const isControlKey = (k: string) => k.length > 1 && k !== "backspace" && k !== "space";
-
+  const cleaned: KeyEvent[] = [];
   for (const ev of events) {
     const sKey = ev.toKey.toLowerCase();
     const fKey = ev.fromKey ? ev.fromKey.toLowerCase() : "";
 
-    if (sKey === "backspace") {
-      if (stack.length > 0) stack.pop();
-    } else if (fKey === "backspace" || isControlKey(fKey) || isControlKey(sKey)) {
-      // Flow is broken by a backspace or control key, drop the transition.
-      stack.push([sKey, null]);
-    } else {
-      stack.push([sKey, ev]);
+    // Flow is broken by a backspace or control key, drop the transition.
+    if (isControlKey(sKey) || isControlKey(fKey)) {
+      continue;
     }
+
+    // Drop typos
+    if (ev.isCorrect === false) {
+      continue;
+    }
+
+    // Normal typing stretch (even if deleted later, the typing itself was valid)
+    cleaned.push(ev);
   }
 
-  const cleaned: KeyEvent[] = [];
-  for (const [, ev] of stack) {
-    if (ev !== null) cleaned.push(ev);
-  }
   return cleaned;
 }
 

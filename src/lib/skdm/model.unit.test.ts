@@ -4,20 +4,27 @@ import type { KeyEvent } from "./types";
 
 describe("model unit tests", () => {
   describe("filterInterruptedTransitions", () => {
-    it("should drop transitions broken by backspace", () => {
+    it("should drop transitions broken by backspace and explicitly drop typos", () => {
       const events: KeyEvent[] = [
-        { fromKey: null, toKey: "a", latencyMs: 0 },
-        { fromKey: "a", toKey: "b", latencyMs: 100 },
-        { fromKey: "b", toKey: "backspace", latencyMs: 200 },
-        { fromKey: "backspace", toKey: "c", latencyMs: 300 }
+        { fromKey: null, toKey: "a", latencyMs: 0, isCorrect: true },
+        // Typo, which will be filtered out by isCorrect: false
+        { fromKey: "a", toKey: "b", latencyMs: 100, isCorrect: false },
+        // Backspace transitions are dropped because they are control keys
+        { fromKey: "b", toKey: "backspace", latencyMs: 200, isCorrect: true },
+        { fromKey: "backspace", toKey: "c", latencyMs: 300, isCorrect: true },
+        // Correct typing segment that was later deleted should be kept!
+        { fromKey: "c", toKey: "d", latencyMs: 150, isCorrect: true },
+        { fromKey: "d", toKey: "backspace", latencyMs: 200, isCorrect: true },
       ];
 
       const cleaned = filterInterruptedTransitions(events);
-      // 'backspace' itself is dropped. 'backspace' -> 'c' is dropped.
-      // 'b' is popped because of the backspace.
-      // So only null->'a' remains.
-      expect(cleaned.length).toBe(1);
+      // 'null->a' is kept.
+      // 'a->b' is dropped because isCorrect=false.
+      // 'b->backspace' and 'backspace->c' and 'd->backspace' are dropped because they involve control keys.
+      // 'c->d' is kept because it's valid typing, even if deleted later.
+      expect(cleaned.length).toBe(2);
       expect(cleaned[0].toKey).toBe("a");
+      expect(cleaned[1].toKey).toBe("d");
     });
 
     it("should drop transitions broken by control keys like ShiftLeft or Enter", () => {

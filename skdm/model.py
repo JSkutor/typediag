@@ -60,6 +60,7 @@ class KeyEvent:
     from_key: str
     self_key: str
     latency_ms: float
+    is_correct: bool = True
 
 
 @dataclass
@@ -115,42 +116,31 @@ def sigmoid_latency(latency_ms: float, max_clip_ms: float) -> float:
 
 
 def filter_backspaces(events: list[KeyEvent]) -> list[KeyEvent]:
-    """백스페이스를 기점으로 오타 전이를 지우고 정상 조각들만 남깁니다.
+    """제어키 전이와 오타를 제외하고, 유효한 타건들만 남깁니다.
     
+    (이름은 호환성을 위해 filter_backspaces로 유지)
     연속적인 타건 스트림(events)을 순회하며:
-    - 백스페이스가 나타나면 직전에 입력된 일반 문자를 오타로 간주해 제거합니다.
-    - 백스페이스로 인해 흐름이 끊긴 부분(백스페이스 직후 복귀 전이 등)은 
-      정상적인 키 간 이동이 아니므로 분석에서 배제합니다.
-    
-    결과적으로 오타와 백스페이스 전이가 모두 제거된 순수 정상 타건들의 리스트를 반환합니다.
+    - 백스페이스나 제어키가 개입된 전이(흐름 단절)는 제외합니다.
+    - 오타(is_correct == False)는 제외합니다.
+    - 비록 백스페이스로 지워졌다 하더라도 올바르게 입력된 글자는 포함합니다.
     """
     def is_control_key(k: str) -> bool:
-        return len(k) > 1 and k != "backspace" and k != "space"
+        return len(k) > 1 and k != "space"
 
-    # 텍스트가 조립되는 과정을 추적하기 위한 논리적 스택
-    # 요소: (문자열 self_key, 해당 키를 만들어낸 KeyEvent)
-    stack: list[tuple[str, KeyEvent | None]] = []
-    
+    cleaned_events = []
     for ev in events:
         s_key = ev.self_key.lower()
-        f_key = ev.from_key.lower()
+        f_key = ev.from_key.lower() if ev.from_key else ""
         
-        if s_key == 'backspace':
-            # 백스페이스가 입력되면 직전에 친 글자를 지운다.
-            if stack:
-                stack.pop()
-        elif f_key == 'backspace' or is_control_key(f_key) or is_control_key(s_key):
-            # 백스페이스나 컨트롤 키 이후 또는 해당 키가 컨트롤 키인 경우 흐름이 단절된 것으로 봄
-            stack.append((s_key, None))
-        else:
-            # 일반 문자 -> 일반 문자 전이
-            stack.append((s_key, ev))
-                
-    # 스택에 최종적으로 살아남은 유효한 전이(KeyEvent)들만 추출
-    cleaned_events = []
-    for _, ev in stack:
-        if ev is not None:
-            cleaned_events.append(ev)
+        # 제어키가 개입된 전이(단절된 흐름)는 버린다
+        if is_control_key(s_key) or is_control_key(f_key):
+            continue
+            
+        # 오타는 버린다
+        if ev.is_correct is False:
+            continue
+            
+        cleaned_events.append(ev)
             
     return cleaned_events
 

@@ -55,7 +55,7 @@ describe("PracticePanel", () => {
   it("should render wrong characters as error", () => {
     useTypingStore.setState({
       targetText: "가나다",
-      typedText: "ㄴ",
+      typedText: "뀰",
     });
 
     const { container } = render(<PracticePanel />);
@@ -63,15 +63,11 @@ describe("PracticePanel", () => {
     const char0 = container.querySelector("#text-char-0");
     const errorSpan = char0?.querySelector(".text-char-error");
     expect(errorSpan).toBeTruthy();
-    expect(errorSpan?.textContent).toBe("ㄴ");
+    expect(errorSpan?.textContent).toBe("뀰");
 
     const cursor = char0?.querySelector(".typing-cursor");
-    expect(cursor).toBeNull();
-
-    const char1 = container.querySelector("#text-char-1");
-    const nextCursor = char1?.querySelector(".typing-cursor");
-    expect(nextCursor).toBeTruthy();
-    expect(nextCursor?.className).toContain("left");
+    expect(cursor).toBeTruthy();
+    expect(cursor?.className).toContain("right");
   });
 
   it("should carry over extra batchim to the next character as composing if it is a valid prefix of the next character", () => {

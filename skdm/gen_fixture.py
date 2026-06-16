@@ -45,10 +45,26 @@ def make_events() -> list[KeyEvent]:
             events.append(KeyEvent(from_key=prev, self_key=cur, latency_ms=float(latency)))
         prev = cur
 
+    # inject a typo that wasn't corrected
+    events.append(KeyEvent(from_key="e", self_key="x", latency_ms=130.0, is_correct=False))
+
     # inject a couple of backspaces (typo + correction)
-    events.append(KeyEvent(from_key="g", self_key="x", latency_ms=140.0))
+    events.append(KeyEvent(from_key="g", self_key="x", latency_ms=140.0, is_correct=False))
     events.append(KeyEvent(from_key="x", self_key="backspace", latency_ms=120.0))
     events.append(KeyEvent(from_key="backspace", self_key="g", latency_ms=200.0))
+    
+    # inject a valid typing stretch that is later deleted
+    # e.g., correctly typed "the " but then backspaced
+    events.append(KeyEvent(from_key="g", self_key="t", latency_ms=110.0, is_correct=True))
+    events.append(KeyEvent(from_key="t", self_key="h", latency_ms=105.0, is_correct=True))
+    events.append(KeyEvent(from_key="h", self_key="e", latency_ms=125.0, is_correct=True))
+    events.append(KeyEvent(from_key="e", self_key="space", latency_ms=90.0, is_correct=True))
+    events.append(KeyEvent(from_key="space", self_key="backspace", latency_ms=210.0))
+    events.append(KeyEvent(from_key="backspace", self_key="backspace", latency_ms=150.0))
+    events.append(KeyEvent(from_key="backspace", self_key="backspace", latency_ms=140.0))
+    events.append(KeyEvent(from_key="backspace", self_key="backspace", latency_ms=145.0))
+    events.append(KeyEvent(from_key="backspace", self_key="t", latency_ms=180.0))
+
     # inject an outlier (very slow)
     events.append(KeyEvent(from_key="g", self_key="o", latency_ms=5000.0))
     return events
@@ -74,7 +90,12 @@ def main() -> None:
 
     payload = {
         "events": [
-            {"fromKey": e.from_key, "selfKey": e.self_key, "latencyMs": e.latency_ms}
+            {
+                "fromKey": e.from_key, 
+                "selfKey": e.self_key, 
+                "latencyMs": e.latency_ms,
+                "isCorrect": e.is_correct
+            }
             for e in events
         ],
         "results": {

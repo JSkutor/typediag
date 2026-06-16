@@ -20,12 +20,14 @@ interface ReferenceEvent {
   fromKey: string;
   selfKey: string;
   latencyMs: number;
+  isCorrect: boolean;
 }
 
 const events: KeyEvent[] = (reference.events as ReferenceEvent[]).map((ev) => ({
   fromKey: ev.fromKey,
   toKey: ev.selfKey,
   latencyMs: ev.latencyMs,
+  isCorrect: ev.isCorrect
 }));
 
 describe("sigmoidLatency", () => {
