@@ -22,18 +22,61 @@ class SeededRandom {
 // --- Standard Touch Typing Finger Mapping ---
 const FINGER_MAP: Record<string, string> = {
   // Left hand
-  "1": "L5", "q": "L5", "a": "L5", "z": "L5", "shift": "L5", "shift_l": "L5",
-  "2": "L4", "w": "L4", "s": "L4", "x": "L4",
-  "3": "L3", "e": "L3", "d": "L3", "c": "L3",
-  "4": "L2", "5": "L2", "r": "L2", "t": "L2", "f": "L2", "g": "L2", "v": "L2", "b": "L2",
+  "1": "L5",
+  q: "L5",
+  a: "L5",
+  z: "L5",
+  shift: "L5",
+  shift_l: "L5",
+  "2": "L4",
+  w: "L4",
+  s: "L4",
+  x: "L4",
+  "3": "L3",
+  e: "L3",
+  d: "L3",
+  c: "L3",
+  "4": "L2",
+  "5": "L2",
+  r: "L2",
+  t: "L2",
+  f: "L2",
+  g: "L2",
+  v: "L2",
+  b: "L2",
   // Thumbs
-  "space": "L1", " ": "L1",
+  space: "L1",
+  " ": "L1",
   // Right hand
-  "6": "R2", "7": "R2", "y": "R2", "u": "R2", "h": "R2", "j": "R2", "n": "R2", "m": "R2",
-  "8": "R3", "i": "R3", "k": "R3", ",": "R3",
-  "9": "R4", "o": "R4", "l": "R4", ".": "R4",
-  "0": "R5", "p": "R5", ";": "R5", "'": "R5", "/": "R5", "[": "R5", "]": "R5", "\\": "R5", "-": "R5", "=": "R5",
-  "enter": "R5", "backspace": "R5", "shift_r": "R5"
+  "6": "R2",
+  "7": "R2",
+  y: "R2",
+  u: "R2",
+  h: "R2",
+  j: "R2",
+  n: "R2",
+  m: "R2",
+  "8": "R3",
+  i: "R3",
+  k: "R3",
+  ",": "R3",
+  "9": "R4",
+  o: "R4",
+  l: "R4",
+  ".": "R4",
+  "0": "R5",
+  p: "R5",
+  ";": "R5",
+  "'": "R5",
+  "/": "R5",
+  "[": "R5",
+  "]": "R5",
+  "\\": "R5",
+  "-": "R5",
+  "=": "R5",
+  enter: "R5",
+  backspace: "R5",
+  shift_r: "R5",
 };
 
 function getFinger(key: string): string {
@@ -47,22 +90,88 @@ function getHand(finger: string): string {
 // --- Korean Jamo to QWERTY Keyboard Mapping (Dubeolsik) ---
 const JAMO_TO_QWERTY: Record<string, string> = {
   // Consonants
-  "ㄱ": "r", "ㄴ": "s", "ㄷ": "e", "ㄹ": "f", "ㅁ": "a", "ㅂ": "q", "ㅅ": "t", "ㅇ": "d", "ㅈ": "w", "ㅊ": "c", "ㅋ": "z", "ㅌ": "x", "ㅍ": "v", "ㅎ": "g",
-  "ㄲ": "R", "ㄸ": "E", "ㅃ": "Q", "ㅆ": "T", "ㅉ": "W",
+  ㄱ: "r",
+  ㄴ: "s",
+  ㄷ: "e",
+  ㄹ: "f",
+  ㅁ: "a",
+  ㅂ: "q",
+  ㅅ: "t",
+  ㅇ: "d",
+  ㅈ: "w",
+  ㅊ: "c",
+  ㅋ: "z",
+  ㅌ: "x",
+  ㅍ: "v",
+  ㅎ: "g",
+  ㄲ: "R",
+  ㄸ: "E",
+  ㅃ: "Q",
+  ㅆ: "T",
+  ㅉ: "W",
   // Vowels
-  "ㅏ": "k", "ㅐ": "o", "ㅑ": "i", "ㅒ": "O", "ㅓ": "j", "ㅔ": "p", "ㅕ": "u", "ㅖ": "P", "ㅗ": "h",
-  "ㅛ": "y", "ㅜ": "n", "ㅠ": "b", "ㅡ": "m", "ㅣ": "l",
+  ㅏ: "k",
+  ㅐ: "o",
+  ㅑ: "i",
+  ㅒ: "O",
+  ㅓ: "j",
+  ㅔ: "p",
+  ㅕ: "u",
+  ㅖ: "P",
+  ㅗ: "h",
+  ㅛ: "y",
+  ㅜ: "n",
+  ㅠ: "b",
+  ㅡ: "m",
+  ㅣ: "l",
   // Complex vowels and double batchims (if they appear as a single character)
-  "ㄳ": "rt", "ㄵ": "sw", "ㄶ": "sg", "ㄺ": "fr", "ㄻ": "fa", "ㄼ": "fq", "ㄽ": "ft", "ㄾ": "fx", "ㄿ": "fv", "ㅀ": "fg", "ㅄ": "qt",
-  "ㅘ": "hk", "ㅙ": "ho", "ㅚ": "hl", "ㅝ": "nj", "ㅞ": "np", "ㅟ": "nl", "ㅢ": "ml"
+  ㄳ: "rt",
+  ㄵ: "sw",
+  ㄶ: "sg",
+  ㄺ: "fr",
+  ㄻ: "fa",
+  ㄼ: "fq",
+  ㄽ: "ft",
+  ㄾ: "fx",
+  ㄿ: "fv",
+  ㅀ: "fg",
+  ㅄ: "qt",
+  ㅘ: "hk",
+  ㅙ: "ho",
+  ㅚ: "hl",
+  ㅝ: "nj",
+  ㅞ: "np",
+  ㅟ: "nl",
+  ㅢ: "ml",
 };
 
 const KEY_NEIGHBORS: Record<string, string> = {
-  a: "qwsz", b: "vghn", c: "xdfv", d: "ersfxc", e: "wsdr", f: "rtgvcd",
-  g: "tyhbvf", h: "yujngt", i: "ujko", j: "uikmh", k: "ijlm", l: "okp.",
-  m: "njk,", n: "bhjm", o: "iklp", p: "ol", q: "wa", r: "edft",
-  s: "wedxza", t: "rfgy", u: "yhji", v: "cfgb", w: "qase", x: "zsdc",
-  y: "tghu", z: "asx"
+  a: "qwsz",
+  b: "vghn",
+  c: "xdfv",
+  d: "ersfxc",
+  e: "wsdr",
+  f: "rtgvcd",
+  g: "tyhbvf",
+  h: "yujngt",
+  i: "ujko",
+  j: "uikmh",
+  k: "ijlm",
+  l: "okp.",
+  m: "njk,",
+  n: "bhjm",
+  o: "iklp",
+  p: "ol",
+  q: "wa",
+  r: "edft",
+  s: "wedxza",
+  t: "rfgy",
+  u: "yhji",
+  v: "cfgb",
+  w: "qase",
+  x: "zsdc",
+  y: "tghu",
+  z: "asx",
 };
 
 function getNeighborKey(key: string, random: SeededRandom): string {
@@ -73,18 +182,22 @@ function getNeighborKey(key: string, random: SeededRandom): string {
 }
 
 // --- Keyboard Dynamic Latency Calculator Based on Fingers & Alternation ---
-function calculateSimulatedLatency(fromKey: string | null, toKey: string, random: SeededRandom): number {
+function calculateSimulatedLatency(
+  fromKey: string | null,
+  toKey: string,
+  random: SeededRandom,
+): number {
   if (fromKey === null) {
     return Math.round(random.range(150, 300));
   }
-  
+
   if (fromKey === toKey) {
     return Math.round(random.range(180, 260));
   }
 
   const fromFinger = getFinger(fromKey);
   const toFinger = getFinger(toKey);
-  
+
   if (fromFinger === toFinger && fromFinger !== "unknown") {
     // Same finger, different key (e.g. moving rows) -> slower
     return Math.round(random.range(200, 280));
@@ -121,7 +234,7 @@ function calculateSimulatedLatency(fromKey: string | null, toKey: string, random
 export function simulateEventsForText(
   targetText: string,
   seed: number,
-  errorProbability = 0.04
+  errorProbability = 0.04,
 ): {
   events: KeyEvent[];
   qwertyBuffer: string;
@@ -160,18 +273,20 @@ export function simulateEventsForText(
 
   for (let i = 0; i < steps.length; i++) {
     const step = steps[i];
-    
+
     // Inject typos with errorProbability, avoiding consecutive errors or spaces
-    const canHaveTypo = errorProbability > 0 && i > 1 && i < steps.length - 2 && step.keyToken !== "space";
+    const canHaveTypo =
+      errorProbability > 0 && i > 1 && i < steps.length - 2 && step.keyToken !== "space";
     const isTypo = canHaveTypo && random.next() < errorProbability;
 
     if (isTypo) {
       const typoKeyToken = getNeighborKey(step.keyToken, random);
       const rawTypoChar = typoKeyToken === "space" ? " " : typoKeyToken;
-      const typoKeyChar = isKorean && /[a-zA-Z]/.test(rawTypoChar)
-        ? JAMO_TO_QWERTY[rawTypoChar] || rawTypoChar
-        : rawTypoChar;
-      
+      const typoKeyChar =
+        isKorean && /[a-zA-Z]/.test(rawTypoChar)
+          ? JAMO_TO_QWERTY[rawTypoChar] || rawTypoChar
+          : rawTypoChar;
+
       const latency = calculateSimulatedLatency(lastKey, typoKeyToken, random);
       events.push({
         fromKey: lastKey,
@@ -180,7 +295,7 @@ export function simulateEventsForText(
         keyChar: typoKeyChar,
         holdDurationMs: Math.round(random.range(40, 70)),
         isCorrect: false,
-        expectedChar: step.keyChar
+        expectedChar: step.keyChar,
       });
       lastKey = typoKeyToken;
 
@@ -193,7 +308,7 @@ export function simulateEventsForText(
         keyChar: "backspace",
         holdDurationMs: Math.round(random.range(45, 65)),
         isCorrect: true,
-        expectedChar: null
+        expectedChar: null,
       });
       lastKey = "backspace";
     }
@@ -207,7 +322,7 @@ export function simulateEventsForText(
       keyChar: step.keyChar,
       holdDurationMs: Math.round(random.range(40, 70)),
       isCorrect: true,
-      expectedChar: null
+      expectedChar: null,
     });
     lastKey = step.keyToken;
   }
@@ -225,12 +340,16 @@ export function simulateEventsForText(
   return {
     events,
     qwertyBuffer,
-    typedText: targetText
+    typedText: targetText,
   };
 }
 
 // --- Generates extra training/historical dummy keystrokes to ensure 3D surface completeness ---
-function generateExtraEvents(count: number, random: SeededRandom, startKey: string | null): KeyEvent[] {
+function generateExtraEvents(
+  count: number,
+  random: SeededRandom,
+  startKey: string | null,
+): KeyEvent[] {
   const extraEvents: KeyEvent[] = [];
   const keys = "abcdefghijklmnopqrstuvwxyz.,".split("");
   let lastKey = startKey;
@@ -238,7 +357,7 @@ function generateExtraEvents(count: number, random: SeededRandom, startKey: stri
   for (let i = 0; i < count; i++) {
     const toKey = keys[Math.floor(random.next() * keys.length)];
     const latency = calculateSimulatedLatency(lastKey, toKey, random);
-    
+
     // Determine Korean jamo representation for 3D visualization compatibility
     const keyChar = JAMO_TO_QWERTY[toKey] || toKey;
 
@@ -249,7 +368,7 @@ function generateExtraEvents(count: number, random: SeededRandom, startKey: stri
       keyChar,
       holdDurationMs: Math.round(random.range(40, 70)),
       isCorrect: true,
-      expectedChar: null
+      expectedChar: null,
     });
     lastKey = toKey;
   }
@@ -264,9 +383,10 @@ export function generateDummyTypingState(targetTextFallback: string) {
 
   // Generate realistic text typing events
   const textTyping = simulateEventsForText(targetText, 12345, 0.03);
-  
+
   // Append 1500 extra realistic events so the 3D grid surface is richly filled
-  const lastKey = textTyping.events.length > 0 ? textTyping.events[textTyping.events.length - 1].toKey : null;
+  const lastKey =
+    textTyping.events.length > 0 ? textTyping.events[textTyping.events.length - 1].toKey : null;
   const extraEvents = generateExtraEvents(1500, random, lastKey);
   const dummyEvents = [...textTyping.events, ...extraEvents];
 
@@ -290,7 +410,7 @@ export function generateDummyTypingState(targetTextFallback: string) {
 export async function populateDummyDatabase(
   runId: string,
   currentEvents: KeyEvent[],
-  currentTargetText: string
+  currentTargetText: string,
 ) {
   if (typeof window === "undefined") return;
 
@@ -315,7 +435,11 @@ export async function populateDummyDatabase(
   let pageDate = new Date(run1Date);
 
   for (const target of targetsToUse) {
-    const { events, typedText } = simulateEventsForText(target.content, random.range(1000, 99999), 0.02);
+    const { events, typedText } = simulateEventsForText(
+      target.content,
+      random.range(1000, 99999),
+      0.02,
+    );
     const metrics = calculateMetrics(events, 3000);
 
     const pageStartedAt = new Date(pageDate);
@@ -363,7 +487,11 @@ export async function populateDummyDatabase(
   pageDate = new Date(run2Date);
 
   for (const target of targetsToUse2) {
-    const { events, typedText } = simulateEventsForText(target.content, random.range(1000, 99999), 0.04);
+    const { events, typedText } = simulateEventsForText(
+      target.content,
+      random.range(1000, 99999),
+      0.04,
+    );
     const metrics = calculateMetrics(events, 3000);
 
     const pageStartedAt = new Date(pageDate);
@@ -411,7 +539,11 @@ export async function populateDummyDatabase(
   pageDate = new Date(run3Date);
 
   for (const target of targetsToUse3) {
-    const { events, typedText } = simulateEventsForText(target.content, random.range(1000, 99999), 0.03);
+    const { events, typedText } = simulateEventsForText(
+      target.content,
+      random.range(1000, 99999),
+      0.03,
+    );
     const metrics = calculateMetrics(events, 3000);
 
     const pageStartedAt = new Date(pageDate);

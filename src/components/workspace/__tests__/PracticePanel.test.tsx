@@ -25,10 +25,10 @@ describe("PracticePanel", () => {
     });
 
     const { container } = render(<PracticePanel />);
-    
+
     const char0 = container.querySelector("#text-char-0");
     expect(char0).toBeTruthy();
-    
+
     const cursor = char0?.querySelector(".typing-cursor");
     expect(cursor).toBeTruthy();
     expect(cursor?.className).toContain("left");
@@ -41,7 +41,7 @@ describe("PracticePanel", () => {
     });
 
     const { container } = render(<PracticePanel />);
-    
+
     const char0 = container.querySelector("#text-char-0");
     const typedSpan = char0?.querySelector(".text-char-primary");
     expect(typedSpan).toBeTruthy();
@@ -59,7 +59,7 @@ describe("PracticePanel", () => {
     });
 
     const { container } = render(<PracticePanel />);
-    
+
     const char0 = container.querySelector("#text-char-0");
     const errorSpan = char0?.querySelector(".text-char-error");
     expect(errorSpan).toBeTruthy();
@@ -77,7 +77,7 @@ describe("PracticePanel", () => {
     });
 
     const { container } = render(<PracticePanel />);
-    
+
     const char0 = container.querySelector("#text-char-0");
     const typedSpan0 = char0?.querySelector(".text-char-primary");
     expect(typedSpan0).toBeTruthy();

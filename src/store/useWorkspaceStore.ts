@@ -27,7 +27,7 @@ interface WorkspaceState {
   setAnalysisData: (
     stats: Record<string, KeyResult>,
     triangles: Uint32Array | null,
-    events: KeyEvent[]
+    events: KeyEvent[],
   ) => void;
 }
 
@@ -47,4 +47,3 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
   setAnalysisData: (keyStats, triangles, analysisEvents) =>
     set({ keyStats, triangles, analysisEvents }),
 }));
-

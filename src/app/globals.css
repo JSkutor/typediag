@@ -5,10 +5,10 @@
 
 :root {
   /* --- Surfaces (Space Grey metal stack) --- */
-  --bg-base: #2a2b2e;         /* 메인 배경 - 묵직한 스페이스 그레이 */
-  --bg-raised: #323336;       /* 컨테이너 및 패널 배경 - 약간 띄워진 그레이 */
-  --bg-overlay: #3d3e42;      /* 호버/오버레이 배경 - 한 톤 밝은 그레이 */
-  --bg-inset: #202123;        /* 웰/코드/스크롤트랙 배경 - 한 톤 어두운 그레이 */
+  --bg-base: #2a2b2e; /* 메인 배경 - 묵직한 스페이스 그레이 */
+  --bg-raised: #323336; /* 컨테이너 및 패널 배경 - 약간 띄워진 그레이 */
+  --bg-overlay: #3d3e42; /* 호버/오버레이 배경 - 한 톤 밝은 그레이 */
+  --bg-inset: #202123; /* 웰/코드/스크롤트랙 배경 - 한 톤 어두운 그레이 */
 
   /* --- Borders / dividers (Subtle Silver) --- */
   --border-subtle: rgba(228, 230, 235, 0.08); /* 미세한 실버 경계선 */
@@ -16,14 +16,14 @@
   --border-keycap: rgba(228, 230, 235, 0.08);
 
   /* --- Text --- */
-  --text-primary: #e4e6eb;    /* 기본 텍스트 - 실버 화이트 */
-  --text-secondary: #8d929b;  /* 보조 텍스트 - 슬레이트 그레이 */
-  --text-muted: #5c6068;      /* 어두운 보조 텍스트 */
-  --text-inverse: #f0f2f5;    /* 강조 배경용 라이트 텍스트 */
+  --text-primary: #e4e6eb; /* 기본 텍스트 - 실버 화이트 */
+  --text-secondary: #8d929b; /* 보조 텍스트 - 슬레이트 그레이 */
+  --text-muted: #5c6068; /* 어두운 보조 텍스트 */
+  --text-inverse: #f0f2f5; /* 강조 배경용 라이트 텍스트 */
 
   /* --- Accent (Vibrant Cobalt Blue highlight) --- */
-  --accent: #3861fb;          /* 선명하고 정밀한 테크 코발트 블루 */
-  --accent-hover: #5377fc;    /* 호버 시 조금 더 밝은 블루 */
+  --accent: #3861fb; /* 선명하고 정밀한 테크 코발트 블루 */
+  --accent-hover: #5377fc; /* 호버 시 조금 더 밝은 블루 */
   --accent-dim: rgba(56, 97, 251, 0.12); /* 은은한 코발트 블루 글로우 */
 
   /* --- Secondary accent (Vibrant Cobalt for data/stats) --- */
@@ -36,14 +36,14 @@
   --warning: #f2c94c;
 
   /* --- Keycap rendering (PBT keycap detail) --- */
-  --keycap-face: #36383c;     /* 일반 문자 키 배경 */
+  --keycap-face: #36383c; /* 일반 문자 키 배경 */
   --keycap-face-hover: #3e4045;
   --keycap-top: #3d4045;
   --keycap-shadow: rgba(12, 14, 16, 0.35); /* 묵직한 다크 섀도우 */
 
   /* --- Custom Keyboard Modifiers --- */
-  --key-mod-bg: #2d2e31;      /* 특수/기능 키 배경 */
-  --key-mod-text: #8d929b;    /* 특수/기능 키 텍스트 */
+  --key-mod-bg: #2d2e31; /* 특수/기능 키 배경 */
+  --key-mod-text: #8d929b; /* 특수/기능 키 텍스트 */
 
   /* --- Typography (Outfit & Fira Code) --- */
   --font-sans: var(--font-outfit), system-ui, -apple-system, sans-serif;
@@ -98,11 +98,7 @@ body {
   flex-direction: column;
   background-color: var(--bg-base);
   /* subtle radial vignette with cobalt accent */
-  background-image: radial-gradient(
-    ellipse at 50% -10%,
-    rgba(56, 97, 251, 0.06),
-    transparent 65%
-  );
+  background-image: radial-gradient(ellipse at 50% -10%, rgba(56, 97, 251, 0.06), transparent 65%);
   color: var(--text-primary);
   font-family: var(--font-sans);
   font-size: 16px;
@@ -174,8 +170,6 @@ h4 {
   align-items: center;
 }
 
-
-
 /* Glassmorphism Panels */
 .glass-panel {
   background: rgba(42, 43, 46, 0.6);
@@ -185,8 +179,6 @@ h4 {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-panel);
 }
-
-
 
 /* SVG Delaunay Overlay */
 .delaunay-mesh {
@@ -229,7 +221,7 @@ h4 {
   background-color: var(--bg-raised);
   color: var(--text-primary);
   font-size: 0.875rem;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   transition: background-color 0.2s;
   cursor: pointer;
 }
@@ -284,8 +276,6 @@ h4 {
   left: 0;
   color: var(--text-primary);
 }
-
-
 
 /* Dashboard Panel */
 .dashboard-panel {
@@ -353,9 +343,10 @@ h4 {
   align-items: center; /* Centered vertically */
   justify-content: center;
   /* Cinematic Z-push transition - synchronized timing and easing across properties */
-  transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1), 
-              opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1), 
-              filter 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    transform 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.55s cubic-bezier(0.16, 1, 0.3, 1);
   z-index: 20;
   will-change: transform, opacity, filter;
   transform-style: preserve-3d;
@@ -382,8 +373,9 @@ h4 {
   align-items: center;
   justify-content: center;
   /* Synchronized transition with the practice layer */
-  transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1), 
-              opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    transform 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: transform, opacity;
   z-index: 10;
   transform: scale(1) translateY(0);
@@ -426,7 +418,9 @@ h4 {
 .dev-dummy-btn:hover {
   transform: translateY(-2px);
   background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%) !important;
-  box-shadow: 0 12px 20px -3px rgba(99, 102, 241, 0.4), 0 4px 8px -4px rgba(99, 102, 241, 0.4) !important;
+  box-shadow:
+    0 12px 20px -3px rgba(99, 102, 241, 0.4),
+    0 4px 8px -4px rgba(99, 102, 241, 0.4) !important;
 }
 .dev-dummy-btn:active {
   transform: translateY(0);
@@ -529,8 +523,12 @@ h4 {
   letter-spacing: 0.05em;
   color: var(--text-muted);
 }
-.cyl-label-text--pink { color: #ec4899; }
-.cyl-label-text--cyan { color: #06b6d4; }
+.cyl-label-text--pink {
+  color: #ec4899;
+}
+.cyl-label-text--cyan {
+  color: #06b6d4;
+}
 
 /* Selectors */
 .cyl-selectors {
@@ -634,9 +632,15 @@ h4 {
   font-weight: 600;
   color: var(--text-primary);
 }
-.cyl-diag__value--error { color: var(--error); }
-.cyl-diag__value--success { color: var(--success); }
-.cyl-diag__value--warning { color: #fbbf24; }
+.cyl-diag__value--error {
+  color: var(--error);
+}
+.cyl-diag__value--success {
+  color: var(--success);
+}
+.cyl-diag__value--warning {
+  color: #fbbf24;
+}
 .cyl-diag__count {
   font-size: 0.6rem;
   color: var(--text-muted);
@@ -818,15 +822,18 @@ h4 {
   border: 1px dashed var(--border-subtle);
 }
 
-
-
 /* ==========================================================================
    TypeDiag — Typing Cursor Styles
    ========================================================================== */
 
 @keyframes typing-cursor-blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
 }
 
 .typing-cursor {
@@ -847,4 +854,3 @@ h4 {
 .typing-cursor.right {
   right: -1px;
 }
-

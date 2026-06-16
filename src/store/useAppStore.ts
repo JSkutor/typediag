@@ -33,10 +33,8 @@ export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
       settings: DEFAULT_SETTINGS,
-      setLanguage: (language) =>
-        set((state) => ({ settings: { ...state.settings, language } })),
-      setLayout: (layout) =>
-        set((state) => ({ settings: { ...state.settings, layout } })),
+      setLanguage: (language) => set((state) => ({ settings: { ...state.settings, language } })),
+      setLayout: (layout) => set((state) => ({ settings: { ...state.settings, layout } })),
       toggleLiveHeatmap: () =>
         set((state) => ({
           settings: {

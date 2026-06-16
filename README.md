@@ -6,11 +6,11 @@ TypeDiag is an advanced typing diagnostics and practice application. It uses a S
 
 The project documentation has been organized for better readability:
 
-*   **[Roadmap & TODOs](TODO.md)**: Master checklist, ongoing tasks, and architectural plans (located in root).
-*   **[Zustand & Session Lifecycle](docs/STATE_MANAGEMENT.md)**: State management slices design and SessionService timeout rules.
-*   **[SKDM Architecture](docs/SKDM_ARCHITECTURE.md)**: Explanation of the 3D visualization model, latency surface, and the data pipeline.
-*   **[Database Schema](docs/DB_SCHEMA.md)**: Current mock database structure and planned transition to a real relational database.
-*   **[Design System](docs/DESIGN_SYSTEM.md)**: Color palettes, typography, and premium UI guidelines used in this project.
+- **[Roadmap & TODOs](TODO.md)**: Master checklist, ongoing tasks, and architectural plans (located in root).
+- **[Zustand & Session Lifecycle](docs/STATE_MANAGEMENT.md)**: State management slices design and SessionService timeout rules.
+- **[SKDM Architecture](docs/SKDM_ARCHITECTURE.md)**: Explanation of the 3D visualization model, latency surface, and the data pipeline.
+- **[Database Schema](docs/DB_SCHEMA.md)**: Current mock database structure and planned transition to a real relational database.
+- **[Design System](docs/DESIGN_SYSTEM.md)**: Color palettes, typography, and premium UI guidelines used in this project.
 
 ## Getting Started
 
@@ -35,4 +35,3 @@ To run the unit and integration tests using Vitest:
 ```bash
 npm run test
 ```
-

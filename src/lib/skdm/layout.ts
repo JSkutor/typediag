@@ -19,9 +19,7 @@ export const DEFAULT_ROWS: string[][] = [
  * x: column index * KEY_UNIT + cumulative row stagger.
  * y: flipped so the number row sits at the top (largest y).
  */
-export function buildLayout(
-  rows: string[][] = DEFAULT_ROWS,
-): Record<string, KeyPosition> {
+export function buildLayout(rows: string[][] = DEFAULT_ROWS): Record<string, KeyPosition> {
   const layout: Record<string, KeyPosition> = {};
   const nRows = rows.length;
 
@@ -30,7 +28,7 @@ export function buildLayout(
     const y = (nRows - 1 - rowIdx) * ROW_HEIGHT_U;
     rowKeys.forEach((key, colIdx) => {
       const x = colIdx * KEY_UNIT + stagger;
-      
+
       layout[key] = { key, row: rowIdx, col: colIdx, x, y };
     });
   });
@@ -39,9 +37,6 @@ export function buildLayout(
 }
 
 /** Row index of a key, or -1 if not present. */
-export function getRow(
-  key: string,
-  layout: Record<string, KeyPosition>,
-): number {
+export function getRow(key: string, layout: Record<string, KeyPosition>): number {
   return layout[key]?.row ?? -1;
 }

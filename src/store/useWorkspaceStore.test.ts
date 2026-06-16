@@ -51,10 +51,9 @@ describe("useWorkspaceStore", () => {
     const triangles = new Uint32Array([0, 1, 2]);
     const events = [{ fromKey: "a", toKey: "b", latencyMs: 100, keyChar: "b" }] as any;
     useWorkspaceStore.getState().setAnalysisData(stats, triangles, events);
-    
+
     expect(useWorkspaceStore.getState().keyStats).toEqual(stats);
     expect(useWorkspaceStore.getState().triangles).toEqual(triangles);
     expect(useWorkspaceStore.getState().analysisEvents).toEqual(events);
   });
 });
-

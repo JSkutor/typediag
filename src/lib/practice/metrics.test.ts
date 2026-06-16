@@ -73,11 +73,7 @@ describe("metrics module", () => {
 
   describe("calculateLatencyAfterGap", () => {
     it("should return sum of all latencies if there is no gap", () => {
-      const events = [
-        { latencyMs: 100 },
-        { latencyMs: 200 },
-        { latencyMs: 150 },
-      ];
+      const events = [{ latencyMs: 100 }, { latencyMs: 200 }, { latencyMs: 150 }];
       expect(calculateLatencyAfterGap(events, 5000)).toBe(450);
     });
 

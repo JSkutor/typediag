@@ -21,7 +21,7 @@ export function evaluateKeystroke(
   shiftKey: boolean,
   qwertyBuffer: string,
   targetText: string,
-  isKorean: boolean
+  isKorean: boolean,
 ): KeyEvaluation {
   // 1. Handle Backspace (correction key)
   if (code === "Backspace") {
@@ -75,9 +75,7 @@ export function evaluateKeystroke(
   }
 
   // 4. Map to layout character (convert English key to Hangul jamo if Korean)
-  const keyChar = isKorean && /[a-zA-Z]/.test(rawChar)
-    ? convertQwertyToAlphabet(rawChar)
-    : rawChar;
+  const keyChar = isKorean && /[a-zA-Z]/.test(rawChar) ? convertQwertyToAlphabet(rawChar) : rawChar;
 
   // 5. Compare with decomposed target
   const nextIdx = qwertyBuffer.length;

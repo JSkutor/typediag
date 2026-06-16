@@ -11,7 +11,16 @@ export const createSessionSlice: StoreSlice<SessionSlice> = (set, get) => ({
   runInitPromise: null,
 
   finish: (timestamp) => {
-    const { status, targetText, targetId, targetLanguage, events, startedAt, typedText, currentRunId } = get();
+    const {
+      status,
+      targetText,
+      targetId,
+      targetLanguage,
+      events,
+      startedAt,
+      typedText,
+      currentRunId,
+    } = get();
     if (status === "done") return;
 
     const finishedAt = timestamp ?? Date.now();
@@ -22,7 +31,7 @@ export const createSessionSlice: StoreSlice<SessionSlice> = (set, get) => ({
       if (runInitPromise) {
         await runInitPromise;
       }
-      
+
       let runId = get().currentRunId;
       if (!runId || !startedAt) return;
 
@@ -34,7 +43,7 @@ export const createSessionSlice: StoreSlice<SessionSlice> = (set, get) => ({
         startedAt,
         finishedAt,
         targetId,
-        targetLanguage
+        targetLanguage,
       );
 
       if (newRunId !== runId) {
@@ -63,7 +72,7 @@ export const createSessionSlice: StoreSlice<SessionSlice> = (set, get) => ({
   loadDummyData: async () => {
     const targetText = get().targetText || (targets.length > 0 ? targets[0].content : "");
     const stateUpdate = generateDummyTypingState(targetText);
-    
+
     const runId = `run_dummy_${Date.now()}`;
     set({
       ...stateUpdate,

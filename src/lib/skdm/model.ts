@@ -91,9 +91,7 @@ export function filterOutliers(events: KeyEvent[]): [KeyEvent[], number] {
   }
 
   // 3. IQR
-  const latencies = validEvents
-    .filter((ev) => ev.latencyMs > 0)
-    .map((ev) => ev.latencyMs);
+  const latencies = validEvents.filter((ev) => ev.latencyMs > 0).map((ev) => ev.latencyMs);
 
   if (latencies.length === 0) {
     return [validEvents, OUTLIER_HARD_CUTOFF_MS];
@@ -113,25 +111,21 @@ export function filterOutliers(events: KeyEvent[]): [KeyEvent[], number] {
   if (count >= OUTLIER_BLEND_END_EVENTS) {
     finalUpperBound = finalIqrBound;
   } else {
-    const weight = (count - OUTLIER_BLEND_START_EVENTS) / (OUTLIER_BLEND_END_EVENTS - OUTLIER_BLEND_START_EVENTS);
+    const weight =
+      (count - OUTLIER_BLEND_START_EVENTS) /
+      (OUTLIER_BLEND_END_EVENTS - OUTLIER_BLEND_START_EVENTS);
     finalUpperBound = (1.0 - weight) * OUTLIER_HARD_CUTOFF_MS + weight * finalIqrBound;
   }
 
   validEvents = validEvents.filter((ev) => ev.latencyMs <= finalUpperBound);
   const maxObserved =
-    validEvents.length > 0
-      ? Math.max(...validEvents.map((ev) => ev.latencyMs))
-      : finalUpperBound;
+    validEvents.length > 0 ? Math.max(...validEvents.map((ev) => ev.latencyMs)) : finalUpperBound;
 
   return [validEvents, maxObserved];
 }
 
 /** Aggregate raw events into (from, to) pair statistics. */
-export function aggregatePairs(
-  validEvents: KeyEvent[],
-  maxClipMs: number,
-): Map<string, PairStat> {
-
+export function aggregatePairs(validEvents: KeyEvent[], maxClipMs: number): Map<string, PairStat> {
   const buckets = new Map<string, number[]>();
   const meta = new Map<string, { fromKey: string; toKey: string }>();
   for (const ev of validEvents) {
@@ -202,8 +196,7 @@ export function summarizeKeys(
     const stats = incoming.get(key) ?? [];
 
     const keyLatencies = latenciesPerKey.get(key) ?? [];
-    const keyStdev =
-      keyLatencies.length >= 2 ? std(keyLatencies) : sessionMedianStdev;
+    const keyStdev = keyLatencies.length >= 2 ? std(keyLatencies) : sessionMedianStdev;
 
     if (stats.length === 0) {
       results[key] = {
@@ -256,10 +249,7 @@ export function triangulate(
   keys?: string[],
 ): { keys: string[]; triangles: Uint32Array } {
   const orderedKeys = keys ?? Object.keys(results);
-  const points: Array<[number, number]> = orderedKeys.map((k) => [
-    results[k].x,
-    results[k].y,
-  ]);
+  const points: Array<[number, number]> = orderedKeys.map((k) => [results[k].x, results[k].y]);
   const delaunay = Delaunay.from(points);
   return { keys: orderedKeys, triangles: delaunay.triangles };
 }
@@ -292,9 +282,7 @@ export function buildAdjacency(triangles: Uint32Array): Map<number, Set<number>>
  * Low-confidence keys are pulled harder towards the neighbour mean
  * (alpha_i = ALPHA * (1 - normConf_i)), filling empty/uncertain keys.
  */
-export function smooth(
-  results: Record<string, KeyResult>,
-): Record<string, KeyResult> {
+export function smooth(results: Record<string, KeyResult>): Record<string, KeyResult> {
   const keys = Object.keys(results);
 
   // Degenerate guard: Delaunay needs >= 3 non-collinear points.

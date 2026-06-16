@@ -62,7 +62,7 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
 
   handlePhysicalKeyPress: (code, shiftKey, timestamp) => {
     const state = get();
-    
+
     if (code === "ArrowRight") {
       get().nextTarget();
       return;
@@ -70,7 +70,8 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
 
     if (code === "ArrowLeft") {
       const currentIndex = targets.findIndex((t) => t.content === get().targetText);
-      const prevIndex = currentIndex === -1 ? 0 : (currentIndex - 1 + targets.length) % targets.length;
+      const prevIndex =
+        currentIndex === -1 ? 0 : (currentIndex - 1 + targets.length) % targets.length;
       get().setTarget(targets[prevIndex]);
       return;
     }
@@ -87,28 +88,43 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
         pressedKeys: {
           ...state.pressedKeys,
           [code]: timestamp,
-        }
+        },
       }));
     }
 
     const keyToken = getKeyToken(code);
-    const isKorean = state.targetLanguage === "ko" || (state.targetLanguage === "en" && /[가-힣]/.test(state.targetText));
+    const isKorean =
+      state.targetLanguage === "ko" ||
+      (state.targetLanguage === "en" && /[가-힣]/.test(state.targetText));
 
     if (code === "ShiftLeft" || code === "ShiftRight" || code === "Enter") {
-      const evalResult = evaluateKeystroke(code, shiftKey, state.qwertyBuffer, state.targetText, isKorean);
+      const evalResult = evaluateKeystroke(
+        code,
+        shiftKey,
+        state.qwertyBuffer,
+        state.targetText,
+        isKorean,
+      );
       get().recordKey(keyToken, timestamp, evalResult);
       return;
     }
 
     if (code === "Backspace") {
       if (state.qwertyBuffer.length > 0) {
-        const evalResult = evaluateKeystroke(code, shiftKey, state.qwertyBuffer, state.targetText, isKorean);
-        
+        const evalResult = evaluateKeystroke(
+          code,
+          shiftKey,
+          state.qwertyBuffer,
+          state.targetText,
+          isKorean,
+        );
+
         let nextBuffer = "";
         if (isKorean) {
           const lastIdx = state.typedText.length - 1;
-          const isLastCharCorrect = lastIdx >= 0 && state.typedText[lastIdx] === state.targetText[lastIdx];
-          
+          const isLastCharCorrect =
+            lastIdx >= 0 && state.typedText[lastIdx] === state.targetText[lastIdx];
+
           if (isLastCharCorrect) {
             const targetLength = state.typedText.length - 1;
             let bestBuffer = "";
@@ -130,7 +146,7 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
         }
 
         const nextTyped = isKorean ? assembleHangulWithPunctuation(nextBuffer) : nextBuffer;
-        
+
         set({ qwertyBuffer: nextBuffer, typedText: nextTyped });
         get().recordKey("backspace", timestamp, evalResult);
       }
@@ -139,25 +155,31 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
 
     const char = getQwertyChar(code, shiftKey);
     if (char !== null) {
-      const baseEval = evaluateKeystroke(code, shiftKey, state.qwertyBuffer, state.targetText, isKorean);
+      const baseEval = evaluateKeystroke(
+        code,
+        shiftKey,
+        state.qwertyBuffer,
+        state.targetText,
+        isKorean,
+      );
       const nextBuffer = state.qwertyBuffer + char;
       const nextTyped = isKorean ? assembleHangulWithPunctuation(nextBuffer) : nextBuffer;
-      
+
       const diff = optimizeDiff(computeDiff(state.targetText, nextTyped), state.targetText);
-      const lastInputIndex = diff.findLastIndex(d => d.inputIndex !== undefined);
-      const pendingDeletes = diff.slice(lastInputIndex + 1).some(d => d.op === "DELETE");
+      const lastInputIndex = diff.findLastIndex((d) => d.inputIndex !== undefined);
+      const pendingDeletes = diff.slice(lastInputIndex + 1).some((d) => d.op === "DELETE");
       let shouldFinish = !pendingDeletes;
 
       const lastOp = diff[lastInputIndex];
       const evalResult = {
         keyChar: baseEval.keyChar,
-        isCorrect: lastOp ? (lastOp.op === "EQUAL" || lastOp.op === "PARTIAL") : false,
-        expectedChar: lastOp && lastOp.op === "REPLACE" ? (lastOp.targetChar || null) : null,
+        isCorrect: lastOp ? lastOp.op === "EQUAL" || lastOp.op === "PARTIAL" : false,
+        expectedChar: lastOp && lastOp.op === "REPLACE" ? lastOp.targetChar || null : null,
       };
-      
+
       set({ qwertyBuffer: nextBuffer, typedText: nextTyped });
       get().recordKey(keyToken, timestamp, evalResult);
-      
+
       if (shouldFinish && isKorean) {
         if (lastOp && lastOp.op === "PARTIAL") {
           shouldFinish = false;

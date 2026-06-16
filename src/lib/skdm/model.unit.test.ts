@@ -33,14 +33,14 @@ describe("model unit tests", () => {
         { fromKey: "a", toKey: "shift_l", latencyMs: 150 },
         { fromKey: "shift_l", toKey: "A", latencyMs: 200 },
         { fromKey: "A", toKey: "b", latencyMs: 100 },
-        { fromKey: "b", toKey: "enter", latencyMs: 100 }
+        { fromKey: "b", toKey: "enter", latencyMs: 100 },
       ];
 
       const cleaned = filterInterruptedTransitions(events);
       // 'shift_l' drops the transition.
       // 'A' to 'b' is clean.
       // 'enter' drops the transition.
-      const toKeys = cleaned.map(e => e.toKey);
+      const toKeys = cleaned.map((e) => e.toKey);
       expect(toKeys).not.toContain("shift_l");
       expect(toKeys).not.toContain("A"); // The transition shift->A is dropped
       expect(toKeys).toContain("b");
@@ -51,7 +51,7 @@ describe("model unit tests", () => {
     it("should apply hard cutoff (2000ms)", () => {
       const events: KeyEvent[] = [
         { fromKey: "a", toKey: "b", latencyMs: 100 },
-        { fromKey: "b", toKey: "c", latencyMs: 2500 } // Exceeds 2000ms hard cutoff
+        { fromKey: "b", toKey: "c", latencyMs: 2500 }, // Exceeds 2000ms hard cutoff
       ];
 
       const [valid] = filterOutliers(events);
@@ -64,13 +64,13 @@ describe("model unit tests", () => {
       const events: KeyEvent[] = Array.from({ length: 1600 }).map((_, i) => ({
         fromKey: "a",
         toKey: "b",
-        latencyMs: 100 + (Math.random() * 20 - 10) // 90~110ms
+        latencyMs: 100 + (Math.random() * 20 - 10), // 90~110ms
       }));
-      
+
       events.push({
         fromKey: "b",
         toKey: "c",
-        latencyMs: 1500 // Sub 2000ms, but an outlier compared to IQR
+        latencyMs: 1500, // Sub 2000ms, but an outlier compared to IQR
       });
 
       const [valid, maxObserved] = filterOutliers(events);

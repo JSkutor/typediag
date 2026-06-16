@@ -34,12 +34,14 @@ export default function WorkspaceView({ lang, tab }: { lang: string; tab: string
   });
 
   return (
-    <div className="workspace-container" style={{ position: "relative", width: "100vw", height: "100vh", overflow: "hidden" }}>
-      
+    <div
+      className="workspace-container"
+      style={{ position: "relative", width: "100vw", height: "100vh", overflow: "hidden" }}
+    >
       <WorkspaceControls onStartDiagnostics={startDiagnosticsTransition} />
 
       <PracticeLayer />
-      
+
       <DiagnosticsLayer />
     </div>
   );

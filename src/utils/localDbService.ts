@@ -85,7 +85,10 @@ export const localDbService = {
   /**
    * Updates fields on an existing run.
    */
-  async updateRun(runId: string, updates: Partial<Omit<RunRow, "id" | "created_at">>): Promise<RunRow> {
+  async updateRun(
+    runId: string,
+    updates: Partial<Omit<RunRow, "id" | "created_at">>,
+  ): Promise<RunRow> {
     const db = readDbFile();
     const idx = db.runs.findIndex((r) => r.id === runId);
     if (idx === -1) {
@@ -114,7 +117,9 @@ export const localDbService = {
   /**
    * Appends or updates a page result within a run.
    */
-  async createPage(pageData: Omit<PageRow, "created_at"> & { created_at?: string }): Promise<PageRow> {
+  async createPage(
+    pageData: Omit<PageRow, "created_at"> & { created_at?: string },
+  ): Promise<PageRow> {
     const db = readDbFile();
     const existingIdx = db.pages.findIndex((p) => p.id === pageData.id);
     const newPage: PageRow = {
@@ -162,20 +167,29 @@ export const localDbService = {
     const pagesToAggregate = validPages.length > 0 ? validPages : pages;
 
     const totalTimeMs = pagesToAggregate.reduce((sum, p) => sum + p.elapsed_time_ms, 0);
-    const avgCpm = totalTimeMs > 0
-      ? Math.round(pagesToAggregate.reduce((sum, p) => sum + p.cpm * p.elapsed_time_ms, 0) / totalTimeMs)
-      : Math.round(pagesToAggregate.reduce((sum, p) => sum + p.cpm, 0) / pagesToAggregate.length);
+    const avgCpm =
+      totalTimeMs > 0
+        ? Math.round(
+            pagesToAggregate.reduce((sum, p) => sum + p.cpm * p.elapsed_time_ms, 0) / totalTimeMs,
+          )
+        : Math.round(pagesToAggregate.reduce((sum, p) => sum + p.cpm, 0) / pagesToAggregate.length);
 
-    const avgWpm = totalTimeMs > 0
-      ? Math.round(pagesToAggregate.reduce((sum, p) => sum + p.wpm * p.elapsed_time_ms, 0) / totalTimeMs)
-      : Math.round(pagesToAggregate.reduce((sum, p) => sum + p.wpm, 0) / pagesToAggregate.length);
+    const avgWpm =
+      totalTimeMs > 0
+        ? Math.round(
+            pagesToAggregate.reduce((sum, p) => sum + p.wpm * p.elapsed_time_ms, 0) / totalTimeMs,
+          )
+        : Math.round(pagesToAggregate.reduce((sum, p) => sum + p.wpm, 0) / pagesToAggregate.length);
 
     const totalKeystrokes = pagesToAggregate.reduce((sum, p) => sum + p.key_events.length, 0);
-    const avgAccuracy = totalKeystrokes > 0
-      ? pagesToAggregate.reduce((sum, p) => sum + p.accuracy * p.key_events.length, 0) / totalKeystrokes
-      : (totalTimeMs > 0
-          ? pagesToAggregate.reduce((sum, p) => sum + p.accuracy * p.elapsed_time_ms, 0) / totalTimeMs
-          : pagesToAggregate.reduce((sum, p) => sum + p.accuracy, 0) / pagesToAggregate.length);
+    const avgAccuracy =
+      totalKeystrokes > 0
+        ? pagesToAggregate.reduce((sum, p) => sum + p.accuracy * p.key_events.length, 0) /
+          totalKeystrokes
+        : totalTimeMs > 0
+          ? pagesToAggregate.reduce((sum, p) => sum + p.accuracy * p.elapsed_time_ms, 0) /
+            totalTimeMs
+          : pagesToAggregate.reduce((sum, p) => sum + p.accuracy, 0) / pagesToAggregate.length;
 
     const updatedRun: RunRow = {
       ...db.runs[runIdx],

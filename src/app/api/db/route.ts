@@ -5,7 +5,7 @@ export async function GET() {
   if (process.env.NODE_ENV !== "development") {
     return NextResponse.json(
       { error: "Forbidden (API only available in development mode)" },
-      { status: 403 }
+      { status: 403 },
     );
   }
 
@@ -21,7 +21,7 @@ export async function POST(request: Request) {
   if (process.env.NODE_ENV !== "development") {
     return NextResponse.json(
       { error: "Forbidden (API only available in development mode)" },
-      { status: 403 }
+      { status: 403 },
     );
   }
 
@@ -51,10 +51,7 @@ export async function POST(request: Request) {
         return NextResponse.json(result);
       }
       default:
-        return NextResponse.json(
-          { error: `Invalid action: ${action}` },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: `Invalid action: ${action}` }, { status: 400 });
     }
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });

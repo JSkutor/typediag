@@ -1,11 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { 
-  toCylindricalCartesian, 
+import {
+  toCylindricalCartesian,
   generateSurfaceLayout,
   calculateSurfaceBorders,
   generateBoxPoints,
   CYLINDRICAL_MAX_RADIUS,
-  CYLINDRICAL_MAX_HEIGHT
+  CYLINDRICAL_MAX_HEIGHT,
 } from "./geometryUtils";
 
 describe("geometryUtils", () => {
@@ -14,7 +14,7 @@ describe("geometryUtils", () => {
       // With raw values missing normalized fields, fallback math is used
       const v = { r: 10, theta: Math.PI / 2, thetaDeg: 90, z: 100, fromKey: "a" };
       const cartesian = toCylindricalCartesian(v as any);
-      
+
       expect(cartesian.vy).toBe(100 * 0.015);
       // cos(PI/2) is close to 0
       expect(Math.abs(cartesian.vx)).toBeLessThan(1e-10);
@@ -38,10 +38,10 @@ describe("geometryUtils", () => {
     it("generates inner and outer border points based on layout", () => {
       const { layoutMap } = generateSurfaceLayout();
       const { innerBorderPoints, outerBorderPoints } = calculateSurfaceBorders(layoutMap);
-      
+
       expect(Array.isArray(innerBorderPoints)).toBe(true);
       expect(innerBorderPoints.length).toBeGreaterThan(0);
-      
+
       expect(Array.isArray(outerBorderPoints)).toBe(true);
       expect(outerBorderPoints.length).toBeGreaterThan(0);
     });

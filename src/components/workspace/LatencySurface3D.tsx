@@ -31,7 +31,7 @@ export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (isActivated) {
-      // Transition is 0.55s. Starting initialization at 350ms allows the browser 
+      // Transition is 0.55s. Starting initialization at 350ms allows the browser
       // to execute the initial rapid transition frames smoothly without GPU/main-thread blocking.
       timer = setTimeout(() => {
         setShouldRenderThree(true);
@@ -46,14 +46,22 @@ export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
 
   // Initialize and dispose manager
   const handleInit = useCallback((manager: Surface3DManager) => {
-    manager.onUpdateHUD = (surfaceKeys, elevationScale, camera, opacity, managerWidth, managerHeight) => {
+    manager.onUpdateHUD = (
+      surfaceKeys,
+      elevationScale,
+      camera,
+      opacity,
+      managerWidth,
+      managerHeight,
+    ) => {
       if (!labelsContainerRef.current || !mountRef.current) return;
       const TARGET_ELEVATION_SCALE = 180;
 
       surfaceKeys.forEach((k) => {
         const vec = manager.get3DPos(k, elevationScale);
         const scaleRatio = elevationScale / TARGET_ELEVATION_SCALE;
-        const amplifiedZ = k.key.toLowerCase() === "_dummy_comma" ? 0 : Math.pow(k.zSmoothed, LATENCY_POWER);
+        const amplifiedZ =
+          k.key.toLowerCase() === "_dummy_comma" ? 0 : Math.pow(k.zSmoothed, LATENCY_POWER);
         vec.y += (10 + amplifiedZ * 5) * scaleRatio;
 
         vec.project(camera);

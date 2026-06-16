@@ -23,7 +23,7 @@ export interface KeystrokeSlice {
   recordKey: (
     token: string,
     at: number,
-    details?: { keyChar: string; isCorrect: boolean; expectedChar: string | null }
+    details?: { keyChar: string; isCorrect: boolean; expectedChar: string | null },
   ) => void;
   handlePhysicalKeyRelease: (code: string, timestamp: number) => void;
 }

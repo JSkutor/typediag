@@ -8,11 +8,11 @@ import { buildLayout } from "@/lib/skdm";
 
 // Mock SKDM heavy functions to avoid executing full pipeline in this integration test
 vi.mock("@/lib/skdm", async (importOriginal) => {
-  const actual = await importOriginal() as any;
+  const actual = (await importOriginal()) as any;
   return {
     ...actual,
     runPipeline: vi.fn(() => ({ a: { z: 0.5, confidence: 10 } })),
-    triangulate: vi.fn(() => ({ triangles: [] }))
+    triangulate: vi.fn(() => ({ triangles: [] })),
   };
 });
 
@@ -22,7 +22,7 @@ describe("useDiagnosticsTransition", () => {
     useWorkspaceStore.setState({ uiState: "practice", diagnosticMode: "surface" });
     useTypingStore.setState({
       events: [{ fromKey: "a", toKey: "b", latencyMs: 100 } as any],
-      currentRunId: "test_run_1"
+      currentRunId: "test_run_1",
     });
 
     if (typeof window !== "undefined") {
@@ -34,11 +34,29 @@ describe("useDiagnosticsTransition", () => {
     // Mock a run and page in the DB
     await db.createRun({ id: "test_run_1", user_id: "u1", status: "in_progress", started_at: "" });
     await db.createPage({
-      id: "p1", run_id: "test_run_1", target_text_id: "t1", order_index: 0, language: "en", typed_text: "",
-      wpm: 1, cpm: 1, accuracy: 100, started_at: "", finished_at: "", elapsed_time_ms: 1,
+      id: "p1",
+      run_id: "test_run_1",
+      target_text_id: "t1",
+      order_index: 0,
+      language: "en",
+      typed_text: "",
+      wpm: 1,
+      cpm: 1,
+      accuracy: 100,
+      started_at: "",
+      finished_at: "",
+      elapsed_time_ms: 1,
       key_events: [
-        { from_key: "x", to_key: "y", latency: 50, is_correct: true, expected_char: "y", key_char: "y", hold_duration_ms: 50 }
-      ]
+        {
+          from_key: "x",
+          to_key: "y",
+          latency: 50,
+          is_correct: true,
+          expected_char: "y",
+          key_char: "y",
+          hold_duration_ms: 50,
+        },
+      ],
     });
 
     const { result } = renderHook(() => useDiagnosticsTransition());

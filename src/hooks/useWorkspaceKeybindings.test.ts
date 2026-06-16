@@ -9,7 +9,11 @@ describe("useWorkspaceKeybindings", () => {
 
   beforeEach(() => {
     onTransition = vi.fn();
-    useWorkspaceStore.setState({ uiState: "practice", diagnosticMode: "surface", focusedKey: null });
+    useWorkspaceStore.setState({
+      uiState: "practice",
+      diagnosticMode: "surface",
+      focusedKey: null,
+    });
     useTypingStore.setState({ status: "idle", targetText: "hello" });
     vi.spyOn(useTypingStore.getState(), "handlePhysicalKeyPress").mockImplementation(() => {});
   });
@@ -33,7 +37,7 @@ describe("useWorkspaceKeybindings", () => {
   it("should transition from diagnostics to practice on Tab", () => {
     useWorkspaceStore.setState({ uiState: "diagnostics" });
     renderHook(() => useWorkspaceKeybindings({ onTransition }));
-    
+
     fireKey("Tab", "Tab");
     expect(onTransition).not.toHaveBeenCalled();
     expect(useWorkspaceStore.getState().uiState).toBe("practice");
@@ -42,7 +46,7 @@ describe("useWorkspaceKeybindings", () => {
   it("should pass key to typing store during practice", () => {
     renderHook(() => useWorkspaceKeybindings({ onTransition }));
     const handlePhysicalKeyPress = vi.spyOn(useTypingStore.getState(), "handlePhysicalKeyPress");
-    
+
     fireKey("KeyA", "a");
     expect(handlePhysicalKeyPress).toHaveBeenCalledWith("KeyA", false, expect.any(Number));
   });
@@ -50,7 +54,7 @@ describe("useWorkspaceKeybindings", () => {
   it("should ignore shortcuts in practice mode", () => {
     renderHook(() => useWorkspaceKeybindings({ onTransition }));
     const handlePhysicalKeyPress = vi.spyOn(useTypingStore.getState(), "handlePhysicalKeyPress");
-    
+
     window.dispatchEvent(new KeyboardEvent("keydown", { code: "KeyC", key: "c", ctrlKey: true }));
     expect(handlePhysicalKeyPress).not.toHaveBeenCalled();
   });

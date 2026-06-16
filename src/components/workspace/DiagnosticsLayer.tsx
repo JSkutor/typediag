@@ -18,7 +18,6 @@ export const DiagnosticsLayer: React.FC = () => {
 
   return (
     <div className={`screen-diagnostics ${!isVisible ? "invisible" : ""}`}>
-
       {/* 3D WebGL Latency Surface (full viewport) */}
       {diagnosticMode === "surface" && triangles && (
         <div
@@ -30,9 +29,9 @@ export const DiagnosticsLayer: React.FC = () => {
             pointerEvents: isDiag ? "auto" : "none",
           }}
         >
-          <LatencySurface3D 
-            keyStats={keyStats} 
-            triangles={triangles} 
+          <LatencySurface3D
+            keyStats={keyStats}
+            triangles={triangles}
             isActivated={isDiag && diagnosticMode === "surface"}
           />
         </div>
@@ -52,10 +51,10 @@ export const DiagnosticsLayer: React.FC = () => {
 
       {/* Dashboard Panel (non-cylindrical — cylindrical has its own panel) */}
       {diagnosticMode !== "cylindrical" && (
-        <DashboardPanel 
-          mode={isDiag ? "diagnostics" : "practice"} 
-          diagnosticMode={diagnosticMode} 
-          focusedKey={focusedKey} 
+        <DashboardPanel
+          mode={isDiag ? "diagnostics" : "practice"}
+          diagnosticMode={diagnosticMode}
+          focusedKey={focusedKey}
         />
       )}
     </div>

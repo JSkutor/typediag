@@ -43,7 +43,7 @@ describe("getQwertyChar", () => {
 describe("assembleHangulWithPunctuation", () => {
   it("should assemble standard hangul correctly", () => {
     expect(assembleHangulWithPunctuation("gksrmf")).toBe("한글");
-    expect(assembleHangulWithPunctuation("안녕하세요")).toBe("안녕하세요"); // already hangul? wait, qwerty to alphabet expects english qwerty strings. 
+    expect(assembleHangulWithPunctuation("안녕하세요")).toBe("안녕하세요"); // already hangul? wait, qwerty to alphabet expects english qwerty strings.
     // Actually, convertQwertyToAlphabet("dkssud") -> 안녕
     expect(assembleHangulWithPunctuation("dkssud")).toBe("안녕");
   });

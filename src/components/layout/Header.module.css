@@ -61,7 +61,9 @@
   font-size: 14px;
   font-weight: 500;
   color: var(--text-secondary);
-  transition: color 0.15s ease, background 0.15s ease;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
 }
 
 .navLink:hover {
@@ -78,7 +80,9 @@
   color: var(--text-inverse);
   background: var(--accent);
   border: 1px solid var(--accent);
-  transition: background 0.15s ease, transform 0.05s ease;
+  transition:
+    background 0.15s ease,
+    transform 0.05s ease;
 }
 
 .cta:hover {

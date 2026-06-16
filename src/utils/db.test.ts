@@ -111,7 +111,13 @@ describe("db", () => {
       finished_at: "2026-06-15T00:00:11Z",
       elapsed_time_ms: 1000,
       key_events: Array.from({ length: 10 }, () => ({
-        from_key: "a", to_key: "b", key_char: "b", latency: 100, hold_duration_ms: 50, is_correct: true, expected_char: "b"
+        from_key: "a",
+        to_key: "b",
+        key_char: "b",
+        latency: 100,
+        hold_duration_ms: 50,
+        is_correct: true,
+        expected_char: "b",
       })),
     });
 
@@ -130,13 +136,19 @@ describe("db", () => {
       finished_at: "2026-06-15T00:00:29Z",
       elapsed_time_ms: 9000,
       key_events: Array.from({ length: 90 }, (_, i) => ({
-        from_key: "a", to_key: "b", key_char: "b", latency: 100, hold_duration_ms: 50, is_correct: i >= 9, expected_char: "b"
+        from_key: "a",
+        to_key: "b",
+        key_char: "b",
+        latency: 100,
+        hold_duration_ms: 50,
+        is_correct: i >= 9,
+        expected_char: "b",
       })),
     });
 
     const finalized = await db.finalizeRun("run_weighted");
     expect(finalized?.status).toBe("completed");
-    
+
     // Total time = 10000ms
     // Weighted CPM = (600 * 1000 + 400 * 9000) / 10000 = 420
     // Weighted WPM = (120 * 1000 + 80 * 9000) / 10000 = 84

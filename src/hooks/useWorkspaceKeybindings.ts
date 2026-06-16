@@ -8,20 +8,45 @@ interface WorkspaceKeybindingsProps {
 
 // Map physical keyboard codes (e.code) to virtual keyboard keys (independent of language layout)
 const PHYSICAL_KEY_MAP: Record<string, string> = {
-  KeyQ: "q", KeyW: "w", KeyE: "e", KeyR: "r", KeyT: "t", KeyY: "y", KeyU: "u", KeyI: "i", KeyO: "o", KeyP: "p",
-  KeyA: "a", KeyS: "s", KeyD: "d", KeyF: "f", KeyG: "g", KeyH: "h", KeyJ: "j", KeyK: "k", KeyL: "l",
-  KeyZ: "z", KeyX: "x", KeyC: "c", KeyV: "v", KeyB: "b", KeyN: "n", KeyM: "m",
-  Comma: ",", Period: "."
+  KeyQ: "q",
+  KeyW: "w",
+  KeyE: "e",
+  KeyR: "r",
+  KeyT: "t",
+  KeyY: "y",
+  KeyU: "u",
+  KeyI: "i",
+  KeyO: "o",
+  KeyP: "p",
+  KeyA: "a",
+  KeyS: "s",
+  KeyD: "d",
+  KeyF: "f",
+  KeyG: "g",
+  KeyH: "h",
+  KeyJ: "j",
+  KeyK: "k",
+  KeyL: "l",
+  KeyZ: "z",
+  KeyX: "x",
+  KeyC: "c",
+  KeyV: "v",
+  KeyB: "b",
+  KeyN: "n",
+  KeyM: "m",
+  Comma: ",",
+  Period: ".",
 };
 
 export function useWorkspaceKeybindings({ onTransition }: WorkspaceKeybindingsProps) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      const { uiState, setUiState, setDiagnosticMode, setFocusedKey } = useWorkspaceStore.getState();
+      const { uiState, setUiState, setDiagnosticMode, setFocusedKey } =
+        useWorkspaceStore.getState();
 
       if (e.key === "Tab") {
         e.preventDefault();
-        
+
         if (uiState === "practice") {
           onTransition();
         } else if (uiState === "diagnostics") {
@@ -45,7 +70,7 @@ export function useWorkspaceKeybindings({ onTransition }: WorkspaceKeybindingsPr
 
       if (uiState === "diagnostics") {
         const code = e.code;
-        
+
         if (code === "Escape") {
           e.preventDefault();
           setDiagnosticMode("surface");

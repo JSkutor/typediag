@@ -16,7 +16,7 @@ export function useDiagnosticsTransition() {
     if (currentRunId) {
       try {
         const pages = await db.getPagesForRun(currentRunId);
-        
+
         if (pages.length > 0) {
           // Merge all key events from pages in the current run
           eventsToAnalyze = pages.flatMap((page) =>
@@ -28,7 +28,7 @@ export function useDiagnosticsTransition() {
               holdDurationMs: ev.hold_duration_ms,
               isCorrect: ev.is_correct,
               expectedChar: ev.expected_char,
-            }))
+            })),
           );
         }
       } catch (err) {
@@ -44,7 +44,7 @@ export function useDiagnosticsTransition() {
     const layout = buildLayout();
     const results = runPipeline(eventsToAnalyze, layout);
     const { triangles } = triangulate(results);
-    
+
     setAnalysisData(results, triangles, eventsToAnalyze);
     setUiState("diagnostics");
     setDiagnosticMode("surface");

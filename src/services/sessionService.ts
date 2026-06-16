@@ -23,7 +23,7 @@ export class SessionService {
   public async startPage(now: Date): Promise<string> {
     const latestRun = await db.getLatestRun();
     let runId = "";
-    
+
     if (latestRun && latestRun.status === "pending") {
       await db.updateRun(latestRun.id, {
         status: "in_progress",
@@ -32,9 +32,10 @@ export class SessionService {
       runId = latestRun.id;
     } else if (latestRun && latestRun.status === "in_progress") {
       const pages = await db.getPagesForRun(latestRun.id);
-      const lastActiveStr = pages.length > 0 ? pages[pages.length - 1].finished_at : latestRun.started_at;
+      const lastActiveStr =
+        pages.length > 0 ? pages[pages.length - 1].finished_at : latestRun.started_at;
       const lastActiveAt = new Date(lastActiveStr).getTime();
-      
+
       if (now.getTime() - lastActiveAt > 3 * 60 * 1000) {
         // 3분 이상 지나면 이전 세션을 마감하고 새 세션을 엽니다.
         await db.finalizeRun(latestRun.id, lastActiveStr);
@@ -45,7 +46,7 @@ export class SessionService {
     } else {
       runId = await this.createNewRun(now);
     }
-    
+
     return runId;
   }
 
@@ -75,22 +76,26 @@ export class SessionService {
     startedAt: number,
     finishedAt: number,
     targetId?: string,
-    language?: string
+    language?: string,
   ): Promise<string> {
     let currentRunId = runId;
-    
-    // Determine language and targetTextId using provided arguments or fallback lookups
-    const finalLanguage = language || (() => {
-      const targetTextObj = targets.find((t) => t.content === targetText);
-      if (targetTextObj) return targetTextObj.language;
-      const isKorean = /[가-힣]/.test(targetText);
-      return isKorean ? "ko" : "en";
-    })();
 
-    const finalTargetTextId = targetId || (() => {
-      const targetTextObj = targets.find((t) => t.content === targetText);
-      return targetTextObj ? targetTextObj.id : "unknown";
-    })();
+    // Determine language and targetTextId using provided arguments or fallback lookups
+    const finalLanguage =
+      language ||
+      (() => {
+        const targetTextObj = targets.find((t) => t.content === targetText);
+        if (targetTextObj) return targetTextObj.language;
+        const isKorean = /[가-힣]/.test(targetText);
+        return isKorean ? "ko" : "en";
+      })();
+
+    const finalTargetTextId =
+      targetId ||
+      (() => {
+        const targetTextObj = targets.find((t) => t.content === targetText);
+        return targetTextObj ? targetTextObj.id : "unknown";
+      })();
 
     const getPerfNow = () => {
       if (typeof performance !== "undefined" && typeof performance.now === "function") {
@@ -111,7 +116,7 @@ export class SessionService {
       absoluteStartedAt = absoluteFinishedAt - (finishedAt - startedAt);
     }
 
-    const rawElapsedTime = absoluteStartedAt ? (absoluteFinishedAt - absoluteStartedAt) : 0;
+    const rawElapsedTime = absoluteStartedAt ? absoluteFinishedAt - absoluteStartedAt : 0;
     let pageStartedAtStr = new Date(absoluteStartedAt || Date.now()).toISOString();
     const pageFinishedAtStr = new Date(absoluteFinishedAt).toISOString();
 
@@ -120,7 +125,11 @@ export class SessionService {
       const existingPages = await db.getPagesForRun(currentRunId);
       const lastPage = existingPages[existingPages.length - 1];
       const prevRun = await db.getRun(currentRunId);
-      const finalizeTimeStr = lastPage ? lastPage.finished_at : (prevRun ? prevRun.started_at : new Date().toISOString());
+      const finalizeTimeStr = lastPage
+        ? lastPage.finished_at
+        : prevRun
+          ? prevRun.started_at
+          : new Date().toISOString();
       await db.finalizeRun(currentRunId, finalizeTimeStr);
 
       // 3분(180,000ms) 이상의 긴 공백 이후의 실타건 latency 합 계산

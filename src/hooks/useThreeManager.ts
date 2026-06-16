@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef } from "react";
 
 export interface ThreeManager {
   resize: (w: number, h: number) => void;
@@ -9,7 +9,7 @@ export function useThreeManager<T extends ThreeManager>(
   ManagerClass: new (el: HTMLElement, w: number, h: number) => T,
   mountRef: React.RefObject<HTMLElement | null>,
   isActivated: boolean = true,
-  onInit?: (manager: T) => void
+  onInit?: (manager: T) => void,
 ) {
   const managerRef = useRef<T | null>(null);
 
@@ -22,7 +22,7 @@ export function useThreeManager<T extends ThreeManager>(
 
     const mgr = new ManagerClass(el, w, h);
     managerRef.current = mgr;
-    
+
     if (onInit) {
       onInit(mgr);
     }

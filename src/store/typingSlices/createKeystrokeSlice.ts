@@ -20,9 +20,7 @@ export const createKeystrokeSlice: StoreSlice<KeystrokeSlice> = (set, get) => ({
         return Date.now();
       };
       const isRelative = at < 1e11;
-      const realStartTime = isRelative
-        ? new Date(Date.now() - getPerfNow() + at)
-        : new Date(at);
+      const realStartTime = isRelative ? new Date(Date.now() - getPerfNow() + at) : new Date(at);
       runPromise = get().startPage(realStartTime);
     }
 
@@ -31,13 +29,13 @@ export const createKeystrokeSlice: StoreSlice<KeystrokeSlice> = (set, get) => ({
         lastKey: token,
         lastKeyAt: at,
       };
-      
+
       if (state.status === "idle") {
         next.status = "running";
         next.startedAt = at;
         next.runInitPromise = runPromise;
       }
-      
+
       if (lastKey === null || lastKeyAt === null) {
         const event: KeyEvent = {
           fromKey: null,
@@ -78,8 +76,12 @@ export const createKeystrokeSlice: StoreSlice<KeystrokeSlice> = (set, get) => ({
       const nextPressedKeys = { ...state.pressedKeys };
       delete nextPressedKeys[code];
 
-      if ((token === "shift_l" || token === "shift_r") && nextEvents.length > 0 && nextEvents[nextEvents.length - 1].toKey === token) {
-        nextEvents.pop(); 
+      if (
+        (token === "shift_l" || token === "shift_r") &&
+        nextEvents.length > 0 &&
+        nextEvents[nextEvents.length - 1].toKey === token
+      ) {
+        nextEvents.pop();
 
         if (nextEvents.length === 0) {
           return {

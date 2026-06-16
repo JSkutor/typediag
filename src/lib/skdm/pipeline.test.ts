@@ -4,9 +4,9 @@ import { KeyEvent } from "./types";
 
 describe("SKDM Pipeline", () => {
   it("should process physical key events and return KeyStats and triangles without mutating logic", () => {
-    // We explicitly avoid modifying mathematical logic, 
+    // We explicitly avoid modifying mathematical logic,
     // only verifying that it executes correctly.
-    
+
     const events: KeyEvent[] = [
       { fromKey: "t", toKey: "h", latencyMs: 120 },
       { fromKey: "h", toKey: "e", latencyMs: 110 },
@@ -18,10 +18,10 @@ describe("SKDM Pipeline", () => {
     ];
 
     const layout = buildLayout(); // Uses QWERTY by default
-    
+
     // 1. Run pipeline
     const results = runPipeline(events, layout);
-    
+
     // Validate some known keys were processed
     expect(results).toHaveProperty("t");
     expect(results).toHaveProperty("h");
@@ -34,8 +34,8 @@ describe("SKDM Pipeline", () => {
 
     // 2. Triangulate the results for 3D surface
     const { triangles } = triangulate(results);
-    
-    // Triangles should be a flat Uint32Array (or Float32Array depending on implementation, 
+
+    // Triangles should be a flat Uint32Array (or Float32Array depending on implementation,
     // but the system expects an array-like structure divisible by 3)
     expect(triangles).toBeDefined();
     if (triangles) {
@@ -46,9 +46,9 @@ describe("SKDM Pipeline", () => {
   it("should handle empty event arrays gracefully", () => {
     const events: KeyEvent[] = [];
     const layout = buildLayout();
-    
+
     const results = runPipeline(events, layout);
-    const keysWithData = Object.keys(results).filter(k => results[k].confidence > 0);
+    const keysWithData = Object.keys(results).filter((k) => results[k].confidence > 0);
     expect(keysWithData).toHaveLength(0);
 
     const { triangles } = triangulate(results);

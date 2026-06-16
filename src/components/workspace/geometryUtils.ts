@@ -27,8 +27,8 @@ export const CYL_COLORS = {
 /** Cylindrical → Three.js Cartesian (Y-up) */
 export function toCylindricalCartesian(v: CylindricalVector) {
   // Use normalized values if available, otherwise fallback to old linear scale
-  const normR = v.normalizedR ?? (v.r * 0.3 / CYLINDRICAL_MAX_RADIUS);
-  const normZ = v.normalizedZ ?? (v.z * 0.015 / CYLINDRICAL_MAX_HEIGHT);
+  const normR = v.normalizedR ?? (v.r * 0.3) / CYLINDRICAL_MAX_RADIUS;
+  const normZ = v.normalizedZ ?? (v.z * 0.015) / CYLINDRICAL_MAX_HEIGHT;
 
   return {
     vx: normR * CYLINDRICAL_MAX_RADIUS * Math.cos(v.theta),
@@ -45,7 +45,7 @@ export const IS_SURFACE_KEY = (key: string) => {
   return /^[a-z]$/.test(lower) || lower === "_dummy_comma";
 };
 
-export const SURFACE_GAP = 0.1667; 
+export const SURFACE_GAP = 0.1667;
 export const SURFACE_SCALE = 70;
 export const SURFACE_Y_OFFSET = 2.0;
 
@@ -89,12 +89,18 @@ export function generateSurfaceLayout() {
     layoutMap[k].w *= SURFACE_SCALE;
     layoutMap[k].h *= SURFACE_SCALE;
   }
-  
+
   return { layoutMap, centerX, centerZ, rawMinX, rawMaxX, rawMinZ, rawMaxZ };
 }
 
 /** Helper to generate boundary points forming a box */
-export function generateBoxPoints(bMinX: number, bMaxX: number, bMinZ: number, bMaxZ: number, step: number) {
+export function generateBoxPoints(
+  bMinX: number,
+  bMaxX: number,
+  bMinZ: number,
+  bMaxZ: number,
+  step: number,
+) {
   const points: Array<[number, number]> = [];
   const xSteps = Math.ceil((bMaxX - bMinX) / step);
   for (let i = 0; i <= xSteps; i++) {
@@ -155,7 +161,10 @@ export function calculateSurfaceBorders(layoutMap: Record<string, SurfaceLayoutC
     }
   } else {
     // Fallback
-    let innerMinX = Infinity, innerMaxX = -Infinity, innerMinZ = Infinity, innerMaxZ = -Infinity;
+    let innerMinX = Infinity,
+      innerMaxX = -Infinity,
+      innerMinZ = Infinity,
+      innerMaxZ = -Infinity;
     for (const k in layoutMap) {
       if (!IS_SURFACE_KEY(k)) continue;
       const layout = layoutMap[k];
@@ -164,10 +173,19 @@ export function calculateSurfaceBorders(layoutMap: Record<string, SurfaceLayoutC
       if (layout.z - layout.h / 2 < innerMinZ) innerMinZ = layout.z - layout.h / 2;
       if (layout.z + layout.h / 2 > innerMaxZ) innerMaxZ = layout.z + layout.h / 2;
     }
-    innerBorderPoints = generateBoxPoints(innerMinX, innerMaxX, innerMinZ, innerMaxZ, SURFACE_SCALE);
+    innerBorderPoints = generateBoxPoints(
+      innerMinX,
+      innerMaxX,
+      innerMinZ,
+      innerMaxZ,
+      SURFACE_SCALE,
+    );
   }
 
-  let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+  let minX = Infinity,
+    maxX = -Infinity,
+    minZ = Infinity,
+    maxZ = -Infinity;
   for (const k in layoutMap) {
     if (!IS_SURFACE_KEY(k)) continue;
     const layout = layoutMap[k];
@@ -177,7 +195,13 @@ export function calculateSurfaceBorders(layoutMap: Record<string, SurfaceLayoutC
     if (layout.z + layout.h / 2 > maxZ) maxZ = layout.z + layout.h / 2;
   }
   const PADDING = 0.5 * SURFACE_SCALE;
-  const outerBorderPoints = generateBoxPoints(minX - PADDING, maxX + PADDING, minZ - PADDING, maxZ + PADDING, SURFACE_SCALE);
+  const outerBorderPoints = generateBoxPoints(
+    minX - PADDING,
+    maxX + PADDING,
+    minZ - PADDING,
+    maxZ + PADDING,
+    SURFACE_SCALE,
+  );
 
   return { innerBorderPoints, outerBorderPoints };
 }

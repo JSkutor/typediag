@@ -4,7 +4,7 @@ import { evaluateKeystroke } from "./typingEvaluator";
 describe("evaluateKeystroke", () => {
   it("should evaluate english typing correctly", () => {
     const target = "Hello";
-    
+
     // Press 'H' (correct)
     let res = evaluateKeystroke("KeyH", true, "", target, false);
     expect(res).toEqual({ keyChar: "H", isCorrect: true, expectedChar: null });
@@ -20,7 +20,7 @@ describe("evaluateKeystroke", () => {
 
   it("should evaluate korean typing (jamo-level) correctly", () => {
     const target = "물"; // decomposed: ㅁㅜㄹ (qwerty keys: a, n, f)
-    
+
     // Press 'a' (ㅁ) (correct)
     let res = evaluateKeystroke("KeyA", false, "", target, true);
     expect(res).toEqual({ keyChar: "ㅁ", isCorrect: true, expectedChar: null });
@@ -45,7 +45,7 @@ describe("evaluateKeystroke", () => {
 
   it("should handle space correctly", () => {
     const target = "a b";
-    
+
     // Space where space is expected
     let res = evaluateKeystroke("Space", false, "a", target, false);
     expect(res).toEqual({ keyChar: " ", isCorrect: true, expectedChar: null });

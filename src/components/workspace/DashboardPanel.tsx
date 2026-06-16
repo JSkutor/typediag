@@ -9,7 +9,11 @@ interface DashboardPanelProps {
   focusedKey: string | null;
 }
 
-export const DashboardPanel: React.FC<DashboardPanelProps> = ({ mode, diagnosticMode, focusedKey }) => {
+export const DashboardPanel: React.FC<DashboardPanelProps> = ({
+  mode,
+  diagnosticMode,
+  focusedKey,
+}) => {
   if (mode === "practice") return null;
 
   return (
@@ -23,12 +27,18 @@ export const DashboardPanel: React.FC<DashboardPanelProps> = ({ mode, diagnostic
         {diagnosticMode === "finger" && "Finger Load"}
       </h2>
       <div className="dashboard-desc">
-        {diagnosticMode === "surface" && "Overall keystroke latency mapped to keycap elevation. Peaks represent slow transitions or hesitation."}
-        {diagnosticMode === "cylindrical" && "Polar coordinate projection of successor keys. Radius is physical distance, height is latency."}
-        {diagnosticMode === "backspace" && "Highlights keys that frequently trigger an immediate backspace error correction."}
-        {diagnosticMode === "shift" && "Evaluates timing synchronization and ergonomic balance between Shift and character keys."}
-        {diagnosticMode === "space" && "Analyzes thumb imbalance and rhythm stutters before and after spacebar presses."}
-        {diagnosticMode === "finger" && "Workload distribution and error rates mapped by standard touch typing finger assignments."}
+        {diagnosticMode === "surface" &&
+          "Overall keystroke latency mapped to keycap elevation. Peaks represent slow transitions or hesitation."}
+        {diagnosticMode === "cylindrical" &&
+          "Polar coordinate projection of successor keys. Radius is physical distance, height is latency."}
+        {diagnosticMode === "backspace" &&
+          "Highlights keys that frequently trigger an immediate backspace error correction."}
+        {diagnosticMode === "shift" &&
+          "Evaluates timing synchronization and ergonomic balance between Shift and character keys."}
+        {diagnosticMode === "space" &&
+          "Analyzes thumb imbalance and rhythm stutters before and after spacebar presses."}
+        {diagnosticMode === "finger" &&
+          "Workload distribution and error rates mapped by standard touch typing finger assignments."}
       </div>
 
       <div className="dashboard-stats">

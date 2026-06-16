@@ -12,10 +12,7 @@ interface ResultsPanelProps {
 const KEY_LABEL: Record<string, string> = { space: "␣", ",": ",", ".": "." };
 
 export function ResultsPanel({ events }: ResultsPanelProps) {
-  const results = useMemo(
-    () => runPipeline(events, buildLayout()),
-    [events],
-  );
+  const results = useMemo(() => runPipeline(events, buildLayout()), [events]);
 
   const rows = useMemo(
     () =>
@@ -40,8 +37,8 @@ export function ResultsPanel({ events }: ResultsPanelProps) {
       </div>
 
       <p className={styles.hint}>
-        평활화된 지연(zSmoothed)이 클수록 손가락이 더 머뭇거린 키입니다. 3D
-        히트맵 시각화는 Phase 3에서 추가됩니다.
+        평활화된 지연(zSmoothed)이 클수록 손가락이 더 머뭇거린 키입니다. 3D 히트맵 시각화는 Phase
+        3에서 추가됩니다.
       </p>
 
       <ol className={styles.list}>
@@ -54,12 +51,8 @@ export function ResultsPanel({ events }: ResultsPanelProps) {
                 style={{ width: `${Math.round(r.zSmoothed * 100)}%` }}
               />
             </div>
-            <span className={styles.value}>
-              {(r.zSmoothed * 100).toFixed(0)}
-            </span>
-            <span className={styles.conf}>
-              {r.confidence > 0 ? `×${r.confidence}` : "보간"}
-            </span>
+            <span className={styles.value}>{(r.zSmoothed * 100).toFixed(0)}</span>
+            <span className={styles.conf}>{r.confidence > 0 ? `×${r.confidence}` : "보간"}</span>
           </li>
         ))}
       </ol>

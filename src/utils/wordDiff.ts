@@ -13,10 +13,10 @@ export interface DiffResult {
 export function computeDiff(target: string, input: string): DiffResult[] {
   const n = target.length;
   const m = input.length;
-  
+
   // dp[i][j] stores the length of LCS of target[0..i-1] and input[0..j-1]
   const dp: number[][] = Array.from({ length: n + 1 }, () => Array(m + 1).fill(0));
-  
+
   const isMatch = (t: string, i: string, isLastInput: boolean) => {
     if (t === i) return true;
     if (isLastInput) {
@@ -84,7 +84,7 @@ export function optimizeDiff(diffs: DiffResult[], targetText: string = ""): Diff
   for (let i = 0; i < diffs.length; i++) {
     const cur = diffs[i];
     const next = diffs[i + 1];
-    
+
     if (cur.op === "INSERT" && next?.op === "DELETE") {
       optimized.push({
         op: "REPLACE",
@@ -110,7 +110,7 @@ export function optimizeDiff(diffs: DiffResult[], targetText: string = ""): Diff
 
   // Handle Korean carry-over split (e.g. "가나" typed as "간" -> "가" + "ㄴ")
   if (targetText.length > 0) {
-    const lastInputIdx = optimized.findLastIndex(d => d.inputIndex !== undefined);
+    const lastInputIdx = optimized.findLastIndex((d) => d.inputIndex !== undefined);
     if (lastInputIdx >= 0) {
       const lastNode = optimized[lastInputIdx];
       if (lastNode.op === "REPLACE" && lastNode.targetChar) {
@@ -136,8 +136,11 @@ export function optimizeDiff(diffs: DiffResult[], targetText: string = ""): Diff
                   targetIndex: targetIndex,
                   inputIndex: lastNode.inputIndex,
                 };
-                
-                if (lastInputIdx + 1 < optimized.length && optimized[lastInputIdx + 1].op === "DELETE") {
+
+                if (
+                  lastInputIdx + 1 < optimized.length &&
+                  optimized[lastInputIdx + 1].op === "DELETE"
+                ) {
                   optimized[lastInputIdx + 1] = {
                     op: "PARTIAL",
                     char: assemble(leftover.split("")),

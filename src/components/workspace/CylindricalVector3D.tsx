@@ -8,11 +8,7 @@ import {
   getAvailableCenterKeys,
   getGlobalCylindricalMax,
 } from "@/lib/skdm/cylindrical";
-import {
-  Cylindrical3DManager,
-  LabelProjection,
-  CylindricalToggles,
-} from "./Cylindrical3DManager";
+import { Cylindrical3DManager, LabelProjection, CylindricalToggles } from "./Cylindrical3DManager";
 import {
   getShiftOverhead,
   getFirstErrorStats,
@@ -75,10 +71,7 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
     () => getPhysicalVariance(events, selectedTo),
     [events, selectedTo],
   );
-  const slowestKeys = useMemo<SlowestFromKey[]>(
-    () => getSlowestFromKeys(vectors, 5),
-    [vectors],
-  );
+  const slowestKeys = useMemo<SlowestFromKey[]>(() => getSlowestFromKeys(vectors, 5), [vectors]);
 
   // Auto-select first center key when data becomes available
   useEffect(() => {
@@ -130,7 +123,7 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
   const meta = KEYBOARD_META[selectedTo.toLowerCase()];
   const handLabel = meta ? (meta.hand === "L" ? "왼손" : "오른손") : "-";
   const fingerLabel = meta
-    ? ({ pinky: "새끼", ring: "약지", middle: "중지", index: "검지" }[meta.finger])
+    ? { pinky: "새끼", ring: "약지", middle: "중지", index: "검지" }[meta.finger]
     : "-";
 
   return (
@@ -147,13 +140,13 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
           width: "100%",
           height: "100%",
           pointerEvents: "none",
-          overflow: "hidden"
+          overflow: "hidden",
         }}
       >
         {vectors.map((v) => {
           const label = v.fromKey.toUpperCase();
           const isSelected = v.fromKey === selectedFrom;
-          
+
           return (
             <div
               key={v.fromKey}
@@ -208,7 +201,7 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
         {/* Header */}
         <div className="cyl-panel__header">
           {onClose && (
-            <button 
+            <button
               onClick={onClose}
               className="cyl-back-btn"
               style={{
@@ -225,16 +218,23 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
                 transition: "color 0.2s ease",
               }}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <line x1="19" y1="12" x2="5" y2="12"></line>
                 <polyline points="12 19 5 12 12 5"></polyline>
               </svg>
               Back to Keyboard
             </button>
           )}
-          <span className="cyl-panel__subtitle">
-            Spatial Keystroke Dynamics Model
-          </span>
+          <span className="cyl-panel__subtitle">Spatial Keystroke Dynamics Model</span>
           <h2 className="cyl-panel__title">Cylindrical Vector Diagnostics</h2>
         </div>
 
@@ -243,9 +243,7 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
           <span className="cyl-label-text">Transition Pair</span>
           <div className="cyl-selectors">
             <div>
-              <span className="cyl-label-text cyl-label-text--pink">
-                To Key (원점)
-              </span>
+              <span className="cyl-label-text cyl-label-text--pink">To Key (원점)</span>
               <select
                 className="cyl-select"
                 value={selectedTo}
@@ -259,9 +257,7 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
               </select>
             </div>
             <div>
-              <span className="cyl-label-text cyl-label-text--cyan">
-                From Key (방향)
-              </span>
+              <span className="cyl-label-text cyl-label-text--cyan">From Key (방향)</span>
               <select
                 className="cyl-select"
                 value={selectedFrom}
@@ -281,7 +277,9 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
         <div className="cyl-key-badge">
           <span className="cyl-key-badge__letter">{selectedTo.toUpperCase()}</span>
           <div className="cyl-key-badge__meta">
-            <span>{handLabel} · {fingerLabel}</span>
+            <span>
+              {handLabel} · {fingerLabel}
+            </span>
             <span>Row {meta?.row ?? "-"}</span>
           </div>
         </div>
@@ -292,7 +290,16 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
         <DiagSection
           title="Rhythm Breaker"
           icon={
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
             </svg>
           }
@@ -325,7 +332,9 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
                   </div>
                   <div className="cyl-diag__row">
                     <span className="cyl-diag__label">즉시 인지율</span>
-                    <span className={`cyl-diag__value ${errorData.immediateCorrectionRate >= 0.7 ? "cyl-diag__value--success" : "cyl-diag__value--warning"}`}>
+                    <span
+                      className={`cyl-diag__value ${errorData.immediateCorrectionRate >= 0.7 ? "cyl-diag__value--success" : "cyl-diag__value--warning"}`}
+                    >
                       {(errorData.immediateCorrectionRate * 100).toFixed(0)}%
                     </span>
                   </div>
@@ -339,7 +348,16 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
         <DiagSection
           title="가장 느린 진입"
           icon={
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <circle cx="12" cy="12" r="10" />
               <polyline points="12 6 12 12 16 14" />
             </svg>
@@ -372,7 +390,16 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
         <DiagSection
           title="동선 분석"
           icon={
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <circle cx="6" cy="18" r="3" />
               <circle cx="18" cy="6" r="3" />
               <path d="M18 6L6 18" />
@@ -416,7 +443,16 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
           <DiagSection
             title="Shift 오버헤드"
             icon={
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M4 14h6v6h4v-6h6L12 4 4 14z" />
               </svg>
             }
@@ -428,7 +464,9 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
                 {shiftData.shiftCount > 0 && shiftData.directCount > 0 && (
                   <div className="cyl-diag__row">
                     <span className="cyl-diag__label">추가 지연</span>
-                    <span className={`cyl-diag__value ${shiftData.overheadMs > 0 ? "cyl-diag__value--error" : "cyl-diag__value--success"}`}>
+                    <span
+                      className={`cyl-diag__value ${shiftData.overheadMs > 0 ? "cyl-diag__value--error" : "cyl-diag__value--success"}`}
+                    >
                       {shiftData.overheadMs > 0 ? "+" : ""}
                       {Math.round(shiftData.overheadMs)}ms
                     </span>
@@ -473,8 +511,8 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
 
         {/* Footer guide */}
         <div className="cyl-footer-guide">
-          💡 Drag to <strong>rotate</strong>, right-click drag to{" "}
-          <strong>pan</strong>, scroll to <strong>zoom</strong>.
+          💡 Drag to <strong>rotate</strong>, right-click drag to <strong>pan</strong>, scroll to{" "}
+          <strong>zoom</strong>.
         </div>
       </div>
     </div>
@@ -518,20 +556,21 @@ const PhysicalCompare: React.FC<{
     <div className="cyl-diag__compare">
       <div className="cyl-diag__compare-row">
         <span className="cyl-diag__compare-label">{labelA}</span>
-        <span className="cyl-diag__compare-val">
-          {countA > 0 ? `${Math.round(avgA)}ms` : "-"}
-        </span>
+        <span className="cyl-diag__compare-val">{countA > 0 ? `${Math.round(avgA)}ms` : "-"}</span>
       </div>
       <div className="cyl-diag__compare-row">
         <span className="cyl-diag__compare-label">{labelB}</span>
-        <span className="cyl-diag__compare-val">
-          {countB > 0 ? `${Math.round(avgB)}ms` : "-"}
-        </span>
+        <span className="cyl-diag__compare-val">{countB > 0 ? `${Math.round(avgB)}ms` : "-"}</span>
       </div>
       {hasBoth && (
         <div className="cyl-diag__compare-diff">
-          <span className={diff < 0 ? "cyl-diag__value--success" : diff > 0 ? "cyl-diag__value--warning" : ""}>
-            {diff > 0 ? "+" : ""}{Math.round(diff)}ms
+          <span
+            className={
+              diff < 0 ? "cyl-diag__value--success" : diff > 0 ? "cyl-diag__value--warning" : ""
+            }
+          >
+            {diff > 0 ? "+" : ""}
+            {Math.round(diff)}ms
           </span>
         </div>
       )}

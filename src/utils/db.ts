@@ -148,7 +148,9 @@ export const db = {
   /**
    * Create a new practice run (session).
    */
-  async createRun(runData: Omit<RunRow, "created_at" | "finished_at" | "cpm" | "wpm" | "accuracy">): Promise<RunRow> {
+  async createRun(
+    runData: Omit<RunRow, "created_at" | "finished_at" | "cpm" | "wpm" | "accuracy">,
+  ): Promise<RunRow> {
     if (isDev) {
       return fetchDbApi<RunRow>("createRun", { runData });
     }
@@ -182,7 +184,10 @@ export const db = {
   /**
    * Update an existing run session (e.g. status, CPM, WPM, accuracy, finished_at).
    */
-  async updateRun(runId: string, updates: Partial<Omit<RunRow, "id" | "created_at">>): Promise<RunRow> {
+  async updateRun(
+    runId: string,
+    updates: Partial<Omit<RunRow, "id" | "created_at">>,
+  ): Promise<RunRow> {
     if (isDev) {
       return fetchDbApi<RunRow>("updateRun", { runId, updates });
     }
@@ -218,7 +223,9 @@ export const db = {
   async getAllRuns(): Promise<RunRow[]> {
     if (isDev) {
       const data = await getLocalDbData();
-      return data.runs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      return data.runs.sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      );
     }
     const runs = getStored<RunRow[]>(KEYS.RUNS, []);
     return runs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -260,9 +267,7 @@ export const db = {
         .sort((a, b) => a.order_index - b.order_index);
     }
     const pages = getStored<PageRow[]>(KEYS.PAGES, []);
-    return pages
-      .filter((p) => p.run_id === runId)
-      .sort((a, b) => a.order_index - b.order_index);
+    return pages.filter((p) => p.run_id === runId).sort((a, b) => a.order_index - b.order_index);
   },
 
   /**
@@ -274,7 +279,7 @@ export const db = {
     }
     const run = await this.getRun(runId);
     if (!run) return null;
-    
+
     const pages = await this.getPagesForRun(runId);
     if (pages.length === 0) {
       return this.updateRun(runId, {
@@ -290,20 +295,29 @@ export const db = {
     const pagesToAggregate = validPages.length > 0 ? validPages : pages;
 
     const totalTimeMs = pagesToAggregate.reduce((sum, p) => sum + p.elapsed_time_ms, 0);
-    const avgCpm = totalTimeMs > 0
-      ? Math.round(pagesToAggregate.reduce((sum, p) => sum + p.cpm * p.elapsed_time_ms, 0) / totalTimeMs)
-      : Math.round(pagesToAggregate.reduce((sum, p) => sum + p.cpm, 0) / pagesToAggregate.length);
+    const avgCpm =
+      totalTimeMs > 0
+        ? Math.round(
+            pagesToAggregate.reduce((sum, p) => sum + p.cpm * p.elapsed_time_ms, 0) / totalTimeMs,
+          )
+        : Math.round(pagesToAggregate.reduce((sum, p) => sum + p.cpm, 0) / pagesToAggregate.length);
 
-    const avgWpm = totalTimeMs > 0
-      ? Math.round(pagesToAggregate.reduce((sum, p) => sum + p.wpm * p.elapsed_time_ms, 0) / totalTimeMs)
-      : Math.round(pagesToAggregate.reduce((sum, p) => sum + p.wpm, 0) / pagesToAggregate.length);
+    const avgWpm =
+      totalTimeMs > 0
+        ? Math.round(
+            pagesToAggregate.reduce((sum, p) => sum + p.wpm * p.elapsed_time_ms, 0) / totalTimeMs,
+          )
+        : Math.round(pagesToAggregate.reduce((sum, p) => sum + p.wpm, 0) / pagesToAggregate.length);
 
     const totalKeystrokes = pagesToAggregate.reduce((sum, p) => sum + p.key_events.length, 0);
-    const avgAccuracy = totalKeystrokes > 0
-      ? pagesToAggregate.reduce((sum, p) => sum + p.accuracy * p.key_events.length, 0) / totalKeystrokes
-      : (totalTimeMs > 0
-          ? pagesToAggregate.reduce((sum, p) => sum + p.accuracy * p.elapsed_time_ms, 0) / totalTimeMs
-          : pagesToAggregate.reduce((sum, p) => sum + p.accuracy, 0) / pagesToAggregate.length);
+    const avgAccuracy =
+      totalKeystrokes > 0
+        ? pagesToAggregate.reduce((sum, p) => sum + p.accuracy * p.key_events.length, 0) /
+          totalKeystrokes
+        : totalTimeMs > 0
+          ? pagesToAggregate.reduce((sum, p) => sum + p.accuracy * p.elapsed_time_ms, 0) /
+            totalTimeMs
+          : pagesToAggregate.reduce((sum, p) => sum + p.accuracy, 0) / pagesToAggregate.length;
 
     return this.updateRun(runId, {
       status: "completed",
@@ -330,7 +344,8 @@ export const db = {
     }
 
     const pages = await this.getPagesForRun(latestRun.id);
-    const lastActiveStr = pages.length > 0 ? pages[pages.length - 1].finished_at : latestRun.started_at;
+    const lastActiveStr =
+      pages.length > 0 ? pages[pages.length - 1].finished_at : latestRun.started_at;
     const lastActiveAt = new Date(lastActiveStr).getTime();
     const now = Date.now();
 

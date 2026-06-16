@@ -27,7 +27,7 @@ const events: KeyEvent[] = (reference.events as ReferenceEvent[]).map((ev) => ({
   fromKey: ev.fromKey,
   toKey: ev.selfKey,
   latencyMs: ev.latencyMs,
-  isCorrect: ev.isCorrect
+  isCorrect: ev.isCorrect,
 }));
 
 describe("sigmoidLatency", () => {
@@ -42,7 +42,6 @@ describe("sigmoidLatency", () => {
     expect(sigmoidLatency(99999, 1000)).toBeLessThanOrEqual(1);
   });
 });
-
 
 describe("layout parity", () => {
   it("matches Python coordinates for analysed keys", () => {

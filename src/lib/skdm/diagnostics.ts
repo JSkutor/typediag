@@ -56,10 +56,7 @@ export interface ShiftOverheadResult {
  * Both use the same pre-processing (filterInterruptedTransitions + filterOutliers) so
  * the comparison is apples-to-apples.
  */
-export function getShiftOverhead(
-  rawEvents: KeyEvent[],
-  targetKey: string,
-): ShiftOverheadResult {
+export function getShiftOverhead(rawEvents: KeyEvent[], targetKey: string): ShiftOverheadResult {
   const target = targetKey.toLowerCase();
   const meta = KEYBOARD_META[target];
 
@@ -166,10 +163,7 @@ export interface FirstErrorResult {
  * Also measures the "cascade": how many backspace/error events follow
  * before the user gets back on track (next isCorrect=true non-backspace event).
  */
-export function getFirstErrorStats(
-  rawEvents: KeyEvent[],
-  targetKey: string,
-): FirstErrorResult {
+export function getFirstErrorStats(rawEvents: KeyEvent[], targetKey: string): FirstErrorResult {
   const target = targetKey.toLowerCase();
 
   let breakCount = 0;
@@ -295,9 +289,18 @@ export function getPhysicalVariance(
   const targetMeta = KEYBOARD_META[target];
 
   const result: PhysicalVarianceResult = {
-    sameRowAvgMs: 0, diffRowAvgMs: 0, sameRowCount: 0, diffRowCount: 0,
-    sameFingerAvgMs: 0, diffFingerAvgMs: 0, sameFingerCount: 0, diffFingerCount: 0,
-    altHandAvgMs: 0, sameHandAvgMs: 0, altHandCount: 0, sameHandCount: 0,
+    sameRowAvgMs: 0,
+    diffRowAvgMs: 0,
+    sameRowCount: 0,
+    diffRowCount: 0,
+    sameFingerAvgMs: 0,
+    diffFingerAvgMs: 0,
+    sameFingerCount: 0,
+    diffFingerCount: 0,
+    altHandAvgMs: 0,
+    sameHandAvgMs: 0,
+    altHandCount: 0,
+    sameHandCount: 0,
   };
 
   if (!targetMeta) return result;
@@ -339,8 +342,7 @@ export function getPhysicalVariance(
     else altHandLats.push(lat);
   }
 
-  const avg = (arr: number[]) =>
-    arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+  const avg = (arr: number[]) => (arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0);
 
   result.sameRowAvgMs = avg(sameRowLats);
   result.diffRowAvgMs = avg(diffRowLats);

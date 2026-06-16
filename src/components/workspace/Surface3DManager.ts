@@ -10,11 +10,12 @@ import {
   SURFACE_SCALE,
   SURFACE_Y_OFFSET,
   generateSurfaceLayout,
-  calculateSurfaceBorders
+  calculateSurfaceBorders,
 } from "./geometryUtils";
 
 const { layoutMap: KEY_LAYOUT, centerX, centerZ } = generateSurfaceLayout();
-const { innerBorderPoints: _innerBorderPoints, outerBorderPoints: _outerBorderPoints } = calculateSurfaceBorders(KEY_LAYOUT);
+const { innerBorderPoints: _innerBorderPoints, outerBorderPoints: _outerBorderPoints } =
+  calculateSurfaceBorders(KEY_LAYOUT);
 
 export const LATENCY_POWER = 1.5;
 
@@ -24,32 +25,32 @@ export class Surface3DManager {
   private camera: THREE.PerspectiveCamera;
   private renderer: THREE.WebGLRenderer;
   private controls: OrbitControls;
-  
+
   private geometry: THREE.BufferGeometry;
   private dropLineGeometries: THREE.BufferGeometry[] = [];
   private positions: Float32Array = new Float32Array();
   private surfaceKeys: KeyResult[] = [];
   private innerBorderPoints: Array<[number, number]> = [];
   private outerBorderPoints: Array<[number, number]> = [];
-  
+
   private reqId: number = 0;
-  
+
   private width: number;
   private height: number;
   private dist: number;
-  
+
   // Animation state
   public animState = {
     elevationScale: 0,
     camY: 0,
     camZ: 0.1,
     opacity: 0,
-    fov: 45
+    fov: 45,
   };
-  
+
   private timeline: gsap.core.Timeline | null = null;
   private isActivated: boolean = false;
-  
+
   // Callback for updating HUD labels
   public onUpdateHUD?: (
     surfaceKeys: KeyResult[],
@@ -57,24 +58,24 @@ export class Surface3DManager {
     camera: THREE.Camera,
     opacity: number,
     width: number,
-    height: number
+    height: number,
   ) => void;
 
   constructor(container: HTMLElement, width: number, height: number) {
     this.container = container;
     this.width = width;
     this.height = height;
-    
+
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x1a1b1e);
     this.scene.fog = new THREE.FogExp2(0x1a1b1e, 0.001);
 
     this.camera = new THREE.PerspectiveCamera(45, width / height, 1, 3000);
-    
+
     const fovRad = (45 * Math.PI) / 180;
     this.dist = height / (2 * Math.tan(fovRad / 2));
     this.camera.position.set(0, this.dist, 0.1);
-    
+
     this.animState.camY = this.dist;
 
     this.renderer = new THREE.WebGLRenderer({
@@ -97,15 +98,15 @@ export class Surface3DManager {
     const directionalLight2 = new THREE.DirectionalLight(0xffffff, 1.2);
     directionalLight2.position.set(-100, 150, -50);
     this.scene.add(directionalLight2);
-    
+
     const gridHelper = new THREE.GridHelper(1000, 40, 0x3d3e42, 0x323336);
     gridHelper.position.y = -10;
     this.scene.add(gridHelper);
-    
+
     this.geometry = new THREE.BufferGeometry();
     this.innerBorderPoints = _innerBorderPoints;
     this.outerBorderPoints = _outerBorderPoints;
-    
+
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.05;
@@ -127,16 +128,18 @@ export class Surface3DManager {
     const M1 = this.innerBorderPoints.length;
     const M2 = this.outerBorderPoints.length;
     const totalVertices = N + M1 + M2;
-    
+
     this.positions = new Float32Array(totalVertices * 3);
     const colors = new Float32Array(totalVertices * 3);
-    
+
     // Clear previous meshes
-    this.scene.children = this.scene.children.filter(c => c instanceof THREE.Light || c instanceof THREE.GridHelper);
+    this.scene.children = this.scene.children.filter(
+      (c) => c instanceof THREE.Light || c instanceof THREE.GridHelper,
+    );
     this.dropLineGeometries = [];
-    
+
     const colorStart = new THREE.Color(0x3861fb); // Fast key (Blue)
-    const colorEnd = new THREE.Color(0xff2a5f);   // Slow key (Hot Pink / Magenta)
+    const colorEnd = new THREE.Color(0xff2a5f); // Slow key (Hot Pink / Magenta)
     const tempColor = new THREE.Color();
 
     // Recreate geometry and materials
@@ -148,7 +151,8 @@ export class Surface3DManager {
       this.positions[i * 3 + 2] = pos.z;
 
       // Interpolate color based on amplified zSmoothed (using LATENCY_POWER)
-      const amplifiedZ = k.key.toLowerCase() === "_dummy_comma" ? 0 : Math.pow(k.zSmoothed, LATENCY_POWER);
+      const amplifiedZ =
+        k.key.toLowerCase() === "_dummy_comma" ? 0 : Math.pow(k.zSmoothed, LATENCY_POWER);
       tempColor.copy(colorStart).lerp(colorEnd, amplifiedZ);
       colors[i * 3] = tempColor.r;
       colors[i * 3 + 1] = tempColor.g;
@@ -192,7 +196,7 @@ export class Surface3DManager {
           points.push([layout.x, layout.z]);
         } else {
           const x = (k.x - centerX) * SURFACE_SCALE;
-          const z = (((2.0 - k.y) * (1 + SURFACE_GAP)) - centerZ) * SURFACE_SCALE;
+          const z = ((2.0 - k.y) * (1 + SURFACE_GAP) - centerZ) * SURFACE_SCALE;
           points.push([x, z]);
         }
       });
@@ -264,19 +268,19 @@ export class Surface3DManager {
       const layout = KEY_LAYOUT[k.key.toLowerCase()];
       if (!layout) return;
 
-      const boxW = layout.w - (SURFACE_GAP * SURFACE_SCALE);
-      const boxD = layout.h - (SURFACE_GAP * SURFACE_SCALE);
+      const boxW = layout.w - SURFACE_GAP * SURFACE_SCALE;
+      const boxD = layout.h - SURFACE_GAP * SURFACE_SCALE;
       const boxGeom = new THREE.BoxGeometry(boxW, 10, boxD);
       const boxMesh = new THREE.Mesh(boxGeom, keycapMaterial);
       // y=0 is the top of the keycaps (base level), so center y at -5
       boxMesh.position.set(layout.x, -5, layout.z);
       this.scene.add(boxMesh);
     });
-    
+
     // Apply current animState to geometry
     this.applyAnimState(false);
   }
-  
+
   public getSurfaceKeys(): KeyResult[] {
     return this.surfaceKeys;
   }
@@ -288,16 +292,12 @@ export class Surface3DManager {
     const amplifiedZ = keyName === "_dummy_comma" ? 0 : Math.pow(k.zSmoothed, LATENCY_POWER);
 
     if (layout) {
-      return new THREE.Vector3(
-        layout.x,
-        SURFACE_Y_OFFSET + amplifiedZ * elevationScale,
-        layout.z
-      );
+      return new THREE.Vector3(layout.x, SURFACE_Y_OFFSET + amplifiedZ * elevationScale, layout.z);
     }
-    
+
     // Fallback: apply same transformation as KEY_LAYOUT
     const x = (k.x - centerX) * SURFACE_SCALE;
-    const z = (((2.0 - k.y) * (1 + SURFACE_GAP)) - centerZ) * SURFACE_SCALE;
+    const z = ((2.0 - k.y) * (1 + SURFACE_GAP) - centerZ) * SURFACE_SCALE;
     return new THREE.Vector3(x, SURFACE_Y_OFFSET + amplifiedZ * elevationScale, z);
   }
 
@@ -321,9 +321,9 @@ export class Surface3DManager {
     if (activated) {
       // 1. Set warp close-up starting state
       this.animState.elevationScale = 0;
-      this.animState.camY = 250;     // Raised from 80 to prevent clipping
-      this.animState.camZ = -500;    // Pushed back from -350
-      this.animState.fov = 60;       // Moderated from 75 for comfortable perspective
+      this.animState.camY = 250; // Raised from 80 to prevent clipping
+      this.animState.camZ = -500; // Pushed back from -350
+      this.animState.fov = 60; // Moderated from 75 for comfortable perspective
       this.animState.opacity = 0;
       this.applyAnimState(true);
       this.controls.enabled = false;
@@ -341,29 +341,37 @@ export class Surface3DManager {
           onComplete: () => {
             this.controls.enabled = true;
             this.controls.update();
-          }
+          },
         });
-        
+
         const TARGET_ELEVATION_SCALE = 180;
         const CAM_TARGET_Y = 480;
         const CAM_TARGET_Z = 480;
 
         // 2. Cinematic dive transition (0.8s) - smooth power2.out
-        this.timeline.to(this.animState, {
-          camY: CAM_TARGET_Y,
-          camZ: CAM_TARGET_Z,
-          fov: 45,
-          duration: 0.8,
-          ease: "power2.out"
-        }, 0);
+        this.timeline.to(
+          this.animState,
+          {
+            camY: CAM_TARGET_Y,
+            camZ: CAM_TARGET_Z,
+            fov: 45,
+            duration: 0.8,
+            ease: "power2.out",
+          },
+          0,
+        );
 
         // 3. Elastic mesh rise (starts at 0.15s, finishes at 0.65s)
-        this.timeline.to(this.animState, {
-          elevationScale: TARGET_ELEVATION_SCALE,
-          opacity: 1,
-          duration: 0.5,
-          ease: "back.out(1.2)" // Gentler bounce
-        }, 0.15);
+        this.timeline.to(
+          this.animState,
+          {
+            elevationScale: TARGET_ELEVATION_SCALE,
+            opacity: 1,
+            duration: 0.5,
+            ease: "back.out(1.2)", // Gentler bounce
+          },
+          0.15,
+        );
 
         this.timeline.add(() => {
           this.controls.target.set(0, 0, 0);
@@ -387,9 +395,10 @@ export class Surface3DManager {
       this.camera.updateProjectionMatrix();
       this.camera.lookAt(0, 0, 0);
     }
-    
+
     this.surfaceKeys.forEach((k, i) => {
-      const amplifiedZ = k.key.toLowerCase() === "_dummy_comma" ? 0 : Math.pow(k.zSmoothed, LATENCY_POWER);
+      const amplifiedZ =
+        k.key.toLowerCase() === "_dummy_comma" ? 0 : Math.pow(k.zSmoothed, LATENCY_POWER);
       const currentY = SURFACE_Y_OFFSET + amplifiedZ * this.animState.elevationScale;
       this.positions[i * 3 + 1] = currentY;
 
@@ -408,14 +417,14 @@ export class Surface3DManager {
 
   private renderLoop() {
     this.reqId = requestAnimationFrame(this.renderLoop);
-    
+
     // Only update orbit controls if entrance is done
     if (this.timeline && !this.timeline.isActive() && this.isActivated) {
       this.controls.update();
     }
 
     this.renderer.render(this.scene, this.camera);
-    
+
     if (this.onUpdateHUD) {
       this.onUpdateHUD(
         this.surfaceKeys,
@@ -423,7 +432,7 @@ export class Surface3DManager {
         this.camera,
         this.animState.opacity,
         this.width,
-        this.height
+        this.height,
       );
     }
   }

@@ -101,12 +101,7 @@ export class Cylindrical3DManager {
     this.scene.fog = new THREE.FogExp2(C.sceneBg, 0.012);
 
     // Camera
-    this.camera = new THREE.PerspectiveCamera(
-      50,
-      width / height,
-      0.1,
-      1000,
-    );
+    this.camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 1000);
     this.camera.position.set(7, 8, 10);
 
     // Renderer
@@ -160,10 +155,7 @@ export class Cylindrical3DManager {
   // -----------------------------------------------------------------------
 
   /** Rebuild the entire 3D scene for a new set of vectors / selection. */
-  public updateScene(
-    vectors: CylindricalVector[],
-    selectedFrom: string,
-  ): void {
+  public updateScene(vectors: CylindricalVector[], selectedFrom: string): void {
     this.vectors = vectors;
     this.clearVisualGroup();
     if (vectors.length === 0) return;
@@ -257,14 +249,7 @@ export class Cylindrical3DManager {
       const cylGroup = new THREE.Group();
 
       // Translucent solid shell
-      const cylSolidGeom = new THREE.CylinderGeometry(
-        cylRadius,
-        cylRadius,
-        vy,
-        32,
-        1,
-        true,
-      );
+      const cylSolidGeom = new THREE.CylinderGeometry(cylRadius, cylRadius, vy, 32, 1, true);
       const cylSolidMat = new THREE.MeshBasicMaterial({
         color: C.cylinder,
         transparent: true,
@@ -276,14 +261,7 @@ export class Cylindrical3DManager {
       cylGroup.add(cylSolid);
 
       // Faint wireframe overlay
-      const cylWireGeom = new THREE.CylinderGeometry(
-        cylRadius,
-        cylRadius,
-        vy,
-        16,
-        4,
-        true,
-      );
+      const cylWireGeom = new THREE.CylinderGeometry(cylRadius, cylRadius, vy, 16, 4, true);
       const cylWireMat = new THREE.MeshBasicMaterial({
         color: C.cylinder,
         wireframe: true,
@@ -300,11 +278,7 @@ export class Cylindrical3DManager {
       this.visualGroup.add(this.cylinderGuide);
 
       // Bottom ring
-      const ringGeom = new THREE.RingGeometry(
-        cylRadius - 0.015,
-        cylRadius + 0.015,
-        64,
-      );
+      const ringGeom = new THREE.RingGeometry(cylRadius - 0.015, cylRadius + 0.015, 64);
       const ringMat = new THREE.MeshBasicMaterial({
         color: C.cylinder,
         transparent: true,
@@ -326,10 +300,7 @@ export class Cylindrical3DManager {
     this.projectionGroup = new THREE.Group();
 
     // (B) Radius guide line
-    const radPts = [
-      new THREE.Vector3(0, 0, 0),
-      new THREE.Vector3(vx, 0, vz),
-    ];
+    const radPts = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(vx, 0, vz)];
     const radGeom = new THREE.BufferGeometry().setFromPoints(radPts);
     const radMat = new THREE.LineDashedMaterial({
       color: C.radLine,
@@ -375,10 +346,7 @@ export class Cylindrical3DManager {
     }
 
     const geom = new THREE.BufferGeometry();
-    geom.setAttribute(
-      "position",
-      new THREE.Float32BufferAttribute(vertices, 3),
-    );
+    geom.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
     geom.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
     geom.setIndex(indices);
     geom.computeVertexNormals();
@@ -420,16 +388,12 @@ export class Cylindrical3DManager {
   // -----------------------------------------------------------------------
 
   /** Cylindrical → Three.js Cartesian (Y-up). */
-  private toCartesian(v: CylindricalVector): { vx: number; vy: number; vz: number; } {
+  private toCartesian(v: CylindricalVector): { vx: number; vy: number; vz: number } {
     return toCylindricalCartesian(v);
   }
 
   /** Volumetric 3D arrow (cylinder shaft + cone tip). */
-  private create3DArrow(
-    start: THREE.Vector3,
-    end: THREE.Vector3,
-    color: number,
-  ): THREE.Group {
+  private create3DArrow(start: THREE.Vector3, end: THREE.Vector3, color: number): THREE.Group {
     const group = new THREE.Group();
     const direction = new THREE.Vector3().subVectors(end, start);
     const length = direction.length();
@@ -441,12 +405,7 @@ export class Cylindrical3DManager {
     const shaftLength = length - headLength;
 
     if (shaftLength > 0) {
-      const sGeom = new THREE.CylinderGeometry(
-        shaftRadius,
-        shaftRadius,
-        shaftLength,
-        16,
-      );
+      const sGeom = new THREE.CylinderGeometry(shaftRadius, shaftRadius, shaftLength, 16);
       sGeom.translate(0, shaftLength / 2, 0);
       const sMat = new THREE.MeshStandardMaterial({
         color,
@@ -479,21 +438,11 @@ export class Cylindrical3DManager {
   }
 
   /** Floor-plane angle arc with translucent fill. */
-  private createAngleArc(
-    radius: number,
-    thetaRad: number,
-    color: number,
-  ): THREE.Group {
+  private createAngleArc(radius: number, thetaRad: number, color: number): THREE.Group {
     const arcGroup = new THREE.Group();
     if (thetaRad <= 0.01) return arcGroup;
 
-    const curve = new THREE.EllipseCurve(
-      0, 0,
-      radius, radius,
-      0, thetaRad,
-      false,
-      0,
-    );
+    const curve = new THREE.EllipseCurve(0, 0, radius, radius, 0, thetaRad, false, 0);
 
     const pts2D = curve.getPoints(Math.max(10, Math.floor(thetaRad * 30)));
     const pts3D = pts2D.map((p) => new THREE.Vector3(p.x, 0, p.y));
@@ -531,8 +480,7 @@ export class Cylindrical3DManager {
     if (this.cylinderTopRing) this.cylinderTopRing.visible = this.toggles.cylinder;
     if (this.cylinderBottomRing) this.cylinderBottomRing.visible = this.toggles.cylinder;
     if (this.gridHelper) this.gridHelper.visible = this.toggles.grid;
-    if (this.projectionGroup)
-      this.projectionGroup.visible = this.toggles.projections;
+    if (this.projectionGroup) this.projectionGroup.visible = this.toggles.projections;
     if (this.petalMesh) this.petalMesh.visible = this.toggles.petal;
     if (this.petalBorder) this.petalBorder.visible = this.toggles.petal;
   }
@@ -562,11 +510,9 @@ export class Cylindrical3DManager {
 
       const oVec = new THREE.Vector3(0, 0, 0).project(this.camera);
       const tVec = this.targetMesh
-        ? new THREE.Vector3(
-            this.curCartesian.x,
-            this.curCartesian.y,
-            this.curCartesian.z,
-          ).project(this.camera)
+        ? new THREE.Vector3(this.curCartesian.x, this.curCartesian.y, this.curCartesian.z).project(
+            this.camera,
+          )
         : oVec.clone();
 
       const vectorCoords = this.vectors.map((v) => {
