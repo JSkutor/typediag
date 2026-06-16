@@ -30,6 +30,8 @@ export const PracticePanel: React.FC = () => {
         id="typing-text-container"
         className="typing-text-container inline-block text-left"
         style={{ maxWidth: "1024px" }}
+        aria-live="polite"
+        aria-atomic="true"
       >
         {diffResult.length === 0 && <span className="typing-cursor left" />}
         {diffResult.map((d, i) => {
