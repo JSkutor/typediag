@@ -257,6 +257,21 @@ describe("useTypingStore", () => {
     expect(typeof useTypingStore.getState().finishedAt).toBe("number");
   });
 
+  it("should NOT mark status as done when Korean input is only a partial match (e.g. typing ㄱ for 가)", () => {
+    const store = useTypingStore.getState();
+    store.setTarget("가"); // Target is '가'
+
+    // Type 'ㄱ' (r)
+    store.handlePhysicalKeyPress("KeyR", false, 1000);
+    expect(useTypingStore.getState().typedText).toBe("ㄱ");
+    expect(useTypingStore.getState().status).toBe("running");
+
+    // Type 'ㅏ' (k) -> completes '가'
+    store.handlePhysicalKeyPress("KeyK", false, 1100);
+    expect(useTypingStore.getState().typedText).toBe("가");
+    expect(useTypingStore.getState().status).toBe("done");
+  });
+
   it("should clear events and reset status on reset", () => {
     const store = useTypingStore.getState();
     store.handlePhysicalKeyPress("KeyH", false, 1000);
@@ -293,6 +308,19 @@ describe("useTypingStore", () => {
 
     store.handlePhysicalKeyPress("ArrowRight", false, 1000);
     expect(useTypingStore.getState().targetText).toBe(targets[1].content);
+  });
+
+  it("should transition to previous target when ArrowLeft is pressed", () => {
+    const store = useTypingStore.getState();
+    useTypingStore.setState({ targetText: targets[1].content });
+
+    store.handlePhysicalKeyPress("ArrowLeft", false, 1000);
+    expect(useTypingStore.getState().targetText).toBe(targets[0].content);
+
+    // Test cycling backwards
+    useTypingStore.setState({ targetText: targets[0].content });
+    store.handlePhysicalKeyPress("ArrowLeft", false, 1000);
+    expect(useTypingStore.getState().targetText).toBe(targets[targets.length - 1].content);
   });
 
   it("should transition to next target when Space or Enter is pressed when done", () => {

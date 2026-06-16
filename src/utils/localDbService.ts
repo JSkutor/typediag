@@ -60,7 +60,15 @@ export const localDbService = {
   /**
    * Appends or updates a practice session run.
    */
-  async createRun(runData: Omit<RunRow, "created_at"> & { created_at?: string }): Promise<RunRow> {
+  async createRun(
+    runData: Omit<RunRow, "created_at" | "finished_at" | "cpm" | "wpm" | "accuracy"> & {
+      finished_at?: string | null;
+      cpm?: number | null;
+      wpm?: number | null;
+      accuracy?: number | null;
+      created_at?: string;
+    },
+  ): Promise<RunRow> {
     const db = readDbFile();
     const existingIdx = db.runs.findIndex((r) => r.id === runData.id);
     const newRun: RunRow = {
