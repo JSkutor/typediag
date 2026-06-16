@@ -7,6 +7,8 @@ describe("useTypingStore", () => {
     // Reset store before each test
     useTypingStore.setState({
       targetText: "hello",
+      targetLanguage: "en",
+      targetId: "test_target",
       typedText: "",
       qwertyBuffer: "",
       events: [],

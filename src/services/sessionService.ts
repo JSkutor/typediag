@@ -73,13 +73,24 @@ export class SessionService {
     typedText: string,
     events: KeyEvent[],
     startedAt: number,
-    finishedAt: number
+    finishedAt: number,
+    targetId?: string,
+    language?: string
   ): Promise<string> {
     let currentRunId = runId;
-    const isKorean = /[가-힣]/.test(targetText);
-    const targetTextObj = targets.find((t) => t.content === targetText);
-    const targetTextId = targetTextObj ? targetTextObj.id : "unknown";
-    const language = targetTextObj ? targetTextObj.language : (isKorean ? "ko" : "en");
+    
+    // Determine language and targetTextId using provided arguments or fallback lookups
+    const finalLanguage = language || (() => {
+      const targetTextObj = targets.find((t) => t.content === targetText);
+      if (targetTextObj) return targetTextObj.language;
+      const isKorean = /[가-힣]/.test(targetText);
+      return isKorean ? "ko" : "en";
+    })();
+
+    const finalTargetTextId = targetId || (() => {
+      const targetTextObj = targets.find((t) => t.content === targetText);
+      return targetTextObj ? targetTextObj.id : "unknown";
+    })();
 
     const rawElapsedTime = startedAt ? (finishedAt - startedAt) : 0;
     let pageStartedAtStr = new Date(startedAt || Date.now()).toISOString();
@@ -118,9 +129,9 @@ export class SessionService {
     await db.createPage({
       id: `page_${Math.random().toString(36).substring(2, 11)}_${Date.now()}`,
       run_id: currentRunId,
-      target_text_id: targetTextId,
+      target_text_id: finalTargetTextId,
       order_index,
-      language,
+      language: finalLanguage,
       typed_text: typedText,
       wpm: metrics.wpm,
       cpm: metrics.cpm,

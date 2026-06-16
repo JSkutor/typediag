@@ -25,7 +25,7 @@ export default function WorkspaceView({ lang, tab }: { lang: string; tab: string
       await db.syncSessionOnMount();
     })();
     if (targets.length > 0) {
-      setTarget(targets[0].content);
+      setTarget(targets[0]);
     }
   }, [setTarget]);
 
