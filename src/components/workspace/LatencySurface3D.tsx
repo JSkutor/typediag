@@ -53,7 +53,7 @@ export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
       surfaceKeys.forEach((k) => {
         const vec = manager.get3DPos(k, elevationScale);
         const scaleRatio = elevationScale / TARGET_ELEVATION_SCALE;
-        const amplifiedZ = Math.pow(k.zSmoothed, LATENCY_POWER);
+        const amplifiedZ = k.key.toLowerCase() === "_dummy_comma" ? 0 : Math.pow(k.zSmoothed, LATENCY_POWER);
         vec.y += (10 + amplifiedZ * 5) * scaleRatio;
 
         vec.project(camera);

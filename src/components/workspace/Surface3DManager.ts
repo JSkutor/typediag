@@ -148,7 +148,7 @@ export class Surface3DManager {
       this.positions[i * 3 + 2] = pos.z;
 
       // Interpolate color based on amplified zSmoothed (using LATENCY_POWER)
-      const amplifiedZ = Math.pow(k.zSmoothed, LATENCY_POWER);
+      const amplifiedZ = k.key.toLowerCase() === "_dummy_comma" ? 0 : Math.pow(k.zSmoothed, LATENCY_POWER);
       tempColor.copy(colorStart).lerp(colorEnd, amplifiedZ);
       colors[i * 3] = tempColor.r;
       colors[i * 3 + 1] = tempColor.g;
@@ -285,7 +285,7 @@ export class Surface3DManager {
     const keyName = k.key.toLowerCase();
     const layout = KEY_LAYOUT[keyName];
 
-    const amplifiedZ = Math.pow(k.zSmoothed, LATENCY_POWER);
+    const amplifiedZ = keyName === "_dummy_comma" ? 0 : Math.pow(k.zSmoothed, LATENCY_POWER);
 
     if (layout) {
       return new THREE.Vector3(
@@ -389,7 +389,7 @@ export class Surface3DManager {
     }
     
     this.surfaceKeys.forEach((k, i) => {
-      const amplifiedZ = Math.pow(k.zSmoothed, LATENCY_POWER);
+      const amplifiedZ = k.key.toLowerCase() === "_dummy_comma" ? 0 : Math.pow(k.zSmoothed, LATENCY_POWER);
       const currentY = SURFACE_Y_OFFSET + amplifiedZ * this.animState.elevationScale;
       this.positions[i * 3 + 1] = currentY;
 

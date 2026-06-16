@@ -13,7 +13,17 @@ import {
   LabelProjection,
   CylindricalToggles,
 } from "./Cylindrical3DManager";
-import { toCylindricalCartesian } from "./geometryUtils";
+import {
+  getShiftOverhead,
+  getFirstErrorStats,
+  getPhysicalVariance,
+  getSlowestFromKeys,
+  type ShiftOverheadResult,
+  type FirstErrorResult,
+  type PhysicalVarianceResult,
+  type SlowestFromKey,
+} from "@/lib/skdm/diagnostics";
+import { isShiftCombinable, KEYBOARD_META } from "@/lib/skdm/keyboardMeta";
 
 interface CylindricalVector3DProps {
   isActivated: boolean;
@@ -51,9 +61,23 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
     [events, selectedTo, globalMax],
   );
   const fromKeys = useMemo(() => vectors.map((v) => v.fromKey), [vectors]);
-  const currentVector = useMemo(
-    () => vectors.find((v) => v.fromKey === selectedFrom) ?? null,
-    [vectors, selectedFrom],
+
+  // --- Diagnostics data ---
+  const shiftData = useMemo<ShiftOverheadResult>(
+    () => getShiftOverhead(events, selectedTo),
+    [events, selectedTo],
+  );
+  const errorData = useMemo<FirstErrorResult>(
+    () => getFirstErrorStats(events, selectedTo),
+    [events, selectedTo],
+  );
+  const physicalData = useMemo<PhysicalVarianceResult>(
+    () => getPhysicalVariance(events, selectedTo),
+    [events, selectedTo],
+  );
+  const slowestKeys = useMemo<SlowestFromKey[]>(
+    () => getSlowestFromKeys(vectors, 5),
+    [vectors],
   );
 
   // Auto-select first center key when data becomes available
@@ -101,44 +125,13 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
     managerRef.current?.setToggles(toggles);
   }, [toggles]);
 
-  // --- Toggle helpers ---
-  const toggle = useCallback(
-    (key: keyof CylindricalToggles) =>
-      setToggles((prev) => ({ ...prev, [key]: !prev[key] })),
-    [],
-  );
-
-  // --- Computed display values ---
-  const display = useMemo(() => {
-    if (!currentVector) {
-      return {
-        r: "-",
-        theta: "-",
-        z: "-",
-        x: "-",
-        y: "-",
-        zCart: "-",
-        formulaX: "X = r × cos(θ)",
-        formulaZ: "Z = r × sin(θ)",
-      };
-    }
-    const v = currentVector;
-    const thetaRad = v.theta;
-    const { vx, vy, vz } = toCylindricalCartesian(v);
-
-    return {
-      r: `${v.r}`,
-      theta: `${v.thetaDeg.toFixed(1)}° (${thetaRad.toFixed(3)} rad)`,
-      z: `${v.z.toFixed(1)} ms`,
-      x: vx.toFixed(3),
-      y: vy.toFixed(3),
-      zCart: vz.toFixed(3),
-      formulaX: `X = norm(r) × MAX_R × cos(${v.thetaDeg.toFixed(1)}°) = ${vx.toFixed(3)}`,
-      formulaZ: `Z = norm(r) × MAX_R × sin(${v.thetaDeg.toFixed(1)}°) = ${vz.toFixed(3)}`,
-    };
-  }, [currentVector]);
-
   if (!isActivated) return null;
+
+  const meta = KEYBOARD_META[selectedTo.toLowerCase()];
+  const handLabel = meta ? (meta.hand === "L" ? "왼손" : "오른손") : "-";
+  const fingerLabel = meta
+    ? ({ pinky: "새끼", ring: "약지", middle: "중지", index: "검지" }[meta.finger])
+    : "-";
 
   return (
     <div className="cyl-viewport">
@@ -284,138 +277,199 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
           </div>
         </div>
 
-        {/* Key pair display */}
-        <div className="cyl-info-card">
-          <div className="cyl-pair-header">
-            <span className="cyl-badge cyl-badge--from">
-              {selectedFrom.toUpperCase() || "-"}
-            </span>
-            <span className="cyl-arrow">──▸──</span>
-            <span className="cyl-badge cyl-badge--to">
-              {selectedTo.toUpperCase() || "-"}
-            </span>
+        {/* Key info badge */}
+        <div className="cyl-key-badge">
+          <span className="cyl-key-badge__letter">{selectedTo.toUpperCase()}</span>
+          <div className="cyl-key-badge__meta">
+            <span>{handLabel} · {fingerLabel}</span>
+            <span>Row {meta?.row ?? "-"}</span>
           </div>
+        </div>
 
-          {/* Cylindrical coordinates */}
-          <div className="cyl-control-group">
-            <span className="cyl-label-text">
-              Cylindrical Coordinates
-            </span>
-            <table className="cyl-table">
-              <thead>
-                <tr>
-                  <th>Axis</th>
-                  <th>Property</th>
-                  <th>Value</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td className="cyl-td--label">r</td>
-                  <td>Frequency</td>
-                  <td className="cyl-td--accent">{display.r}</td>
-                </tr>
-                <tr>
-                  <td className="cyl-td--label">θ</td>
-                  <td>Angle</td>
-                  <td className="cyl-td--warning">{display.theta}</td>
-                </tr>
-                <tr>
-                  <td className="cyl-td--label">z</td>
-                  <td>Latency</td>
-                  <td className="cyl-td--success">{display.z}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+        {/* ── Diagnostics sections ── */}
 
-          {/* Cartesian coordinates */}
-          <div
-            className="cyl-control-group"
-            style={{
-              borderTop: "1px solid var(--border-subtle)",
-              paddingTop: 10,
-            }}
+        {/* 1. Rhythm Breaker (First Error Incidence) */}
+        <DiagSection
+          title="Rhythm Breaker"
+          icon={
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+          }
+        >
+          {errorData.totalBreaks === 0 ? (
+            <span className="cyl-diag__empty">데이터 부족</span>
+          ) : (
+            <>
+              <div className="cyl-diag__row">
+                <span className="cyl-diag__label">최초 오타 유발</span>
+                <span className="cyl-diag__value cyl-diag__value--error">
+                  {errorData.breakCount}회
+                </span>
+              </div>
+              <div className="cyl-diag__row">
+                <span className="cyl-diag__label">전체 리듬 브레이크 중</span>
+                <span className="cyl-diag__value">
+                  {errorData.totalBreaks > 0
+                    ? `${((errorData.breakCount / errorData.totalBreaks) * 100).toFixed(1)}%`
+                    : "-"}
+                </span>
+              </div>
+              {errorData.breakCount > 0 && (
+                <>
+                  <div className="cyl-diag__row">
+                    <span className="cyl-diag__label">연쇄 수정 비용</span>
+                    <span className="cyl-diag__value">
+                      평균 {errorData.avgCascade.toFixed(1)}타
+                    </span>
+                  </div>
+                  <div className="cyl-diag__row">
+                    <span className="cyl-diag__label">즉시 인지율</span>
+                    <span className={`cyl-diag__value ${errorData.immediateCorrectionRate >= 0.7 ? "cyl-diag__value--success" : "cyl-diag__value--warning"}`}>
+                      {(errorData.immediateCorrectionRate * 100).toFixed(0)}%
+                    </span>
+                  </div>
+                </>
+              )}
+            </>
+          )}
+        </DiagSection>
+
+        {/* 2. Slowest From Keys (Top 5) */}
+        <DiagSection
+          title="가장 느린 진입"
+          icon={
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+          }
+        >
+          {slowestKeys.length === 0 ? (
+            <span className="cyl-diag__empty">데이터 부족</span>
+          ) : (
+            <div className="cyl-diag__rank-list">
+              {slowestKeys.map((sk, idx) => (
+                <div key={sk.fromKey} className="cyl-diag__rank-item">
+                  <span className="cyl-diag__rank-num">{idx + 1}</span>
+                  <span className="cyl-diag__rank-key">{sk.fromKey.toUpperCase()}</span>
+                  <span className="cyl-diag__rank-bar">
+                    <span
+                      className="cyl-diag__rank-fill"
+                      style={{
+                        width: `${Math.min(100, (sk.avgLatencyMs / (slowestKeys[0]?.avgLatencyMs || 1)) * 100)}%`,
+                      }}
+                    />
+                  </span>
+                  <span className="cyl-diag__rank-ms">{Math.round(sk.avgLatencyMs)}ms</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </DiagSection>
+
+        {/* 3. Physical Variance */}
+        <DiagSection
+          title="동선 분석"
+          icon={
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="6" cy="18" r="3" />
+              <circle cx="18" cy="6" r="3" />
+              <path d="M18 6L6 18" />
+            </svg>
+          }
+        >
+          {physicalData.altHandCount + physicalData.sameHandCount === 0 ? (
+            <span className="cyl-diag__empty">데이터 부족</span>
+          ) : (
+            <>
+              <PhysicalCompare
+                labelA="교차 타건"
+                labelB="같은 손"
+                avgA={physicalData.altHandAvgMs}
+                avgB={physicalData.sameHandAvgMs}
+                countA={physicalData.altHandCount}
+                countB={physicalData.sameHandCount}
+              />
+              <PhysicalCompare
+                labelA="같은 행"
+                labelB="다른 행"
+                avgA={physicalData.sameRowAvgMs}
+                avgB={physicalData.diffRowAvgMs}
+                countA={physicalData.sameRowCount}
+                countB={physicalData.diffRowCount}
+              />
+              <PhysicalCompare
+                labelA="같은 손가락"
+                labelB="다른 손가락"
+                avgA={physicalData.sameFingerAvgMs}
+                avgB={physicalData.diffFingerAvgMs}
+                countA={physicalData.sameFingerCount}
+                countB={physicalData.diffFingerCount}
+              />
+            </>
+          )}
+        </DiagSection>
+
+        {/* 4. Shift Overhead (conditional) */}
+        {shiftData.applicable && (
+          <DiagSection
+            title="Shift 오버헤드"
+            icon={
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 14h6v6h4v-6h6L12 4 4 14z" />
+              </svg>
+            }
           >
-            <span className="cyl-label-text">
-              Three.js Cartesian
-            </span>
-            <table className="cyl-table">
-              <thead>
-                <tr>
-                  <th>Axis</th>
-                  <th>Formula</th>
-                  <th>Scaled</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td className="cyl-td--label">X</td>
-                  <td>r × cos(θ)</td>
-                  <td className="cyl-td--error">{display.x}</td>
-                </tr>
-                <tr>
-                  <td className="cyl-td--label">Y</td>
-                  <td>z_latency</td>
-                  <td className="cyl-td--success">{display.y}</td>
-                </tr>
-                <tr>
-                  <td className="cyl-td--label">Z</td>
-                  <td>r × sin(θ)</td>
-                  <td className="cyl-td--accent">{display.zCart}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Formula box */}
-        <div className="cyl-formula-box">
-          <div className="cyl-formula-title">Coordinate Transform</div>
-          <div className="cyl-formula-content">
-            θ(rad) = θ(deg) × π / 180
-            <br />
-            <code className="cyl-formula">{display.formulaX}</code>
-            <br />
-            <code className="cyl-formula">{display.formulaZ}</code>
-            <br />
-            <span className="cyl-formula-note">
-              ※ Scale: R(sq root), Z(linear). Max R/Z bound to 6.0
-            </span>
-          </div>
-        </div>
-
-        {/* Toggles */}
-        <div className="cyl-control-group">
-          <span className="cyl-label-text">Viewport Settings</span>
-          <div className="cyl-toggles">
-            <ToggleItem
-              label="Cylinder Grid"
-              checked={toggles.cylinder}
-              onChange={() => toggle("cylinder")}
-            />
-            <ToggleItem
-              label="Ground Grid"
-              checked={toggles.grid}
-              onChange={() => toggle("grid")}
-            />
-            <ToggleItem
-              label="Projections"
-              checked={toggles.projections}
-              onChange={() => toggle("projections")}
-            />
-            <ToggleItem
-              label="Petal Surface"
-              checked={toggles.petal}
-              onChange={() => toggle("petal")}
-            />
-            <ToggleItem
-              label="Auto Orbit"
-              checked={toggles.autoRotate}
-              onChange={() => toggle("autoRotate")}
-            />
-          </div>
-        </div>
+            {shiftData.shiftCount === 0 && shiftData.directCount === 0 ? (
+              <span className="cyl-diag__empty">데이터 부족</span>
+            ) : (
+              <>
+                {shiftData.shiftCount > 0 && shiftData.directCount > 0 && (
+                  <div className="cyl-diag__row">
+                    <span className="cyl-diag__label">추가 지연</span>
+                    <span className={`cyl-diag__value ${shiftData.overheadMs > 0 ? "cyl-diag__value--error" : "cyl-diag__value--success"}`}>
+                      {shiftData.overheadMs > 0 ? "+" : ""}
+                      {Math.round(shiftData.overheadMs)}ms
+                    </span>
+                  </div>
+                )}
+                <div className="cyl-diag__row">
+                  <span className="cyl-diag__label">일반 진입</span>
+                  <span className="cyl-diag__value">
+                    {shiftData.directCount > 0 ? `${Math.round(shiftData.directAvgMs)}ms` : "-"}
+                    <span className="cyl-diag__count">({shiftData.directCount})</span>
+                  </span>
+                </div>
+                <div className="cyl-diag__row">
+                  <span className="cyl-diag__label">Shift 진입</span>
+                  <span className="cyl-diag__value">
+                    {shiftData.shiftCount > 0 ? `${Math.round(shiftData.shiftAvgMs)}ms` : "-"}
+                    <span className="cyl-diag__count">({shiftData.shiftCount})</span>
+                  </span>
+                </div>
+                {shiftData.shiftCount > 0 && (
+                  <div className="cyl-diag__shift-ratio">
+                    <div className="cyl-diag__shift-bar">
+                      <span
+                        className="cyl-diag__shift-left"
+                        style={{ width: `${shiftData.leftShiftRatio * 100}%` }}
+                      />
+                      <span
+                        className="cyl-diag__shift-right"
+                        style={{ width: `${shiftData.rightShiftRatio * 100}%` }}
+                      />
+                    </div>
+                    <div className="cyl-diag__shift-labels">
+                      <span>L {(shiftData.leftShiftRatio * 100).toFixed(0)}%</span>
+                      <span>R {(shiftData.rightShiftRatio * 100).toFixed(0)}%</span>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </DiagSection>
+        )}
 
         {/* Footer guide */}
         <div className="cyl-footer-guide">
@@ -428,19 +482,59 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
 };
 
 // ---------------------------------------------------------------------------
-// Toggle sub-component
+// Sub-components
 // ---------------------------------------------------------------------------
 
-const ToggleItem: React.FC<{
-  label: string;
-  checked: boolean;
-  onChange: () => void;
-}> = ({ label, checked, onChange }) => (
-  <div className="cyl-toggle-item">
-    <span>{label}</span>
-    <label className="cyl-switch">
-      <input type="checkbox" checked={checked} onChange={onChange} />
-      <span className="cyl-slider" />
-    </label>
+/** Collapsible diagnostics section. */
+const DiagSection: React.FC<{
+  title: string;
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+}> = ({ title, icon, children }) => (
+  <div className="cyl-diag-section">
+    <div className="cyl-diag-section__header">
+      {icon && <span className="cyl-diag-section__icon">{icon}</span>}
+      <span className="cyl-diag-section__title">{title}</span>
+    </div>
+    <div className="cyl-diag-section__body">{children}</div>
   </div>
 );
+
+/** Physical comparison row: A vs B with inline diff. */
+const PhysicalCompare: React.FC<{
+  labelA: string;
+  labelB: string;
+  avgA: number;
+  avgB: number;
+  countA: number;
+  countB: number;
+}> = ({ labelA, labelB, avgA, avgB, countA, countB }) => {
+  if (countA === 0 && countB === 0) return null;
+
+  const diff = avgA - avgB;
+  const hasBoth = countA > 0 && countB > 0;
+
+  return (
+    <div className="cyl-diag__compare">
+      <div className="cyl-diag__compare-row">
+        <span className="cyl-diag__compare-label">{labelA}</span>
+        <span className="cyl-diag__compare-val">
+          {countA > 0 ? `${Math.round(avgA)}ms` : "-"}
+        </span>
+      </div>
+      <div className="cyl-diag__compare-row">
+        <span className="cyl-diag__compare-label">{labelB}</span>
+        <span className="cyl-diag__compare-val">
+          {countB > 0 ? `${Math.round(avgB)}ms` : "-"}
+        </span>
+      </div>
+      {hasBoth && (
+        <div className="cyl-diag__compare-diff">
+          <span className={diff < 0 ? "cyl-diag__value--success" : diff > 0 ? "cyl-diag__value--warning" : ""}>
+            {diff > 0 ? "+" : ""}{Math.round(diff)}ms
+          </span>
+        </div>
+      )}
+    </div>
+  );
+};
