@@ -92,9 +92,28 @@ export class SessionService {
       return targetTextObj ? targetTextObj.id : "unknown";
     })();
 
-    const rawElapsedTime = startedAt ? (finishedAt - startedAt) : 0;
-    let pageStartedAtStr = new Date(startedAt || Date.now()).toISOString();
-    const pageFinishedAtStr = new Date(finishedAt).toISOString();
+    const getPerfNow = () => {
+      if (typeof performance !== "undefined" && typeof performance.now === "function") {
+        return performance.now();
+      }
+      return Date.now();
+    };
+
+    const isRelative = startedAt && startedAt < 1e11;
+    let absoluteStartedAt = startedAt;
+    let absoluteFinishedAt = finishedAt;
+
+    if (isRelative) {
+      const nowMs = Date.now();
+      const perfNow = getPerfNow();
+      const relativeFinishAge = perfNow - finishedAt;
+      absoluteFinishedAt = nowMs - relativeFinishAge;
+      absoluteStartedAt = absoluteFinishedAt - (finishedAt - startedAt);
+    }
+
+    const rawElapsedTime = absoluteStartedAt ? (absoluteFinishedAt - absoluteStartedAt) : 0;
+    let pageStartedAtStr = new Date(absoluteStartedAt || Date.now()).toISOString();
+    const pageFinishedAtStr = new Date(absoluteFinishedAt).toISOString();
 
     if (rawElapsedTime >= 10 * 60 * 1000) {
       // 10분 이상 지연된 경우 -> 세션(Run) 분리
@@ -106,7 +125,7 @@ export class SessionService {
 
       // 5분(300,000ms) 이상의 긴 공백 이후의 실타건 latency 합 계산
       const activeTimeAfterGap = calculateLatencyAfterGap(events, 5 * 60 * 1000);
-      const correctedStartTimestamp = finishedAt - activeTimeAfterGap;
+      const correctedStartTimestamp = absoluteFinishedAt - activeTimeAfterGap;
       pageStartedAtStr = new Date(correctedStartTimestamp).toISOString();
 
       currentRunId = await this.createNewRun(new Date(correctedStartTimestamp));

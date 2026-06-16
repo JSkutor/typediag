@@ -83,6 +83,32 @@ function setStored<T>(key: string, value: T): void {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
+// --- Dev Server Sync Helpers ---
+const isDev = process.env.NODE_ENV === "development";
+
+async function getLocalDbData(): Promise<{ runs: RunRow[]; pages: PageRow[] }> {
+  const res = await fetch("/api/db");
+  if (!res.ok) {
+    throw new Error("Failed to fetch local database data");
+  }
+  return res.json();
+}
+
+async function fetchDbApi<T>(action: string, payload: Record<string, any> = {}): Promise<T> {
+  const res = await fetch("/api/db", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ action, ...payload }),
+  });
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.error || `Failed API call: ${action}`);
+  }
+  return res.json();
+}
+
 // --- Asynchronous DB API (easy to migrate to Prisma/Supabase/API endpoints later) ---
 
 export const db = {
@@ -123,6 +149,9 @@ export const db = {
    * Create a new practice run (session).
    */
   async createRun(runData: Omit<RunRow, "created_at" | "finished_at" | "cpm" | "wpm" | "accuracy">): Promise<RunRow> {
+    if (isDev) {
+      return fetchDbApi<RunRow>("createRun", { runData });
+    }
     const runs = getStored<RunRow[]>(KEYS.RUNS, []);
     const newRun: RunRow = {
       ...runData,
@@ -141,6 +170,10 @@ export const db = {
    * Delete a run session.
    */
   async deleteRun(runId: string): Promise<void> {
+    if (isDev) {
+      await fetchDbApi<void>("deleteRun", { runId });
+      return;
+    }
     const runs = getStored<RunRow[]>(KEYS.RUNS, []);
     const updatedRuns = runs.filter((r) => r.id !== runId);
     setStored(KEYS.RUNS, updatedRuns);
@@ -150,6 +183,9 @@ export const db = {
    * Update an existing run session (e.g. status, CPM, WPM, accuracy, finished_at).
    */
   async updateRun(runId: string, updates: Partial<Omit<RunRow, "id" | "created_at">>): Promise<RunRow> {
+    if (isDev) {
+      return fetchDbApi<RunRow>("updateRun", { runId, updates });
+    }
     const runs = getStored<RunRow[]>(KEYS.RUNS, []);
     const idx = runs.findIndex((r) => r.id === runId);
     if (idx === -1) {
@@ -168,6 +204,10 @@ export const db = {
    * Get a run by its ID.
    */
   async getRun(runId: string): Promise<RunRow | null> {
+    if (isDev) {
+      const data = await getLocalDbData();
+      return data.runs.find((r) => r.id === runId) || null;
+    }
     const runs = getStored<RunRow[]>(KEYS.RUNS, []);
     return runs.find((r) => r.id === runId) || null;
   },
@@ -176,6 +216,10 @@ export const db = {
    * Get all runs in descending order.
    */
   async getAllRuns(): Promise<RunRow[]> {
+    if (isDev) {
+      const data = await getLocalDbData();
+      return data.runs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    }
     const runs = getStored<RunRow[]>(KEYS.RUNS, []);
     return runs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   },
@@ -192,6 +236,9 @@ export const db = {
    * Create a new page typing result (sentence).
    */
   async createPage(pageData: Omit<PageRow, "created_at">): Promise<PageRow> {
+    if (isDev) {
+      return fetchDbApi<PageRow>("createPage", { pageData });
+    }
     const pages = getStored<PageRow[]>(KEYS.PAGES, []);
     const newPage: PageRow = {
       ...pageData,
@@ -206,6 +253,12 @@ export const db = {
    * Get all pages for a specific run.
    */
   async getPagesForRun(runId: string): Promise<PageRow[]> {
+    if (isDev) {
+      const data = await getLocalDbData();
+      return data.pages
+        .filter((p) => p.run_id === runId)
+        .sort((a, b) => a.order_index - b.order_index);
+    }
     const pages = getStored<PageRow[]>(KEYS.PAGES, []);
     return pages
       .filter((p) => p.run_id === runId)
@@ -216,6 +269,9 @@ export const db = {
    * Finalize a run by compiling metrics from all its pages.
    */
   async finalizeRun(runId: string, finishedAtStr?: string): Promise<RunRow | null> {
+    if (isDev) {
+      return fetchDbApi<RunRow>("finalizeRun", { runId, finishedAtStr });
+    }
     const run = await this.getRun(runId);
     if (!run) return null;
     

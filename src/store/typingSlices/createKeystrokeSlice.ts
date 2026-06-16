@@ -13,7 +13,17 @@ export const createKeystrokeSlice: StoreSlice<KeystrokeSlice> = (set, get) => ({
 
     let runPromise = null;
     if (status === "idle") {
-      runPromise = get().initializeRun(new Date(at));
+      const getPerfNow = () => {
+        if (typeof performance !== "undefined" && typeof performance.now === "function") {
+          return performance.now();
+        }
+        return Date.now();
+      };
+      const isRelative = at < 1e11;
+      const realStartTime = isRelative
+        ? new Date(Date.now() - getPerfNow() + at)
+        : new Date(at);
+      runPromise = get().initializeRun(realStartTime);
     }
 
     set((state) => {
