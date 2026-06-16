@@ -31,6 +31,7 @@ export function useWorkspaceKeybindings({ onTransition }: WorkspaceKeybindingsPr
       }
 
       if (uiState === "practice") {
+        if (e.repeat) return;
         if (e.ctrlKey || e.metaKey || e.altKey) return;
 
         // Prevent default browser behavior for navigation and spacing keys
@@ -72,7 +73,18 @@ export function useWorkspaceKeybindings({ onTransition }: WorkspaceKeybindingsPr
       }
     };
 
+    const handleKeyUp = (e: KeyboardEvent) => {
+      const { uiState } = useWorkspaceStore.getState();
+      if (uiState === "practice") {
+        useTypingStore.getState().handlePhysicalKeyRelease(e.code, performance.now());
+      }
+    };
+
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
   }, [onTransition]);
 }

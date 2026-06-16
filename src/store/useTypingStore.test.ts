@@ -34,6 +34,8 @@ describe("useTypingStore", () => {
     
     // Press 'h'
     store.handlePhysicalKeyPress("KeyH", false, 1000);
+    store.handlePhysicalKeyRelease("KeyH", 1060);
+    
     expect(useTypingStore.getState().typedText).toBe("h");
     expect(useTypingStore.getState().status).toBe("running");
     expect(useTypingStore.getState().startedAt).toBe(1000);
@@ -43,13 +45,15 @@ describe("useTypingStore", () => {
       toKey: "h",
       latencyMs: 0,
       keyChar: "h",
-      holdDurationMs: 50,
+      holdDurationMs: 60,
       isCorrect: true,
       expectedChar: null,
     });
 
     // Press 'e'
     useTypingStore.getState().handlePhysicalKeyPress("KeyE", false, 1100);
+    useTypingStore.getState().handlePhysicalKeyRelease("KeyE", 1170);
+    
     expect(useTypingStore.getState().typedText).toBe("he");
     expect(useTypingStore.getState().events).toHaveLength(2);
     expect(useTypingStore.getState().events[1]).toEqual({
@@ -57,7 +61,7 @@ describe("useTypingStore", () => {
       toKey: "e",
       latencyMs: 100,
       keyChar: "e",
-      holdDurationMs: 50,
+      holdDurationMs: 70,
       isCorrect: true,
       expectedChar: null,
     });
@@ -66,10 +70,16 @@ describe("useTypingStore", () => {
   it("should handle backspace correctly", () => {
     const store = useTypingStore.getState();
     store.handlePhysicalKeyPress("KeyH", false, 1000);
+    store.handlePhysicalKeyRelease("KeyH", 1050);
+    
     store.handlePhysicalKeyPress("KeyE", false, 1100);
+    store.handlePhysicalKeyRelease("KeyE", 1150);
+    
     expect(useTypingStore.getState().typedText).toBe("he");
 
     store.handlePhysicalKeyPress("Backspace", false, 1200);
+    store.handlePhysicalKeyRelease("Backspace", 1280);
+    
     expect(useTypingStore.getState().typedText).toBe("h");
     
     // The physical key for backspace is also recorded as an event transition
@@ -79,7 +89,7 @@ describe("useTypingStore", () => {
       toKey: "backspace",
       latencyMs: 100,
       keyChar: "backspace",
-      holdDurationMs: 50,
+      holdDurationMs: 80,
       isCorrect: true,
       expectedChar: null,
     });
@@ -88,9 +98,11 @@ describe("useTypingStore", () => {
   it("should handle shift and enter correctly", () => {
     const store = useTypingStore.getState();
     store.handlePhysicalKeyPress("KeyH", false, 1000);
+    store.handlePhysicalKeyRelease("KeyH", 1050);
     
     // Press ShiftLeft (should be recorded, but typedText shouldn't change)
     store.handlePhysicalKeyPress("ShiftLeft", true, 1050);
+    
     expect(useTypingStore.getState().typedText).toBe("h");
     expect(useTypingStore.getState().events).toHaveLength(2);
     expect(useTypingStore.getState().events[1]).toEqual({
@@ -98,27 +110,35 @@ describe("useTypingStore", () => {
       toKey: "shift_l",
       latencyMs: 50,
       keyChar: "shift_l",
-      holdDurationMs: 50,
+      holdDurationMs: null,
       isCorrect: true,
       expectedChar: null,
     });
 
     // Press 'e' (with Shift, so 'E')
     useTypingStore.getState().handlePhysicalKeyPress("KeyE", true, 1100);
+    
+    // Release ShiftLeft and KeyE
+    useTypingStore.getState().handlePhysicalKeyRelease("ShiftLeft", 1120);
+    useTypingStore.getState().handlePhysicalKeyRelease("KeyE", 1155);
+
     expect(useTypingStore.getState().typedText).toBe("hE");
     expect(useTypingStore.getState().events).toHaveLength(3);
+    expect(useTypingStore.getState().events[1].holdDurationMs).toBe(70); // 1120 - 1050
     expect(useTypingStore.getState().events[2]).toEqual({
       fromKey: "shift_l",
       toKey: "e",
       latencyMs: 50,
       keyChar: "E",
-      holdDurationMs: 50,
+      holdDurationMs: 55, // 1155 - 1100
       isCorrect: false, // expected 'e' but got 'E'
       expectedChar: "e",
     });
 
     // Press Enter (should be recorded, but typedText shouldn't change)
     useTypingStore.getState().handlePhysicalKeyPress("Enter", false, 1150);
+    useTypingStore.getState().handlePhysicalKeyRelease("Enter", 1240);
+    
     expect(useTypingStore.getState().typedText).toBe("hE");
     expect(useTypingStore.getState().events).toHaveLength(4);
     expect(useTypingStore.getState().events[3]).toEqual({
@@ -126,7 +146,71 @@ describe("useTypingStore", () => {
       toKey: "enter",
       latencyMs: 50,
       keyChar: "enter",
-      holdDurationMs: 50,
+      holdDurationMs: 90,
+      isCorrect: true,
+      expectedChar: null,
+    });
+  });
+
+  it("should calculate correct hold durations when keyup order is interleaved", () => {
+    const store = useTypingStore.getState();
+    
+    // ShiftLeft down at 1000ms
+    store.handlePhysicalKeyPress("ShiftLeft", true, 1000);
+    // KeyQ down at 1050ms
+    store.handlePhysicalKeyPress("KeyQ", true, 1050);
+    // ShiftLeft up at 1120ms
+    store.handlePhysicalKeyRelease("ShiftLeft", 1120);
+    // KeyQ up at 1160ms
+    store.handlePhysicalKeyRelease("KeyQ", 1160);
+
+    expect(useTypingStore.getState().events).toHaveLength(2);
+
+    // Verify shift_l hold duration: 1120 - 1000 = 120ms
+    expect(useTypingStore.getState().events[0]).toEqual(expect.objectContaining({
+      toKey: "shift_l",
+      holdDurationMs: 120,
+    }));
+
+    // Verify q hold duration: 1160 - 1050 = 110ms
+    expect(useTypingStore.getState().events[1]).toEqual(expect.objectContaining({
+      toKey: "q",
+      holdDurationMs: 110,
+    }));
+  });
+
+  it("should discard shift events that are released standalone", () => {
+    const store = useTypingStore.getState();
+
+    // 1. Press 'h' at 1000ms
+    store.handlePhysicalKeyPress("KeyH", false, 1000);
+    store.handlePhysicalKeyRelease("KeyH", 1050);
+
+    // 2. Press ShiftLeft at 1200ms
+    store.handlePhysicalKeyPress("ShiftLeft", true, 1200);
+
+    expect(useTypingStore.getState().events).toHaveLength(2);
+    expect(useTypingStore.getState().lastKey).toBe("shift_l");
+
+    // 3. Release ShiftLeft at 1300ms (should discard it!)
+    store.handlePhysicalKeyRelease("ShiftLeft", 1300);
+
+    expect(useTypingStore.getState().events).toHaveLength(1);
+    expect(useTypingStore.getState().events[0].toKey).toBe("h");
+    expect(useTypingStore.getState().lastKey).toBe("h");
+    expect(useTypingStore.getState().lastKeyAt).toBe(1000); // restored!
+
+    // 4. Press 'e' at 1500ms (should calculate latency from 'h', not 'shift_l')
+    store.handlePhysicalKeyPress("KeyE", false, 1500);
+    store.handlePhysicalKeyRelease("KeyE", 1560);
+
+    expect(useTypingStore.getState().events).toHaveLength(2);
+    expect(useTypingStore.getState().events[1]).toEqual({
+      fromKey: "h",
+      toKey: "e",
+      latencyMs: 500, // 1500 - 1000
+      keyChar: "e",
+      holdDurationMs: 60,
       isCorrect: true,
       expectedChar: null,
     });

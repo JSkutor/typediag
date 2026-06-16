@@ -10,6 +10,16 @@ import targets from "@/data/targets.json";
 
 export type SessionStatus = "idle" | "running" | "done";
 
+export function getKeyToken(code: string): string {
+  let token = code.toLowerCase().replace("key", "");
+  if (code === "Space") token = "space";
+  if (code === "Backspace") token = "backspace";
+  if (code === "ShiftLeft") token = "shift_l";
+  if (code === "ShiftRight") token = "shift_r";
+  if (code === "Enter") token = "enter";
+  return token;
+}
+
 interface TypingState {
   /** Target text shown to the user. */
   targetText: string;
@@ -29,6 +39,9 @@ interface TypingState {
   lastKey: string | null;
   lastKeyAt: number | null;
 
+  // --- key hold duration tracking ---
+  pressedKeys: Record<string, number>;
+
   setTarget: (text: string) => void;
   nextTarget: () => void;
   /** Record one physical key press (already normalized) at time `at` (ms). */
@@ -40,6 +53,8 @@ interface TypingState {
   setTypedText: (value: string) => void;
   /** Process a physical key press from UI (bypassing OS IME) */
   handlePhysicalKeyPress: (code: string, shiftKey: boolean, timestamp: number) => void;
+  /** Process a physical key release from UI */
+  handlePhysicalKeyRelease: (code: string, timestamp: number) => void;
   finish: (timestamp?: number) => void;
   reset: () => void;
   loadDummyData: () => Promise<void>;
@@ -59,6 +74,7 @@ export const useTypingStore = create<TypingState>((set, get) => ({
   runInitPromise: null,
   lastKey: null,
   lastKeyAt: null,
+  pressedKeys: {},
 
   setTarget: (text) =>
     set({
@@ -72,6 +88,7 @@ export const useTypingStore = create<TypingState>((set, get) => ({
       lastKey: null,
       lastKeyAt: null,
       runInitPromise: null,
+      pressedKeys: {},
     }),
 
   nextTarget: () => {
@@ -105,7 +122,7 @@ export const useTypingStore = create<TypingState>((set, get) => ({
           toKey: token,
           latencyMs: 0,
           keyChar: details?.keyChar || "",
-          holdDurationMs: 50,
+          holdDurationMs: null,
           isCorrect: details?.isCorrect ?? true,
           expectedChar: details?.expectedChar ?? null,
         };
@@ -116,7 +133,7 @@ export const useTypingStore = create<TypingState>((set, get) => ({
           toKey: token,
           latencyMs: at - lastKeyAt,
           keyChar: details?.keyChar || "",
-          holdDurationMs: 50,
+          holdDurationMs: null,
           isCorrect: details?.isCorrect ?? true,
           expectedChar: details?.expectedChar ?? null,
         };
@@ -144,6 +161,7 @@ export const useTypingStore = create<TypingState>((set, get) => ({
         finishedAt: null,
         lastKey: null,
         lastKeyAt: null,
+        pressedKeys: {},
       });
       return;
     }
@@ -161,6 +179,7 @@ export const useTypingStore = create<TypingState>((set, get) => ({
         finishedAt: null,
         lastKey: null,
         lastKeyAt: null,
+        pressedKeys: {},
       });
       return;
     }
@@ -172,13 +191,16 @@ export const useTypingStore = create<TypingState>((set, get) => ({
       return;
     }
 
-    let keyToken = code.toLowerCase().replace("key", "");
-    if (code === "Space") keyToken = "space";
-    if (code === "Backspace") keyToken = "backspace";
-    if (code === "ShiftLeft") keyToken = "shift_l";
-    if (code === "ShiftRight") keyToken = "shift_r";
-    if (code === "Enter") keyToken = "enter";
+    if (state.pressedKeys[code] === undefined) {
+      set((state) => ({
+        pressedKeys: {
+          ...state.pressedKeys,
+          [code]: timestamp,
+        }
+      }));
+    }
 
+    const keyToken = getKeyToken(code);
     const isKorean = /[가-힣]/.test(state.targetText);
 
     if (code === "ShiftLeft" || code === "ShiftRight") {
@@ -222,6 +244,64 @@ export const useTypingStore = create<TypingState>((set, get) => ({
         get().finish(timestamp);
       }
     }
+  },
+
+  handlePhysicalKeyRelease: (code, timestamp) => {
+    const { pressedKeys, events } = get();
+    const pressTime = pressedKeys[code];
+    if (pressTime === undefined) return;
+
+    const duration = timestamp - pressTime;
+    const token = getKeyToken(code);
+
+    set((state) => {
+      const nextEvents = [...state.events];
+      const nextPressedKeys = { ...state.pressedKeys };
+      delete nextPressedKeys[code];
+
+      // If the released key is a Shift key and was tapped standalone (it's the last event in the list)
+      if ((token === "shift_l" || token === "shift_r") && nextEvents.length > 0 && nextEvents[nextEvents.length - 1].toKey === token) {
+        nextEvents.pop(); // remove the standalone shift event
+
+        if (nextEvents.length === 0) {
+          return {
+            events: [],
+            pressedKeys: nextPressedKeys,
+            status: "idle",
+            startedAt: null,
+            lastKey: null,
+            lastKeyAt: null,
+          };
+        } else {
+          const newLastEvent = nextEvents[nextEvents.length - 1];
+          let absoluteTimestamp = state.startedAt || 0;
+          for (let i = 1; i < nextEvents.length; i++) {
+            absoluteTimestamp += nextEvents[i].latencyMs;
+          }
+          return {
+            events: nextEvents,
+            pressedKeys: nextPressedKeys,
+            lastKey: newLastEvent.toKey,
+            lastKeyAt: absoluteTimestamp,
+          };
+        }
+      }
+
+      for (let i = nextEvents.length - 1; i >= 0; i--) {
+        if (nextEvents[i].toKey === token) {
+          nextEvents[i] = {
+            ...nextEvents[i],
+            holdDurationMs: Math.round(duration),
+          };
+          break;
+        }
+      }
+
+      return {
+        events: nextEvents,
+        pressedKeys: nextPressedKeys,
+      };
+    });
   },
 
   finish: (timestamp) => {
@@ -321,6 +401,7 @@ export const useTypingStore = create<TypingState>((set, get) => ({
       lastKeyAt: null,
       targetText: state.targetText,
       currentRunId: null, // Resetting explicitly starts a new run
+      pressedKeys: {},
     })),
 
   loadDummyData: async () => {
