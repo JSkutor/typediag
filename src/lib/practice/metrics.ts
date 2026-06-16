@@ -33,6 +33,16 @@ export function calculateMetrics(
   const accuracy = totalEvaluated > 0 ? (correctEvents / totalEvaluated) * 100 : 100;
 
   // 2. Identify outliers and calculate corrected elapsed time
+  const realLatencies = normalized
+    .map((e) => e.latency)
+    .filter((lat) => lat > 0);
+  const normalRealLatencies = realLatencies.filter((lat) => lat <= outlierThresholdMs);
+
+  // If there are transitions, but ALL transitions are outliers (> 3 seconds), it's statistically meaningless.
+  if (realLatencies.length > 0 && normalRealLatencies.length === 0) {
+    return { elapsed_time_ms: 0, cpm: 0, wpm: 0, accuracy };
+  }
+
   const normalLatencies = normalized
     .map((e) => e.latency)
     .filter((lat) => lat <= outlierThresholdMs);
@@ -72,7 +82,7 @@ export function calculateMetrics(
  */
 export function calculateLatencyAfterGap(
   events: GenericKeyEvent[],
-  gapThresholdMs: number = 300000 // 5 minutes default
+  gapThresholdMs: number = 180000 // 3 minutes default
 ): number {
   if (events.length === 0) return 0;
 

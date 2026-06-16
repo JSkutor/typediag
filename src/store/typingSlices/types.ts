@@ -38,7 +38,7 @@ export interface SessionSlice {
   reset: () => void;
   loadDummyData: () => Promise<void>;
   startNewRun: () => void;
-  initializeRun: (now: Date) => Promise<string>;
+  startPage: (now: Date) => Promise<string>;
 }
 
 export type TypingStore = InputSlice & KeystrokeSlice & SessionSlice;

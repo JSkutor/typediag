@@ -56,6 +56,19 @@ describe("metrics module", () => {
       expect(result.elapsed_time_ms).toBe(667);
       expect(result.cpm).toBeGreaterThan(0);
     });
+
+    it("should return zero metrics for statistically meaningless pages (where all real transitions are outliers)", () => {
+      const events = [
+        { fromKey: null, toKey: "a", latencyMs: 0, isCorrect: true },
+        { fromKey: "a", toKey: "b", latencyMs: 5000, isCorrect: true }, // Outlier
+        { fromKey: "b", toKey: "c", latencyMs: 6000, isCorrect: true }, // Outlier
+      ];
+      const result = calculateMetrics(events, 3000);
+      expect(result.elapsed_time_ms).toBe(0);
+      expect(result.cpm).toBe(0);
+      expect(result.wpm).toBe(0);
+      expect(result.accuracy).toBe(100);
+    });
   });
 
   describe("calculateLatencyAfterGap", () => {

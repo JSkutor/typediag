@@ -81,8 +81,8 @@ export const createSessionSlice: StoreSlice<SessionSlice> = (set, get) => ({
     set({ currentRunId: null });
   },
 
-  initializeRun: async (now) => {
-    const runId = await sessionService.initializeRun(now);
+  startPage: async (now) => {
+    const runId = await sessionService.startPage(now);
     set({ currentRunId: runId });
     return runId;
   },

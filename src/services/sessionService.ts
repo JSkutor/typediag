@@ -16,11 +16,11 @@ export class SessionService {
   }
 
   /**
-   * Initializes a run based on the current time and previous run state.
-   * If the last active run is older than 5 minutes, it finalizes it and creates a new one.
+   * Starts a page session based on the current time and previous run state.
+   * If the last active run is older than 3 minutes, it finalizes it and creates a new one.
    * Otherwise, it resumes the existing run.
    */
-  public async initializeRun(now: Date): Promise<string> {
+  public async startPage(now: Date): Promise<string> {
     const latestRun = await db.getLatestRun();
     let runId = "";
     
@@ -35,8 +35,8 @@ export class SessionService {
       const lastActiveStr = pages.length > 0 ? pages[pages.length - 1].finished_at : latestRun.started_at;
       const lastActiveAt = new Date(lastActiveStr).getTime();
       
-      if (now.getTime() - lastActiveAt > 5 * 60 * 1000) {
-        // 5분 이상 지나면 이전 세션을 마감하고 새 세션을 엽니다.
+      if (now.getTime() - lastActiveAt > 3 * 60 * 1000) {
+        // 3분 이상 지나면 이전 세션을 마감하고 새 세션을 엽니다.
         await db.finalizeRun(latestRun.id, lastActiveStr);
         runId = await this.createNewRun(now);
       } else {
@@ -115,16 +115,16 @@ export class SessionService {
     let pageStartedAtStr = new Date(absoluteStartedAt || Date.now()).toISOString();
     const pageFinishedAtStr = new Date(absoluteFinishedAt).toISOString();
 
-    if (rawElapsedTime >= 10 * 60 * 1000) {
-      // 10분 이상 지연된 경우 -> 세션(Run) 분리
+    if (rawElapsedTime >= 5 * 60 * 1000) {
+      // 5분 이상 지연된 경우 -> 세션(Run) 분리
       const existingPages = await db.getPagesForRun(currentRunId);
       const lastPage = existingPages[existingPages.length - 1];
       const prevRun = await db.getRun(currentRunId);
       const finalizeTimeStr = lastPage ? lastPage.finished_at : (prevRun ? prevRun.started_at : new Date().toISOString());
       await db.finalizeRun(currentRunId, finalizeTimeStr);
 
-      // 5분(300,000ms) 이상의 긴 공백 이후의 실타건 latency 합 계산
-      const activeTimeAfterGap = calculateLatencyAfterGap(events, 5 * 60 * 1000);
+      // 3분(180,000ms) 이상의 긴 공백 이후의 실타건 latency 합 계산
+      const activeTimeAfterGap = calculateLatencyAfterGap(events, 3 * 60 * 1000);
       const correctedStartTimestamp = absoluteFinishedAt - activeTimeAfterGap;
       pageStartedAtStr = new Date(correctedStartTimestamp).toISOString();
 

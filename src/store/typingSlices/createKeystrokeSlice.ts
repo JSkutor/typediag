@@ -23,7 +23,7 @@ export const createKeystrokeSlice: StoreSlice<KeystrokeSlice> = (set, get) => ({
       const realStartTime = isRelative
         ? new Date(Date.now() - getPerfNow() + at)
         : new Date(at);
-      runPromise = get().initializeRun(realStartTime);
+      runPromise = get().startPage(realStartTime);
     }
 
     set((state) => {

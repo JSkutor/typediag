@@ -286,9 +286,24 @@ export const db = {
       });
     }
 
-    const avgCpm = Math.round(pages.reduce((sum, p) => sum + p.cpm, 0) / pages.length);
-    const avgWpm = Math.round(pages.reduce((sum, p) => sum + p.wpm, 0) / pages.length);
-    const avgAccuracy = pages.reduce((sum, p) => sum + p.accuracy, 0) / pages.length;
+    const validPages = pages.filter((p) => p.elapsed_time_ms > 0);
+    const pagesToAggregate = validPages.length > 0 ? validPages : pages;
+
+    const totalTimeMs = pagesToAggregate.reduce((sum, p) => sum + p.elapsed_time_ms, 0);
+    const avgCpm = totalTimeMs > 0
+      ? Math.round(pagesToAggregate.reduce((sum, p) => sum + p.cpm * p.elapsed_time_ms, 0) / totalTimeMs)
+      : Math.round(pagesToAggregate.reduce((sum, p) => sum + p.cpm, 0) / pagesToAggregate.length);
+
+    const avgWpm = totalTimeMs > 0
+      ? Math.round(pagesToAggregate.reduce((sum, p) => sum + p.wpm * p.elapsed_time_ms, 0) / totalTimeMs)
+      : Math.round(pagesToAggregate.reduce((sum, p) => sum + p.wpm, 0) / pagesToAggregate.length);
+
+    const totalKeystrokes = pagesToAggregate.reduce((sum, p) => sum + p.key_events.length, 0);
+    const avgAccuracy = totalKeystrokes > 0
+      ? pagesToAggregate.reduce((sum, p) => sum + p.accuracy * p.key_events.length, 0) / totalKeystrokes
+      : (totalTimeMs > 0
+          ? pagesToAggregate.reduce((sum, p) => sum + p.accuracy * p.elapsed_time_ms, 0) / totalTimeMs
+          : pagesToAggregate.reduce((sum, p) => sum + p.accuracy, 0) / pagesToAggregate.length);
 
     return this.updateRun(runId, {
       status: "completed",
@@ -301,7 +316,7 @@ export const db = {
 
   /**
    * Sync active session on app mount:
-   * If there is an unfinished run, finalize it if idle for more than 5 minutes.
+   * If there is an unfinished run, finalize it if idle for more than 3 minutes.
    */
   async syncSessionOnMount(): Promise<void> {
     const latestRun = await this.getLatestRun();
@@ -319,7 +334,7 @@ export const db = {
     const lastActiveAt = new Date(lastActiveStr).getTime();
     const now = Date.now();
 
-    if (now - lastActiveAt > 5 * 60 * 1000) {
+    if (now - lastActiveAt > 3 * 60 * 1000) {
       await this.finalizeRun(latestRun.id, lastActiveStr);
     }
   },

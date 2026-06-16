@@ -25,10 +25,10 @@ describe("SessionService", () => {
     vi.restoreAllMocks();
   });
 
-  describe("initializeRun", () => {
+  describe("startPage", () => {
     it("should create a new run if there is no previous run", async () => {
       const now = new Date("2026-06-16T10:00:00Z");
-      const runId = await sessionService.initializeRun(now);
+      const runId = await sessionService.startPage(now);
       
       const run = await db.getRun(runId);
       expect(run).toBeDefined();
@@ -46,7 +46,7 @@ describe("SessionService", () => {
       });
 
       const now = new Date("2026-06-16T10:01:00Z");
-      const runId = await sessionService.initializeRun(now);
+      const runId = await sessionService.startPage(now);
       
       expect(runId).toBe(pendingRun.id);
       const run = await db.getRun(runId);
@@ -54,7 +54,7 @@ describe("SessionService", () => {
       expect(run?.started_at).toBe(now.toISOString()); // updated started_at
     });
 
-    it("should finalize an in_progress run and create new if older than 5 minutes", async () => {
+    it("should finalize an in_progress run and create new if older than 3 minutes", async () => {
       const pastTime = new Date("2026-06-16T10:00:00Z");
       const oldRun = await db.createRun({
         id: "old_run",
@@ -63,8 +63,8 @@ describe("SessionService", () => {
         started_at: pastTime.toISOString()
       });
 
-      const now = new Date("2026-06-16T10:06:00Z"); // 6 minutes later
-      const runId = await sessionService.initializeRun(now);
+      const now = new Date("2026-06-16T10:04:00Z"); // 4 minutes later
+      const runId = await sessionService.startPage(now);
       
       expect(runId).not.toBe(oldRun.id);
       
@@ -74,11 +74,11 @@ describe("SessionService", () => {
   });
 
   describe("finishPage", () => {
-    it("should save the page and maintain current run if gap is less than 10 minutes", async () => {
+    it("should save the page and maintain current run if gap is less than 5 minutes", async () => {
       const startedAt = new Date("2026-06-16T10:00:00Z").getTime();
       const finishedAt = startedAt + 60000; // 1 minute later
       
-      const runId = await sessionService.initializeRun(new Date(startedAt));
+      const runId = await sessionService.startPage(new Date(startedAt));
       const events = [{ fromKey: "a", toKey: "b", latencyMs: 200, isCorrect: true, keyChar: "b" }];
       
       const newRunId = await sessionService.finishPage(
@@ -95,16 +95,16 @@ describe("SessionService", () => {
       expect(pages.length).toBe(1);
     });
 
-    it("should split run if gap is greater than or equal to 10 minutes", async () => {
+    it("should split run if gap is greater than or equal to 5 minutes", async () => {
       const startedAt = new Date("2026-06-16T10:00:00Z").getTime();
-      // 12 minutes elapsed
-      const finishedAt = startedAt + 12 * 60 * 1000; 
+      // 6 minutes elapsed
+      const finishedAt = startedAt + 6 * 60 * 1000; 
       
-      const runId = await sessionService.initializeRun(new Date(startedAt));
+      const runId = await sessionService.startPage(new Date(startedAt));
       const events = [
         { fromKey: null, toKey: "a", latencyMs: 0 },
-        // 11 minute gap
-        { fromKey: "a", toKey: "b", latencyMs: 11 * 60 * 1000 },
+        // 6 minute gap
+        { fromKey: "a", toKey: "b", latencyMs: 6 * 60 * 1000 },
         { fromKey: "b", toKey: "c", latencyMs: 200 }
       ];
       

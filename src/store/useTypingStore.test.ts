@@ -327,7 +327,7 @@ describe("useTypingStore", () => {
     expect(pages[0].key_events).toHaveLength(2); // Null from_key event + transition event
   });
 
-  it("should create a new run if idle for more than 5 minutes on next session typing start", async () => {
+  it("should create a new run if idle for more than 3 minutes on next session typing start", async () => {
     const { db } = await import("@/utils/db");
     const store = useTypingStore.getState();
     store.setTarget("he");
@@ -343,14 +343,14 @@ describe("useTypingStore", () => {
     const pages1 = await db.getPagesForRun(runId1);
     expect(pages1).toHaveLength(1);
     
-    // 2. Idle for 6 minutes (360,000ms)
+    // 2. Idle for 4 minutes (240,000ms)
     // Manually ensure status is in_progress but keep it in localstorage
     await db.updateRun(runId1, { status: "in_progress", finished_at: null });
     
-    // Start next typing after 6 minutes (timestamp = 361,000)
+    // Start next typing after 4 minutes (timestamp = 250,000)
     store.reset();
     store.setTarget("he");
-    store.handlePhysicalKeyPress("KeyH", false, 370000);
+    store.handlePhysicalKeyPress("KeyH", false, 250000);
     
     // Wait for async init run
     await new Promise((resolve) => setTimeout(resolve, 20));
@@ -363,7 +363,7 @@ describe("useTypingStore", () => {
     expect(prevRun?.status).toBe("completed");
   });
 
-  it("should split and finalize session if typing takes more than 10 minutes", async () => {
+  it("should split and finalize session if typing takes more than 5 minutes", async () => {
     const { db } = await import("@/utils/db");
     const store = useTypingStore.getState();
     store.setTarget("he");
@@ -374,8 +374,8 @@ describe("useTypingStore", () => {
     
     const runId1 = useTypingStore.getState().currentRunId!;
     
-    // Press 'e' at 1,000ms + 11 minutes (661,000ms)
-    store.handlePhysicalKeyPress("KeyE", false, 662000);
+    // Press 'e' at 1,000ms + 5 minutes (301,000ms)
+    store.handlePhysicalKeyPress("KeyE", false, 302000);
     
     await new Promise((resolve) => setTimeout(resolve, 20));
     
