@@ -10,7 +10,7 @@
  */
 
 import type { KeyEvent } from "./types";
-import { filterBackspaces, filterOutliers } from "./model";
+import { filterInterruptedTransitions, filterOutliers } from "./model";
 import { getTheta, THETA_ORDER } from "./theta";
 
 /** A single cylindrical vector from a From Key to the Center (To) Key. */
@@ -37,7 +37,7 @@ export interface GlobalCylindricalMax {
 
 /** Compute the absolute maximum r (frequency) and z (latency) across all key pairs in the dataset. */
 export function getGlobalCylindricalMax(events: KeyEvent[]): GlobalCylindricalMax {
-  const cleaned = filterBackspaces(events);
+  const cleaned = filterInterruptedTransitions(events);
   const [validEvents] = filterOutliers(cleaned);
   const buckets = new Map<string, number[]>();
   
@@ -77,7 +77,7 @@ export function buildCylindricalVectors(
   globalMax?: GlobalCylindricalMax
 ): CylindricalVector[] {
   const center = centerKey.toLowerCase();
-  const cleaned = filterBackspaces(events);
+  const cleaned = filterInterruptedTransitions(events);
   const [validEvents] = filterOutliers(cleaned);
 
   // Bucket latencies by fromKey
@@ -127,7 +127,7 @@ export function buildCylindricalVectors(
  * sorted alphabetically. These are valid center keys for cylindrical view.
  */
 export function getAvailableCenterKeys(events: KeyEvent[]): string[] {
-  const cleaned = filterBackspaces(events);
+  const cleaned = filterInterruptedTransitions(events);
   const keys = new Set<string>();
   for (const ev of cleaned) {
     const key = ev.toKey.toLowerCase();

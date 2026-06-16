@@ -7,6 +7,7 @@ import { evaluateKeystroke } from "@/utils/typingEvaluator";
 import { db } from "@/utils/db";
 import { calculateMetrics, calculateLatencyAfterGap } from "@/lib/practice/metrics";
 import targets from "@/data/targets.json";
+import { sessionService } from "@/services/sessionService";
 
 export type SessionStatus = "idle" | "running" | "done";
 
@@ -311,7 +312,6 @@ export const useTypingStore = create<TypingState>((set, get) => ({
     const finishedAt = timestamp ?? Date.now();
     set({ status: "done", finishedAt });
 
-    // Save typing result (Page) to the local database asynchronously
     (async () => {
       const { runInitPromise } = get();
       if (runInitPromise) {
@@ -319,73 +319,20 @@ export const useTypingStore = create<TypingState>((set, get) => ({
       }
       
       let runId = get().currentRunId;
-      if (!runId) return;
+      if (!runId || !startedAt) return;
 
-      const isKorean = /[가-힣]/.test(targetText);
-      const targetTextObj = targets.find((t) => t.content === targetText);
-      const targetTextId = targetTextObj ? targetTextObj.id : "unknown";
-      const language = targetTextObj ? targetTextObj.language : (isKorean ? "ko" : "en");
+      const newRunId = await sessionService.finishPage(
+        runId,
+        targetText,
+        typedText,
+        events,
+        startedAt,
+        finishedAt
+      );
 
-      const rawElapsedTime = startedAt ? (finishedAt - startedAt) : 0;
-      let pageStartedAtStr = new Date(startedAt || Date.now()).toISOString();
-      const pageFinishedAtStr = new Date(finishedAt).toISOString();
-
-      if (rawElapsedTime >= 10 * 60 * 1000) {
-        // 10분 이상 지연된 경우 -> 세션(Run) 분리
-        const existingPages = await db.getPagesForRun(runId);
-        const lastPage = existingPages[existingPages.length - 1];
-        const prevRun = await db.getRun(runId);
-        const finalizeTimeStr = lastPage ? lastPage.finished_at : (prevRun ? prevRun.started_at : new Date().toISOString());
-        await db.finalizeRun(runId, finalizeTimeStr);
-
-        // 5분(300,000ms) 이상의 긴 공백 이후의 실타건 latency 합 계산
-        const activeTimeAfterGap = calculateLatencyAfterGap(events, 5 * 60 * 1000);
-        const correctedStartTimestamp = finishedAt - activeTimeAfterGap;
-        pageStartedAtStr = new Date(correctedStartTimestamp).toISOString();
-
-        const nextRunId = `run_${Math.random().toString(36).substring(2, 11)}_${Date.now()}`;
-        await db.createRun({
-          id: nextRunId,
-          user_id: "user_001",
-          status: "in_progress",
-          started_at: pageStartedAtStr,
-        });
-
-        runId = nextRunId;
-        set({ currentRunId: runId });
+      if (newRunId !== runId) {
+        set({ currentRunId: newRunId });
       }
-
-      // metrics 모듈을 사용하여 보정된 WPM/CPM, 정확도 계산
-      const metrics = calculateMetrics(events, 3000);
-
-      const existingPages = await db.getPagesForRun(runId);
-      const order_index = existingPages.length;
-
-      const key_events = events.map((e) => ({
-        from_key: e.fromKey,
-        to_key: e.toKey,
-        key_char: e.keyChar || "",
-        latency: e.latencyMs,
-        hold_duration_ms: e.holdDurationMs ?? 50,
-        is_correct: e.isCorrect ?? true,
-        expected_char: e.expectedChar ?? null,
-      }));
-
-      await db.createPage({
-        id: `page_${Math.random().toString(36).substring(2, 11)}_${Date.now()}`,
-        run_id: runId,
-        target_text_id: targetTextId,
-        order_index,
-        language,
-        typed_text: typedText,
-        wpm: metrics.wpm,
-        cpm: metrics.cpm,
-        accuracy: metrics.accuracy,
-        started_at: pageStartedAtStr,
-        finished_at: pageFinishedAtStr,
-        elapsed_time_ms: metrics.elapsed_time_ms,
-        key_events,
-      });
     })();
   },
 
@@ -426,51 +373,7 @@ export const useTypingStore = create<TypingState>((set, get) => ({
   },
 
   initializeRun: async (now) => {
-    const latestRun = await db.getLatestRun();
-    let runId = "";
-    
-    if (latestRun && latestRun.status === "pending") {
-      await db.updateRun(latestRun.id, {
-        status: "in_progress",
-        started_at: now.toISOString(),
-      });
-      runId = latestRun.id;
-    } else if (latestRun && latestRun.status === "in_progress") {
-      const pages = await db.getPagesForRun(latestRun.id);
-      const lastActiveStr = pages.length > 0 ? pages[pages.length - 1].finished_at : latestRun.started_at;
-      const lastActiveAt = new Date(lastActiveStr).getTime();
-      
-      if (now.getTime() - lastActiveAt > 5 * 60 * 1000) {
-        // 5분 이상 지나면 이전 세션을 마감하고 새 세션을 엽니다.
-        await db.finalizeRun(latestRun.id, lastActiveStr);
-        const newRun = await db.createRun({
-          id: `run_${Math.random().toString(36).substring(2, 11)}_${Date.now()}`,
-          user_id: "user_001",
-          status: "pending",
-          started_at: now.toISOString(),
-        });
-        await db.updateRun(newRun.id, {
-          status: "in_progress",
-          started_at: now.toISOString(),
-        });
-        runId = newRun.id;
-      } else {
-        runId = latestRun.id;
-      }
-    } else {
-      const newRun = await db.createRun({
-        id: `run_${Math.random().toString(36).substring(2, 11)}_${Date.now()}`,
-        user_id: "user_001",
-        status: "pending",
-        started_at: now.toISOString(),
-      });
-      await db.updateRun(newRun.id, {
-        status: "in_progress",
-        started_at: now.toISOString(),
-      });
-      runId = newRun.id;
-    }
-    
+    const runId = await sessionService.initializeRun(now);
     set({ currentRunId: runId });
     return runId;
   },

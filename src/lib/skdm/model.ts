@@ -46,7 +46,7 @@ export function sigmoidLatency(latencyMs: number, maxClipMs: number): number {
  * Remove typo transitions using backspaces as anchors, keeping only the
  * clean stretches of normal typing.
  */
-export function filterBackspaces(events: KeyEvent[]): KeyEvent[] {
+export function filterInterruptedTransitions(events: KeyEvent[]): KeyEvent[] {
   // Logical stack tracking text assembly: [toKey, originating event | null].
   const stack: Array<[string, KeyEvent | null]> = [];
 
@@ -352,7 +352,7 @@ export function runPipeline(
   events: KeyEvent[],
   layout: Record<string, KeyPosition>,
 ): Record<string, KeyResult> {
-  const cleanedEvents = filterBackspaces(events);
+  const cleanedEvents = filterInterruptedTransitions(events);
   const [validEvents, maxClipMs] = filterOutliers(cleanedEvents);
   const pairStats = aggregatePairs(validEvents, maxClipMs);
   let results = summarizeKeys(pairStats, layout, validEvents);

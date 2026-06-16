@@ -13,7 +13,7 @@
 import type { KeyEvent } from "./types";
 import type { CylindricalVector } from "./cylindrical";
 import { KEYBOARD_META, getHand, getFinger, getMetaRow, isShiftCombinable } from "./keyboardMeta";
-import { filterBackspaces, filterOutliers } from "./model";
+import { filterInterruptedTransitions, filterOutliers } from "./model";
 
 // ---------------------------------------------------------------------------
 // 1. Shift Overhead
@@ -53,7 +53,7 @@ export interface ShiftOverheadResult {
  *   events[j].toKey = targetKey (lowercase)
  *   events[j].fromKey is an alphabetic key (not shift/backspace/etc.)
  *
- * Both use the same pre-processing (filterBackspaces + filterOutliers) so
+ * Both use the same pre-processing (filterInterruptedTransitions + filterOutliers) so
  * the comparison is apples-to-apples.
  */
 export function getShiftOverhead(
@@ -302,7 +302,7 @@ export function getPhysicalVariance(
 
   if (!targetMeta) return result;
 
-  const cleaned = filterBackspaces(rawEvents);
+  const cleaned = filterInterruptedTransitions(rawEvents);
   const [validEvents] = filterOutliers(cleaned);
 
   const sameRowLats: number[] = [];

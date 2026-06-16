@@ -5,7 +5,7 @@ import { buildLayout } from "./layout";
 import {
   aggregatePairs,
   buildAdjacency,
-  filterBackspaces,
+  filterInterruptedTransitions,
   filterOutliers,
   runPipeline,
   sigmoidLatency,
@@ -56,7 +56,7 @@ describe("layout parity", () => {
 describe("Delaunay adjacency parity", () => {
   it("produces the same neighbour graph as scipy", () => {
     const layout = buildLayout();
-    const cleaned = filterBackspaces(events);
+    const cleaned = filterInterruptedTransitions(events);
     const [valid, maxClipMs] = filterOutliers(cleaned);
     const pairStats = aggregatePairs(valid, maxClipMs);
     const results = summarizeKeys(pairStats, layout, valid);
