@@ -1,4 +1,5 @@
 import targets from "@/data/targets.json";
+import { safeParseStorage, safeSetStorage } from "./storage";
 
 // --- DB Entity Definitions matching db_schema.md ---
 
@@ -58,8 +59,8 @@ export interface PageRow {
 
 // --- LocalStorage Keys ---
 const KEYS = {
-  RUNS: "typediag_db_runs",
-  PAGES: "typediag_db_pages",
+  RUNS: "typediag_db_runs_v1",
+  PAGES: "typediag_db_pages_v1",
 };
 
 // --- Mock User ---
@@ -73,14 +74,11 @@ const MOCK_USER: UserRow = {
 
 // --- Helper Functions to read/write localStorage ---
 function getStored<T>(key: string, defaultVal: T): T {
-  if (typeof window === "undefined") return defaultVal;
-  const data = localStorage.getItem(key);
-  return data ? JSON.parse(data) : defaultVal;
+  return safeParseStorage(key, defaultVal);
 }
 
 function setStored<T>(key: string, value: T): void {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(key, JSON.stringify(value));
+  safeSetStorage(key, value);
 }
 
 // --- Dev Server Sync Helpers ---

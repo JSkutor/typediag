@@ -21,9 +21,9 @@ export default function WorkspaceView({ lang, tab }: { lang: string; tab: string
 
   // Initialize practice text and sync session
   useEffect(() => {
-    (async () => {
-      await db.syncSessionOnMount();
-    })();
+    db.syncSessionOnMount().catch((error) => {
+      console.error("Failed to sync session on mount:", error);
+    });
     if (targets.length > 0) {
       setTarget(targets[0]);
     }
