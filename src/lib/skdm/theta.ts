@@ -2,8 +2,7 @@ import thetaOrderJson from "./theta_order.json";
 import { resolveJsonDefault } from "@/utils/resolveJsonDefault";
 
 export type ThetaOrderData = Record<string, string[]>;
-export const THETA_ORDER: ThetaOrderData =
-  resolveJsonDefault<ThetaOrderData>(thetaOrderJson);
+export const THETA_ORDER: ThetaOrderData = resolveJsonDefault<ThetaOrderData>(thetaOrderJson);
 
 /**
  * Returns the angular position (theta in radians) of `fromKey` relative to `centerKey`.
