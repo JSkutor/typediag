@@ -76,14 +76,20 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
   // Auto-select first center key when data becomes available
   useEffect(() => {
     if (!selectedTo && centerKeys.length > 0) {
-      setSelectedTo(centerKeys[0]);
+      const timer = setTimeout(() => {
+        setSelectedTo(centerKeys[0]);
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [centerKeys, selectedTo]);
 
   // Auto-select first from key when center key changes
   useEffect(() => {
     if (fromKeys.length > 0 && !fromKeys.includes(selectedFrom)) {
-      setSelectedFrom(fromKeys[0]);
+      const timer = setTimeout(() => {
+        setSelectedFrom(fromKeys[0]);
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [fromKeys, selectedFrom]);
 

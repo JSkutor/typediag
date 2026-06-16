@@ -94,7 +94,18 @@ async function getLocalDbData(): Promise<{ runs: RunRow[]; pages: PageRow[] }> {
   return res.json();
 }
 
-async function fetchDbApi<T>(action: string, payload: Record<string, any> = {}): Promise<T> {
+type DbApiPayloadMap = {
+  createRun: { runData: Omit<RunRow, "created_at" | "finished_at" | "cpm" | "wpm" | "accuracy"> };
+  deleteRun: { runId: string };
+  updateRun: { runId: string; updates: Partial<Omit<RunRow, "id" | "created_at">> };
+  createPage: { pageData: Omit<PageRow, "created_at"> };
+  finalizeRun: { runId: string; finishedAtStr?: string };
+};
+
+async function fetchDbApi<T, K extends keyof DbApiPayloadMap = keyof DbApiPayloadMap>(
+  action: K,
+  payload: DbApiPayloadMap[K],
+): Promise<T> {
   const res = await fetch("/api/db", {
     method: "POST",
     headers: {

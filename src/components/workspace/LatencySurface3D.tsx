@@ -37,7 +37,10 @@ export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
         setShouldRenderThree(true);
       }, 350);
     } else {
-      setShouldRenderThree(false);
+      // Use setTimeout to avoid synchronous setState inside useEffect
+      timer = setTimeout(() => {
+        setShouldRenderThree(false);
+      }, 0);
     }
     return () => {
       clearTimeout(timer);

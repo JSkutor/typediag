@@ -32,7 +32,7 @@ export const createSessionSlice: StoreSlice<SessionSlice> = (set, get) => ({
         await runInitPromise;
       }
 
-      let runId = get().currentRunId;
+      const runId = get().currentRunId;
       if (!runId || !startedAt) return;
 
       const newRunId = await sessionService.finishPage(

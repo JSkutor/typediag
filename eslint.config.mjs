@@ -13,8 +13,27 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    "skdm/**",
   ]),
   eslintConfigPrettier,
+  {
+    rules: {
+      "@typescript-eslint/no-explicit-any": "error",
+    },
+  },
+  {
+    files: [
+      "**/*.test.ts",
+      "**/*.test.tsx",
+      "**/__tests__/**/*",
+      "**/__fixtures__/**/*",
+      "**/*.spec.ts",
+      "**/*.spec.tsx",
+    ],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "warn",
+    },
+  },
 ]);
 
 export default eslintConfig;

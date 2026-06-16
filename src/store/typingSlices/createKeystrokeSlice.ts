@@ -1,4 +1,4 @@
-import { StoreSlice, KeystrokeSlice } from "./types";
+import { StoreSlice, KeystrokeSlice, TypingStore } from "./types";
 import { getKeyToken } from "./utils";
 import type { KeyEvent } from "@/lib/skdm";
 
@@ -25,7 +25,7 @@ export const createKeystrokeSlice: StoreSlice<KeystrokeSlice> = (set, get) => ({
     }
 
     set((state) => {
-      const next: Partial<any> = {
+      const next: Partial<TypingStore> = {
         lastKey: token,
         lastKeyAt: at,
       };
