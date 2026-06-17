@@ -42,11 +42,12 @@ src/
 ├── lib/                    # 핵심 비즈니스 로직 및 계산 모델
 │   ├── skdm/               # ★ SKDM 3D 수학 모델 및 분석 파이프라인
 │   ├── practice/           # WPM, CPM, 정확도 등 기본 타자 메트릭 계산
-│   └── keyboard/           # 물리 키보드 레이아웃 및 키 입력 정규화
+│   ├── keyboard/           # 물리 키보드 레이아웃 및 키 입력 정규화
+│   └── api/                # API 페이로드 검증 Zod 스키마
 ├── services/               # 외부 연동 및 타이핑 세션 관리 싱글톤 서비스
 ├── store/                  # Zustand 상태 저장소
 │   └── typingSlices/       # 세션, 키입력 상태별 슬라이스 분할 디렉터리
-└── utils/                  # DB 입출력, 스토리지 파싱, 계산 보조 유틸리티
+└── utils/                  # DB 입출력, 스토리지 파싱, MVSA(오타 판별), 계산 보조 유틸리티
 ```
 
 ---
@@ -62,6 +63,7 @@ src/
 | **키보드 레이아웃**     | `src/lib/skdm/layout.ts`         | 물리 키보드 좌표 매핑 정보.                                                   |
 | **데이터베이스 스키마** | `docs/DB_SCHEMA.md`              | API와 DB 저장 객체는 **snake_case** 사용 (TypeScript 런타임은 **camelCase**). |
 | **세션 생명주기**       | `src/services/sessionService.ts` | 타자 연습 세션 저장 및 저장 주기(idle 3분, gap 5분) 비즈니스 로직.            |
+| **MVSA 알고리즘**       | `src/utils/mvsa.ts`              | 실시간 한글 자소 대조 및 오타 판별 정렬 엔진. `docs/MVSA_ALGORITHM.md` 명세와 싱크 필요. |
 
 ---
 

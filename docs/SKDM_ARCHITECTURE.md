@@ -1,169 +1,320 @@
-# Spatial Keystroke Dynamics Model (SKDM) Architecture
+# SKDM (Spatial Keystroke Dynamics Model) 아키텍처
 
-This document describes the Spatial Keystroke Dynamics Model (SKDM), which visualizes and analyzes typing habits and latency in a 3D space.
+SKDM은 타건 이벤트 스트림 `{fromKey → toKey, latencyMs}`를 키보드 물리 좌표 위 3D 지연 지형으로 변환하는 수학 파이프라인입니다.
 
-## 1. System Overview
-
-The model is divided into two primary visualizations:
-
-1. **Key-Centric Vector Model (Cylindrical)**: A flower-like shape representing incoming keystrokes for a specific key.
-2. **Global Latency Surface**: A 3D topographical map representing the overall typing speed and bottlenecks across the entire keyboard.
-
-### Core Data Flow
-
-Every keystroke generates an event: `{From Key, To Key, Latency (ms)}`.
-These events are aggregated and transformed when the user enters "Diagnostics Mode" (e.g., by pressing Tab).
+| 항목 | 정본 |
+| :--- | :--- |
+| TS 수학 모델 | `src/lib/skdm/model.ts` — `runPipeline` 및 단계별 함수 |
+| 상수 | `src/lib/skdm/config.ts` |
+| 타입 | `src/lib/skdm/types.ts` |
+| 레이아웃 좌표 | `src/lib/skdm/layout.ts` — `buildLayout` |
+| 통계 헬퍼 | `src/lib/skdm/stats.ts` — NumPy 호환 mean/median/std/percentile |
+| 원통 좌표 | `src/lib/skdm/cylindrical.ts`, `src/lib/skdm/theta.ts`, `theta_order.json` |
+| 키 메타 (손·손가락) | `src/lib/skdm/keyboardMeta.ts` |
+| 진단 지표 | `src/lib/skdm/diagnostics.ts` |
+| Python 레거시 | `skdm/model.py`, `skdm/config.py`, `skdm/layout.py` |
+| 패리티 검증 | `src/lib/skdm/model.parity.test.ts`, `__fixtures__/python-reference.json` |
+| 이벤트 수집 | `src/store/typingSlices/createKeystrokeSlice.ts` |
+| 진단 진입 | `src/hooks/useDiagnosticsTransition.ts` |
+| Surface 3D | `src/components/workspace/Surface3DManager.ts`, `LatencySurface3D.tsx` |
+| Cylindrical 3D | `src/components/workspace/CylindricalVector3D.tsx`, `geometryUtils.ts` |
+| 2D 요약 패널 | `src/components/practice/ResultsPanel.tsx` |
 
 ---
 
-## 2. Data Processing Pipeline
+## 1. 개요
+
+진단 UI는 두 가지 뷰로 나뉩니다.
+
+| 뷰 | `diagnosticMode` | 데이터 소스 | 역할 |
+| :--- | :--- | :--- | :--- |
+| **Global Latency Surface** | `"surface"` | `runPipeline` → `KeyResult.zSmoothed` + Delaunay `triangles` | 키보드 전체 지연 지형 (macro) |
+| **Cylindrical Vector** | `"cylindrical"` | `buildCylindricalVectors(events, centerKey)` | 특정 To Key로 들어오는 From Key 전이 (micro) |
+
+Tab 등으로 진단 모드에 들어가면 `useDiagnosticsTransition`이 이벤트를 모아 `runPipeline`을 실행하고, `useWorkspaceStore.setAnalysisData(results, triangles, events)`에 결과를 넣습니다.
+
+---
+
+## 2. 입력 데이터 (`KeyEvent`)
+
+```typescript
+export interface KeyEvent {
+  fromKey: string | null;
+  toKey: string;
+  latencyMs: number;
+  keyChar?: string;
+  holdDurationMs?: number | null;
+  isCorrect?: boolean | null;
+  expectedChar?: string | null;
+}
+```
+
+### 이벤트 기록 (`createKeystrokeSlice.recordKey`)
+
+- 세션 첫 키: `{ fromKey: null, toKey: token, latencyMs: 0 }`
+- 이후: `{ fromKey: lastKey, toKey: token, latencyMs: at - lastKeyAt }`
+- `isCorrect`, `expectedChar`는 `createInputSlice`가 MVSA(`runMvsa`) 결과로 `recordKey`에 전달
+- `holdDurationMs`는 `handlePhysicalKeyRelease`에서 해당 `toKey` 이벤트에 기록
+- Shift 단독 입력 후 릴리스 시 이벤트 스택 정리 로직 있음 (`shift_l` / `shift_r`)
+
+### 진단 시 이벤트 소스 (`useDiagnosticsTransition`)
+
+1. `currentRunId`가 있으면 DB에서 해당 run의 모든 page `key_events` 병합
+2. 없거나 비어 있으면 `useTypingStore`의 `events` 배열 사용
+
+---
+
+## 3. 파이프라인 (`runPipeline`)
+
+```typescript
+export function runPipeline(
+  events: KeyEvent[],
+  layout: Record<string, KeyPosition>,
+): Record<string, KeyResult>
+```
 
 ```mermaid
 flowchart TD
-    %% Styling Definitions %%
-    classDef step fill:#1e293b,stroke:#3b82f6,stroke-width:2px,color:#f8fafc;
-    classDef startend fill:#0f172a,stroke:#10b981,stroke-width:2px,color:#f8fafc;
-
-    Start([Input: Raw Keystroke Events]):::startend
-    --> Step1["1. Filter Backspaces<br>Pop typos and ignore recovery transitions"]:::step
-    --> Step2["2. Filter Outliers<br>Hard cutoff at 2000ms<br>Dynamic Log IQR cutoff for >1500 events (min 500ms)"]:::step
-    --> Step3["3. Aggregate Pairs & Sigmoid<br>Scale latency to [0, 1] sigmoid<br>Calculate avg z and frequency per pair"]:::step
-    --> Step4["4. Summarize Keys<br>Weighted average of incoming transitions<br>Total frequency = Confidence"]:::step
-    --> Step5["5. Laplacian Smoothing<br>Delaunay triangulation graph<br>Interpolate low confidence keys with neighbors"]:::step
-    --> End([Output: Final smoothed z and stdev per key]):::startend
+    Raw([KeyEvent[]])
+    --> F1["filterInterruptedTransitions"]
+    --> F2["filterOutliers → maxClipMs"]
+    --> F3["aggregatePairs(validEvents, maxClipMs)"]
+    --> F4["summarizeKeys(pairStats, layout, validEvents)"]
+    --> F5["smooth(results)"]
+    --> Out([Record key → KeyResult])
 ```
 
-### Pipeline Steps:
+### 3.1. `filterInterruptedTransitions`
 
-1. **Backspace Filtering (Interrupted Transition Filter)**:
-   Removes typos and correction transitions. We run a stack-based filter over the raw key events:
-   - **State Machine**:
-     - Iterate through each event `(fKey, sKey)`.
-     - If `sKey` is a backspace, pop the top of the stack (deleting the last valid input).
-     - If `fKey` is a backspace or a control key (e.g., `Shift`, `Ctrl` - length $> 1$ except `space`), or if `sKey` is a control key, push `[sKey, null]` to the stack to break the transition chain.
-     - Otherwise, push `[sKey, event]` to the stack.
-   - Finally, we filter the stack to collect only the non-null events. This ensures that typing recovery pauses and command keys do not skew typing speed statistics.
+Python `filter_backspaces`와 동일 로직. **스택 기반이 아님.**
 
-2. **Outlier Filtering & Blending**:
-   Eliminates pauses or long delays using a hybrid threshold. Let $N$ be the number of events after hard-filtering:
-   - **Hard Cutoff**: Discard any event with latency $> 2000 \text{ ms}$.
-   - **Dynamic Threshold (Log-IQR)**:
-     If $N \ge 50$ (start event threshold), compute the log-transformed latencies $L = \ln(\text{latencies})$. Let $Q_1$ and $Q_3$ be the 25th and 75th percentiles of $L$:
-     \[ \text{IQR} = Q*3 - Q_1 \]
-     \[ T*{\text{IQR}} = e^{Q*3 + 1.5 \times \text{IQR}} \]
-     We apply a minimum bound guard: $T*{\text{dynamic}} = \max(T\_{\text{IQR}}, 500 \text{ ms})$.
-   - **Transition Blending**:
-     To avoid threshold jumps as data grows, we blend the bounds linearly between $50$ and $1500$ events:
-     \[
-     w = \frac{N - 50}{1500 - 50}
-     \]
-     \[
-     T*{\text{final}} = (1 - w) \times 2000 \text{ ms} + w \times T*{\text{dynamic}} \quad (\text{for } 50 \le N < 1500)
-     \]
-     If $N \ge 1500$, $T_{\text{final}} = T_{\text{dynamic}}$.
+각 이벤트에 대해:
 
-3. **Pair Aggregation & Sigmoid Scaling**:
-   Calculates the average sigmoid latency for each physical key pair $(FromKey \to ToKey)$.
-   - **Sigmoid Formula**:
-     For a latency value $t$ (ms) and the upper bound limit $C = T_{\text{final}}$:
-     First, clamp $t$ to $t' = \max(0, \min(C, t))$.
-     Let the curve center be $t_0 = 0.4 \times C$, and the steepness denominator be $D = C - t_0$. The scaling factor $s$ is:
-     \[
-     s = \begin{cases}
-     \frac{4.6}{D} & \text{if } D > 0 \\
-     0.02 & \text{otherwise}
-     \end{cases}
-     \]
-     The sigmoid value $z(t) \in [0, 1]$ is computed as:
-     \[
-     z(t) = \frac{1}{1 + e^{-s(t' - t_0)}}
-     \]
-   - For each distinct key pair, we calculate the arithmetic mean of $z(t)$ across all occurrences.
+- `isControlKey(k)`: `k.length > 1 && k !== "space"`
+- `toKey` 또는 `fromKey`가 control key이면 **해당 전이 제외** (shift, backspace 토큰 등)
+- `isCorrect === false`이면 **제외** (MVSA 오타)
+- 그 외는 유지 — 백스페이스로 나중에 지워진 글자라도, 입력 당시 `isCorrect === true`이면 통계에 포함
 
-4. **Key Summarization**:
-   Aggregates incoming transitions to form a representative latency $Z_i$ for key $i$.
-   Let $S(i)$ be the set of incoming transitions targeting key $i$. The summary $z_i$ is a frequency-weighted average:
-   \[
-   z*i = \frac{\sum*{s \in S(i)} w*s \cdot z_s}{\sum*{s \in S(i)} w_s} \quad \text{where } w_s = (\text{frequency}\_s)^P
-   \]
-   By default, $P = 1.0$. The total raw frequency $\sum \text{frequency}_s$ represents the **confidence** $c_i$ of that key's statistics.
+### 3.2. `filterOutliers`
 
-5. **Laplacian Smoothing**:
-   Propagates latency to neighbors and fills in keys with low confidence.
-   - **Delaunay Graph**: We build an undirected graph $G = (V, E)$ based on the 2D physical keyboard layout coordinates $(x, y)$.
-   - **Confidence Weighting**: Let $\tilde{c}_i = c_i / \max_{j \in V}(c_j)$ be the normalized confidence. The smoothing factor $\alpha_i$ is defined as:
-     \[
-     \alpha_i = \begin{cases}
-     0.8 & \text{if } \tilde{c}\_i = 0 \\
-     0.2 \times (1.0 - \tilde{c}\_i) & \text{otherwise}
-     \end{cases}
-     \]
-   - **Smoothing Iterations**: Over $K = 2$ iterations, we update the smoothed values $z_i^{(k)}$ and standard deviations $\sigma_i^{(k)}$ using the mean of the neighbor keys $N(i)$:
-     \[
-     z*i^{(k)} = (1.0 - \alpha_i) z_i^{(k-1)} + \alpha_i \left( \frac{1}{|N(i)|} \sum*{j \in N(i)} z*j^{(k-1)} \right)
-     \]
-     \[
-     \sigma_i^{(k)} = (1.0 - \alpha_i) \sigma_i^{(k-1)} + \alpha_i \left( \frac{1}{|N(i)|} \sum*{j \in N(i)} \sigma_j^{(k-1)} \right)
-     \]
+상수 (`config.ts`):
 
----
+| 상수 | 값 |
+| :--- | :--- |
+| `OUTLIER_HARD_CUTOFF_MS` | 2000 |
+| `OUTLIER_BLEND_START_EVENTS` | 50 |
+| `OUTLIER_BLEND_END_EVENTS` | 1500 |
+| `OUTLIER_IQR_MULTIPLIER` | 1.5 |
+| `OUTLIER_IQR_MIN_UPPER_BOUND_MS` | 500 |
 
-## 3. Key-Centric Vector Model (Cylindrical)
+단계:
 
-### Concept
+1. `latencyMs > 2000` 이벤트 제거
+2. 남은 개수 `N < 50` → 상한 없이 통과, `maxClipMs` = 유효 이벤트 latency 최댓값 (없으면 2000)
+3. `N ≥ 50` → `latencyMs > 0`만 log 변환 후 Q1, Q3, IQR 계산  
+   `T_IQR = exp(Q3 + 1.5 × IQR)`, `T_dynamic = max(T_IQR, 500)`
+4. 블렌딩:
+   - `N ≥ 1500` → `finalUpperBound = T_dynamic`
+   - `50 ≤ N < 1500` → `w = (N - 50) / (1500 - 50)`,  
+     `finalUpperBound = (1 - w) × 2000 + w × T_dynamic`
+5. `latencyMs > finalUpperBound` 제거
+6. 반환: `[validEvents, maxClipMs]` — `maxClipMs`는 유효 이벤트 latency 최댓값 (없으면 `finalUpperBound`)
 
-Visualizes the relationship between a specific target key (**To Key**) and all keys pressed immediately before it (**From Keys**).
+### 3.3. `sigmoidLatency` / `aggregatePairs`
 
-Each key has an independent 3D cylindrical coordinate system:
+클립 상한 `C = maxClipMs`:
 
-- **Origin**: The target key (To Key).
-- **Vector $\vec{V}_{k} = (r, \theta, z)$**:
-  - **$\theta$ (Direction)**: The identity of the From Key, spaced uniformly over 360°.
-  - **$z$ (Height)**: The raw average latency (in ms, no sigmoid applied) of the transition.
-  - **$r$ (Radius)**: The frequency of this specific key transition.
+- `t' = clamp(t, 0, C)`
+- `t0 = 0.4 × C`, `D = C - t0`
+- `steepness = D > 0 ? 4.6 / D : 0.02`
+- `z(t) = 1 / (1 + exp(-steepness × (t' - t0)))`
 
-### UI Interaction
+`fromKey === null` 이벤트는 쌍 집계에서 제외.  
+동일 `(fromKey, toKey)` 쌍의 `z` 값 산술 평균 → `PairStat { frequency, z }`.
 
-When a user clicks a key in Diagnostics Mode, the view morphs into this fan-like "flower" shape. It helps diagnose _why_ a key is slow by highlighting specific incoming transitions that are causing bottlenecks.
+### 3.4. `summarizeKeys`
+
+레이아웃의 각 키(단, `EXCLUDE_ROWS`에 포함된 row 제외 — 기본값 row `0` 숫자열)에 대해:
+
+**들어오는 쌍이 없을 때**
+
+- `z` = 세션 전체 pair `z`의 median (`sessionMedianZ`)
+- `confidence` = 0
+- `stdev` = 세션 키별 latency stdev의 median (`sessionMedianStdev`)
+
+**들어오는 쌍이 있을 때**
+
+- `z` = 빈도 가중 평균: `weight = frequency ** FREQUENCY_WEIGHT_POWER` (기본 `P = 1.0`)
+- `confidence` = 들어오는 쌍 frequency 합
+- `stdev` = 해당 `toKey`로 들어온 raw `latencyMs`의 표준편차 (샘플 ≥ 2), 아니면 `sessionMedianStdev`
+
+초기 `zSmoothed`, `stdevSmoothed`는 0 — `smooth`에서 채움.
+
+### 3.5. `smooth` (Delaunay + Graph Laplacian)
+
+- `keys.length < 3` → `zSmoothed = z`, `stdevSmoothed = stdev` 후 반환
+- `triangulate(results)` → `d3-delaunay`로 `(x, y)` Delaunay, `buildAdjacency`로 이웃 그래프
+- `normConf[i] = confidence[i] / max(confidence)` (max가 0이면 1로 나눔)
+- `LAPLACIAN_ITERATIONS = 2` 회 반복:
+
+```
+alpha = LAPLACIAN_SMOOTHING_ALPHA * (1 - normConf[i])   // 기본 ALPHA = 0.2
+if normConf[i] === 0: alpha = 0.8
+
+z_new[i]     = (1 - alpha) * z[i]     + alpha * mean(z[neighbors])
+stdev_new[i] = (1 - alpha) * stdev[i] + alpha * mean(stdev[neighbors])
+```
+
+결과를 `KeyResult.zSmoothed`, `stdevSmoothed`에 기록.
+
+### 3.6. `triangulate`
+
+`runPipeline` 밖에서도 호출됨 (`useDiagnosticsTransition`, `createSessionSlice`).  
+Surface 메시 인덱스용 `Uint32Array` triangles 반환.
 
 ---
 
-## 4. Global Latency Surface
+## 4. 키보드 레이아웃 (`buildLayout`)
 
-### Concept
+`DEFAULT_ROWS`: 숫자열, qwerty, asdf, zxcv + `_dummy_comma` (쉼표 자리 더미 — Delaunay 경계용).
 
-A 3D topographical map constructed by compressing the vector data of all keys into single representative points and connecting them.
+좌표:
 
-### Visual Representation
+- `x = colIdx × KEY_UNIT + ROW_STAGGER_U[row]`
+- `y = (nRows - 1 - rowIdx) × ROW_HEIGHT_U` (숫자열이 위쪽 큰 y)
 
-- **Flat plains**: Fast, consistent typing areas.
-- **High peaks**: Areas where typing is slow or the user hesitates.
-- **Uneven terrain**: Inconsistent typing rhythm.
+`ROW_STAGGER_U`: `{ 0: 0, 1: 0.5, 2: 0.75, 3: 1.25 }`
 
-### Visual Encoding & Contrast Scaling (HSL)
+---
 
-To make the global latency surface highly readable and visually dramatic, we apply a two-factor normalization process:
+## 5. Cylindrical Vector 모델
 
-1. **Relative Latency Scaling (Height & Hue)**:
-   Instead of mapping absolute sigmoid latency values $z \in [0, 1]$ directly, which can result in flat surfaces for fast typists, we apply dynamic min-max normalization based on the current session's actual bounds:
-   \[
-   z*{\text{relative}} = \frac{z*{\text{smoothed}} - \min(z*{\text{smoothed}})}{\max(z*{\text{smoothed}}) - \min(z\_{\text{smoothed}})}
-   \]
-   This relative value is then raised to a power factor ($\text{LATENCY\_POWER} = 1.3$) to amplify contrast.
-   - **Height (y-coordinate)**: $y \propto (z_{\text{relative}})^{1.3}$.
-   - **Color (Hue)**: Spans HSL Hue values from $227^\circ$ (Blue, fastest key) to $345^\circ$ (Magenta/Red, slowest key).
-2. **Non-Linear Frequency Scaling (Saturation & Lightness)**:
-   Key typing frequencies can span orders of magnitude (e.g., Spacebar vs. rarely typed keys). Linear scaling dims less frequent keys to near-black. We apply a square-root transformation to normalize the confidence metric:
-   \[
-   c*{\text{norm}} = \sqrt{\frac{c_i}{\max*{j}(c_j)}}
-   \]
-   - **Color Saturation**: $S = 0.2 + 0.8 \times c_{\text{norm}}$.
-   - **Color Lightness**: $L = 0.25 + 0.35 \times c_{\text{norm}}$.
-     This ensures that less frequent keys remain visible and colorful, blending smoothly into the dark background, while highly frequent paths appear highly vibrant.
+### 5.1. `buildCylindricalVectors(events, centerKey, globalMax?)`
 
-3. **Drop-Line Synchronization**:
-   Each key's vertical guide line (drop-line) is colored with individual vertex colors matching the HSL configuration of the corresponding key, creating consistent vertical highlighting.
+전처리: `filterInterruptedTransitions` → `filterOutliers` (Surface와 동일).
 
-### UI Interaction
+`toKey === centerKey`인 전이만 수집. `fromKey`는 `^[a-z]$`만 (소문자 알파벳).
 
-This is the default view in Diagnostics Mode. It provides a macro-level overview of the user's typing bottlenecks before they drill down into specific keys using the Cylindrical view.
+`theta_order.json`의 `THETA_ORDER[center]` 순서대로 벡터 생성:
+
+| 축 | 의미 | 계산 |
+| :--- | :--- | :--- |
+| **θ** | From Key 방위 | `getTheta(center, from)` → `(idx / 25) × 2π` |
+| **r** | 전이 빈도 | 해당 from→center 이벤트 수 |
+| **z** | 평균 지연 | raw `latencyMs` 평균 (**sigmoid 미적용**) |
+
+`globalMax`가 있으면:
+
+- `normalizedR = r > 0 ? sqrt(r / maxR) : 0.15`
+- `normalizedZ = z > 0 ? z / maxZ : 0.05`
+
+`getGlobalCylindricalMax(events)`로 세션 전체 쌍의 max 빈도·max 평균 지연 계산.
+
+`getAvailableCenterKeys(events)`: 전처리 후 `toKey`가 `^[a-z]$`인 키 목록.
+
+### 5.2. 3D 배치 (`geometryUtils.toCylindricalCartesian`)
+
+```
+vx = normR × CYLINDRICAL_MAX_RADIUS × cos(θ)
+vy = normZ × CYLINDRICAL_MAX_HEIGHT
+vz = normR × CYLINDRICAL_MAX_RADIUS × sin(θ)
+```
+
+`CYLINDRICAL_MAX_RADIUS` / `CYLINDRICAL_MAX_HEIGHT` = 6.0
+
+---
+
+## 6. Global Latency Surface 시각화
+
+### 6.1. 대상 키 (`IS_SURFACE_KEY`)
+
+`geometryUtils.ts`: `^[a-z]$` 또는 `_dummy_comma`. 숫자열·모디파이어는 Surface 메시에서 제외.
+
+### 6.2. `Surface3DManager.updateData`
+
+입력: `keyStats` (`runPipeline` 결과).
+
+**높이·색 (키 정점)**
+
+1. `_dummy_comma` 제외한 키들의 `zSmoothed`로 `minZ`, `maxZ`, `zRange` 계산
+2. `relativeZ = (zSmoothed - minZ) / zRange` (dummy는 0)
+3. `amplifiedZ = relativeZ ** LATENCY_POWER` (`LATENCY_POWER = 1.3`)
+4. Y 높이에 `amplifiedZ` 반영 (`get3DPos`)
+5. HSL:
+   - Hue: `227°` (빠름) → `345°` (느림), `amplifiedZ`에 비례
+   - `normConf = sqrt(confidence / maxConfidence)`
+   - Saturation: `0.2 + 0.8 × normConf`
+   - Lightness: `0.25 + 0.35 × normConf`
+
+**경계 정점**: inner/outer border는 `y = SURFACE_Y_OFFSET`, 고정 HSL `(227°, S=0.4, L=0.3)`.
+
+**Drop-line**: 각 키 정점 색과 동일한 vertex color로 수직 가이드 라인.
+
+### 6.3. `LatencySurface3D`
+
+`Surface3DManager`를 `useThreeManager`로 마운트. `keyStats` 변경 시 `updateData` 호출.  
+HUD 라벨 Y 오프셋은 `zSmoothed ** LATENCY_POWER`를 별도 사용 (메시 정점 높이 계산과 분리).
+
+### 6.4. UI 흐름 (`DiagnosticsLayer`)
+
+- 기본: `diagnosticMode === "surface"` → `LatencySurface3D`
+- Surface에서 키 클릭 시 `diagnosticMode === "cylindrical"` → `CylindricalVector3D` (닫기 시 surface 복귀)
+
+---
+
+## 7. 진단 지표 (`diagnostics.ts`)
+
+원시 `events`와 선택 `targetKey` 기준. Cylindrical 패널에서 사용.
+
+| 함수 | 내용 |
+| :--- | :--- |
+| `getShiftOverhead` | 직접 입력 vs `from → shift → target(대문자)` 3연속 패턴 지연 비교. `KEYBOARD_META.shiftCombinable` false면 `applicable: false` |
+| `getFirstErrorStats` | 해당 키 입력 직전/직후 오타(`isCorrect === false`) 빈도 |
+| `getPhysicalVariance` | 동일 row / 동일 finger / 교대 손 vs 기타 incoming 전이 평균 지연 비교 |
+| `getSlowestFromKeys` | `CylindricalVector[]`에서 상위 N개 느린 from key |
+
+Shift·물리 분산 분석은 `keyboardMeta.ts`의 row/hand/finger 메타데이터 사용.
+
+---
+
+## 8. 출력 타입 (`KeyResult`)
+
+```typescript
+export interface KeyResult {
+  key: string;
+  row: number;
+  x: number;
+  y: number;
+  z: number;              // sigmoid 스케일, 스무딩 전 대표 지연
+  confidence: number;     // 들어오는 전이 빈도 합
+  stdev: number;          // raw ms 표준편차
+  zSmoothed: number;      // Laplacian 후 — Surface 높이·색의 기준
+  stdevSmoothed: number;
+}
+```
+
+`ResultsPanel`은 `zSmoothed` 내림차순으로 상위 5키 바 차트 표시.
+
+---
+
+## 9. Python 포트 및 테스트
+
+TypeScript `model.ts`는 `skdm/model.py` 직접 포트. `stats.ts`는 NumPy percentile/median/std 의미를 맞춤.
+
+| 테스트 파일 | 검증 내용 |
+| :--- | :--- |
+| `model.parity.test.ts` | `python-reference.json` fixture 대비 `runPipeline`·단계별 수치 일치 |
+| `model.unit.test.ts` | `sigmoidLatency`, 필터, 집계 단위 |
+| `pipeline.test.ts` | end-to-end `runPipeline` + `triangulate` |
+| `cylindrical.test.ts` | `buildCylindricalVectors`, `getGlobalCylindricalMax` |
+| `theta.test.ts` | `getTheta` |
+| `diagnostics.test.ts` | shift overhead 등 |
+| `stats.test.ts` | percentile/median/std |
+
+---
+
+## 10. MVSA와의 관계
+
+- MVSA(`runMvsa`) → 키 입력 시 `isCorrect` / `expectedChar` 판정
+- SKDM `filterInterruptedTransitions` → `isCorrect === false` 전이를 지연 통계에서 제거
+- 오타 구간은 3D 지형에 반영되지 않고, 정상 타이핑 리듬만 집계됨
