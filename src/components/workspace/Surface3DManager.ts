@@ -37,6 +37,7 @@ export class Surface3DManager {
   private zRange: number = 1;
 
   private reqId: number = 0;
+  private needsRender: boolean = true;
 
   private width: number;
   private height: number;
@@ -117,6 +118,10 @@ export class Surface3DManager {
     this.controls.zoomSpeed = 1.2;
     this.controls.panSpeed = 1.2;
     this.controls.maxPolarAngle = Math.PI / 2 - 0.05;
+
+    this.controls.addEventListener("change", () => {
+      this.needsRender = true;
+    });
 
     this.renderLoop = this.renderLoop.bind(this);
     this.reqId = requestAnimationFrame(this.renderLoop);
@@ -482,6 +487,8 @@ export class Surface3DManager {
       this.geometry.attributes.position.needsUpdate = true;
       this.geometry.computeVertexNormals();
     }
+
+    this.needsRender = true;
   }
 
   private renderLoop() {
@@ -491,6 +498,12 @@ export class Surface3DManager {
     if (this.timeline && !this.timeline.isActive() && this.isActivated) {
       this.controls.update();
     }
+
+    if (this.timeline && this.timeline.isActive()) {
+      this.needsRender = true;
+    }
+
+    if (!this.needsRender) return;
 
     this.renderer.render(this.scene, this.camera);
 
@@ -504,6 +517,8 @@ export class Surface3DManager {
         this.height,
       );
     }
+
+    this.needsRender = false;
   }
 
   public dispose() {

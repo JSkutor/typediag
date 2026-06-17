@@ -77,6 +77,7 @@ export class Cylindrical3DManager {
   private vectors: CylindricalVector[] = [];
 
   private reqId = 0;
+  private needsRender = true;
   private width: number;
   private height: number;
   private toggles: CylindricalToggles = {
@@ -125,6 +126,10 @@ export class Cylindrical3DManager {
     this.controls.maxPolarAngle = Math.PI / 2 + 0.05;
     this.controls.minDistance = 3;
     this.controls.maxDistance = 25;
+
+    this.controls.addEventListener("change", () => {
+      this.needsRender = true;
+    });
 
     // Visual group
     this.scene.add(this.visualGroup);
@@ -176,12 +181,14 @@ export class Cylindrical3DManager {
     }
 
     this.applyToggles();
+    this.needsRender = true;
   }
 
   /** Update toggle visibility states. */
   public setToggles(toggles: CylindricalToggles): void {
     this.toggles = { ...toggles };
     this.applyToggles();
+    this.needsRender = true;
   }
 
   /** Resize the renderer to match a new container size. */
@@ -191,6 +198,7 @@ export class Cylindrical3DManager {
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h);
+    this.needsRender = true;
   }
 
   /** Tear down everything. */
@@ -498,9 +506,13 @@ export class Cylindrical3DManager {
       this.camera.position.x = Math.sin(t) * 11;
       this.camera.position.z = Math.cos(t) * 11;
       this.camera.lookAt(0, 1.5, 0);
+      this.needsRender = true;
     }
 
     this.controls.update();
+
+    if (!this.needsRender) return;
+
     this.renderer.render(this.scene, this.camera);
 
     // Project 2D labels
@@ -536,5 +548,7 @@ export class Cylindrical3DManager {
         vectorCoords,
       });
     }
+
+    this.needsRender = false;
   }
 }
