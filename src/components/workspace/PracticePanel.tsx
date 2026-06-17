@@ -47,7 +47,7 @@ export const PracticePanel: React.FC = () => {
             highlightClass += " border-b-4 border-red-500/70";
           }
 
-          const showCursorRight = d.inputIndex === qwertyBuffer.length - 1;
+          const showCursorRight = qwertyBuffer.length > 0 && i === lastInputIndex;
           const showCursorLeft = qwertyBuffer.length === 0 && i === 0;
 
           return (
@@ -64,7 +64,9 @@ export const PracticePanel: React.FC = () => {
                 d.op === "PARTIAL" ||
                 d.op === "REPLACE" ||
                 d.op === "INSERT") && (
-                <span className={`${d.op !== "INSERT" ? "absolute left-0 top-0" : ""} ${highlightClass}`}>
+                <span
+                  className={`${d.op !== "INSERT" ? "text-char-overlay" : ""} ${highlightClass}`}
+                >
                   {d.char === " " ? "\u00A0" : d.char}
                 </span>
               )}

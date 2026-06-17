@@ -392,23 +392,23 @@ h4 {
 
 /* Text Container */
 .text-char-container {
-  display: inline-block;
+  display: inline-grid;
   position: relative;
+  place-items: center start;
+  white-space: nowrap;
 }
 .text-char-muted {
+  grid-area: 1 / 1;
   color: var(--text-muted);
 }
 .text-char-primary {
-  position: absolute;
-  top: 0;
-  left: 0;
   color: var(--text-primary);
 }
 .text-char-error {
-  position: absolute;
-  top: 0;
-  left: 0;
   color: var(--error);
+}
+.text-char-overlay {
+  grid-area: 1 / 1;
 }
 
 /* Dev Tool DB Button */
