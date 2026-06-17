@@ -133,7 +133,9 @@ export class Surface3DManager {
     if (this.surfaceKeys.length === 0) return;
 
     // Compute dynamic range (excluding dummy key)
-    const activeKeysForRange = this.surfaceKeys.filter((k) => k.key.toLowerCase() !== "_dummy_comma");
+    const activeKeysForRange = this.surfaceKeys.filter(
+      (k) => k.key.toLowerCase() !== "_dummy_comma",
+    );
     const zValues = activeKeysForRange.map((k) => k.zSmoothed);
     this.minZ = zValues.length > 0 ? Math.min(...zValues) : 0;
     this.maxZ = zValues.length > 0 ? Math.max(...zValues) : 1;
@@ -154,9 +156,8 @@ export class Surface3DManager {
     this.dropLineGeometries = [];
 
     const tempColor = new THREE.Color();
-    const maxConfidence = this.surfaceKeys.length > 0
-      ? Math.max(...this.surfaceKeys.map((k) => k.confidence), 1)
-      : 1;
+    const maxConfidence =
+      this.surfaceKeys.length > 0 ? Math.max(...this.surfaceKeys.map((k) => k.confidence), 1) : 1;
 
     // Define a neutral, slightly faded blue base for boundaries
     const boundaryColor = new THREE.Color().setHSL(227 / 360, 0.4, 0.3);
@@ -173,8 +174,8 @@ export class Surface3DManager {
       const relativeZ = isDummy
         ? 0
         : this.zRange > 0
-        ? (k.zSmoothed - this.minZ) / this.zRange
-        : 0.5;
+          ? (k.zSmoothed - this.minZ) / this.zRange
+          : 0.5;
       const amplifiedZ = Math.pow(relativeZ, LATENCY_POWER);
       const normConf = maxConfidence > 0 ? Math.sqrt(k.confidence / maxConfidence) : 0;
 
@@ -298,8 +299,8 @@ export class Surface3DManager {
       const relativeZ = isDummy
         ? 0
         : this.zRange > 0
-        ? (k.zSmoothed - this.minZ) / this.zRange
-        : 0.5;
+          ? (k.zSmoothed - this.minZ) / this.zRange
+          : 0.5;
       const amplifiedZ = Math.pow(relativeZ, LATENCY_POWER);
       const normConf = maxConfidence > 0 ? Math.sqrt(k.confidence / maxConfidence) : 0;
 
@@ -311,8 +312,12 @@ export class Surface3DManager {
 
       const col = new THREE.Color().setHSL(h, s, l);
       const lineColors = new Float32Array([
-        col.r, col.g, col.b, // top point
-        col.r, col.g, col.b, // bottom point
+        col.r,
+        col.g,
+        col.b, // top point
+        col.r,
+        col.g,
+        col.b, // bottom point
       ]);
       lineGeom.setAttribute("color", new THREE.BufferAttribute(lineColors, 3));
 
@@ -350,11 +355,7 @@ export class Surface3DManager {
     const layout = KEY_LAYOUT[keyName];
 
     const isDummy = keyName === "_dummy_comma";
-    const relativeZ = isDummy
-      ? 0
-      : this.zRange > 0
-      ? (k.zSmoothed - this.minZ) / this.zRange
-      : 0.5;
+    const relativeZ = isDummy ? 0 : this.zRange > 0 ? (k.zSmoothed - this.minZ) / this.zRange : 0.5;
     const amplifiedZ = Math.pow(relativeZ, LATENCY_POWER);
     const keyElevation = isDummy ? 0 : (0.15 + amplifiedZ) * elevationScale;
 
@@ -469,8 +470,8 @@ export class Surface3DManager {
       const relativeZ = isDummy
         ? 0
         : this.zRange > 0
-        ? (k.zSmoothed - this.minZ) / this.zRange
-        : 0.5;
+          ? (k.zSmoothed - this.minZ) / this.zRange
+          : 0.5;
       const amplifiedZ = Math.pow(relativeZ, LATENCY_POWER);
       const currentY =
         SURFACE_Y_OFFSET + (isDummy ? 0 : (0.15 + amplifiedZ) * this.animState.elevationScale);
