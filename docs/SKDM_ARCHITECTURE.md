@@ -147,20 +147,19 @@ To make the global latency surface highly readable and visually dramatic, we app
 1. **Relative Latency Scaling (Height & Hue)**:
    Instead of mapping absolute sigmoid latency values $z \in [0, 1]$ directly, which can result in flat surfaces for fast typists, we apply dynamic min-max normalization based on the current session's actual bounds:
    \[
-   z_{\text{relative}} = \frac{z_{\text{smoothed}} - \min(z_{\text{smoothed}})}{\max(z_{\text{smoothed}}) - \min(z_{\text{smoothed}})}
+   z*{\text{relative}} = \frac{z*{\text{smoothed}} - \min(z*{\text{smoothed}})}{\max(z*{\text{smoothed}}) - \min(z\_{\text{smoothed}})}
    \]
    This relative value is then raised to a power factor ($\text{LATENCY\_POWER} = 1.3$) to amplify contrast.
    - **Height (y-coordinate)**: $y \propto (z_{\text{relative}})^{1.3}$.
    - **Color (Hue)**: Spans HSL Hue values from $227^\circ$ (Blue, fastest key) to $345^\circ$ (Magenta/Red, slowest key).
-   
 2. **Non-Linear Frequency Scaling (Saturation & Lightness)**:
    Key typing frequencies can span orders of magnitude (e.g., Spacebar vs. rarely typed keys). Linear scaling dims less frequent keys to near-black. We apply a square-root transformation to normalize the confidence metric:
    \[
-   c_{\text{norm}} = \sqrt{\frac{c_i}{\max_{j}(c_j)}}
+   c*{\text{norm}} = \sqrt{\frac{c_i}{\max*{j}(c_j)}}
    \]
    - **Color Saturation**: $S = 0.2 + 0.8 \times c_{\text{norm}}$.
    - **Color Lightness**: $L = 0.25 + 0.35 \times c_{\text{norm}}$.
-   This ensures that less frequent keys remain visible and colorful, blending smoothly into the dark background, while highly frequent paths appear highly vibrant.
+     This ensures that less frequent keys remain visible and colorful, blending smoothly into the dark background, while highly frequent paths appear highly vibrant.
 
 3. **Drop-Line Synchronization**:
    Each key's vertical guide line (drop-line) is colored with individual vertex colors matching the HSL configuration of the corresponding key, creating consistent vertical highlighting.

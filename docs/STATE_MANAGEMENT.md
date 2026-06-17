@@ -30,6 +30,7 @@ src/store/
   - `setTarget(text)`: Updates the active practice sentence.
   - `setTypedText(text)`: Updates the input string.
   - `handlePhysicalKeyPress(code, shiftKey, timestamp)`: Dispatches keypress logic, determines target characters, and records keystrokes.
+    - **Note**: This action delegates the alignment logic to the **[MVSA (Maximum Valid Sequence Aligner) Algorithm](MVSA_ALGORITHM.md)**. MVSA dynamically maps raw physical key inputs to Hangul Jamo sequences for precise error diagnostics.
 
 ### 1.2. Keystroke Slice (`createKeystrokeSlice.ts`)
 
