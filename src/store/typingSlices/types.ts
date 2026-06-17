@@ -36,7 +36,7 @@ export interface SessionSlice {
   runInitPromise: Promise<string> | null;
   finish: (timestamp?: number) => void;
   reset: () => void;
-  loadDummyData: () => Promise<void>;
+  loadLocalDbData: () => Promise<void>;
   startNewRun: () => void;
   startPage: (now: Date) => Promise<string>;
 }

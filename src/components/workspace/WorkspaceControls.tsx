@@ -27,11 +27,11 @@ export const WorkspaceControls: React.FC<WorkspaceControlsProps> = ({ onStartDia
         {uiState === "practice" ? "Enter Diagnostics (Tab)" : "Return to Practice (Tab)"}
       </button>
 
-      {/* Developer Dummy Data Loader */}
-      {uiState === "practice" && (
+      {/* Developer DB Data Loader */}
+      {process.env.NODE_ENV === "development" && uiState === "practice" && (
         <button
           onClick={async () => {
-            await useTypingStore.getState().loadDummyData();
+            await useTypingStore.getState().loadLocalDbData();
           }}
           style={{
             position: "absolute",
@@ -51,7 +51,7 @@ export const WorkspaceControls: React.FC<WorkspaceControlsProps> = ({ onStartDia
             alignItems: "center",
             gap: "6px",
           }}
-          className="dev-dummy-btn"
+          className="dev-db-btn"
         >
           <svg
             width="14"
@@ -67,7 +67,7 @@ export const WorkspaceControls: React.FC<WorkspaceControlsProps> = ({ onStartDia
             <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
             <line x1="12" y1="22.08" x2="12" y2="12"></line>
           </svg>
-          더미 데이터 적용 (Dev)
+          local_db.json 데이터 적용
         </button>
       )}
     </>

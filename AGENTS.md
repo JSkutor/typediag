@@ -1,208 +1,138 @@
-# AGENTS.md — TypeDiag AI 작업 가이드
+# AGENTS.md — AI Agent & Vibe Coding 작업 가이드
 
-이 문서는 Cursor/AI 에이전트가 TypeDiag 레포에서 작업할 때 따라야 할 규칙이다.
-사람이 읽어도 프로젝트 구조 파악에 도움이 된다.
-
----
-
-## 1. 프로젝트 한 줄 요약
-
-**TypeDiag** — 키스트로크 쌍 `(fromKey → toKey, latencyMs)` 을 분석하는 SKDM(Spatial Keystroke Dynamics Model) 기반 타자 진단·연습 앱.
-
-- 스택: Next.js 16, React 19, Zustand, Three.js, Vitest
-- 핵심 차별점: WPM이 아니라 **키보드 공간 위 지연 지형(3D)** 으로 병목 진단
+이 문서는 AI 에이전트(Cursor, Antigravity 등)가 이 레포지토리에서 100% 바이브 코딩 및 자율 작업을 수행할 때 반드시 준수해야 하는 **최우선 가이드라인**입니다. 모든 에이전트는 세션 시작 전 이 규칙을 시스템 프롬프트로 로드하여 인지해야 합니다.
 
 ---
 
-## 2. Source of Truth (수정 전 반드시 확인)
+## 1. 프로젝트 정체성 및 핵심 철학
 
-| 영역             | 정본 (production)                | 참고/실험용             | 규칙                                                                 |
-| ---------------- | -------------------------------- | ----------------------- | -------------------------------------------------------------------- |
-| SKDM 수학 모델   | `src/lib/skdm/model.ts`          | `skdm/model.py`         | **TS만 프로덕션.** Python 수정 시 `model.parity.test.ts` 반드시 통과 |
-| SKDM 설정 상수   | `src/lib/skdm/config.ts`         | `skdm/config.py`        | 상수 변경은 양쪽 동시 또는 TS만                                      |
-| 키 레이아웃 좌표 | `src/lib/skdm/layout.ts`         | `skdm/layout.py`        | parity 유지                                                          |
-| θ 각도 순서      | `src/lib/skdm/theta_order.json`  | `skdm/theta_order.json` | cylindrical 뷰용. 동기화 필요                                        |
-| 아키텍처 설명    | `docs/SKDM_ARCHITECTURE.md`      | —                       | 파이프라인 변경 시 문서도 갱신                                       |
-| 상태 관리        | `docs/STATE_MANAGEMENT.md`       | —                       | slice 추가/변경 시 갱신                                              |
-| DB 스키마        | `docs/DB_SCHEMA.md`              | `src/utils/db.ts` 타입  | snake_case는 **DB/API 저장용**                                       |
-| 세션 비즈니스 룰 | `src/services/sessionService.ts` | `TODO.md` (한국어 메모) | 3분 타임아웃·run/page 분리 로직 건드릴 때 주의                       |
-
-### 수정 금지 / 신중히 수정
-
-- `src/lib/skdm/model.ts` 파이프라인 단계 순서: filter → aggregate → summarize → smooth
-- `SessionService` 의 3분 idle / 5분 gap run split 규칙
-- `useWorkspaceKeybindings.ts` 의 Tab/Space/Arrow 키 동작 (UX 계약)
-- `model.parity.test.ts` — 삭제·비활성화 금지
-
-### 레거시 — 새 코드에서 복사하지 말 것
-
-- `public/three_test/` — 초기 Three.js 프로토타입. **참고만, 패턴 복사 금지**
-- `src/utils/mockData.ts` — 개발용 더미
+* **프로젝트명**: TypeDiag (타자 진단 및 연습 플랫폼)
+* **핵심 컨셉**: 일반 타자 연습기처럼 단순히 WPM/CPM 같은 1차원 메트릭만 측정하지 않음. **키보드 3D 공간 상의 지연 지형(SKDM - Spatial Keystroke Dynamics Model)** 을 생성하여 오타 및 지연 병목 구간을 진단하는 것이 핵심 차별점.
+* **에이전트 주의사항**: 단순화라는 명목으로 이 앱 고유의 **3D 지연 진단(Spatial Dynamics) 수학 모델**이나 시각화 레이어를 일반 2D 통계로 축소하거나 대체하지 말 것.
 
 ---
 
-## 3. 디렉터리 맵
+## 2. 개발 스택 및 아키텍처 제약
+
+* **프레임워크**: Next.js 16 (App Router), React 19
+* **상태 관리**: Zustand (Slice 패턴 활용 - `src/store/typingSlices/`)
+* **3D 시각화**: Three.js / React Three Fiber (R3F)
+* **테스트**: Vitest (단위 및 패리티 검증)
+* **DB**: Local JSON DB (`src/data/local_db.json`, dev-only API) + localStorage (Production)
+* **에이전트 행동 제약**:
+  * 새로운 외부 패키지를 임의로 추가하지 말 것. 설치가 꼭 필요한 경우 먼저 유저에게 질문할 것.
+  * 스타일링은 Vanilla CSS를 사용하며, 기존 디자인 시스템 (`docs/DESIGN_SYSTEM.md`) 팔레트를 엄격히 준수할 것.
+
+---
+
+## 3. 디렉터리 구조 및 컴포넌트 맵 (Directory Map)
+
+에이전트는 코드 탐색 범위를 최소화하고 파일 생성 위치를 규격화하기 위해 아래 구조를 준수해야 합니다.
 
 ```
 src/
-├── app/                    # Next.js App Router
-│   ├── [lang]/             # 워크스페이스 (practice + diagnostics)
-│   └── api/db/             # dev-only JSON DB API
-├── components/
-│   ├── workspace/          # 3D 시각화, Practice/Diagnostics 레이어
-│   ├── practice/           # 결과 패널
-│   └── layout/             # Header, Footer
-├── hooks/                  # 키바인딩, 3D 매니저, 진단 전환
-├── lib/
-│   ├── skdm/               # ★ 핵심 분석 모델 (가장 중요)
-│   ├── practice/           # WPM/CPM/accuracy 메트릭
-│   └── keyboard/           # 키 정규화
-├── services/
-│   └── sessionService.ts   # run/page 생명주기
-├── store/
-│   ├── typingSlices/       # Input / Keystroke / Session slice
-│   ├── useTypingStore.ts   # 타자 입력 상태
-│   └── useWorkspaceStore.ts # UI 모드 (practice vs diagnostics)
-└── utils/
-    ├── db.ts               # localStorage + dev API 추상화
-    └── localDbService.ts   # 서버측 JSON 파일 DB (dev only)
-
-skdm/                       # Python reference + fixture 생성 스크립트
-docs/                       # 아키텍처 문서
+├── app/                    # Next.js App Router 페이지 및 API 라우트
+│   ├── [lang]/             # 다국어 지원 루트 (연습 및 진단 메인 페이지)
+│   └── api/db/             # 개발용 로컬 JSON DB 싱크 API
+├── components/             # React 공통 및 개별 컴포넌트
+│   ├── workspace/          # 연습/진단 워크스페이스 3D 시각화 및 주요 레이어
+│   ├── practice/           # 타자 연습 UI 및 통계 결과 패널
+│   └── layout/             # Header, Footer 등 레이아웃 요소
+├── hooks/                  # 전역 키바인딩, UI 트랜지션, 3D 매니징용 커스텀 훅
+├── lib/                    # 핵심 비즈니스 로직 및 계산 모델
+│   ├── skdm/               # ★ SKDM 3D 수학 모델 및 분석 파이프라인
+│   ├── practice/           # WPM, CPM, 정확도 등 기본 타자 메트릭 계산
+│   └── keyboard/           # 물리 키보드 레이아웃 및 키 입력 정규화
+├── services/               # 외부 연동 및 타이핑 세션 관리 싱글톤 서비스
+├── store/                  # Zustand 상태 저장소
+│   └── typingSlices/       # 세션, 키입력 상태별 슬라이스 분할 디렉터리
+└── utils/                  # DB 입출력, 스토리지 파싱, 계산 보조 유틸리티
 ```
 
 ---
 
-## 4. 네이밍 규칙
+## 4. Single Source of Truth (SSOT)
 
-### TypeScript 런타임 (앱 내부)
+에이전트는 중복 코드를 작성하는 경향이 있습니다. 아래 지정된 정본(SSOT)을 반드시 먼저 확인하고 재사용하십시오.
 
-- **camelCase**: `fromKey`, `toKey`, `latencyMs`, `keyChar`, `holdDurationMs`
-- 단일 타입: `src/lib/skdm/types.ts` 의 `KeyEvent`
-
-### DB / API / localStorage 저장
-
-- **snake_case**: `from_key`, `to_key`, `latency`, `hold_duration_ms`
-- 타입: `src/utils/db.ts` 의 `KeyEventSchema`, `PageRow`, `RunRow`
-- `src/lib/practice/metrics.ts` 의 `GenericKeyEvent`는 **양쪽 필드명 허용** (레거시 호환). **새 코드는 camelCase만 추가**
-
-### 금지
-
-- `any` 타입 신규 추가 (테스트 fixture 제외)
-- 같은 개념에 세 번째 필드명 변형 만들기
+| 도메인 | 정본 파일 / 디렉터리 | 비고 |
+| :--- | :--- | :--- |
+| **SKDM 수학 모델** | `src/lib/skdm/model.ts` | Python 레거시(`skdm/model.py`)와 매치 필요. 변경 시 패리티 테스트 필수. |
+| **SKDM 설정 상수** | `src/lib/skdm/config.ts` | 계산 임계값, 가중치 등은 이 파일에서 집중 관리. |
+| **키보드 레이아웃** | `src/lib/skdm/layout.ts` | 물리 키보드 좌표 매핑 정보. |
+| **데이터베이스 스키마** | `docs/DB_SCHEMA.md` | API와 DB 저장 객체는 **snake_case** 사용 (TypeScript 런타임은 **camelCase**). |
+| **세션 생명주기** | `src/services/sessionService.ts` | 타자 연습 세션 저장 및 저장 주기(idle 3분, gap 5분) 비즈니스 로직. |
 
 ---
 
-## 5. 데이터 흐름 (건드리기 전 이해할 것)
+## 5. Git 협업 규칙 (Commit & Branch Conventions)
 
+100% 바이브 코딩 환경에서 에이전트가 생성하는 브랜치명과 커밋 메세지는 아래 규칙을 엄격히 따라야 합니다.
+
+### 5.1 브랜치 명명 규칙 (Branch Naming)
+브랜치는 작업의 목적을 명확히 하는 접두사를 사용하며, 단어는 대시(`-`)로 연결합니다.
+* **새로운 기능 추가**: `feat/<기능명>` (예: `feat/cylindrical-view`)
+* **버그 수정**: `fix/<버그명>` (예: `fix/backspace-jaso`)
+* **코드 리팩토링**: `refactor/<대상>` (예: `refactor/zod-validation`)
+* **문서 작성**: `docs/<문서명>` (예: `docs/git-convention`)
+* **테스트 추가/수정**: `test/<테스트명>` (예: `test/session-service`)
+
+### 5.2 커밋 메시지 규칙 (Conventional Commits)
+에이전트는 코드 수정 후 커밋을 제안할 때 **Conventional Commits 1.0.0** 형식을 준수해야 합니다.
 ```
-키 입력 (window keydown/keyup)
-  → useWorkspaceKeybindings
-  → useTypingStore.handlePhysicalKeyPress / recordKey
-  → KeyEvent[] (events)
-  → Tab → useDiagnosticsTransition
-  → runPipeline(events) → KeyResult map
-  → LatencySurface3D / CylindricalVector3D
+<type>(<scope>): <description>
 
-세션 저장
-  → finishPage → SessionService → db.createPage
-  → dev: POST /api/db → localDbService → src/data/local_db.json
-  → prod(현재): localStorage
+[body] (선택사항: 변경한 작업의 상세 이유나 디자인 디시전)
 ```
 
----
-
-## 6. 테스트 규칙
-
-작업 완료 전 로컬에서 실행:
-
-```bash
-npm run test        # Vitest 112+ tests
-npm run typecheck   # tsc --noEmit
-npm run lint        # ESLint
-npm run build       # Next.js 빌드 (큰 변경 시)
-```
-
-### 필수 테스트 추가 조건
-
-| 변경 내용                | 필요한 테스트                                 |
-| ------------------------ | --------------------------------------------- |
-| `src/lib/skdm/model.ts`  | `model.unit.test.ts` + `model.parity.test.ts` |
-| `SessionService`         | `sessionService.test.ts`                      |
-| 키 바인딩 / UI 모드 전환 | `useWorkspaceKeybindings.test.ts`             |
-| `db.ts` CRUD / sync      | `db.test.ts`                                  |
-| store slice 동작         | `useTypingStore.test.ts`                      |
-
-### 아직 테스트 없는 영역 (건드릴 때 테스트 추가 권장)
-
-- `src/app/api/db/route.ts`
-- `src/utils/localDbService.ts` (직접)
-- `src/lib/skdm/diagnostics.ts`
-- `src/lib/skdm/cylindrical.ts`
-- `src/hooks/useThreeManager.ts`
-- 3D Manager 클래스 (`Surface3DManager`, `Cylindrical3DManager`)
-- `createInputSlice.ts` (한글 입력, skip/next 로직)
+* **종류(type)**:
+  * `feat`: 새로운 기능 추가
+  * `fix`: 버그 수정
+  * `refactor`: 성능 향상이나 구조 개선을 위한 코드 수정 (동작 변경 없음)
+  * `test`: 테스트 코드 추가 및 수정
+  * `docs`: 문서 작성 및 수정 (`AGENTS.md`, `README.md` 등)
+  * `style`: 코드 포맷팅, 세미콜론 누락 수정 등 (로직 변경 없음)
+  * `chore`: 빌드 업무, 패키지 매니저 설정, 환경 설정 변경
+* **범위(scope)**: 수정된 컴포넌트나 모듈명을 기재 (예: `ui`, `skdm`, `db`, `session`)
+* **메시지(description)**: 영문 명령형(Imperative) 혹은 명확한 한글 요약본을 사용하고, 끝에 마침표(`.`)를 찍지 않습니다.
+* **예시**:
+  * `feat(ui): add cylindrical coordinates plot for 3D diagnostics`
+  * `fix(skdm): resolve backspace syllable deletion bug in Korean input`
 
 ---
 
-## 7. 환경 / DB
+## 6. 에이전트 전용 작업 체크리스트 (Quality Gate)
 
-- **현재 DB**: dev는 `local_db.json` + `/api/db`, 브라우저는 `localStorage`
-- `/api/db` 는 `NODE_ENV === "development"` 에서만 동작 (403 otherwise)
-- 실 DB(Supabase/Neon)는 아직 없음 — `db.ts` 인터페이스 유지하며 교체 예정
-- `user_001` mock user 하드코딩 — 인증 붙이기 전까지 유지
+모든 자율 작업(작성, 수정, 디버깅)이 끝난 후 에이전트는 완료를 선언하기 전에 아래 프로세스를 강제로 수행해야 합니다.
 
----
-
-## 8. UI / 3D 작업 시
-
-- Three.js 초기화: `useThreeManager` 사용. **dispose 필수** (이미 구현됨)
-- `LatencySurface3D`: `isActivated` 후 350ms 뒤 Three 초기화 (트랜지션 성능)
-- 진단 모드 키: Tab(전환), Esc(surface 복귀), 키 클릭→cylindrical
-- CSS: `docs/DESIGN_SYSTEM.md` 팔레트 준수
+1. **타입 체크**: `npm run typecheck` 실행 후 에러가 없어야 함.
+2. **린트 체크**: `npm run lint` 실행 후 경고 및 에러가 없어야 함.
+3. **단위 테스트**: `npm run test` 실행 후 작성/수정된 코드가 모든 테스트를 통과해야 함. (수학 모델 변경 시 parity test 필수 통과)
+4. **빌드 검증**: 대규모 UI 또는 Next.js App Router 구조 변경 시 `npm run build`를 수행하여 빌드 오류가 없는지 사전 검증.
+5. **문서 동기화**: 코드 변경으로 인해 아키텍처, 상태 관리 방식, DB 스키마 등이 수정되었다면 `docs/` 하위의 관련 마크다운 문서 및 `README.md`를 함께 최신화할 것.
+6. **완료 보고(Walkthrough)**: 수정 사항이 발생했을 때 에이전트는 `walkthrough.md` 또는 최종 메시지로 작업한 세부 결과(영향받은 파일 목록, 수행한 테스트 결과)를 일목요연하게 보고할 것.
 
 ---
 
-## 9. AI 작업 시 DO / DON'T
+## 7. AI Agent DO / DON'T
 
-### DO
+### DO (반드시 해야 할 행동)
+* 코드 작성 전 **정본(SSOT)** 파일의 구조를 미리 검색하고 기존 코드를 재사용하십시오.
+* 아키텍처나 기능 설계, DB 스키마가 바뀐 경우 반드시 코드 작업과 함께 `docs/` 하위 문서를 갱신해 주십시오. (문서와 코드의 싱크 유지)
+* 타입 에러를 숨기기 위해 `@ts-ignore`나 `any`를 임의로 정의하지 마십시오. 필요한 경우 타입 추론을 정교하게 하거나 유니온 타입을 활용하십시오.
+* 로직을 대대적으로 변경하기 전, 의도하지 않은 사이드 이펙트(동작 무력화 등)를 예방하기 위한 유닛 테스트 코드를 함께 보강하십시오.
+* 사용자한테 말할때는 한국어 사용해.
 
-- 기존 slice 패턴·서비스 싱글톤 패턴 따르기
-- 작은 diff. 한 PR/세션에 하나의 관심사
-- 수학 변경은 config 상수로 빼기 (`src/lib/skdm/config.ts`)
-- `docs/` 갱신 (동작이 바뀌면)
-- corrupt localStorage 방어 (추가 시 `safeParseStorage` 패턴 사용 — `docs/` 또는 `src/utils/storage.ts` 참고)
-
-### DON'T
-
-- `public/three_test/` 코드를 `src/components` 로 복사
-- Python만 고치고 TS parity 테스트 안 돌리기
-- `KeyEvent` 필드명 또 다른 스타일로 추가
-- `/api/db` 에 인증 없이 production 노출
-- `console.log` 디버그 코드 커밋
-- `eslint-disable` / `@ts-ignore` 로 타입 에러 숨기기
+### DON'T (절대 하지 말아야 할 행동)
+* 임의의 디버그용 `console.log`를 프로덕션 코드에 남겨둔 채 작업을 끝내지 마십시오.
+* 기존에 정상 동작하던 UX 요소(예: 키바인딩 단축키 UX 계약)를 유저 동의 없이 수정하거나 무력화하지 마십시오.
+* 검증되지 않은 코드나 플레이스홀더(`// TODO: 구현 예정`) 상태로 커밋을 제안하거나 방치하지 마십시오.
+* 사용자가 설명하라고만 했는데, 바로 코드 수정을 하지 마라. 설명을 하고 허락을 구해라.
+* TODO.md 는 사용자의 메모장이므로 사용자의 직접적인 명령이 없을 때 임의로 수정하지 마라.
 
 ---
 
-## 10. 로드맵 참고 (우선순위)
+## 8. Learn by yourself.
 
-`TODO.md` 에 한국어로 상세 메모 있음. 요약:
-
-1. 서브 통계 (space, backspace, shift, 오타 키)
-2. 실 DB + 로그인
-3. 진단 → 맞춤 드릴 루프 (AI 또는 룰 기반)
-4. 영어 버전
-5. 한글 자소 분리 없이 글자 단위 삭제
-
-새 기능은 위 순서와 충돌하지 않게. **진단→드릴 루프**가 제품 완성도에 가장 중요.
-
----
-
-## 11. 검증 체크리스트 (세션 종료 전)
-
-- [ ] `npm run test` 통과
-- [ ] `npm run typecheck` 통과
-- [ ] SKDM 수정 시 parity test 확인
-- [ ] 키보드로 practice → Tab → diagnostics 수동 스모크 (가능하면)
-- [ ] 불필요한 `any` 추가 안 함
-- [ ] `public/three_test/` 미수정 (필요 없으면)
+작업 도중에 잘못된 행동으로 발생한 이슈나 해프닝이 있었으면 재발하지 않게 AGENTS.md의 DON'T 리스트에 명시하라.
+AGENTS.md 파일이 코드베이스 기반으로 최신화가 안되어있으면 업데이트 하라.
