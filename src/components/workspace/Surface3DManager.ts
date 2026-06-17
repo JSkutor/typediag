@@ -17,7 +17,7 @@ const { layoutMap: KEY_LAYOUT, centerX, centerZ } = generateSurfaceLayout();
 const { innerBorderPoints: _innerBorderPoints, outerBorderPoints: _outerBorderPoints } =
   calculateSurfaceBorders(KEY_LAYOUT);
 
-export const LATENCY_POWER = 1.5;
+export const LATENCY_POWER = 1.3;
 
 export class Surface3DManager {
   private container: HTMLElement;
@@ -289,16 +289,18 @@ export class Surface3DManager {
     const keyName = k.key.toLowerCase();
     const layout = KEY_LAYOUT[keyName];
 
-    const amplifiedZ = keyName === "_dummy_comma" ? 0 : Math.pow(k.zSmoothed, LATENCY_POWER);
+    const isDummy = keyName === "_dummy_comma";
+    const amplifiedZ = isDummy ? 0 : Math.pow(k.zSmoothed, LATENCY_POWER);
+    const keyElevation = isDummy ? 0 : (0.15 + amplifiedZ) * elevationScale;
 
     if (layout) {
-      return new THREE.Vector3(layout.x, SURFACE_Y_OFFSET + amplifiedZ * elevationScale, layout.z);
+      return new THREE.Vector3(layout.x, SURFACE_Y_OFFSET + keyElevation, layout.z);
     }
 
     // Fallback: apply same transformation as KEY_LAYOUT
     const x = (k.x - centerX) * SURFACE_SCALE;
     const z = ((2.0 - k.y) * (1 + SURFACE_GAP) - centerZ) * SURFACE_SCALE;
-    return new THREE.Vector3(x, SURFACE_Y_OFFSET + amplifiedZ * elevationScale, z);
+    return new THREE.Vector3(x, SURFACE_Y_OFFSET + keyElevation, z);
   }
 
   public resize(w: number, h: number): void {
@@ -397,9 +399,11 @@ export class Surface3DManager {
     }
 
     this.surfaceKeys.forEach((k, i) => {
-      const amplifiedZ =
-        k.key.toLowerCase() === "_dummy_comma" ? 0 : Math.pow(k.zSmoothed, LATENCY_POWER);
-      const currentY = SURFACE_Y_OFFSET + amplifiedZ * this.animState.elevationScale;
+      const keyName = k.key.toLowerCase();
+      const isDummy = keyName === "_dummy_comma";
+      const amplifiedZ = isDummy ? 0 : Math.pow(k.zSmoothed, LATENCY_POWER);
+      const currentY =
+        SURFACE_Y_OFFSET + (isDummy ? 0 : (0.15 + amplifiedZ) * this.animState.elevationScale);
       this.positions[i * 3 + 1] = currentY;
 
       if (this.dropLineGeometries[i]) {
