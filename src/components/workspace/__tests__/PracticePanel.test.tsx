@@ -38,6 +38,7 @@ describe("PracticePanel", () => {
     useTypingStore.setState({
       targetText: "가나다",
       typedText: "ㄱ",
+      qwertyBuffer: "r",
     });
 
     const { container } = render(<PracticePanel />);
@@ -55,7 +56,8 @@ describe("PracticePanel", () => {
   it("should render wrong characters as error", () => {
     useTypingStore.setState({
       targetText: "가나다",
-      typedText: "뀰",
+      typedText: "굶",
+      qwertyBuffer: "rnfa",
     });
 
     const { container } = render(<PracticePanel />);
@@ -63,7 +65,7 @@ describe("PracticePanel", () => {
     const char0 = container.querySelector("#text-char-0");
     const errorSpan = char0?.querySelector(".text-char-error");
     expect(errorSpan).toBeTruthy();
-    expect(errorSpan?.textContent).toBe("뀰");
+    expect(errorSpan?.textContent).toBe("굶");
 
     const cursor = char0?.querySelector(".typing-cursor");
     expect(cursor).toBeTruthy();
@@ -74,6 +76,7 @@ describe("PracticePanel", () => {
     useTypingStore.setState({
       targetText: "가나다",
       typedText: "간",
+      qwertyBuffer: "rks",
     });
 
     const { container } = render(<PracticePanel />);

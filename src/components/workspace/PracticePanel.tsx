@@ -2,14 +2,15 @@
 
 import React from "react";
 import { useTypingStore } from "@/store/useTypingStore";
-import { computeDiff, optimizeDiff } from "@/utils/wordDiff";
+import { runMvsa } from "@/utils/mvsa";
 
 export const PracticePanel: React.FC = () => {
-  const { targetText, typedText } = useTypingStore();
+  const { targetText, qwertyBuffer, targetLanguage } = useTypingStore();
 
   const diffResult = React.useMemo(() => {
-    return optimizeDiff(computeDiff(targetText, typedText), targetText);
-  }, [targetText, typedText]);
+    const isKorean = targetLanguage === "ko" || /[가-힣]/.test(targetText);
+    return runMvsa(targetText, qwertyBuffer, isKorean);
+  }, [targetText, qwertyBuffer, targetLanguage]);
 
   const lastInputIndex = React.useMemo(() => {
     return diffResult.findLastIndex((d) => d.inputIndex !== undefined);
@@ -35,7 +36,6 @@ export const PracticePanel: React.FC = () => {
       >
         {diffResult.length === 0 && <span className="typing-cursor left" />}
         {diffResult.map((d, i) => {
-          const isPending = d.op === "DELETE" && i > lastInputIndex;
           const isMissing = d.op === "DELETE" && i <= lastInputIndex;
 
           let highlightClass = "";
@@ -47,8 +47,8 @@ export const PracticePanel: React.FC = () => {
             highlightClass += " border-b-4 border-red-500/70";
           }
 
-          const showCursorRight = d.inputIndex === typedText.length - 1;
-          const showCursorLeft = typedText.length === 0 && i === 0;
+          const showCursorRight = d.inputIndex === qwertyBuffer.length - 1;
+          const showCursorLeft = qwertyBuffer.length === 0 && i === 0;
 
           return (
             <span key={i} id={`text-char-${i}`} className="text-char-container relative">
@@ -64,7 +64,7 @@ export const PracticePanel: React.FC = () => {
                 d.op === "PARTIAL" ||
                 d.op === "REPLACE" ||
                 d.op === "INSERT") && (
-                <span className={`absolute left-0 top-0 ${highlightClass}`}>
+                <span className={`${d.op !== "INSERT" ? "absolute left-0 top-0" : ""} ${highlightClass}`}>
                   {d.char === " " ? "\u00A0" : d.char}
                 </span>
               )}

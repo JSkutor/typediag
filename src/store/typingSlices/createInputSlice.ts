@@ -4,7 +4,7 @@ import { getQwertyChar, assembleHangulWithPunctuation } from "@/utils/keyboardMa
 import { evaluateKeystroke } from "@/utils/typingEvaluator";
 import { disassemble } from "es-hangul";
 import { getKeyToken } from "./utils";
-import { computeDiff, optimizeDiff } from "@/utils/wordDiff";
+import { runMvsa } from "@/utils/mvsa";
 
 export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
   targetText: "",
@@ -165,12 +165,12 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
       const nextBuffer = state.qwertyBuffer + char;
       const nextTyped = isKorean ? assembleHangulWithPunctuation(nextBuffer) : nextBuffer;
 
-      const diff = optimizeDiff(computeDiff(state.targetText, nextTyped), state.targetText);
-      const lastInputIndex = diff.findLastIndex((d) => d.inputIndex !== undefined);
-      const pendingDeletes = diff.slice(lastInputIndex + 1).some((d) => d.op === "DELETE");
+      const alignments = runMvsa(state.targetText, nextBuffer, isKorean);
+      const lastInputIndex = alignments.findLastIndex((d) => d.inputIndex !== undefined);
+      const pendingDeletes = alignments.slice(lastInputIndex + 1).some((d) => d.op === "DELETE");
       let shouldFinish = !pendingDeletes;
 
-      const lastOp = diff[lastInputIndex];
+      const lastOp = alignments[lastInputIndex];
       const evalResult = {
         keyChar: baseEval.keyChar,
         isCorrect: lastOp ? lastOp.op === "EQUAL" || lastOp.op === "PARTIAL" : false,
