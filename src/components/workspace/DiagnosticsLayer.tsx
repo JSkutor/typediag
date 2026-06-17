@@ -57,8 +57,8 @@ export const DiagnosticsLayer: React.FC = () => {
           />
         )}
 
-        {/* Dashboard Panel (non-cylindrical — cylindrical has its own panel) */}
-        {diagnosticMode !== "cylindrical" && (
+        {/* Dashboard Panel (non-cylindrical, non-surface — cylindrical has its own panel, surface has no panel) */}
+        {diagnosticMode !== "cylindrical" && diagnosticMode !== "surface" && (
           <DashboardPanel
             mode={isDiag ? "diagnostics" : "practice"}
             diagnosticMode={diagnosticMode}

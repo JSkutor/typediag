@@ -32,6 +32,9 @@ export class Surface3DManager {
   private surfaceKeys: KeyResult[] = [];
   private innerBorderPoints: Array<[number, number]> = [];
   private outerBorderPoints: Array<[number, number]> = [];
+  private minZ: number = 0;
+  private maxZ: number = 1;
+  private zRange: number = 1;
 
   private reqId: number = 0;
 
@@ -124,6 +127,13 @@ export class Surface3DManager {
     this.surfaceKeys = keyArray.filter((k) => IS_SURFACE_KEY(k.key));
     if (this.surfaceKeys.length === 0) return;
 
+    // Compute dynamic range (excluding dummy key)
+    const activeKeysForRange = this.surfaceKeys.filter((k) => k.key.toLowerCase() !== "_dummy_comma");
+    const zValues = activeKeysForRange.map((k) => k.zSmoothed);
+    this.minZ = zValues.length > 0 ? Math.min(...zValues) : 0;
+    this.maxZ = zValues.length > 0 ? Math.max(...zValues) : 1;
+    this.zRange = this.maxZ - this.minZ;
+
     const N = this.surfaceKeys.length;
     const M1 = this.innerBorderPoints.length;
     const M2 = this.outerBorderPoints.length;
@@ -138,9 +148,13 @@ export class Surface3DManager {
     );
     this.dropLineGeometries = [];
 
-    const colorStart = new THREE.Color(0x3861fb); // Fast key (Blue)
-    const colorEnd = new THREE.Color(0xff2a5f); // Slow key (Hot Pink / Magenta)
     const tempColor = new THREE.Color();
+    const maxConfidence = this.surfaceKeys.length > 0
+      ? Math.max(...this.surfaceKeys.map((k) => k.confidence), 1)
+      : 1;
+
+    // Define a neutral, slightly faded blue base for boundaries
+    const boundaryColor = new THREE.Color().setHSL(227 / 360, 0.4, 0.3);
 
     // Recreate geometry and materials
     // 1. Fill active key positions and colors
@@ -150,37 +164,54 @@ export class Surface3DManager {
       this.positions[i * 3 + 1] = pos.y;
       this.positions[i * 3 + 2] = pos.z;
 
-      // Interpolate color based on amplified zSmoothed (using LATENCY_POWER)
-      const amplifiedZ =
-        k.key.toLowerCase() === "_dummy_comma" ? 0 : Math.pow(k.zSmoothed, LATENCY_POWER);
-      tempColor.copy(colorStart).lerp(colorEnd, amplifiedZ);
+      const isDummy = k.key.toLowerCase() === "_dummy_comma";
+      const relativeZ = isDummy
+        ? 0
+        : this.zRange > 0
+        ? (k.zSmoothed - this.minZ) / this.zRange
+        : 0.5;
+      const amplifiedZ = Math.pow(relativeZ, LATENCY_POWER);
+      const normConf = maxConfidence > 0 ? Math.sqrt(k.confidence / maxConfidence) : 0;
+
+      // Hue: 227 (Blue) -> 345 (Magenta/Red)
+      const hueStart = 227 / 360;
+      const hueEnd = 345 / 360;
+      const h = hueStart + (hueEnd - hueStart) * amplifiedZ;
+
+      // Saturation: High confidence = 1.0 (vibrant), Low confidence = 0.2 (faded)
+      const s = 0.2 + 0.8 * normConf;
+
+      // Lightness: High confidence = 0.6 (bright), Low confidence = 0.25 (dark)
+      const l = 0.25 + 0.35 * normConf;
+
+      tempColor.setHSL(h, s, l);
       colors[i * 3] = tempColor.r;
       colors[i * 3 + 1] = tempColor.g;
       colors[i * 3 + 2] = tempColor.b;
     });
 
-    // 2. Fill inner boundary positions and colors (always y = SURFACE_Y_OFFSET, fast color)
+    // 2. Fill inner boundary positions and colors (always y = SURFACE_Y_OFFSET, neutral color)
     this.innerBorderPoints.forEach((bp, i) => {
       const idx = (N + i) * 3;
       this.positions[idx] = bp[0];
       this.positions[idx + 1] = SURFACE_Y_OFFSET;
       this.positions[idx + 2] = bp[1];
 
-      colors[idx] = colorStart.r;
-      colors[idx + 1] = colorStart.g;
-      colors[idx + 2] = colorStart.b;
+      colors[idx] = boundaryColor.r;
+      colors[idx + 1] = boundaryColor.g;
+      colors[idx + 2] = boundaryColor.b;
     });
 
-    // 3. Fill outer boundary positions and colors (always y = SURFACE_Y_OFFSET, fast color)
+    // 3. Fill outer boundary positions and colors (always y = SURFACE_Y_OFFSET, neutral color)
     this.outerBorderPoints.forEach((bp, i) => {
       const idx = (N + M1 + i) * 3;
       this.positions[idx] = bp[0];
       this.positions[idx + 1] = SURFACE_Y_OFFSET;
       this.positions[idx + 2] = bp[1];
 
-      colors[idx] = colorStart.r;
-      colors[idx + 1] = colorStart.g;
-      colors[idx + 2] = colorStart.b;
+      colors[idx] = boundaryColor.r;
+      colors[idx + 1] = boundaryColor.g;
+      colors[idx + 2] = boundaryColor.b;
     });
 
     this.geometry = new THREE.BufferGeometry();
@@ -241,9 +272,9 @@ export class Surface3DManager {
     this.scene.add(wireframeMesh);
 
     const lineMaterial = new THREE.LineBasicMaterial({
-      color: 0x3861fb,
+      vertexColors: true,
       transparent: true,
-      opacity: 0.3,
+      opacity: 0.5,
     });
 
     const keycapMaterial = new THREE.MeshStandardMaterial({
@@ -256,6 +287,30 @@ export class Surface3DManager {
       const pTop = this.get3DPos(k, 0);
       const pBase = new THREE.Vector3(pTop.x, 0, pTop.z);
       const lineGeom = new THREE.BufferGeometry().setFromPoints([pTop, pBase]);
+
+      // Calculate key-specific HSL color to match the node
+      const isDummy = k.key.toLowerCase() === "_dummy_comma";
+      const relativeZ = isDummy
+        ? 0
+        : this.zRange > 0
+        ? (k.zSmoothed - this.minZ) / this.zRange
+        : 0.5;
+      const amplifiedZ = Math.pow(relativeZ, LATENCY_POWER);
+      const normConf = maxConfidence > 0 ? Math.sqrt(k.confidence / maxConfidence) : 0;
+
+      const hueStart = 227 / 360;
+      const hueEnd = 345 / 360;
+      const h = hueStart + (hueEnd - hueStart) * amplifiedZ;
+      const s = 0.2 + 0.8 * normConf;
+      const l = 0.25 + 0.35 * normConf;
+
+      const col = new THREE.Color().setHSL(h, s, l);
+      const lineColors = new Float32Array([
+        col.r, col.g, col.b, // top point
+        col.r, col.g, col.b, // bottom point
+      ]);
+      lineGeom.setAttribute("color", new THREE.BufferAttribute(lineColors, 3));
+
       const line = new THREE.Line(lineGeom, lineMaterial);
       if (k.key !== "_dummy_comma") {
         this.scene.add(line);
@@ -290,7 +345,12 @@ export class Surface3DManager {
     const layout = KEY_LAYOUT[keyName];
 
     const isDummy = keyName === "_dummy_comma";
-    const amplifiedZ = isDummy ? 0 : Math.pow(k.zSmoothed, LATENCY_POWER);
+    const relativeZ = isDummy
+      ? 0
+      : this.zRange > 0
+      ? (k.zSmoothed - this.minZ) / this.zRange
+      : 0.5;
+    const amplifiedZ = Math.pow(relativeZ, LATENCY_POWER);
     const keyElevation = isDummy ? 0 : (0.15 + amplifiedZ) * elevationScale;
 
     if (layout) {
@@ -401,7 +461,12 @@ export class Surface3DManager {
     this.surfaceKeys.forEach((k, i) => {
       const keyName = k.key.toLowerCase();
       const isDummy = keyName === "_dummy_comma";
-      const amplifiedZ = isDummy ? 0 : Math.pow(k.zSmoothed, LATENCY_POWER);
+      const relativeZ = isDummy
+        ? 0
+        : this.zRange > 0
+        ? (k.zSmoothed - this.minZ) / this.zRange
+        : 0.5;
+      const amplifiedZ = Math.pow(relativeZ, LATENCY_POWER);
       const currentY =
         SURFACE_Y_OFFSET + (isDummy ? 0 : (0.15 + amplifiedZ) * this.animState.elevationScale);
       this.positions[i * 3 + 1] = currentY;
