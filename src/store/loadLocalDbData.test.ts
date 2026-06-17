@@ -39,8 +39,8 @@ describe("loadLocalDbData Integration Test", () => {
           cpm: 400,
           wpm: 80,
           accuracy: 100,
-          created_at: "2026-06-16T11:45:36.997Z"
-        }
+          created_at: "2026-06-16T11:45:36.997Z",
+        },
       ],
       pages: [
         {
@@ -64,7 +64,7 @@ describe("loadLocalDbData Integration Test", () => {
               latency: 150,
               hold_duration_ms: 100,
               is_correct: true,
-              expected_char: null
+              expected_char: null,
             },
             {
               from_key: "w",
@@ -73,11 +73,11 @@ describe("loadLocalDbData Integration Test", () => {
               latency: 180,
               hold_duration_ms: 100,
               is_correct: true,
-              expected_char: null
-            }
-          ]
-        }
-      ]
+              expected_char: null,
+            },
+          ],
+        },
+      ],
     };
 
     global.fetch = vi.fn().mockResolvedValue({
@@ -101,7 +101,7 @@ describe("loadLocalDbData Integration Test", () => {
       latencyMs: 150,
       holdDurationMs: 100,
       isCorrect: true,
-      expectedChar: null
+      expectedChar: null,
     });
     expect(alertSpy).toHaveBeenCalled();
 
@@ -116,13 +116,13 @@ describe("loadLocalDbData Integration Test", () => {
     expect(workspaceState.uiState).toBe("diagnostics");
     expect(workspaceState.diagnosticMode).toBe("surface");
     expect(workspaceState.analysisEvents).toHaveLength(2);
-    
+
     // Check if keyStats has values calculated by runPipeline
     expect(Object.keys(workspaceState.keyStats).length).toBeGreaterThan(0);
     // Keys 'w' and 'e' should have specific values
     expect(workspaceState.keyStats["w"]).toBeDefined();
     expect(workspaceState.keyStats["e"]).toBeDefined();
-    
+
     console.log("SUCCESS: Test finished successfully!");
     console.log("keyStats for 'w':", workspaceState.keyStats["w"]);
     console.log("keyStats for 'e':", workspaceState.keyStats["e"]);

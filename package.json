@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "npm run typecheck && npm run lint && npm run format:check"
+    "check": "run-p typecheck lint format:check",
+    "validate": "run-p typecheck lint test"
   },
   "dependencies": {
     "d3-delaunay": "^6.0.4",
@@ -39,6 +40,7 @@
     "eslint-config-next": "16.2.7",
     "eslint-config-prettier": "^10.1.8",
     "happy-dom": "^20.10.2",
+    "npm-run-all": "^4.1.5",
     "prettier": "^3.8.4",
     "typescript": "^5",
     "vitest": "^3.2.6",

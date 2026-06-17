@@ -6,7 +6,7 @@ describe("MVSA (Maximum Valid Sequence Aligner)", () => {
     // target: 마우스가, typed: 마우스가 (akdntm rk -> akdntmrk)
     const qwerty = "akdntmrk";
     const result = runMvsa("마우스가", qwerty, true);
-    
+
     expect(result).toEqual([
       { op: "EQUAL", char: "마", targetChar: "마", targetIndex: 0, inputIndex: 1 },
       { op: "EQUAL", char: "우", targetChar: "우", targetIndex: 1, inputIndex: 3 },
@@ -19,7 +19,7 @@ describe("MVSA (Maximum Valid Sequence Aligner)", () => {
     // target: 마우스, typed: 마우ㅅ (akdnt)
     const qwerty = "akdnt";
     const result = runMvsa("마우스", qwerty, true);
-    
+
     expect(result).toEqual([
       { op: "EQUAL", char: "마", targetChar: "마", targetIndex: 0, inputIndex: 1 },
       { op: "EQUAL", char: "우", targetChar: "우", targetIndex: 1, inputIndex: 3 },

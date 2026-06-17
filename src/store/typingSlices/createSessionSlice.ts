@@ -12,15 +12,7 @@ export const createSessionSlice: StoreSlice<SessionSlice> = (set, get) => ({
   runInitPromise: null,
 
   finish: (timestamp) => {
-    const {
-      status,
-      targetText,
-      targetId,
-      targetLanguage,
-      events,
-      startedAt,
-      typedText,
-    } = get();
+    const { status, targetText, targetId, targetLanguage, events, startedAt, typedText } = get();
     if (status === "done") return;
 
     const finishedAt = timestamp ?? Date.now();
@@ -79,7 +71,9 @@ export const createSessionSlice: StoreSlice<SessionSlice> = (set, get) => ({
       const pages = data.pages || [];
 
       if (pages.length === 0) {
-        alert("local_db.json에 저장된 페이지 데이터가 없습니다. 먼저 타자 연습을 진행하여 데이터를 생성하세요.");
+        alert(
+          "local_db.json에 저장된 페이지 데이터가 없습니다. 먼저 타자 연습을 진행하여 데이터를 생성하세요.",
+        );
         return;
       }
 
@@ -93,7 +87,7 @@ export const createSessionSlice: StoreSlice<SessionSlice> = (set, get) => ({
           holdDurationMs: ev.hold_duration_ms,
           isCorrect: ev.is_correct,
           expectedChar: ev.expected_char,
-        }))
+        })),
       );
 
       set({
@@ -118,7 +112,9 @@ export const createSessionSlice: StoreSlice<SessionSlice> = (set, get) => ({
       useWorkspaceStore.getState().setUiState("diagnostics");
       useWorkspaceStore.getState().setDiagnosticMode("surface");
 
-      alert(`local_db.json의 전체 데이터(총 ${pages.length}개 페이지, ${allEvents.length}개 키 입력)를 성공적으로 적용하고 진단 화면으로 전환했습니다.`);
+      alert(
+        `local_db.json의 전체 데이터(총 ${pages.length}개 페이지, ${allEvents.length}개 키 입력)를 성공적으로 적용하고 진단 화면으로 전환했습니다.`,
+      );
     } catch (err) {
       console.error("Failed to load local DB data:", err);
       alert("local_db.json 데이터를 불러오는 데 실패했습니다.");
