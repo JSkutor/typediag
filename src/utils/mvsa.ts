@@ -1,8 +1,10 @@
 import { disassemble, convertQwertyToAlphabet, assemble } from "es-hangul";
 import { assembleHangulWithPunctuation, isCompleteHangul } from "./keyboardMap";
 
+export type AlignOp = "EQUAL" | "PARTIAL" | "REPLACE" | "INSERT" | "OMIT" | "PENDING";
+
 export interface AlignResult {
-  op: "EQUAL" | "PARTIAL" | "REPLACE" | "INSERT" | "DELETE";
+  op: AlignOp;
   char: string;
   targetChar?: string;
   targetIndex?: number;
@@ -84,8 +86,8 @@ export class MaximumValidSequenceAligner {
         });
       } else if (i < this.targetText.length) {
         result.push({
-          op: "DELETE",
-          char: this.targetText[i],
+          op: "PENDING",
+          char: "",
           targetChar: this.targetText[i],
           targetIndex: i,
         });
@@ -118,8 +120,8 @@ export class MaximumValidSequenceAligner {
       if (qPtr >= this.qwertyBuffer.length) {
         for (let i = 0; i < word.text.length; i++) {
           result.push({
-            op: "DELETE",
-            char: word.text[i],
+            op: "PENDING",
+            char: "",
             targetChar: word.text[i],
             targetIndex: word.start + i,
           });
@@ -140,8 +142,8 @@ export class MaximumValidSequenceAligner {
             qPtr++;
           } else {
             result.push({
-              op: "DELETE",
-              char: " ",
+              op: "PENDING",
+              char: "",
               targetChar: " ",
               targetIndex: word.start + i,
             });
@@ -239,8 +241,8 @@ export class MaximumValidSequenceAligner {
     if (tIdx < wordTarget.length) {
       for (let t = tIdx; t < wordTarget.length; t++) {
         results.push({
-          op: "DELETE",
-          char: wordTarget[t],
+          op: "PENDING",
+          char: "",
           targetChar: wordTarget[t],
           targetIndex: targetOffset + t,
         });
@@ -328,7 +330,7 @@ export class MaximumValidSequenceAligner {
 
     for (let pIdx = 0; pIdx < panicTyped.length && !matchFound; pIdx++) {
       const pChar = panicTyped[pIdx];
-      if (!isCompleteHangul(pChar) && !/[a-zA-Z0-9]/.test(pChar)) continue;
+      if (!this.isComparableCompleteUnit(pChar)) continue;
 
       for (let lookTIdx = targetLookaheadEnd - 1; lookTIdx >= tIdx; lookTIdx--) {
         if (wordTarget[lookTIdx] === pChar) {
@@ -370,7 +372,6 @@ export class MaximumValidSequenceAligner {
         qOffset,
         qIdx,
         charToQwertyIdx,
-        wordQwerty.length,
       );
 
       return {
@@ -384,9 +385,13 @@ export class MaximumValidSequenceAligner {
   private calculateLookaheadWindow(panicTyped: string): number {
     let completeCharCount = 0;
     for (const char of panicTyped) {
-      if (isCompleteHangul(char) || /[a-zA-Z0-9.,?!]/.test(char)) completeCharCount++;
+      if (this.isComparableCompleteUnit(char)) completeCharCount++;
     }
     return completeCharCount + 1;
+  }
+
+  private isComparableCompleteUnit(char: string): boolean {
+    return isCompleteHangul(char) || /[a-zA-Z0-9.,?!]/.test(char);
   }
 
   private recoverFromPanic(
@@ -417,22 +422,19 @@ export class MaximumValidSequenceAligner {
       for (let i = 0; i < minLen; i++) {
         const typedC = typoTyped[i];
         const targetC = targetChars[i];
-        
-        let op: "REPLACE" | "PARTIAL" = "REPLACE";
-        const tDis = disassemble(targetC);
-        const qDis = disassemble(typedC);
-        if (qDis.length > 0 && qDis.length <= tDis.length) {
-          let isPrefix = true;
-          for (let j = 0; j < qDis.length; j++) {
-            if (qDis[j] !== tDis[j]) {
-              isPrefix = false;
-              break;
-            }
-          }
-          if (isPrefix) {
-            op = "PARTIAL";
-          }
+
+        if (!this.isComparableCompleteUnit(typedC)) {
+          results.push({
+            op: "OMIT",
+            char: typedC,
+            targetChar: targetC,
+            targetIndex: targetOffset + tIdx + i,
+            inputIndex: qOffset + qIdx + charToQwertyIdx[i],
+          });
+          continue;
         }
+
+        const op = "REPLACE";
 
         results.push({
           op,
@@ -452,21 +454,21 @@ export class MaximumValidSequenceAligner {
         });
       }
 
-      // 3. 타겟 글자가 더 길다면(생략되었다면) 남은 타겟은 DELETE
+      // 3. 복구 지점 앞에서 입력 없이 건너뛴 타겟은 생략 오타
       for (let i = minLen; i < N; i++) {
         results.push({
-          op: "DELETE",
-          char: targetChars[i],
+          op: "OMIT",
+          char: "",
           targetChar: targetChars[i],
           targetIndex: targetOffset + tIdx + i,
         });
       }
     } else {
-      // 오타 없이 건너뛴 경우 전부 DELETE
+      // 복구 글자가 바로 입력되었다면 그 앞의 타겟은 생략 오타
       for (let t = tIdx; t < bestMatchTargetIdx; t++) {
         results.push({
-          op: "DELETE",
-          char: wordTarget[t],
+          op: "OMIT",
+          char: "",
           targetChar: wordTarget[t],
           targetIndex: targetOffset + t,
         });
@@ -492,7 +494,6 @@ export class MaximumValidSequenceAligner {
     qOffset: number,
     qIdx: number,
     charToQwertyIdx: number[],
-    wordQwertyLength: number,
   ) {
     const targetChars = wordTarget.slice(tIdx);
     const M = panicTyped.length;
@@ -506,21 +507,7 @@ export class MaximumValidSequenceAligner {
         const typedC = panicTyped[i];
         const targetC = targetChars[i];
         
-        let op: "REPLACE" | "PARTIAL" = "REPLACE";
-        const tDis = disassemble(targetC);
-        const qDis = disassemble(typedC);
-        if (qDis.length > 0 && qDis.length <= tDis.length) {
-          let isPrefix = true;
-          for (let j = 0; j < qDis.length; j++) {
-            if (qDis[j] !== tDis[j]) {
-              isPrefix = false;
-              break;
-            }
-          }
-          if (isPrefix) {
-            op = "PARTIAL";
-          }
-        }
+        const op = "REPLACE";
 
         results.push({
           op,
@@ -540,11 +527,11 @@ export class MaximumValidSequenceAligner {
         });
       }
       
-      // 3. 타겟 글자가 더 길다면(생략되었다면) 남은 타겟은 DELETE
+      // 3. 아직 복구 지점을 찾지 못했으므로 남은 타겟은 대기 상태로 둔다
       for (let i = minLen; i < N; i++) {
         results.push({
-          op: "DELETE",
-          char: targetChars[i],
+          op: "PENDING",
+          char: "",
           targetChar: targetChars[i],
           targetIndex: targetOffset + tIdx + i,
         });
@@ -580,7 +567,7 @@ export function groupAlignResultsByVisualCharacters(
   }
 
   const vCharIdxToResult = new Map<number, AlignResult>();
-  const opPriority = { REPLACE: 4, INSERT: 3, PARTIAL: 2, EQUAL: 1, DELETE: 0 };
+  const opPriority = { REPLACE: 5, INSERT: 4, PARTIAL: 3, EQUAL: 2, OMIT: 1, PENDING: 0 };
 
   for (const res of results) {
     if (
@@ -591,9 +578,13 @@ export function groupAlignResultsByVisualCharacters(
       const vIdx = qIdxToVCharIdx[res.inputIndex];
       if (vIdx !== -1) {
         if (!vCharIdxToResult.has(vIdx)) {
+          const groupedOp =
+            res.op === "EQUAL" && typedChars[vIdx] !== res.targetChar ? "PARTIAL" : res.op;
           vCharIdxToResult.set(vIdx, {
             ...res,
+            op: groupedOp,
             char: typedChars[vIdx],
+            inputIndex: qEnds[vIdx],
           });
         } else {
           const existing = vCharIdxToResult.get(vIdx)!;
@@ -621,11 +612,10 @@ export function groupAlignResultsByVisualCharacters(
           finalResults.push(vCharIdxToResult.get(vIdx)!);
           emittedVIdx.add(vIdx);
         } else if (res.targetIndex !== undefined) {
-          // If this result is absorbed into an already emitted visual character,
-          // we still need to emit a dummy placeholder for its target index
-          // so it doesn't disappear from the UI completely.
+          // Preserve a target-only slot when multiple target chars are absorbed
+          // into the same composed visual character.
           finalResults.push({
-            op: "DELETE", // Treated as a pending/omitted character visually
+            op: res.op === "OMIT" ? "OMIT" : "PENDING",
             char: "",
             targetChar: res.targetChar,
             targetIndex: res.targetIndex,

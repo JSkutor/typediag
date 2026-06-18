@@ -135,13 +135,167 @@
     {
       "id": "run_lkywml4zl_1781711658473",
       "user_id": "user_001",
-      "status": "in_progress",
+      "status": "completed",
       "started_at": "2026-06-17T15:54:18.440Z",
+      "finished_at": "2026-06-17T15:54:18.440Z",
+      "cpm": 0,
+      "wpm": 0,
+      "accuracy": 100,
+      "created_at": "2026-06-17T15:54:18.480Z"
+    },
+    {
+      "id": "run_6e43s0o64_1781712384891",
+      "user_id": "user_001",
+      "status": "completed",
+      "started_at": "2026-06-17T16:06:24.851Z",
+      "finished_at": "2026-06-17T16:06:24.851Z",
+      "cpm": 0,
+      "wpm": 0,
+      "accuracy": 100,
+      "created_at": "2026-06-17T16:06:24.905Z"
+    },
+    {
+      "id": "run_lswkz42lq_1781747282076",
+      "user_id": "user_001",
+      "status": "completed",
+      "started_at": "2026-06-18T01:48:02.038Z",
+      "finished_at": "2026-06-18T01:48:02.038Z",
+      "cpm": 0,
+      "wpm": 0,
+      "accuracy": 100,
+      "created_at": "2026-06-18T01:48:02.092Z"
+    },
+    {
+      "id": "run_yhujox4g8_1781749981243",
+      "user_id": "user_001",
+      "status": "completed",
+      "started_at": "2026-06-18T02:33:01.204Z",
+      "finished_at": "2026-06-18T02:33:01.204Z",
+      "cpm": 0,
+      "wpm": 0,
+      "accuracy": 100,
+      "created_at": "2026-06-18T02:33:01.254Z"
+    },
+    {
+      "id": "run_47i944t2e_1781750173241",
+      "user_id": "user_001",
+      "status": "completed",
+      "started_at": "2026-06-18T02:36:13.154Z",
+      "finished_at": "2026-06-18T02:36:13.154Z",
+      "cpm": 0,
+      "wpm": 0,
+      "accuracy": 100,
+      "created_at": "2026-06-18T02:36:13.251Z"
+    },
+    {
+      "id": "run_j5vihgtdg_1781751135451",
+      "user_id": "user_001",
+      "status": "completed",
+      "started_at": "2026-06-18T02:51:57.493Z",
+      "finished_at": "2026-06-18T02:52:15.324Z",
+      "cpm": 277,
+      "wpm": 55,
+      "accuracy": 86.91588785046729,
+      "created_at": "2026-06-18T02:52:15.459Z"
+    },
+    {
+      "id": "run_o7gl64jql_1781752097943",
+      "user_id": "user_001",
+      "status": "completed",
+      "started_at": "2026-06-18T03:08:17.897Z",
+      "finished_at": "2026-06-18T03:08:17.897Z",
+      "cpm": 0,
+      "wpm": 0,
+      "accuracy": 100,
+      "created_at": "2026-06-18T03:08:17.961Z"
+    },
+    {
+      "id": "run_3yafrd9u6_1781752315314",
+      "user_id": "user_001",
+      "status": "completed",
+      "started_at": "2026-06-18T03:11:55.264Z",
+      "finished_at": "2026-06-18T03:11:55.264Z",
+      "cpm": 0,
+      "wpm": 0,
+      "accuracy": 100,
+      "created_at": "2026-06-18T03:11:55.330Z"
+    },
+    {
+      "id": "run_jd8tbvbt1_1781752915832",
+      "user_id": "user_001",
+      "status": "completed",
+      "started_at": "2026-06-18T03:21:55.783Z",
+      "finished_at": "2026-06-18T03:21:55.783Z",
+      "cpm": 0,
+      "wpm": 0,
+      "accuracy": 100,
+      "created_at": "2026-06-18T03:21:55.844Z"
+    },
+    {
+      "id": "run_qxq8vpkuf_1781754321001",
+      "user_id": "user_001",
+      "status": "completed",
+      "started_at": "2026-06-18T03:45:20.929Z",
+      "finished_at": "2026-06-18T03:45:20.929Z",
+      "cpm": 0,
+      "wpm": 0,
+      "accuracy": 100,
+      "created_at": "2026-06-18T03:45:21.015Z"
+    },
+    {
+      "id": "run_rjsnq501b_1781755610689",
+      "user_id": "user_001",
+      "status": "completed",
+      "started_at": "2026-06-18T04:06:50.583Z",
+      "finished_at": "2026-06-18T04:06:50.583Z",
+      "cpm": 0,
+      "wpm": 0,
+      "accuracy": 100,
+      "created_at": "2026-06-18T04:06:50.703Z"
+    },
+    {
+      "id": "run_s820mz7rp_1781759735615",
+      "user_id": "user_001",
+      "status": "completed",
+      "started_at": "2026-06-18T05:15:35.565Z",
+      "finished_at": "2026-06-18T05:15:35.565Z",
+      "cpm": 0,
+      "wpm": 0,
+      "accuracy": 100,
+      "created_at": "2026-06-18T05:15:35.631Z"
+    },
+    {
+      "id": "run_xtzdfs0uv_1781760172189",
+      "user_id": "user_001",
+      "status": "completed",
+      "started_at": "2026-06-18T05:22:52.139Z",
+      "finished_at": "2026-06-18T05:22:52.139Z",
+      "cpm": 0,
+      "wpm": 0,
+      "accuracy": 100,
+      "created_at": "2026-06-18T05:22:52.201Z"
+    },
+    {
+      "id": "run_4zrtpo2os_1781761436734",
+      "user_id": "user_001",
+      "status": "completed",
+      "started_at": "2026-06-18T05:43:56.684Z",
+      "finished_at": "2026-06-18T05:43:56.684Z",
+      "cpm": 0,
+      "wpm": 0,
+      "accuracy": 100,
+      "created_at": "2026-06-18T05:43:56.752Z"
+    },
+    {
+      "id": "run_phn160vdy_1781761849439",
+      "user_id": "user_001",
+      "status": "in_progress",
+      "started_at": "2026-06-18T05:50:49.375Z",
       "finished_at": null,
       "cpm": null,
       "wpm": null,
       "accuracy": null,
-      "created_at": "2026-06-17T15:54:18.480Z"
+      "created_at": "2026-06-18T05:50:49.453Z"
     }
   ],
   "pages": [
@@ -49205,6 +49359,986 @@
         }
       ],
       "created_at": "2026-06-16T11:58:56.619Z"
+    },
+    {
+      "id": "page_h7yrt4o4m_1781751135503",
+      "run_id": "run_j5vihgtdg_1781751135451",
+      "target_text_id": "target_003",
+      "order_index": 0,
+      "language": "ko",
+      "typed_text": "달은 지구 주위를 공하며 밤하늘에서 자장 밝게 보이는 자연 윗어입니다.",
+      "wpm": 55,
+      "cpm": 277,
+      "accuracy": 86.91588785046729,
+      "started_at": "2026-06-18T02:51:57.493Z",
+      "finished_at": "2026-06-18T02:52:15.324Z",
+      "elapsed_time_ms": 23175,
+      "key_events": [
+        {
+          "from_key": null,
+          "to_key": "e",
+          "key_char": "ㄷ",
+          "latency": 0,
+          "hold_duration_ms": 130,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "e",
+          "to_key": "k",
+          "key_char": "ㅏ",
+          "latency": 10.199999988079071,
+          "hold_duration_ms": 133,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "k",
+          "to_key": "f",
+          "key_char": "ㄹ",
+          "latency": 88.40000000596046,
+          "hold_duration_ms": 213,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "f",
+          "to_key": "d",
+          "key_char": "ㅇ",
+          "latency": 438.30000001192093,
+          "hold_duration_ms": 257,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "d",
+          "to_key": "m",
+          "key_char": "ㅡ",
+          "latency": 74.7999999821186,
+          "hold_duration_ms": 125,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "m",
+          "to_key": "s",
+          "key_char": "ㄴ",
+          "latency": 108.59999999403954,
+          "hold_duration_ms": 148,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "s",
+          "to_key": "space",
+          "key_char": " ",
+          "latency": 106.30000001192093,
+          "hold_duration_ms": 113,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "space",
+          "to_key": "w",
+          "key_char": "ㅈ",
+          "latency": 158,
+          "hold_duration_ms": 169,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "w",
+          "to_key": "l",
+          "key_char": "ㅣ",
+          "latency": 46.30000001192093,
+          "hold_duration_ms": 139,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "l",
+          "to_key": "r",
+          "key_char": "ㄱ",
+          "latency": 374.09999999403954,
+          "hold_duration_ms": 108,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "r",
+          "to_key": "n",
+          "key_char": "ㅜ",
+          "latency": 1383.5,
+          "hold_duration_ms": 132,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "n",
+          "to_key": "backspace",
+          "key_char": "backspace",
+          "latency": 4200.799999982119,
+          "hold_duration_ms": 76,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "backspace",
+          "to_key": "backspace",
+          "key_char": "backspace",
+          "latency": 162.80000001192093,
+          "hold_duration_ms": 104,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "backspace",
+          "to_key": "backspace",
+          "key_char": "backspace",
+          "latency": 181.5,
+          "hold_duration_ms": 73,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "backspace",
+          "to_key": "space",
+          "key_char": " ",
+          "latency": 466.80000001192093,
+          "hold_duration_ms": 132,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "space",
+          "to_key": "w",
+          "key_char": "ㅈ",
+          "latency": 464.7999999821186,
+          "hold_duration_ms": 133,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "w",
+          "to_key": "l",
+          "key_char": "ㅣ",
+          "latency": 79,
+          "hold_duration_ms": 99,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "l",
+          "to_key": "w",
+          "key_char": "ㅈ",
+          "latency": 147.30000001192093,
+          "hold_duration_ms": 117,
+          "is_correct": false,
+          "expected_char": "지"
+        },
+        {
+          "from_key": "w",
+          "to_key": "r",
+          "key_char": "ㄱ",
+          "latency": 2024.4000000059605,
+          "hold_duration_ms": 138,
+          "is_correct": false,
+          "expected_char": "지"
+        },
+        {
+          "from_key": "r",
+          "to_key": "n",
+          "key_char": "ㅜ",
+          "latency": 122.59999999403954,
+          "hold_duration_ms": 127,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "n",
+          "to_key": "backspace",
+          "key_char": "backspace",
+          "latency": 1524.2999999821186,
+          "hold_duration_ms": 88,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "backspace",
+          "to_key": "backspace",
+          "key_char": "backspace",
+          "latency": 165.40000000596046,
+          "hold_duration_ms": 122,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "backspace",
+          "to_key": "backspace",
+          "key_char": "backspace",
+          "latency": 930040.2000000179,
+          "hold_duration_ms": 146,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "backspace",
+          "to_key": "backspace",
+          "key_char": "backspace",
+          "latency": 239.39999997615814,
+          "hold_duration_ms": 55,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "backspace",
+          "to_key": "space",
+          "key_char": " ",
+          "latency": 673.3000000119209,
+          "hold_duration_ms": 134,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "space",
+          "to_key": "w",
+          "key_char": "ㅈ",
+          "latency": 207.90000000596046,
+          "hold_duration_ms": 180,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "w",
+          "to_key": "l",
+          "key_char": "ㅣ",
+          "latency": 59.69999998807907,
+          "hold_duration_ms": 109,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "l",
+          "to_key": "r",
+          "key_char": "ㄱ",
+          "latency": 150.09999999403954,
+          "hold_duration_ms": 123,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "r",
+          "to_key": "n",
+          "key_char": "ㅜ",
+          "latency": 45,
+          "hold_duration_ms": 168,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "n",
+          "to_key": "space",
+          "key_char": " ",
+          "latency": 87.80000001192093,
+          "hold_duration_ms": 180,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "space",
+          "to_key": "w",
+          "key_char": "ㅈ",
+          "latency": 471.69999998807907,
+          "hold_duration_ms": 125,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "w",
+          "to_key": "n",
+          "key_char": "ㅜ",
+          "latency": 90.30000001192093,
+          "hold_duration_ms": 104,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "n",
+          "to_key": "d",
+          "key_char": "ㅇ",
+          "latency": 101.19999998807907,
+          "hold_duration_ms": 156,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "d",
+          "to_key": "n",
+          "key_char": "ㅜ",
+          "latency": 90.80000001192093,
+          "hold_duration_ms": 131,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "n",
+          "to_key": "l",
+          "key_char": "ㅣ",
+          "latency": 61.19999998807907,
+          "hold_duration_ms": 135,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "l",
+          "to_key": "f",
+          "key_char": "ㄹ",
+          "latency": 102.5,
+          "hold_duration_ms": 89,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "f",
+          "to_key": "m",
+          "key_char": "ㅡ",
+          "latency": 99.5,
+          "hold_duration_ms": 123,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "m",
+          "to_key": "f",
+          "key_char": "ㄹ",
+          "latency": 66.80000001192093,
+          "hold_duration_ms": 108,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "f",
+          "to_key": "space",
+          "key_char": " ",
+          "latency": 72.69999998807907,
+          "hold_duration_ms": 133,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "space",
+          "to_key": "r",
+          "key_char": "ㄱ",
+          "latency": 149.10000002384186,
+          "hold_duration_ms": 122,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "r",
+          "to_key": "h",
+          "key_char": "ㅗ",
+          "latency": 61.79999998211861,
+          "hold_duration_ms": 147,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "h",
+          "to_key": "d",
+          "key_char": "ㅇ",
+          "latency": 101.80000001192093,
+          "hold_duration_ms": 152,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "d",
+          "to_key": "g",
+          "key_char": "ㅎ",
+          "latency": 893.4000000059605,
+          "hold_duration_ms": 100,
+          "is_correct": false,
+          "expected_char": "전"
+        },
+        {
+          "from_key": "g",
+          "to_key": "k",
+          "key_char": "ㅏ",
+          "latency": 51.69999998807907,
+          "hold_duration_ms": 102,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "k",
+          "to_key": "a",
+          "key_char": "ㅁ",
+          "latency": 105.09999999403954,
+          "hold_duration_ms": 152,
+          "is_correct": false,
+          "expected_char": "전"
+        },
+        {
+          "from_key": "a",
+          "to_key": "u",
+          "key_char": "ㅕ",
+          "latency": 97.90000000596046,
+          "hold_duration_ms": 119,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "u",
+          "to_key": "backspace",
+          "key_char": "backspace",
+          "latency": 3433.199999988079,
+          "hold_duration_ms": 85,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "backspace",
+          "to_key": "backspace",
+          "key_char": "backspace",
+          "latency": 148,
+          "hold_duration_ms": 104,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "backspace",
+          "to_key": "g",
+          "key_char": "ㅎ",
+          "latency": 887,
+          "hold_duration_ms": 177,
+          "is_correct": false,
+          "expected_char": "전"
+        },
+        {
+          "from_key": "g",
+          "to_key": "k",
+          "key_char": "ㅏ",
+          "latency": 56.70000001788139,
+          "hold_duration_ms": 75,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "k",
+          "to_key": "a",
+          "key_char": "ㅁ",
+          "latency": 106,
+          "hold_duration_ms": 177,
+          "is_correct": false,
+          "expected_char": "전"
+        },
+        {
+          "from_key": "a",
+          "to_key": "u",
+          "key_char": "ㅕ",
+          "latency": 87.5,
+          "hold_duration_ms": 131,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "u",
+          "to_key": "space",
+          "key_char": " ",
+          "latency": 115.69999998807907,
+          "hold_duration_ms": 124,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "space",
+          "to_key": "q",
+          "key_char": "ㅂ",
+          "latency": 780.2000000178814,
+          "hold_duration_ms": 123,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "q",
+          "to_key": "k",
+          "key_char": "ㅏ",
+          "latency": 83.19999998807907,
+          "hold_duration_ms": 102,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "k",
+          "to_key": "a",
+          "key_char": "ㅁ",
+          "latency": 86.40000000596046,
+          "hold_duration_ms": 178,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "a",
+          "to_key": "g",
+          "key_char": "ㅎ",
+          "latency": 136.09999999403954,
+          "hold_duration_ms": 140,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "g",
+          "to_key": "k",
+          "key_char": "ㅏ",
+          "latency": 88.19999998807907,
+          "hold_duration_ms": 121,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "k",
+          "to_key": "s",
+          "key_char": "ㄴ",
+          "latency": 94.60000002384186,
+          "hold_duration_ms": 140,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "s",
+          "to_key": "m",
+          "key_char": "ㅡ",
+          "latency": 114.5,
+          "hold_duration_ms": 107,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "m",
+          "to_key": "f",
+          "key_char": "ㄹ",
+          "latency": 154.2999999821186,
+          "hold_duration_ms": 164,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "f",
+          "to_key": "d",
+          "key_char": "ㅇ",
+          "latency": 180,
+          "hold_duration_ms": 161,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "d",
+          "to_key": "p",
+          "key_char": "ㅔ",
+          "latency": 98.90000000596046,
+          "hold_duration_ms": 122,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "p",
+          "to_key": "t",
+          "key_char": "ㅅ",
+          "latency": 79.69999998807907,
+          "hold_duration_ms": 150,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "t",
+          "to_key": "j",
+          "key_char": "ㅓ",
+          "latency": 103.40000000596046,
+          "hold_duration_ms": 154,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "j",
+          "to_key": "space",
+          "key_char": " ",
+          "latency": 80.2000000178814,
+          "hold_duration_ms": 167,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "space",
+          "to_key": "w",
+          "key_char": "ㅈ",
+          "latency": 99,
+          "hold_duration_ms": 93,
+          "is_correct": false,
+          "expected_char": "가"
+        },
+        {
+          "from_key": "w",
+          "to_key": "k",
+          "key_char": "ㅏ",
+          "latency": 109.89999997615814,
+          "hold_duration_ms": 111,
+          "is_correct": false,
+          "expected_char": "가"
+        },
+        {
+          "from_key": "k",
+          "to_key": "w",
+          "key_char": "ㅈ",
+          "latency": 1036.6000000238419,
+          "hold_duration_ms": 150,
+          "is_correct": false,
+          "expected_char": "가"
+        },
+        {
+          "from_key": "w",
+          "to_key": "k",
+          "key_char": "ㅏ",
+          "latency": 41.099999994039536,
+          "hold_duration_ms": 133,
+          "is_correct": false,
+          "expected_char": "가"
+        },
+        {
+          "from_key": "k",
+          "to_key": "d",
+          "key_char": "ㅇ",
+          "latency": 150.40000000596046,
+          "hold_duration_ms": 128,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "d",
+          "to_key": "space",
+          "key_char": " ",
+          "latency": 87.89999997615814,
+          "hold_duration_ms": 135,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "space",
+          "to_key": "q",
+          "key_char": "ㅂ",
+          "latency": 995.7000000178814,
+          "hold_duration_ms": 220,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "q",
+          "to_key": "k",
+          "key_char": "ㅏ",
+          "latency": 84.5,
+          "hold_duration_ms": 149,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "k",
+          "to_key": "f",
+          "key_char": "ㄹ",
+          "latency": 31.299999982118607,
+          "hold_duration_ms": 163,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "f",
+          "to_key": "r",
+          "key_char": "ㄱ",
+          "latency": 241.80000001192093,
+          "hold_duration_ms": 73,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "r",
+          "to_key": "r",
+          "key_char": "ㄱ",
+          "latency": 175.09999999403954,
+          "hold_duration_ms": 122,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "r",
+          "to_key": "p",
+          "key_char": "ㅔ",
+          "latency": 63.5,
+          "hold_duration_ms": 153,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "p",
+          "to_key": "space",
+          "key_char": " ",
+          "latency": 74.2000000178814,
+          "hold_duration_ms": 142,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "space",
+          "to_key": "q",
+          "key_char": "ㅂ",
+          "latency": 103.09999999403954,
+          "hold_duration_ms": 192,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "q",
+          "to_key": "h",
+          "key_char": "ㅗ",
+          "latency": 76.19999998807907,
+          "hold_duration_ms": 143,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "h",
+          "to_key": "d",
+          "key_char": "ㅇ",
+          "latency": 105.80000001192093,
+          "hold_duration_ms": 127,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "d",
+          "to_key": "l",
+          "key_char": "ㅣ",
+          "latency": 119.40000000596046,
+          "hold_duration_ms": 108,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "l",
+          "to_key": "s",
+          "key_char": "ㄴ",
+          "latency": 126.69999998807907,
+          "hold_duration_ms": 93,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "s",
+          "to_key": "m",
+          "key_char": "ㅡ",
+          "latency": 66.69999998807907,
+          "hold_duration_ms": 122,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "m",
+          "to_key": "s",
+          "key_char": "ㄴ",
+          "latency": 81.30000001192093,
+          "hold_duration_ms": 130,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "s",
+          "to_key": "space",
+          "key_char": " ",
+          "latency": 62.400000005960464,
+          "hold_duration_ms": 151,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "space",
+          "to_key": "w",
+          "key_char": "ㅈ",
+          "latency": 190,
+          "hold_duration_ms": 108,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "w",
+          "to_key": "k",
+          "key_char": "ㅏ",
+          "latency": 45,
+          "hold_duration_ms": 106,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "k",
+          "to_key": "d",
+          "key_char": "ㅇ",
+          "latency": 135.5,
+          "hold_duration_ms": 191,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "d",
+          "to_key": "u",
+          "key_char": "ㅕ",
+          "latency": 107.2999999821186,
+          "hold_duration_ms": 107,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "u",
+          "to_key": "s",
+          "key_char": "ㄴ",
+          "latency": 77.60000002384186,
+          "hold_duration_ms": 128,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "s",
+          "to_key": "space",
+          "key_char": " ",
+          "latency": 81.89999997615814,
+          "hold_duration_ms": 140,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "space",
+          "to_key": "d",
+          "key_char": "ㅇ",
+          "latency": 143.10000002384186,
+          "hold_duration_ms": 131,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "d",
+          "to_key": "n",
+          "key_char": "ㅜ",
+          "latency": 81.89999997615814,
+          "hold_duration_ms": 136,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "n",
+          "to_key": "l",
+          "key_char": "ㅣ",
+          "latency": 91.90000000596046,
+          "hold_duration_ms": 114,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "l",
+          "to_key": "t",
+          "key_char": "ㅅ",
+          "latency": 72.30000001192093,
+          "hold_duration_ms": 124,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "t",
+          "to_key": "d",
+          "key_char": "ㅇ",
+          "latency": 90.59999999403954,
+          "hold_duration_ms": 121,
+          "is_correct": false,
+          "expected_char": "위"
+        },
+        {
+          "from_key": "d",
+          "to_key": "j",
+          "key_char": "ㅓ",
+          "latency": 17.900000005960464,
+          "hold_duration_ms": 88,
+          "is_correct": false,
+          "expected_char": "위"
+        },
+        {
+          "from_key": "j",
+          "to_key": "d",
+          "key_char": "ㅇ",
+          "latency": 169.19999998807907,
+          "hold_duration_ms": 128,
+          "is_correct": false,
+          "expected_char": "위"
+        },
+        {
+          "from_key": "d",
+          "to_key": "l",
+          "key_char": "ㅣ",
+          "latency": 100.2000000178814,
+          "hold_duration_ms": 119,
+          "is_correct": false,
+          "expected_char": "위"
+        },
+        {
+          "from_key": "l",
+          "to_key": "q",
+          "key_char": "ㅂ",
+          "latency": 114.2999999821186,
+          "hold_duration_ms": 164,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "q",
+          "to_key": "s",
+          "key_char": "ㄴ",
+          "latency": 1054.5999999940395,
+          "hold_duration_ms": 164,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "s",
+          "to_key": "l",
+          "key_char": "ㅣ",
+          "latency": 28.100000023841858,
+          "hold_duration_ms": 137,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "l",
+          "to_key": "e",
+          "key_char": "ㄷ",
+          "latency": 126,
+          "hold_duration_ms": 161,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "e",
+          "to_key": "k",
+          "key_char": "ㅏ",
+          "latency": 90.39999997615814,
+          "hold_duration_ms": 50,
+          "is_correct": true,
+          "expected_char": null
+        },
+        {
+          "from_key": "k",
+          "to_key": "period",
+          "key_char": ".",
+          "latency": 86.2000000178814,
+          "hold_duration_ms": 50,
+          "is_correct": true,
+          "expected_char": null
+        }
+      ],
+      "created_at": "2026-06-18T02:52:15.515Z"
     }
   ]
 }

@@ -2,9 +2,8 @@ import { StoreSlice, InputSlice } from "./types";
 import targets from "@/data/targets.json";
 import { getQwertyChar, assembleHangulWithPunctuation } from "@/utils/keyboardMap";
 import { evaluateKeystroke } from "@/utils/typingEvaluator";
-import { disassemble } from "es-hangul";
 import { getKeyToken } from "./utils";
-import { runMvsa } from "@/utils/mvsa";
+import { runMvsa, getCharQwertyIndices } from "@/utils/mvsa";
 
 export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
   targetText: "",
@@ -63,7 +62,7 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
   setTypedText: (value) => set((state) => ({ 
     typedText: value, 
     qwertyBuffer: value,
-    maxTypedTextLength: Math.max(state.maxTypedTextLength, value.length)
+    maxTypedTextLength: value.length
   })),
 
   handlePhysicalKeyPress: (code, shiftKey, timestamp) => {
@@ -127,21 +126,28 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
 
         let nextBuffer = "";
         if (isKorean) {
-          const shouldDeleteCharByChar = state.typedText.length < state.maxTypedTextLength;
+          const alignments = runMvsa(state.targetText, state.qwertyBuffer, isKorean);
+          const lastInputIndex = alignments.findLastIndex((d) => d.inputIndex !== undefined);
+          
+          let shouldDeleteCharByChar = false;
+          if (lastInputIndex !== -1) {
+            const lastOp = alignments[lastInputIndex].op;
+            // 사용자가 이전에 완성했던 글자로 되돌아갈 때만 (length < max) 글자 단위로 지웁니다.
+            const isGoingBackwards = state.typedText.length < state.maxTypedTextLength;
+            // PARTIAL이나 PENDING은 "탱"처럼 다음 글자의 초성이 받침으로 딸려온 과도기적 상태이므로 자소 단위로 지워야 합니다.
+            const isCompleteVisualChar = lastOp !== "PARTIAL" && lastOp !== "PENDING";
+            
+            shouldDeleteCharByChar = isGoingBackwards && isCompleteVisualChar;
+          }
 
           if (shouldDeleteCharByChar) {
-            const targetLength = state.typedText.length - 1;
-            let bestBuffer = "";
-            for (let len = 0; len <= state.qwertyBuffer.length; len++) {
-              const sub = state.qwertyBuffer.slice(0, len);
-              const assembled = assembleHangulWithPunctuation(sub);
-              if (assembled.length <= targetLength) {
-                bestBuffer = sub;
-              } else {
-                break;
-              }
+            const qEnds = getCharQwertyIndices(state.qwertyBuffer);
+            if (qEnds.length > 1) {
+              const prevEnd = qEnds[qEnds.length - 2];
+              nextBuffer = state.qwertyBuffer.slice(0, prevEnd + 1);
+            } else {
+              nextBuffer = "";
             }
-            nextBuffer = bestBuffer;
           } else {
             nextBuffer = state.qwertyBuffer.slice(0, -1);
           }
@@ -171,8 +177,8 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
 
       const alignments = runMvsa(state.targetText, nextBuffer, isKorean);
       const lastInputIndex = alignments.findLastIndex((d) => d.inputIndex !== undefined);
-      const pendingDeletes = alignments.slice(lastInputIndex + 1).some((d) => d.op === "DELETE");
-      let shouldFinish = !pendingDeletes;
+      const pendingTargets = alignments.slice(lastInputIndex + 1).some((d) => d.op === "PENDING");
+      let shouldFinish = !pendingTargets;
 
       const lastOp = alignments[lastInputIndex];
       const evalResult = {
@@ -184,7 +190,7 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
       set((s) => ({ 
         qwertyBuffer: nextBuffer, 
         typedText: nextTyped,
-        maxTypedTextLength: Math.max(s.maxTypedTextLength, nextTyped.length)
+        maxTypedTextLength: nextTyped.length
       }));
       get().recordKey(keyToken, timestamp, evalResult);
 

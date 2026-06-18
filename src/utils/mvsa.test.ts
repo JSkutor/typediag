@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { runMvsa, getCharQwertyIndices } from "./mvsa";
+import { runMvsa } from "./mvsa";
 
 describe("MVSA (Maximum Valid Sequence Aligner)", () => {
   it("should match identical strings (Normal mode)", () => {
@@ -24,7 +24,7 @@ describe("MVSA (Maximum Valid Sequence Aligner)", () => {
     expect(result).toEqual([
       { op: "EQUAL", char: "마", targetChar: "마", targetIndex: 0, inputIndex: 1 },
       { op: "PARTIAL", char: "웃", targetChar: "우", targetIndex: 1, inputIndex: 4 },
-      { op: "DELETE", char: "", targetChar: "스", targetIndex: 2 },
+      { op: "PENDING", char: "", targetChar: "스", targetIndex: 2 },
     ]);
   });
 
@@ -62,7 +62,7 @@ describe("MVSA (Maximum Valid Sequence Aligner)", () => {
 
     expect(result).toEqual([
       { op: "PARTIAL", char: "간", targetChar: "가", targetIndex: 0, inputIndex: 2 },
-      { op: "DELETE", char: "", targetChar: "나", targetIndex: 1 },
+      { op: "OMIT", char: "", targetChar: "나", targetIndex: 1 },
       { op: "EQUAL", char: "다", targetChar: "다", targetIndex: 2, inputIndex: 4 },
       { op: "EQUAL", char: "라", targetChar: "라", targetIndex: 3, inputIndex: 6 },
     ]);
@@ -77,7 +77,7 @@ describe("MVSA (Maximum Valid Sequence Aligner)", () => {
     expect(result).toEqual([
       // First word
       { op: "PARTIAL", char: "간", targetChar: "가", targetIndex: 0, inputIndex: 2 },
-      { op: "DELETE", char: "", targetChar: "나", targetIndex: 1 },
+      { op: "OMIT", char: "", targetChar: "나", targetIndex: 1 },
       { op: "EQUAL", char: "다", targetChar: "다", targetIndex: 2, inputIndex: 4 },
       { op: "EQUAL", char: "라", targetChar: "라", targetIndex: 3, inputIndex: 6 },
       // Space

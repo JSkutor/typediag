@@ -1,3 +1,4 @@
 .next
 local_db.json
 three_test
+*.md

@@ -36,7 +36,7 @@ export const PracticePanel: React.FC = () => {
       >
         {diffResult.length === 0 && <span className="typing-cursor left" />}
         {diffResult.map((d, i) => {
-          const isMissing = d.op === "DELETE" && i <= lastInputIndex;
+          const isOmitted = d.op === "OMIT";
 
           let highlightClass = "";
           if (d.op === "EQUAL" || d.op === "PARTIAL") highlightClass = "text-char-primary";
@@ -54,7 +54,7 @@ export const PracticePanel: React.FC = () => {
             <span key={i} id={`text-char-${i}`} className="text-char-container relative">
               {d.op !== "INSERT" && (
                 <span
-                  className={`text-char-muted ${isMissing ? "border-b-4 border-red-500/30" : ""}`}
+                  className={`text-char-muted ${isOmitted ? "border-b-4 border-red-500/30" : ""}`}
                 >
                   {d.targetChar === " " ? "\u00A0" : d.targetChar}
                 </span>
