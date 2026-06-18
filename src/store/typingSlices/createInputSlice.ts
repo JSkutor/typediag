@@ -12,6 +12,8 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
   typedText: "",
   maxTypedTextLength: 0,
   qwertyBuffer: "",
+  mvsaCache: new Map(),
+  alignments: [],
 
   setTarget: (target) => {
     let text = "";
@@ -42,6 +44,8 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
       typedText: "",
       maxTypedTextLength: 0,
       qwertyBuffer: "",
+      mvsaCache: new Map(),
+      alignments: runMvsa(text, "", language === "ko"),
       events: [],
       status: "idle",
       startedAt: null,
@@ -59,11 +63,17 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
     get().setTarget(targets[nextIndex]);
   },
 
-  setTypedText: (value) => set((state) => ({ 
-    typedText: value, 
-    qwertyBuffer: value,
-    maxTypedTextLength: value.length
-  })),
+  setTypedText: (value) => set((state) => {
+    const isKorean =
+      state.targetLanguage === "ko" ||
+      (state.targetLanguage === "en" && /[가-힣]/.test(state.targetText));
+    return {
+      typedText: value, 
+      qwertyBuffer: value,
+      maxTypedTextLength: value.length,
+      alignments: runMvsa(state.targetText, value, isKorean, state.mvsaCache)
+    };
+  }),
 
   handlePhysicalKeyPress: (code, shiftKey, timestamp) => {
     const state = get();
@@ -126,7 +136,7 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
 
         let nextBuffer = "";
         if (isKorean) {
-          const alignments = runMvsa(state.targetText, state.qwertyBuffer, isKorean);
+          const alignments = state.alignments;
           const lastInputIndex = alignments.findLastIndex((d) => d.inputIndex !== undefined);
           
           let shouldDeleteCharByChar = false;
@@ -156,8 +166,9 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
         }
 
         const nextTyped = isKorean ? assembleHangulWithPunctuation(nextBuffer) : nextBuffer;
+        const nextAlignments = runMvsa(state.targetText, nextBuffer, isKorean, state.mvsaCache);
 
-        set({ qwertyBuffer: nextBuffer, typedText: nextTyped });
+        set({ qwertyBuffer: nextBuffer, typedText: nextTyped, alignments: nextAlignments });
         get().recordKey("backspace", timestamp, evalResult);
       }
       return;
@@ -175,7 +186,7 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
       const nextBuffer = state.qwertyBuffer + char;
       const nextTyped = isKorean ? assembleHangulWithPunctuation(nextBuffer) : nextBuffer;
 
-      const alignments = runMvsa(state.targetText, nextBuffer, isKorean);
+      const alignments = runMvsa(state.targetText, nextBuffer, isKorean, state.mvsaCache);
       const lastInputIndex = alignments.findLastIndex((d) => d.inputIndex !== undefined);
       const pendingTargets = alignments.slice(lastInputIndex + 1).some((d) => d.op === "PENDING");
       let shouldFinish = !pendingTargets;
@@ -190,7 +201,8 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
       set((s) => ({ 
         qwertyBuffer: nextBuffer, 
         typedText: nextTyped,
-        maxTypedTextLength: nextTyped.length
+        maxTypedTextLength: nextTyped.length,
+        alignments
       }));
       get().recordKey(keyToken, timestamp, evalResult);
 

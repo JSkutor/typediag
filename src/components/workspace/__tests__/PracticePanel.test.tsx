@@ -3,6 +3,7 @@ import { describe, it, expect, afterEach, beforeEach } from "vitest";
 import React from "react";
 import { PracticePanel } from "../PracticePanel";
 import { useTypingStore } from "@/store/useTypingStore";
+import { runMvsa } from "@/utils/mvsa";
 
 describe("PracticePanel", () => {
   afterEach(() => {
@@ -15,6 +16,7 @@ describe("PracticePanel", () => {
       typedText: "",
       qwertyBuffer: "",
       status: "idle",
+      alignments: [],
     });
   });
 
@@ -22,6 +24,7 @@ describe("PracticePanel", () => {
     useTypingStore.setState({
       targetText: "가나다",
       typedText: "",
+      alignments: runMvsa("가나다", "", true),
     });
 
     const { container } = render(<PracticePanel />);
@@ -39,6 +42,7 @@ describe("PracticePanel", () => {
       targetText: "가나다",
       typedText: "ㄱ",
       qwertyBuffer: "r",
+      alignments: runMvsa("가나다", "r", true),
     });
 
     const { container } = render(<PracticePanel />);
@@ -58,6 +62,7 @@ describe("PracticePanel", () => {
       targetText: "가나다",
       typedText: "굶",
       qwertyBuffer: "rnfa",
+      alignments: runMvsa("가나다", "rnfa", true),
     });
 
     const { container } = render(<PracticePanel />);
@@ -77,6 +82,7 @@ describe("PracticePanel", () => {
       targetText: "가나다",
       typedText: "간",
       qwertyBuffer: "rks",
+      alignments: runMvsa("가나다", "rks", true),
     });
 
     const { container } = render(<PracticePanel />);

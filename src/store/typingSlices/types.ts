@@ -1,5 +1,6 @@
 import { StateCreator } from "zustand";
 import type { KeyEvent } from "@/lib/skdm";
+import type { MvsaCache, AlignResult } from "@/utils/mvsa";
 
 export type SessionStatus = "idle" | "running" | "done";
 
@@ -10,6 +11,8 @@ export interface InputSlice {
   typedText: string;
   maxTypedTextLength: number;
   qwertyBuffer: string;
+  mvsaCache: MvsaCache;
+  alignments: AlignResult[];
   setTarget: (target: string | { id: string; content: string; language: string }) => void;
   nextTarget: () => void;
   setTypedText: (value: string) => void;

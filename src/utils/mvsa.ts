@@ -11,6 +11,8 @@ export interface AlignResult {
   inputIndex?: number;
 }
 
+export type MvsaCache = Map<string, AlignResult[]>;
+
 export function getCharQwertyIndices(qwerty: string): number[] {
   const alphabet = convertQwertyToAlphabet(qwerty);
   const indices: number[] = [];
@@ -58,11 +60,13 @@ export class MaximumValidSequenceAligner {
   private targetText: string;
   private qwertyBuffer: string;
   private isKorean: boolean;
+  private cache?: MvsaCache;
 
-  constructor(targetText: string, qwertyBuffer: string, isKorean: boolean) {
+  constructor(targetText: string, qwertyBuffer: string, isKorean: boolean, cache?: MvsaCache) {
     this.targetText = targetText;
     this.qwertyBuffer = qwertyBuffer;
     this.isKorean = isKorean;
+    this.cache = cache;
   }
 
   public align(): AlignResult[] {
@@ -155,7 +159,19 @@ export class MaximumValidSequenceAligner {
           endQPtr++;
         }
         const wordQwerty = this.qwertyBuffer.slice(qPtr, endQPtr);
-        const wordResults = this.alignWord(word.text, wordQwerty, word.start, qPtr);
+        
+        const cacheKey = `${word.start}:${qPtr}:${wordQwerty}`;
+        let wordResults: AlignResult[];
+        
+        if (this.cache && this.cache.has(cacheKey)) {
+          wordResults = this.cache.get(cacheKey)!;
+        } else {
+          wordResults = this.alignWord(word.text, wordQwerty, word.start, qPtr);
+          if (this.cache) {
+            this.cache.set(cacheKey, wordResults);
+          }
+        }
+        
         result.push(...wordResults);
         qPtr = endQPtr;
       }
@@ -634,8 +650,9 @@ export function runMvsa(
   targetText: string,
   qwertyBuffer: string,
   isKorean: boolean,
+  cache?: MvsaCache,
 ): AlignResult[] {
-  const aligner = new MaximumValidSequenceAligner(targetText, qwertyBuffer, isKorean);
+  const aligner = new MaximumValidSequenceAligner(targetText, qwertyBuffer, isKorean, cache);
   const results = aligner.align();
   if (!isKorean) return results;
   return groupAlignResultsByVisualCharacters(results, qwertyBuffer);

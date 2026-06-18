@@ -2,15 +2,9 @@
 
 import React from "react";
 import { useTypingStore } from "@/store/useTypingStore";
-import { runMvsa } from "@/utils/mvsa";
 
 export const PracticePanel: React.FC = () => {
-  const { targetText, qwertyBuffer, targetLanguage } = useTypingStore();
-
-  const diffResult = React.useMemo(() => {
-    const isKorean = targetLanguage === "ko" || /[가-힣]/.test(targetText);
-    return runMvsa(targetText, qwertyBuffer, isKorean);
-  }, [targetText, qwertyBuffer, targetLanguage]);
+  const { qwertyBuffer, alignments: diffResult } = useTypingStore();
 
   const lastInputIndex = React.useMemo(() => {
     return diffResult.findLastIndex((d) => d.inputIndex !== undefined);
