@@ -89,22 +89,17 @@ in progree 라면:
 이러면 page 입력이 글의 중간부터 시작되는 경우는 사라짐.
 3분보다 이전인 경우만 run 마무리. 최근이면 page는 지우되, run은 유지.
 
+
+
+
+
+
 ## 6.17 이제 뭐함.
 
 - 백스페이스 누르고 있는거
-- 입력에서 지우는거, 자소 분리 안되고 글자 단위로 지워지게.
-
-
-TODO: 오늘
-mvsa 로직 점검 및 테스트 코드 보완
-내 입력 더미 데이터 적용 수동 버튼으로 하게, gitignore
-
-
 
 지우는거 어케 구현했냐
 
-
-- globals.css 분리. 대화 있음.
 
 - 통계 내용 내가 원하는거 다 구현 됐는지, 의미상 오류 없는지, ux 괜찮은지.
 - target text source 구상
@@ -114,24 +109,13 @@ mvsa 로직 점검 및 테스트 코드 보완
 
 ## Later:
 
-- AI 프롬프트 및 API
+### target text source
+llm api 활용 방안
+
+### 
+
+
+### after MVP
 - ml 에 활용할 raw 데이터 따로 저장
 - 모던 타자연습 서비스랑 비교해서 부족한 기능 없는지 점검
 - 영어 버전
-
-## MVSA 테스트·리팩터 (백로그)
-
-### 테스트 공백 (우선순위)
-
-- P0: `getCharQwertyIndices` 단위 테스트 (G1–G6: 1글자, 복수글자, 미완성 자모, 공백 경계, 구두점, 기존 runMvsa 테스트와 inputIndex 교차검증)
-- P0: 동일 `(target, buffer)` 두 번 `runMvsa` 호출 시 결과 동일 (stateless)
-- P1: 백스페이스 시퀀스 (정상 1키 삭제, 오타 후 삭제, 자소 단위 후퇴) — `createInputSlice` 버퍼 변경 + `runMvsa` 결과
-- P1: 도깨비불 전체 (`머그` / `머ㄱ`→`먹`→분리) — 현재는 `마우ㅅ` PARTIAL만 커버
-- P1: `handleUnrecoverablePanic` (lookahead 밖, 엉뚱한 입력, 타겟 소진 후 잔여 입력, 완성형 없는 자모만)
-- P2: 단어·버퍼 경계 (빈 입력/타겟, excess INSERT, 공백 누락·추가)
-- P2: 영문 Fallback 확장 (입력 초과/부족)
-- P2: `createInputSlice` / `PracticePanel` 통합 (PARTIAL 시 미완료, trailing DELETE, REPLACE expectedChar)
-
-### 리팩터 (선택)
-
-- `assembleHangulWithPunctuation` + `getCharQwertyIndices` 공통 순회를 `parseQwertyBuffer` 등으로 추출 (동작 동일, SSOT 하나). 테스트 먼저.

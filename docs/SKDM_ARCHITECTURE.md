@@ -15,6 +15,7 @@ SKDM은 타건 이벤트 스트림 `{fromKey → toKey, latencyMs}`를 키보드
 | Python 레거시 | `skdm/model.py`, `skdm/config.py`, `skdm/layout.py` |
 | 패리티 검증 | `src/lib/skdm/model.parity.test.ts`, `__fixtures__/python-reference.json` |
 | 이벤트 수집 | `src/store/typingSlices/createKeystrokeSlice.ts` |
+| 키 입력 / 백스페이스 | `src/store/typingSlices/createInputSlice.ts`, `src/hooks/useWorkspaceKeybindings.ts` — 상세는 [STATE_MANAGEMENT.md](STATE_MANAGEMENT.md) |
 | 진단 진입 | `src/hooks/useDiagnosticsTransition.ts` |
 | Surface 3D | `src/components/workspace/Surface3DManager.ts`, `LatencySurface3D.tsx` |
 | Cylindrical 3D | `src/components/workspace/CylindricalVector3D.tsx`, `geometryUtils.ts` |
@@ -54,7 +55,9 @@ export interface KeyEvent {
 - 세션 첫 키: `{ fromKey: null, toKey: token, latencyMs: 0 }`
 - 이후: `{ fromKey: lastKey, toKey: token, latencyMs: at - lastKeyAt }`
 - `isCorrect`, `expectedChar`는 `createInputSlice`가 MVSA(`runMvsa`) 결과로 `recordKey`에 전달
-- `holdDurationMs`는 `handlePhysicalKeyRelease`에서 해당 `toKey` 이벤트에 기록
+- `holdDurationMs`는 **`number | null | undefined`**. `recordKey` 시 `null`, `handlePhysicalKeyRelease`에서 해당 `toKey`의 **마지막** 이벤트에 기록
+  - 백스페이스 길게 누르기(repeat) 시: repeat마다 이벤트가 추가되고 중간 이벤트는 `null`, keyup 시 마지막 backspace 이벤트만 총 hold 시간을 받음
+  - SKDM `runPipeline`은 `holdDurationMs`를 사용하지 않음
 - Shift 단독 입력 후 릴리스 시 이벤트 스택 정리 로직 있음 (`shift_l` / `shift_r`)
 
 ### 진단 시 이벤트 소스 (`useDiagnosticsTransition`)

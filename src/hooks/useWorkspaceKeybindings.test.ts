@@ -59,6 +59,23 @@ describe("useWorkspaceKeybindings", () => {
     expect(handlePhysicalKeyPress).not.toHaveBeenCalled();
   });
 
+  it("should allow repeated Backspace but not other keys in practice mode", () => {
+    renderHook(() => useWorkspaceKeybindings({ onTransition }));
+    const handlePhysicalKeyPress = vi.spyOn(useTypingStore.getState(), "handlePhysicalKeyPress");
+
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", { code: "Backspace", key: "Backspace", repeat: true }),
+    );
+    expect(handlePhysicalKeyPress).toHaveBeenCalledWith("Backspace", false, expect.any(Number));
+
+    handlePhysicalKeyPress.mockClear();
+
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", { code: "KeyA", key: "a", repeat: true }),
+    );
+    expect(handlePhysicalKeyPress).not.toHaveBeenCalled();
+  });
+
   it("should change diagnostics mode when in diagnostics uiState", () => {
     useWorkspaceStore.setState({ uiState: "diagnostics" });
     renderHook(() => useWorkspaceKeybindings({ onTransition }));

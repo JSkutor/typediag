@@ -24,13 +24,40 @@ src/store/
 - **Purpose**: Manages the current sentence target text, the user's current typed text, and key buffer mappings.
 - **Key State**:
   - `targetText`: The target sentence.
-  - `typedText`: The user's input so far.
-  - `qwertyBuffer`: Buffer tracking active physical layout presses to resolve correct character mappings.
+  - `typedText`: The user's input so far (assembled Hangul for Korean targets).
+  - `qwertyBuffer`: Raw physical QWERTY key sequence (e.g. `"gks"` for `한`).
+  - `maxTypedTextLength`: High-water mark of `typedText.length` — **not decremented on backspace**. Used to detect when the user is deleting back into previously completed text.
+  - `alignments`: Latest MVSA alignment results (drives `PracticePanel` diff/highlight/cursor).
 - **Key Actions**:
   - `setTarget(text)`: Updates the active practice sentence.
   - `setTypedText(text)`: Updates the input string.
   - `handlePhysicalKeyPress(code, shiftKey, timestamp)`: Dispatches keypress logic, determines target characters, and records keystrokes.
     - **Note**: This action delegates the alignment logic to the **[MVSA (Maximum Valid Sequence Aligner) Algorithm](MVSA_ALGORITHM.md)**. MVSA dynamically maps raw physical key inputs to Hangul Jamo sequences for precise error diagnostics.
+
+#### Backspace deletion (`handlePhysicalKeyPress`)
+
+There is no native `<input>` — deletion mutates `qwertyBuffer` directly, then re-assembles `typedText` and re-runs MVSA.
+
+| Language | Default | When `shouldDeleteCharByChar` |
+| :--- | :--- | :--- |
+| **English** | Remove last QWERTY key (`slice(0, -1)`) | N/A |
+| **Korean** | Remove last QWERTY key (one jamo) | Remove the last **complete visual character** in one step |
+
+Korean `shouldDeleteCharByChar` is `true` when **both**:
+
+1. `typedText.length < maxTypedTextLength` — user is deleting back into text they had already progressed past.
+2. Last alignment op is not `PARTIAL` or `PENDING` — not an IME intermediate / carry-over state (e.g. 종성 빨림).
+
+When deleting by character, `getCharQwertyIndices(qwertyBuffer)` finds each visual character's end index in the QWERTY buffer and slices back to the previous character's boundary (or clears the buffer if only one character remains).
+
+`evaluateKeystroke` always marks backspace as `isCorrect: true` (valid correction). Each press (including OS key-repeat events) appends a separate `backspace` `KeyEvent`.
+
+**Example** (target `한글`, typed `gks` → `r`):
+
+1. `한` — `maxTypedTextLength = 1`
+2. `한ㄱ` — `maxTypedTextLength = 2`
+3. Backspace → removes `ㄱ` only (jamo-level; not going backwards yet)
+4. Backspace → removes `한` entirely (char-level; going backwards into completed text)
 
 ### 1.2. Keystroke Slice (`createKeystrokeSlice.ts`)
 
@@ -43,6 +70,7 @@ src/store/
 - **Key Actions**:
   - `recordKey(token, timestamp, details)`: Appends a raw key event to the event list.
   - `handlePhysicalKeyRelease(code, timestamp)`: Measures hold duration and removes the key from `pressedKeys`.
+    - `holdDurationMs` is **`null` at `recordKey` time** and set to a **number on keyup** (see §1.4 key repeat note).
 
 ### 1.3. Session Slice (`createSessionSlice.ts`)
 
@@ -56,6 +84,38 @@ src/store/
   - `startPage(now)`: Resolves or triggers a new run ID via `SessionService`.
   - `finish(timestamp)`: Completes the current page, persists statistics to the database, and transitions state.
   - `reset()`: Resets the state of the active run.
+
+### 1.4. Keyboard Bindings (`useWorkspaceKeybindings.ts`)
+
+Global `keydown` / `keyup` listeners route practice-mode input to the typing store.
+
+| Key / condition | Behavior |
+| :--- | :--- |
+| `Tab` (practice) | Transition to diagnostics |
+| `Tab` (diagnostics) | Return to practice |
+| `Ctrl` / `Meta` / `Alt` combos | Ignored in practice |
+| `Space`, `ArrowRight`, `Enter`, `Backspace` | `preventDefault()` in practice |
+| Other keys | `handlePhysicalKeyPress` → `handlePhysicalKeyRelease` on keyup |
+
+#### Key repeat (`e.repeat`)
+
+- **Letter / symbol keys**: repeat events are **ignored** — holding `a` does not produce `aaaa…`.
+- **Backspace**: repeat events are **allowed** — holding backspace triggers continuous deletion via repeated `handlePhysicalKeyPress("Backspace", …)` calls.
+
+Implementation: `if (e.repeat && e.code !== "Backspace") return;`
+
+When the buffer is empty, repeat backspace events still arrive from the OS but `handlePhysicalKeyPress` no-ops safely.
+
+#### Hold duration during key repeat
+
+`KeyEvent.holdDurationMs` is typed as `number | null | undefined`. On keyup, `handlePhysicalKeyRelease` finds the **last** event whose `toKey` matches the released key and writes `holdDurationMs`.
+
+For a held backspace burst:
+
+- Each repeat keydown creates a new event with `holdDurationMs: null`.
+- Only the **final** backspace event in the burst receives the total press-to-release duration on keyup; earlier repeat events stay `null`.
+
+SKDM latency analysis does not use `holdDurationMs`; this is mainly for persistence / future diagnostics.
 
 ---
 

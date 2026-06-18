@@ -56,11 +56,16 @@ export function useWorkspaceKeybindings({ onTransition }: WorkspaceKeybindingsPr
       }
 
       if (uiState === "practice") {
-        if (e.repeat) return;
+        if (e.repeat && e.code !== "Backspace") return;
         if (e.ctrlKey || e.metaKey || e.altKey) return;
 
         // Prevent default browser behavior for navigation and spacing keys
-        if (e.code === "Space" || e.code === "ArrowRight" || e.code === "Enter") {
+        if (
+          e.code === "Space" ||
+          e.code === "ArrowRight" ||
+          e.code === "Enter" ||
+          e.code === "Backspace"
+        ) {
           e.preventDefault();
         }
 
