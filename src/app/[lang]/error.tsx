@@ -22,15 +22,12 @@ export default function WorkspaceError({
   };
 
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center bg-neutral-900 text-white z-[9999]">
-      <h2 className="text-2xl font-bold text-red-500 mb-4">Something went wrong</h2>
-      <p className="text-neutral-400 mb-8 max-w-md text-center">
+    <div className="error-boundary-container">
+      <h2 className="error-boundary-title">Something went wrong</h2>
+      <p className="error-boundary-message">
         {error.message || "An unexpected error occurred in the workspace."}
       </p>
-      <button
-        onClick={handleReturnToPractice}
-        className="px-6 py-3 bg-neutral-800 hover:bg-neutral-700 text-neutral-100 rounded-lg transition-colors border border-neutral-700 font-mono text-sm"
-      >
+      <button onClick={handleReturnToPractice} className="error-boundary-button">
         Return to Practice
       </button>
     </div>

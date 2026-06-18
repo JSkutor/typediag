@@ -854,3 +854,56 @@ h4 {
 .typing-cursor.right {
   right: -1px;
 }
+
+/* ==========================================================================
+   TypeDiag — Error Boundary Screen
+   ========================================================================== */
+.error-boundary-container {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-inset);
+  color: var(--text-primary);
+  z-index: 9999;
+  padding: var(--space-6);
+}
+
+.error-boundary-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--error);
+  margin-bottom: var(--space-4);
+}
+
+.error-boundary-message {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-8);
+  max-width: 480px;
+  text-align: center;
+  font-size: 0.95rem;
+}
+
+.error-boundary-button {
+  padding: var(--space-3) var(--space-6);
+  background-color: var(--bg-raised);
+  color: var(--text-primary);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s, transform 0.1s;
+}
+
+.error-boundary-button:hover {
+  background-color: var(--bg-overlay);
+  border-color: var(--accent);
+}
+
+.error-boundary-button:active {
+  transform: translateY(1px);
+}
+
