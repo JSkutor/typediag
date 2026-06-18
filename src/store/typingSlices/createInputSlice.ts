@@ -11,6 +11,7 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
   targetLanguage: "en",
   targetId: "",
   typedText: "",
+  maxTypedTextLength: 0,
   qwertyBuffer: "",
 
   setTarget: (target) => {
@@ -40,6 +41,7 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
       targetLanguage: language,
       targetId: id,
       typedText: "",
+      maxTypedTextLength: 0,
       qwertyBuffer: "",
       events: [],
       status: "idle",
@@ -58,7 +60,11 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
     get().setTarget(targets[nextIndex]);
   },
 
-  setTypedText: (value) => set({ typedText: value, qwertyBuffer: value }),
+  setTypedText: (value) => set((state) => ({ 
+    typedText: value, 
+    qwertyBuffer: value,
+    maxTypedTextLength: Math.max(state.maxTypedTextLength, value.length)
+  })),
 
   handlePhysicalKeyPress: (code, shiftKey, timestamp) => {
     const state = get();
@@ -121,11 +127,9 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
 
         let nextBuffer = "";
         if (isKorean) {
-          const lastIdx = state.typedText.length - 1;
-          const isLastCharCorrect =
-            lastIdx >= 0 && state.typedText[lastIdx] === state.targetText[lastIdx];
+          const shouldDeleteCharByChar = state.typedText.length < state.maxTypedTextLength;
 
-          if (isLastCharCorrect) {
+          if (shouldDeleteCharByChar) {
             const targetLength = state.typedText.length - 1;
             let bestBuffer = "";
             for (let len = 0; len <= state.qwertyBuffer.length; len++) {
@@ -177,7 +181,11 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
         expectedChar: lastOp && lastOp.op === "REPLACE" ? lastOp.targetChar || null : null,
       };
 
-      set({ qwertyBuffer: nextBuffer, typedText: nextTyped });
+      set((s) => ({ 
+        qwertyBuffer: nextBuffer, 
+        typedText: nextTyped,
+        maxTypedTextLength: Math.max(s.maxTypedTextLength, nextTyped.length)
+      }));
       get().recordKey(keyToken, timestamp, evalResult);
 
       if (shouldFinish && isKorean) {

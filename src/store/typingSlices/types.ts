@@ -8,6 +8,7 @@ export interface InputSlice {
   targetLanguage: string;
   targetId: string;
   typedText: string;
+  maxTypedTextLength: number;
   qwertyBuffer: string;
   setTarget: (target: string | { id: string; content: string; language: string }) => void;
   nextTarget: () => void;
