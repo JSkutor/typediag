@@ -1,38 +1,39 @@
 # TypeDiag
 
-TypeDiag is an advanced typing diagnostics and practice application. It uses a Spatial Keystroke Dynamics Model (SKDM) to analyze your typing habits and visualizes your keystroke latency in a 3D topological map.
+TypeDiag is a typing practice + diagnostics playground focused on **3D latency visualization**.
+Instead of stopping at WPM/accuracy, it builds a **Spatial Keystroke Dynamics Model (SKDM)** from your keystroke transitions and renders your latency as a 3D “terrain” over a physical keyboard layout.
 
-## Documentation
+## What it does
 
-The project documentation has been organized for better readability:
+- **Practice**: real-time typing with Hangul-aware alignment via **MVSA** (jamo-level matching, IME intermediate states, carry-over handling).
+- **Diagnostics**: converts `{fromKey → toKey, latencyMs}` events into two 3D views:
+  - **Global Latency Surface** (macro latency terrain via triangulation)
+  - **Cylindrical Vector View** (micro transition patterns into a focused key)
+- **Session lifecycle**: managed by `SessionService` (idle-based run/page finalization rules).
 
-- **[Roadmap & TODOs](TODO.md)**: Master checklist, ongoing tasks, and architectural plans (located in root).
-- **[MVSA Algorithm](docs/MVSA_ALGORITHM.md)**: Deep dive into the Maximum Valid Sequence Aligner algorithm designed for real-time Hangul Jamo alignment and error correction.
-- **[Zustand & Session Lifecycle](docs/STATE_MANAGEMENT.md)**: State management slices design and SessionService timeout rules.
-- **[SKDM Architecture](docs/SKDM_ARCHITECTURE.md)**: Explanation of the 3D visualization model, latency surface, and the data pipeline.
-- **[Database Schema](docs/DB_SCHEMA.md)**: Current mock database structure and planned transition to a real relational database.
-- **[Design System](docs/DESIGN_SYSTEM.md)**: Color palettes, typography, and premium UI guidelines used in this project.
+## Tech
 
-## Getting Started
+Next.js (App Router), React, Zustand (slice pattern), Three.js, Vitest, Vanilla CSS.
 
-First, run the development server:
+## Run locally
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`. The root page redirects to `/{lang}` based on your browser language (`ko` or `en`).
 
-## Running Tests
-
-To run the unit and integration tests using Vitest:
+## Useful scripts
 
 ```bash
-npm run test
+npm run validate   # typecheck + lint + test
+npm run build
 ```
+
+## Docs
+
+- `docs/MVSA_ALGORITHM.md` — Hangul alignment & real-time error classification
+- `docs/SKDM_ARCHITECTURE.md` — SKDM pipeline and 3D visualization architecture
+- `docs/STATE_MANAGEMENT.md` — Zustand slices & session lifecycle
+- `docs/DESIGN_SYSTEM.md` — UI theme (“Space Grey & Cobalt”)

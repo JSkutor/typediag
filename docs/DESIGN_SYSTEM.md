@@ -1,6 +1,6 @@
 # TypeDiag Design System
 
-본 문서는 TypeDiag 프로젝트의 핵심 비주얼 테마인 **"Space Grey & Cobalt"**의 구체적인 디자인 사양(Design Specifications)을 정의합니다. 향후 Next.js 컴포넌트 및 바닐라 CSS 구축 시 기준점으로 사용됩니다.
+본 문서는 TypeDiag 프로젝트의 핵심 비주얼 테마인 **"Space Grey & Cobalt"**의 구체적인 디자인 사양(Design Specifications)을 정의합니다. 실제 런타임 CSS 변수의 SSOT는 `src/app/styles/tokens.css`이며, 본 문서는 의도와 팔레트의 기준점으로 사용됩니다.
 
 ## 1. Theme Concept: Space Grey & Cobalt
 
@@ -10,31 +10,32 @@
 
 ### 2.1. Backgrounds & Surfaces
 
-- `--bg-color`: **`#2a2b2e`** (메인 배경 - 묵직한 스페이스 그레이)
-- `--panel-bg`: **`#323336`** (컨테이너 및 패널 배경 - 약간 띄워진 그레이)
+- `--bg-base` / `--bg-color`: **`#2a2b2e`** (메인 배경 - 묵직한 스페이스 그레이)
+- `--bg-raised` / `--panel-bg`: **`#323336`** (컨테이너 및 패널 배경 - 약간 띄워진 그레이)
 
 ### 2.2. Typography
 
 - `--text-primary`: **`#e4e6eb`** (기본 텍스트 - 눈이 편안한 밝은 실버 화이트)
-- `--text-muted`: **`#8d929b`** (보조 텍스트 - 슬레이트 그레이)
+- `--text-secondary`: **`#8d929b`** (보조 텍스트 - 슬레이트 그레이)
+- `--text-muted`: **`#5c6068`** (더 낮은 대비의 보조 텍스트)
 
 ### 2.3. Keycap (Virtual Keyboard)
 
-- `--key-alpha-bg`: **`#36383c`** (일반 문자 키 배경)
+- `--keycap-face` / `--key-alpha-bg`: **`#36383c`** (일반 문자 키 배경)
 - `--key-alpha-text`: **`#e4e6eb`** (일반 문자 키 텍스트)
 - `--key-mod-bg`: **`#2d2e31`** (특수/기능 키 배경 - Alpha 키보다 한 톤 어두움)
 - `--key-mod-text`: **`#8d929b`** (특수/기능 키 텍스트)
 
 ### 2.4. Accents & Highlights
 
-- `--key-accent-bg`: **`#638ccb`** (코발트 블루 - 망설임 구간 하이라이트 및 강조 요소)
+- `--accent` / `--key-accent-bg`: **`#3861fb`** (코발트 블루 - 망설임 구간 하이라이트 및 강조 요소)
 - `--key-accent-text`: **`#f0f2f5`** (코발트 블루 위 텍스트)
-- `--accent-glow`: **`rgba(99, 140, 203, 0.12)`** (Delaunay 메쉬 등 엷은 코발트 워터마크)
+- `--accent-glow` / `--accent-dim`: **`rgba(56, 97, 251, 0.12)`** (Delaunay 메쉬 등 엷은 코발트 워터마크)
 
 ### 2.5. Borders & Shadows
 
-- `--border-color`: **`rgba(228, 230, 235, 0.08)`** (아주 미세한 실버 경계선)
-- `--shadow-color`: **`rgba(12, 14, 16, 0.35)`** (묵직한 금속 느낌을 살려주는 다크 섀도우)
+- `--border-subtle` / `--border-color`: **`rgba(228, 230, 235, 0.08)`** (아주 미세한 실버 경계선)
+- `--keycap-shadow` / `--shadow-color`: **`rgba(12, 14, 16, 0.35)`** (묵직한 금속 느낌을 살려주는 다크 섀도우)
 
 ## 3. Typography Rules
 

@@ -1,0 +1,269 @@
+/* ==========================================================================
+   Workspace
+   Practice, dashboard, cinematic layer transitions, and typing cursor.
+   ========================================================================== */
+
+.workspace-container {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding-top: 32px;
+  perspective: 1200px;
+  perspective-origin: 50% 50%;
+}
+
+.mode-toggle-btn {
+  position: absolute;
+  top: 16px;
+  right: 32px;
+  z-index: 50;
+  padding: 8px 20px;
+  border: 1px solid var(--border-strong);
+  border-radius: 9999px;
+  background-color: var(--bg-raised);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.mode-toggle-btn:hover {
+  background-color: var(--bg-overlay);
+}
+
+.practice-panel {
+  position: relative;
+  width: 100%;
+  max-width: 1024px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 64px;
+  margin: 0 auto;
+  transition: opacity 1s;
+}
+
+.typing-area {
+  width: 100%;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 1.875rem;
+  line-height: 1.625;
+  text-align: center;
+  transition: all 0.7s;
+}
+
+.typing-area.mode-practice {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.typing-area.mode-diagnostics {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-64px);
+}
+
+.typing-text-container {
+  position: relative;
+  width: 100%;
+  color: var(--text-muted);
+  text-align: left;
+}
+
+.typing-text-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: var(--text-primary);
+}
+
+.dashboard-panel {
+  position: absolute;
+  top: 25%;
+  right: 32px;
+  z-index: 50;
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
+  opacity: 1;
+  transition: opacity 0.5s;
+}
+
+.dashboard-title {
+  color: var(--text-primary);
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.dashboard-desc {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  line-height: 1.625;
+}
+
+.dashboard-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-strong);
+}
+
+.stat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.875rem;
+}
+
+.stat-label {
+  color: var(--text-secondary);
+}
+
+.stat-value {
+  color: var(--accent);
+  font-family: var(--font-mono);
+}
+
+.stat-value.primary {
+  color: var(--text-primary);
+}
+
+.screen-practice {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 20;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-style: preserve-3d;
+  transition:
+    transform 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity, filter;
+}
+
+.screen-practice.hidden-down {
+  opacity: 0;
+  pointer-events: none;
+  filter: blur(6px);
+  transform: translateZ(-250px) rotateX(8deg) translateY(20px);
+  transition-delay: 0s;
+}
+
+.screen-diagnostics {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 10;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  transition:
+    transform 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity;
+}
+
+.screen-diagnostics.invisible {
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.97) translateY(10px);
+}
+
+.text-char-container {
+  position: relative;
+  display: inline-grid;
+  place-items: center start;
+  white-space: nowrap;
+}
+
+.text-char-muted {
+  grid-area: 1 / 1;
+  color: var(--text-muted);
+}
+
+.text-char-primary {
+  color: var(--text-primary);
+}
+
+.text-char-error {
+  color: var(--error);
+}
+
+.text-char-overlay {
+  grid-area: 1 / 1;
+}
+
+.dev-db-btn {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dev-db-btn:hover {
+  background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%) !important;
+  box-shadow:
+    0 12px 20px -3px rgba(99, 102, 241, 0.4),
+    0 4px 8px -4px rgba(99, 102, 241, 0.4) !important;
+  transform: translateY(-2px);
+}
+
+.dev-db-btn:active {
+  box-shadow: 0 5px 10px -3px rgba(99, 102, 241, 0.3) !important;
+  transform: translateY(0);
+}
+
+@keyframes typing-cursor-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
+  }
+}
+
+.typing-cursor {
+  position: absolute;
+  top: 15%;
+  z-index: 10;
+  width: 2px;
+  height: 70%;
+  background-color: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+  animation: typing-cursor-blink 1s steps(2, start) infinite;
+}
+
+.typing-cursor.left {
+  left: -1px;
+}
+
+.typing-cursor.right {
+  right: -1px;
+}

@@ -159,10 +159,10 @@ export class MaximumValidSequenceAligner {
           endQPtr++;
         }
         const wordQwerty = this.qwertyBuffer.slice(qPtr, endQPtr);
-        
+
         const cacheKey = `${word.start}:${qPtr}:${wordQwerty}`;
         let wordResults: AlignResult[];
-        
+
         if (this.cache && this.cache.has(cacheKey)) {
           wordResults = this.cache.get(cacheKey)!;
         } else {
@@ -171,7 +171,7 @@ export class MaximumValidSequenceAligner {
             this.cache.set(cacheKey, wordResults);
           }
         }
-        
+
         result.push(...wordResults);
         qPtr = endQPtr;
       }
@@ -429,7 +429,7 @@ export class MaximumValidSequenceAligner {
       const typoQBuffer = panicQBuffer.slice(0, endTypoQIdx + 1);
       const typoTyped = assembleHangulWithPunctuation(typoQBuffer);
       const targetChars = wordTarget.slice(tIdx, bestMatchTargetIdx);
-      
+
       const M = typoTyped.length;
       const N = targetChars.length;
       const minLen = Math.min(M, N);
@@ -514,15 +514,15 @@ export class MaximumValidSequenceAligner {
     const targetChars = wordTarget.slice(tIdx);
     const M = panicTyped.length;
     const N = targetChars.length;
-    
+
     if (N > 0) {
       const minLen = Math.min(M, N);
-      
+
       // 1. 개수가 같은 부분은 1:1 REPLACE (또는 PARTIAL)
       for (let i = 0; i < minLen; i++) {
         const typedC = panicTyped[i];
         const targetC = targetChars[i];
-        
+
         const op = "REPLACE";
 
         results.push({
@@ -533,7 +533,7 @@ export class MaximumValidSequenceAligner {
           inputIndex: qOffset + qIdx + charToQwertyIdx[i],
         });
       }
-      
+
       // 2. 입력된 오타가 더 길다면 초과분은 INSERT
       for (let i = minLen; i < M; i++) {
         results.push({
@@ -542,7 +542,7 @@ export class MaximumValidSequenceAligner {
           inputIndex: qOffset + qIdx + charToQwertyIdx[i],
         });
       }
-      
+
       // 3. 아직 복구 지점을 찾지 못했으므로 남은 타겟은 대기 상태로 둔다
       for (let i = minLen; i < N; i++) {
         results.push({

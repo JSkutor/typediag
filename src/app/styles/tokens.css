@@ -1,0 +1,91 @@
+/* ==========================================================================
+   TypeDiag Design Tokens
+   Space Grey & Cobalt theme. Keep theme decisions here so MVP-era redesigns
+   can swap values without chasing component selectors.
+   ========================================================================== */
+
+:root {
+  /* Surfaces */
+  --bg-base: #2a2b2e;
+  --bg-raised: #323336;
+  --bg-overlay: #3d3e42;
+  --bg-inset: #202123;
+
+  /* Design-system aliases retained for docs and older component references. */
+  --bg-color: var(--bg-base);
+  --panel-bg: var(--bg-raised);
+
+  /* Borders / dividers */
+  --border-subtle: rgba(228, 230, 235, 0.08);
+  --border-strong: rgba(228, 230, 235, 0.16);
+  --border-keycap: rgba(228, 230, 235, 0.08);
+  --border-color: var(--border-subtle);
+
+  /* Text */
+  --text-primary: #e4e6eb;
+  --text-secondary: #8d929b;
+  --text-muted: #5c6068;
+  --text-inverse: #f0f2f5;
+
+  /* Accent */
+  --accent: #3861fb;
+  --accent-hover: #5377fc;
+  --accent-dim: rgba(56, 97, 251, 0.12);
+  --accent-cool: var(--accent);
+  --accent-cool-dim: var(--accent-dim);
+
+  /* Design-system aliases retained for docs and older component references. */
+  --key-accent-bg: var(--accent);
+  --key-accent-text: var(--text-inverse);
+  --accent-glow: var(--accent-dim);
+
+  /* Feedback */
+  --success: #57d68d;
+  --error: #ef5b5b;
+  --warning: #f2c94c;
+
+  /* Keycap rendering */
+  --keycap-face: #36383c;
+  --keycap-face-hover: #3e4045;
+  --keycap-top: #3d4045;
+  --keycap-shadow: rgba(12, 14, 16, 0.35);
+
+  /* Design-system aliases retained for docs and older component references. */
+  --key-alpha-bg: var(--keycap-face);
+  --key-alpha-text: var(--text-primary);
+  --shadow-color: var(--keycap-shadow);
+
+  /* Custom keyboard modifiers */
+  --key-mod-bg: #2d2e31;
+  --key-mod-text: #8d929b;
+
+  /* Typography */
+  --font-sans: var(--font-outfit), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-fira-code), "SF Mono", ui-monospace, monospace;
+
+  /* Radii */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-8: 48px;
+  --space-10: 64px;
+
+  /* Elevation */
+  --shadow-key: 0 4px 6px var(--keycap-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --shadow-key-active: 0 1px 2px var(--keycap-shadow);
+  --shadow-panel: 0 12px 40px rgba(12, 14, 16, 0.45);
+
+  /* Layout */
+  --container-max: 1120px;
+  --header-height: 64px;
+
+  color-scheme: dark;
+}

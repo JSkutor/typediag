@@ -63,17 +63,18 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
     get().setTarget(targets[nextIndex]);
   },
 
-  setTypedText: (value) => set((state) => {
-    const isKorean =
-      state.targetLanguage === "ko" ||
-      (state.targetLanguage === "en" && /[가-힣]/.test(state.targetText));
-    return {
-      typedText: value, 
-      qwertyBuffer: value,
-      maxTypedTextLength: value.length,
-      alignments: runMvsa(state.targetText, value, isKorean, state.mvsaCache)
-    };
-  }),
+  setTypedText: (value) =>
+    set((state) => {
+      const isKorean =
+        state.targetLanguage === "ko" ||
+        (state.targetLanguage === "en" && /[가-힣]/.test(state.targetText));
+      return {
+        typedText: value,
+        qwertyBuffer: value,
+        maxTypedTextLength: value.length,
+        alignments: runMvsa(state.targetText, value, isKorean, state.mvsaCache),
+      };
+    }),
 
   handlePhysicalKeyPress: (code, shiftKey, timestamp) => {
     const state = get();
@@ -138,7 +139,7 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
         if (isKorean) {
           const alignments = state.alignments;
           const lastInputIndex = alignments.findLastIndex((d) => d.inputIndex !== undefined);
-          
+
           let shouldDeleteCharByChar = false;
           if (lastInputIndex !== -1) {
             const lastOp = alignments[lastInputIndex].op;
@@ -146,7 +147,7 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
             const isGoingBackwards = state.typedText.length < state.maxTypedTextLength;
             // PARTIAL이나 PENDING은 "탱"처럼 다음 글자의 초성이 받침으로 딸려온 과도기적 상태이므로 자소 단위로 지워야 합니다.
             const isCompleteVisualChar = lastOp !== "PARTIAL" && lastOp !== "PENDING";
-            
+
             shouldDeleteCharByChar = isGoingBackwards && isCompleteVisualChar;
           }
 
@@ -198,11 +199,11 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
         expectedChar: lastOp && lastOp.op === "REPLACE" ? lastOp.targetChar || null : null,
       };
 
-      set((s) => ({ 
-        qwertyBuffer: nextBuffer, 
+      set((s) => ({
+        qwertyBuffer: nextBuffer,
         typedText: nextTyped,
         maxTypedTextLength: nextTyped.length,
-        alignments
+        alignments,
       }));
       get().recordKey(keyToken, timestamp, evalResult);
 

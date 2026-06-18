@@ -85,7 +85,6 @@ function setStored<T>(key: string, value: T): void {
 // NOTE: By default, we use localStorage for typing practice runs.
 // The local_db.json data is only fetched explicitly when clicking the developer button.
 
-
 // --- Asynchronous DB API (easy to migrate to Prisma/Supabase/API endpoints later) ---
 
 export const db = {
