@@ -84,14 +84,9 @@ describe("PracticePanel", () => {
     const char0 = container.querySelector("#text-char-0");
     const typedSpan0 = char0?.querySelector(".text-char-primary");
     expect(typedSpan0).toBeTruthy();
-    expect(typedSpan0?.textContent).toBe("가");
+    expect(typedSpan0?.textContent).toBe("간");
 
-    const char1 = container.querySelector("#text-char-1");
-    const typedSpan1 = char1?.querySelector(".text-char-primary");
-    expect(typedSpan1).toBeTruthy();
-    expect(typedSpan1?.textContent).toBe("ㄴ");
-
-    const cursor = char1?.querySelector(".typing-cursor");
+    const cursor = char0?.querySelector(".typing-cursor");
     expect(cursor).toBeTruthy();
     expect(cursor?.className).toContain("right");
   });

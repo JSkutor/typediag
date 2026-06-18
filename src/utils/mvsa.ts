@@ -184,8 +184,15 @@ export class MaximumValidSequenceAligner {
     let tIdx = 0;
     let qIdx = 0;
     const results: AlignResult[] = [];
+    const qStarts: number[] = [];
 
     while (tIdx < wordTarget.length && qIdx < wordQwerty.length) {
+      if (qStarts.length === tIdx) {
+        qStarts.push(qIdx);
+      } else {
+        qStarts[tIdx] = qIdx;
+      }
+
       const { isMismatch, newQIdx, partialResult } = this.runNormalMode(
         wordTarget[tIdx],
         wordQwerty,
@@ -323,7 +330,7 @@ export class MaximumValidSequenceAligner {
       const pChar = panicTyped[pIdx];
       if (!isCompleteHangul(pChar) && !/[a-zA-Z0-9]/.test(pChar)) continue;
 
-      for (let lookTIdx = tIdx; lookTIdx < targetLookaheadEnd; lookTIdx++) {
+      for (let lookTIdx = targetLookaheadEnd - 1; lookTIdx >= tIdx; lookTIdx--) {
         if (wordTarget[lookTIdx] === pChar) {
           matchFound = true;
           bestMatchInputIdx = pIdx;
@@ -400,23 +407,62 @@ export class MaximumValidSequenceAligner {
     if (endTypoQIdx >= 0) {
       const typoQBuffer = panicQBuffer.slice(0, endTypoQIdx + 1);
       const typoTyped = assembleHangulWithPunctuation(typoQBuffer);
+      const targetChars = wordTarget.slice(tIdx, bestMatchTargetIdx);
+      
+      const M = typoTyped.length;
+      const N = targetChars.length;
+      const minLen = Math.min(M, N);
 
-      if (tIdx === bestMatchTargetIdx) {
+      // 1. 개수가 같은 부분은 1:1 REPLACE (또는 PARTIAL)
+      for (let i = 0; i < minLen; i++) {
+        const typedC = typoTyped[i];
+        const targetC = targetChars[i];
+        
+        let op: "REPLACE" | "PARTIAL" = "REPLACE";
+        const tDis = disassemble(targetC);
+        const qDis = disassemble(typedC);
+        if (qDis.length > 0 && qDis.length <= tDis.length) {
+          let isPrefix = true;
+          for (let j = 0; j < qDis.length; j++) {
+            if (qDis[j] !== tDis[j]) {
+              isPrefix = false;
+              break;
+            }
+          }
+          if (isPrefix) {
+            op = "PARTIAL";
+          }
+        }
+
+        results.push({
+          op,
+          char: typedC,
+          targetChar: targetC,
+          targetIndex: targetOffset + tIdx + i,
+          inputIndex: qOffset + qIdx + charToQwertyIdx[i],
+        });
+      }
+
+      // 2. 입력된 오타가 더 길다면 초과분은 INSERT
+      for (let i = minLen; i < M; i++) {
         results.push({
           op: "INSERT",
-          char: typoTyped,
-          inputIndex: qOffset + qIdx + endTypoQIdx,
+          char: typoTyped[i],
+          inputIndex: qOffset + qIdx + charToQwertyIdx[i],
         });
-      } else {
+      }
+
+      // 3. 타겟 글자가 더 길다면(생략되었다면) 남은 타겟은 DELETE
+      for (let i = minLen; i < N; i++) {
         results.push({
-          op: "REPLACE",
-          char: typoTyped,
-          targetChar: wordTarget.slice(tIdx, bestMatchTargetIdx) || undefined,
-          targetIndex: targetOffset + tIdx,
-          inputIndex: qOffset + qIdx + endTypoQIdx,
+          op: "DELETE",
+          char: targetChars[i],
+          targetChar: targetChars[i],
+          targetIndex: targetOffset + tIdx + i,
         });
       }
     } else {
+      // 오타 없이 건너뛴 경우 전부 DELETE
       for (let t = tIdx; t < bestMatchTargetIdx; t++) {
         results.push({
           op: "DELETE",
@@ -427,6 +473,7 @@ export class MaximumValidSequenceAligner {
       }
     }
 
+    // 일치한 글자(동기화 지점) 처리
     results.push({
       op: "EQUAL",
       char: panicTyped[bestMatchInputIdx],
@@ -447,24 +494,64 @@ export class MaximumValidSequenceAligner {
     charToQwertyIdx: number[],
     wordQwertyLength: number,
   ) {
-    if (tIdx < wordTarget.length) {
-      results.push({
-        op: "REPLACE",
-        char: panicTyped,
-        targetChar: wordTarget[tIdx],
-        targetIndex: targetOffset + tIdx,
-        inputIndex: qOffset + wordQwertyLength - 1,
-      });
-      for (let t = tIdx + 1; t < wordTarget.length; t++) {
+    const targetChars = wordTarget.slice(tIdx);
+    const M = panicTyped.length;
+    const N = targetChars.length;
+    
+    if (N > 0) {
+      const minLen = Math.min(M, N);
+      
+      // 1. 개수가 같은 부분은 1:1 REPLACE (또는 PARTIAL)
+      for (let i = 0; i < minLen; i++) {
+        const typedC = panicTyped[i];
+        const targetC = targetChars[i];
+        
+        let op: "REPLACE" | "PARTIAL" = "REPLACE";
+        const tDis = disassemble(targetC);
+        const qDis = disassemble(typedC);
+        if (qDis.length > 0 && qDis.length <= tDis.length) {
+          let isPrefix = true;
+          for (let j = 0; j < qDis.length; j++) {
+            if (qDis[j] !== tDis[j]) {
+              isPrefix = false;
+              break;
+            }
+          }
+          if (isPrefix) {
+            op = "PARTIAL";
+          }
+        }
+
+        results.push({
+          op,
+          char: typedC,
+          targetChar: targetC,
+          targetIndex: targetOffset + tIdx + i,
+          inputIndex: qOffset + qIdx + charToQwertyIdx[i],
+        });
+      }
+      
+      // 2. 입력된 오타가 더 길다면 초과분은 INSERT
+      for (let i = minLen; i < M; i++) {
+        results.push({
+          op: "INSERT",
+          char: panicTyped[i],
+          inputIndex: qOffset + qIdx + charToQwertyIdx[i],
+        });
+      }
+      
+      // 3. 타겟 글자가 더 길다면(생략되었다면) 남은 타겟은 DELETE
+      for (let i = minLen; i < N; i++) {
         results.push({
           op: "DELETE",
-          char: wordTarget[t],
-          targetChar: wordTarget[t],
-          targetIndex: targetOffset + t,
+          char: targetChars[i],
+          targetChar: targetChars[i],
+          targetIndex: targetOffset + tIdx + i,
         });
       }
     } else {
-      for (let i = 0; i < panicTyped.length; i++) {
+      // 매칭될 타겟이 없으면 전부 INSERT
+      for (let i = 0; i < M; i++) {
         results.push({
           op: "INSERT",
           char: panicTyped[i],
@@ -475,11 +562,91 @@ export class MaximumValidSequenceAligner {
   }
 }
 
+export function groupAlignResultsByVisualCharacters(
+  results: AlignResult[],
+  qwertyBuffer: string,
+): AlignResult[] {
+  const typedChars = assembleHangulWithPunctuation(qwertyBuffer);
+  const qEnds = getCharQwertyIndices(qwertyBuffer);
+
+  const qIdxToVCharIdx = new Array(qwertyBuffer.length).fill(-1);
+  let start = 0;
+  for (let i = 0; i < typedChars.length; i++) {
+    const end = qEnds[i] + 1;
+    for (let q = start; q < end; q++) {
+      qIdxToVCharIdx[q] = i;
+    }
+    start = end;
+  }
+
+  const vCharIdxToResult = new Map<number, AlignResult>();
+  const opPriority = { REPLACE: 4, INSERT: 3, PARTIAL: 2, EQUAL: 1, DELETE: 0 };
+
+  for (const res of results) {
+    if (
+      res.inputIndex !== undefined &&
+      res.inputIndex >= 0 &&
+      res.inputIndex < qwertyBuffer.length
+    ) {
+      const vIdx = qIdxToVCharIdx[res.inputIndex];
+      if (vIdx !== -1) {
+        if (!vCharIdxToResult.has(vIdx)) {
+          vCharIdxToResult.set(vIdx, {
+            ...res,
+            char: typedChars[vIdx],
+          });
+        } else {
+          const existing = vCharIdxToResult.get(vIdx)!;
+          if (opPriority[res.op] > opPriority[existing.op]) {
+            existing.op = res.op;
+          }
+          existing.inputIndex = Math.max(existing.inputIndex!, res.inputIndex);
+        }
+      }
+    }
+  }
+
+  const finalResults: AlignResult[] = [];
+  const emittedVIdx = new Set<number>();
+
+  for (const res of results) {
+    if (
+      res.inputIndex !== undefined &&
+      res.inputIndex >= 0 &&
+      res.inputIndex < qwertyBuffer.length
+    ) {
+      const vIdx = qIdxToVCharIdx[res.inputIndex];
+      if (vIdx !== -1) {
+        if (!emittedVIdx.has(vIdx)) {
+          finalResults.push(vCharIdxToResult.get(vIdx)!);
+          emittedVIdx.add(vIdx);
+        } else if (res.targetIndex !== undefined) {
+          // If this result is absorbed into an already emitted visual character,
+          // we still need to emit a dummy placeholder for its target index
+          // so it doesn't disappear from the UI completely.
+          finalResults.push({
+            op: "DELETE", // Treated as a pending/omitted character visually
+            char: "",
+            targetChar: res.targetChar,
+            targetIndex: res.targetIndex,
+          });
+        }
+        continue;
+      }
+    }
+    finalResults.push(res);
+  }
+
+  return finalResults;
+}
+
 export function runMvsa(
   targetText: string,
   qwertyBuffer: string,
   isKorean: boolean,
 ): AlignResult[] {
   const aligner = new MaximumValidSequenceAligner(targetText, qwertyBuffer, isKorean);
-  return aligner.align();
+  const results = aligner.align();
+  if (!isKorean) return results;
+  return groupAlignResultsByVisualCharacters(results, qwertyBuffer);
 }

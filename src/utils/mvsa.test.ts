@@ -16,14 +16,15 @@ describe("MVSA (Maximum Valid Sequence Aligner)", () => {
   });
 
   it("should handle partial match (도깨비불)", () => {
-    // target: 마우스, typed: 마우ㅅ (akdnt)
+    // target: 마우스, typed: 마우ㅅ (akdnt -> 마웃)
+    // The OS forms "마웃", so it should be visually grouped as "마" and "웃"
     const qwerty = "akdnt";
     const result = runMvsa("마우스", qwerty, true);
 
     expect(result).toEqual([
       { op: "EQUAL", char: "마", targetChar: "마", targetIndex: 0, inputIndex: 1 },
-      { op: "EQUAL", char: "우", targetChar: "우", targetIndex: 1, inputIndex: 3 },
-      { op: "PARTIAL", char: "ㅅ", targetChar: "스", targetIndex: 2, inputIndex: 4 },
+      { op: "PARTIAL", char: "웃", targetChar: "우", targetIndex: 1, inputIndex: 4 },
+      { op: "DELETE", char: "", targetChar: "스", targetIndex: 2 },
     ]);
   });
 
@@ -47,7 +48,8 @@ describe("MVSA (Maximum Valid Sequence Aligner)", () => {
 
     expect(result).toEqual([
       { op: "EQUAL", char: "가", targetChar: "가", targetIndex: 0, inputIndex: 1 },
-      { op: "REPLACE", char: "가가", targetChar: "나다", targetIndex: 1, inputIndex: 5 },
+      { op: "REPLACE", char: "가", targetChar: "나", targetIndex: 1, inputIndex: 3 },
+      { op: "REPLACE", char: "가", targetChar: "다", targetIndex: 2, inputIndex: 5 },
       { op: "EQUAL", char: "라", targetChar: "라", targetIndex: 3, inputIndex: 7 },
       { op: "EQUAL", char: "마", targetChar: "마", targetIndex: 4, inputIndex: 9 },
     ]);
@@ -59,8 +61,8 @@ describe("MVSA (Maximum Valid Sequence Aligner)", () => {
     const result = runMvsa("가나다라", qwerty, true);
 
     expect(result).toEqual([
-      { op: "EQUAL", char: "가", targetChar: "가", targetIndex: 0, inputIndex: 1 },
-      { op: "REPLACE", char: "ㄴ", targetChar: "나", targetIndex: 1, inputIndex: 2 },
+      { op: "PARTIAL", char: "간", targetChar: "가", targetIndex: 0, inputIndex: 2 },
+      { op: "DELETE", char: "", targetChar: "나", targetIndex: 1 },
       { op: "EQUAL", char: "다", targetChar: "다", targetIndex: 2, inputIndex: 4 },
       { op: "EQUAL", char: "라", targetChar: "라", targetIndex: 3, inputIndex: 6 },
     ]);
@@ -74,8 +76,8 @@ describe("MVSA (Maximum Valid Sequence Aligner)", () => {
 
     expect(result).toEqual([
       // First word
-      { op: "EQUAL", char: "가", targetChar: "가", targetIndex: 0, inputIndex: 1 },
-      { op: "REPLACE", char: "ㄴ", targetChar: "나", targetIndex: 1, inputIndex: 2 },
+      { op: "PARTIAL", char: "간", targetChar: "가", targetIndex: 0, inputIndex: 2 },
+      { op: "DELETE", char: "", targetChar: "나", targetIndex: 1 },
       { op: "EQUAL", char: "다", targetChar: "다", targetIndex: 2, inputIndex: 4 },
       { op: "EQUAL", char: "라", targetChar: "라", targetIndex: 3, inputIndex: 6 },
       // Space
