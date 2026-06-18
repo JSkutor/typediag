@@ -99,4 +99,71 @@ describe("MVSA (Maximum Valid Sequence Aligner)", () => {
       { op: "EQUAL", char: "o", targetChar: "o", targetIndex: 4, inputIndex: 4 },
     ]);
   });
+  it("should handle empty input correctly", () => {
+    const result = runMvsa("가나다", "", true);
+    expect(result).toEqual([
+      { op: "PENDING", char: "", targetChar: "가", targetIndex: 0 },
+      { op: "PENDING", char: "", targetChar: "나", targetIndex: 1 },
+      { op: "PENDING", char: "", targetChar: "다", targetIndex: 2 },
+    ]);
+  });
+
+  it("should handle empty target correctly", () => {
+    const qwerty = "rkskek"; // 가나다
+    const result = runMvsa("", qwerty, true);
+    expect(result).toEqual([
+      { op: "INSERT", char: "가", inputIndex: 1 },
+      { op: "INSERT", char: "나", inputIndex: 3 },
+      { op: "INSERT", char: "다", inputIndex: 5 },
+    ]);
+  });
+
+  it("should handle completely different word replacement", () => {
+    // target: 사과 (tkrhk), typed: 포도 (vheh)
+    const qwerty = "vheh";
+    const result = runMvsa("사과", qwerty, true);
+    expect(result).toEqual([
+      { op: "REPLACE", char: "포", targetChar: "사", targetIndex: 0, inputIndex: 1 },
+      { op: "REPLACE", char: "도", targetChar: "과", targetIndex: 1, inputIndex: 3 },
+    ]);
+  });
+
+  it("should handle Korean partial matching with spaces", () => {
+    // target: 안녕 하세요 (dkssud gktpdy), typed: 안녕 하ㅅ (dkssud gkt) -> 안녕 핫
+    const qwerty = "dkssud gkt";
+    const result = runMvsa("안녕 하세요", qwerty, true);
+    expect(result).toEqual([
+      { op: "EQUAL", char: "안", targetChar: "안", targetIndex: 0, inputIndex: 2 },
+      { op: "EQUAL", char: "녕", targetChar: "녕", targetIndex: 1, inputIndex: 5 },
+      { op: "EQUAL", char: " ", targetChar: " ", targetIndex: 2, inputIndex: 6 },
+      { op: "PARTIAL", char: "핫", targetChar: "하", targetIndex: 3, inputIndex: 9 },
+      { op: "PENDING", char: "", targetChar: "세", targetIndex: 4 },
+      { op: "PENDING", char: "", targetChar: "요", targetIndex: 5 },
+    ]);
+  });
+
+  it("should handle extra spaces typed (early word termination)", () => {
+    // target: 가나다, typed: 가 나다 (r ksek) -> ㄱ 나다
+    const qwerty = "r ksek";
+    const result = runMvsa("가나다", qwerty, true);
+    expect(result).toEqual([
+      { op: "PARTIAL", char: "ㄱ", targetChar: "가", targetIndex: 0, inputIndex: 0 },
+      { op: "PENDING", char: "", targetChar: "나", targetIndex: 1 },
+      { op: "PENDING", char: "", targetChar: "다", targetIndex: 2 },
+      { op: "INSERT", char: " ", inputIndex: 1 },
+      { op: "INSERT", char: "ㅏ", inputIndex: 2 },
+      { op: "INSERT", char: "ㄴ", inputIndex: 3 },
+      { op: "INSERT", char: "다", inputIndex: 5 },
+    ]);
+  });
+
+  it("should handle English edge cases", () => {
+    const result = runMvsa("abc", "a  c", false);
+    expect(result).toEqual([
+      { op: "EQUAL", char: "a", targetChar: "a", targetIndex: 0, inputIndex: 0 },
+      { op: "REPLACE", char: " ", targetChar: "b", targetIndex: 1, inputIndex: 1 },
+      { op: "REPLACE", char: " ", targetChar: "c", targetIndex: 2, inputIndex: 2 },
+      { op: "INSERT", char: "c", inputIndex: 3 },
+    ]);
+  });
 });

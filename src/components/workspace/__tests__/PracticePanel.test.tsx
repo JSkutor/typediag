@@ -96,4 +96,41 @@ describe("PracticePanel", () => {
     expect(cursor).toBeTruthy();
     expect(cursor?.className).toContain("right");
   });
+  it("should render omitted characters with a red underline", () => {
+    // target: 가나다라, typed: 간다라
+    useTypingStore.setState({
+      targetText: "가나다라",
+      typedText: "간다라",
+      qwertyBuffer: "rksekfk",
+      alignments: runMvsa("가나다라", "rksekfk", true),
+    });
+
+    const { container } = render(<PracticePanel />);
+
+    // '나' should be omitted at index 1
+    const char1 = container.querySelector("#text-char-1");
+    const mutedSpan = char1?.querySelector(".text-char-muted");
+    expect(mutedSpan).toBeTruthy();
+    expect(mutedSpan?.textContent).toBe("나");
+    expect(mutedSpan?.className).toContain("border-red-500/30");
+  });
+
+  it("should render inserted extra spaces with a red underline on the cursor block", () => {
+    // target: 가나다, typed: 가 나다 (r ksek)
+    useTypingStore.setState({
+      targetText: "가나다",
+      typedText: "ㄱ 나다",
+      qwertyBuffer: "r ksek",
+      alignments: runMvsa("가나다", "r ksek", true),
+    });
+
+    const { container } = render(<PracticePanel />);
+
+    // ' ' is inserted at index 3 (0=ㄱ, 1=나(PENDING), 2=다(PENDING), 3= )
+    // Actually the indices in `diffResult` map would be exactly their array index.
+    // Let's find any error span that has the space insertion class.
+    const spaceInsertSpan = container.querySelector(".border-red-500\\/70");
+    expect(spaceInsertSpan).toBeTruthy();
+    expect(spaceInsertSpan?.textContent).toBe("\u00A0");
+  });
 });
