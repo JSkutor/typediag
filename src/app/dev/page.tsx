@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 
 import { DevPiecewisePanel } from "@/components/dev/DevPiecewisePanel";
 import { LoadLocalDbButton } from "@/components/dev/LoadLocalDbButton";
+import { SyncLocalDbButton } from "@/components/dev/SyncLocalDbButton";
 
 import styles from "./dev.module.css";
 
@@ -16,7 +17,10 @@ export default function DevPage() {
         <header className={styles.header}>
           <div className={styles.headerTop}>
             <h1 className={styles.title}>Dev · Piecewise Regression</h1>
-            <LoadLocalDbButton />
+            <div style={{ display: "flex", gap: "8px" }}>
+              <SyncLocalDbButton />
+              <LoadLocalDbButton />
+            </div>
           </div>
           <p className={styles.subtitle}>
             Zustand <code>analysisEvents</code>를 사용합니다. toKey 드롭다운으로 대상 키를 선택해

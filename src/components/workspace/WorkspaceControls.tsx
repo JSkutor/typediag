@@ -1,5 +1,6 @@
 import React from "react";
 import { LoadLocalDbButton } from "@/components/dev/LoadLocalDbButton";
+import { SyncLocalDbButton } from "@/components/dev/SyncLocalDbButton";
 import { useWorkspaceStore } from "@/store/useWorkspaceStore";
 
 interface WorkspaceControlsProps {
@@ -29,14 +30,24 @@ export const WorkspaceControls: React.FC<WorkspaceControlsProps> = ({ onStartDia
 
       {/* Developer DB Data Loader */}
       {process.env.NODE_ENV === "development" && uiState === "practice" && (
-        <LoadLocalDbButton
-          style={{
-            position: "absolute",
-            top: "16px",
-            right: "235px",
-            zIndex: 50,
-          }}
-        />
+        <>
+          <SyncLocalDbButton
+            style={{
+              position: "absolute",
+              top: "16px",
+              right: "460px",
+              zIndex: 50,
+            }}
+          />
+          <LoadLocalDbButton
+            style={{
+              position: "absolute",
+              top: "16px",
+              right: "235px",
+              zIndex: 50,
+            }}
+          />
+        </>
       )}
     </>
   );
