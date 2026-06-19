@@ -4,7 +4,7 @@ import { LatencySurface3D } from "./LatencySurface3D";
 import { CylindricalVector3D } from "./CylindricalVector3D";
 import { DashboardPanel } from "./DashboardPanel";
 import { ErrorBoundary3D } from "./ErrorBoundary3D";
-import { ResultsPanel } from "@/components/practice/ResultsPanel";
+
 
 export const DiagnosticsLayer: React.FC = () => {
   const uiState = useWorkspaceStore((state) => state.uiState);
@@ -58,7 +58,7 @@ export const DiagnosticsLayer: React.FC = () => {
           />
         )}
 
-        {diagnosticMode === "surface" && isDiag && <ResultsPanel />}
+
 
         {/* Dashboard Panel (non-cylindrical, non-surface — cylindrical has its own panel) */}
         {diagnosticMode !== "cylindrical" && diagnosticMode !== "surface" && (
