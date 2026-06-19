@@ -24,7 +24,10 @@
  */
 
 import { KeyEvent } from "@/lib/skdm/types";
-import { readSkdmFinalUpperBound } from "@/lib/skdm/outlierBoundStorage";
+import {
+  readSkdmFinalUpperBound,
+  type SkdmFinalUpperBoundRecord,
+} from "@/lib/skdm/outlierBoundStorage";
 
 // ============================================================
 // 행렬 유틸리티 함수 (Matrix Math Utilities)
@@ -174,6 +177,18 @@ function buildDesignMatrix3(xs: number[], c: number): Matrix {
   return xs.map((x) => [1, x, Math.max(0, x - c)]);
 }
 
+/** 양 끝 10%를 제외한 안전한 분절점 인덱스 범위 (최소 1점씩 양 구간 보장) */
+function safeBreakpointIndexRange(n: number): { minIdx: number; maxIdx: number } {
+  const minIdx = Math.max(1, Math.floor(n * 0.1));
+  const maxIdx = Math.min(n - 2, Math.ceil(n * 0.9) - 1);
+  return { minIdx, maxIdx: Math.max(minIdx, maxIdx) };
+}
+
+function clampBreakpoint(c: number, xs: number[]): number {
+  const { minIdx, maxIdx } = safeBreakpointIndexRange(xs.length);
+  return Math.max(xs[minIdx], Math.min(xs[maxIdx], c));
+}
+
 /**
  * 그리드 서치로 초기 분절점 c₀ 추정.
  *
@@ -188,21 +203,17 @@ function buildDesignMatrix3(xs: number[], c: number): Matrix {
  */
 function gridSearchC0(xs: number[], Y: number[]): number {
   const n = xs.length;
+  const { minIdx, maxIdx } = safeBreakpointIndexRange(n);
 
-  // 양 끝 10%를 제외한 구간에서 탐색 (최소 분절 데이터 보장)
-  const startIdx = Math.floor(n * 0.1);
-  const endIdx = Math.ceil(n * 0.9);
+  const steps = Math.min(50, maxIdx - minIdx);
+  const stepSize = steps > 0 ? (maxIdx - minIdx) / steps : 0;
 
-  // 그리드 분할 수: 최대 50 스텝 (데이터가 많아도 과도한 연산 방지)
-  const steps = Math.min(50, endIdx - startIdx);
-  const stepSize = (endIdx - startIdx) / steps;
-
-  let bestC = xs[startIdx];
+  let bestC = xs[minIdx];
   let bestRSS = Infinity;
 
   for (let i = 0; i <= steps; i++) {
-    const candidateIdx = Math.round(startIdx + i * stepSize);
-    const c = xs[Math.min(candidateIdx, n - 1)];
+    const candidateIdx = Math.round(minIdx + i * stepSize);
+    const c = xs[Math.min(candidateIdx, maxIdx)];
 
     // 3열 설계 행렬로 OLS 적합
     const X_design = buildDesignMatrix3(xs, c);
@@ -245,10 +256,7 @@ function gridSearchC0(xs: number[], Y: number[]): number {
  * @returns        수렴된 분절점 c, 수렴 실패 시 c0 반환
  */
 function muggeoMethod(xs: number[], Y: number[], c0: number, maxIter = 50, tol = 1e-6): number {
-  let c = c0;
-  const n = xs.length;
-  const xMin = xs[0];
-  const xMax = xs[n - 1];
+  let c = clampBreakpoint(c0, xs);
 
   for (let iter = 0; iter < maxIter; iter++) {
     // 4열 설계 행렬: [1, x, max(0, x-c), I(x>c)]
@@ -269,9 +277,7 @@ function muggeoMethod(xs: number[], Y: number[], c0: number, maxIter = 50, tol =
 
     // 무제오 업데이트 공식: c_new = c - β3 / β2
     const cNew = c - beta3 / beta2;
-
-    // c가 데이터 범위를 벗어나지 않도록 클리핑
-    const cClamped = Math.max(xMin, Math.min(xMax, cNew));
+    const cClamped = clampBreakpoint(cNew, xs);
 
     // 수렴 판단: |c_new - c| < tol
     if (Math.abs(cClamped - c) < tol) {
@@ -324,6 +330,145 @@ export interface PiecewiseResult {
 /** 시각화에 사용할 원본 데이터 도트 최대 샘플 수 */
 const MAX_SAMPLE_DOTS = 40;
 
+/** 분절 회귀 실패 사유 (dev/디버그 UI용) */
+export type PiecewiseFailureReason = "no_bound" | "insufficient_data" | "ols_failed";
+
+/** fitPiecewiseLinearWithDiagnostics가 함께 반환하는 내부 파이프라인 메타데이터 */
+export interface PiecewiseFitDiagnostics {
+  targetToKey: string;
+  boundRecord: SkdmFinalUpperBoundRecord;
+  upperBoundMs: number;
+  rawCorrectCount: number;
+  excludedByBoundCount: number;
+  /** 그리드 서치 초기 분절점 c₀ */
+  c0: number;
+  /** 회귀에 사용된 전체 scatter 점 (X=순서 인덱스, Y=latencyMs) */
+  points: Array<{ x: number; y: number }>;
+}
+
+export interface PiecewiseFitSuccess {
+  result: PiecewiseResult;
+  diagnostics: PiecewiseFitDiagnostics;
+}
+
+export interface PiecewiseFitFailure {
+  reason: PiecewiseFailureReason;
+  targetToKey: string;
+  boundRecord: SkdmFinalUpperBoundRecord | null;
+  rawCorrectCount: number;
+  excludedByBoundCount: number;
+  filteredCount: number;
+}
+
+export type PiecewiseFitOutcome = PiecewiseFitSuccess | PiecewiseFitFailure;
+
+function buildSampleDots(xs: number[], Y: number[], n: number): Array<{ x: number; y: number }> {
+  const sampleDots: Array<{ x: number; y: number }> = [];
+  if (n <= MAX_SAMPLE_DOTS) {
+    for (let i = 0; i < n; i++) {
+      sampleDots.push({ x: xs[i], y: Y[i] });
+    }
+  } else {
+    for (let i = 0; i < MAX_SAMPLE_DOTS; i++) {
+      const idx = Math.round((i / (MAX_SAMPLE_DOTS - 1)) * (n - 1));
+      sampleDots.push({ x: xs[idx], y: Y[idx] });
+    }
+  }
+  return sampleDots;
+}
+
+/**
+ * 특정 키에 대한 분절 선형 회귀를 수행하고 방정식·진단 정보를 반환.
+ */
+export function fitPiecewiseLinearWithDiagnostics(
+  events: KeyEvent[],
+  targetToKey: string,
+): PiecewiseFitOutcome {
+  const boundRecord = readSkdmFinalUpperBound();
+  if (boundRecord === null) {
+    const rawCorrectCount = events.filter(
+      (e) => e.toKey === targetToKey && e.isCorrect === true,
+    ).length;
+    return {
+      reason: "no_bound",
+      targetToKey,
+      boundRecord: null,
+      rawCorrectCount,
+      excludedByBoundCount: 0,
+      filteredCount: 0,
+    };
+  }
+
+  const upperBoundMs = boundRecord.final_upper_bound_ms;
+  const rawCorrect = events.filter((e) => e.toKey === targetToKey && e.isCorrect === true);
+  const rawCorrectCount = rawCorrect.length;
+  const filtered = rawCorrect.filter((e) => e.latencyMs > 0 && e.latencyMs <= upperBoundMs);
+  const excludedByBoundCount = rawCorrectCount - filtered.length;
+
+  if (filtered.length < 50) {
+    return {
+      reason: "insufficient_data",
+      targetToKey,
+      boundRecord,
+      rawCorrectCount,
+      excludedByBoundCount,
+      filteredCount: filtered.length,
+    };
+  }
+
+  const n = filtered.length;
+  const xs: number[] = Array.from({ length: n }, (_, i) => i);
+  const Y: number[] = filtered.map((e) => e.latencyMs);
+  const points = xs.map((x, i) => ({ x, y: Y[i] }));
+
+  const c0 = gridSearchC0(xs, Y);
+  let c = muggeoMethod(xs, Y, c0);
+  let beta = computeOLS(buildDesignMatrix3(xs, c), Y);
+
+  // 수치적으로 특이한 경우 그리드 서치 c₀로 한 번 더 시도
+  if (beta === null && c !== c0) {
+    c = c0;
+    beta = computeOLS(buildDesignMatrix3(xs, c), Y);
+  }
+
+  if (beta === null) {
+    return {
+      reason: "ols_failed",
+      targetToKey,
+      boundRecord,
+      rawCorrectCount,
+      excludedByBoundCount,
+      filteredCount: filtered.length,
+    };
+  }
+
+  const [beta0, beta1, beta2] = beta;
+  const predict = (x: number): number => beta0 + beta1 * x + beta2 * Math.max(0, x - c);
+
+  return {
+    result: {
+      c,
+      beta0,
+      beta1,
+      beta2,
+      slopeBefore: beta1,
+      slopeAfter: beta1 + beta2,
+      n,
+      predict,
+      sampleDots: buildSampleDots(xs, Y, n),
+    },
+    diagnostics: {
+      targetToKey,
+      boundRecord,
+      upperBoundMs,
+      rawCorrectCount,
+      excludedByBoundCount,
+      c0,
+      points,
+    },
+  };
+}
+
 /**
  * 특정 키에 대한 분절 선형 회귀를 수행하고 방정식을 반환.
  *
@@ -339,106 +484,9 @@ export function fitPiecewiseLinear(
   events: KeyEvent[],
   targetToKey: string,
 ): PiecewiseResult | null {
-  // ----------------------------------------------------------
-  // Step 1: finalUpperBound 로드 (데이터 충분성 보증 역할)
-  // ----------------------------------------------------------
-  const boundRecord = readSkdmFinalUpperBound();
-  if (boundRecord === null) {
-    // finalUpperBound가 없으면 아직 세션 데이터가 충분히 쌓이지 않은 상태
-    return null;
+  const outcome = fitPiecewiseLinearWithDiagnostics(events, targetToKey);
+  if ("result" in outcome) {
+    return outcome.result;
   }
-
-  const upperBoundMs = boundRecord.final_upper_bound_ms;
-
-  // ----------------------------------------------------------
-  // Step 2: 데이터 필터링
-  //   조건 1) toKey가 대상 키와 일치
-  //   조건 2) 정답 타자 이벤트 (isCorrect === true)
-  //   조건 3) latencyMs가 upperBoundMs 이하 (이상치 제거)
-  //   조건 4) latencyMs가 양수 (음수/0 방어)
-  // ----------------------------------------------------------
-  const filtered = events.filter(
-    (e) =>
-      e.toKey === targetToKey &&
-      e.isCorrect === true &&
-      e.latencyMs > 0 &&
-      e.latencyMs <= upperBoundMs,
-  );
-
-  // 데이터 50개 미만이면 회귀 분석 의미 없음 → null 반환
-  if (filtered.length < 50) {
-    return null;
-  }
-
-  const n = filtered.length;
-
-  // ----------------------------------------------------------
-  // Step 3: X, Y 배열 구성
-  //   X = 시간 순서 인덱스 [0, 1, 2, ..., N-1]
-  //   Y = latencyMs 값
-  // ----------------------------------------------------------
-  const xs: number[] = Array.from({ length: n }, (_, i) => i);
-  const Y: number[] = filtered.map((e) => e.latencyMs);
-
-  // ----------------------------------------------------------
-  // Step 4: 그리드 서치로 초기 분절점 c₀ 추정
-  // ----------------------------------------------------------
-  const c0 = gridSearchC0(xs, Y);
-
-  // ----------------------------------------------------------
-  // Step 5: 무제오 알고리즘으로 c₀ 정밀 수렴 → 최종 c 도출
-  // ----------------------------------------------------------
-  const c = muggeoMethod(xs, Y, c0);
-
-  // ----------------------------------------------------------
-  // Step 6: 최종 c로 OLS 최소제곱법 → 방정식 계수 도출
-  //   설계 행렬: [1, x, max(0, x - c)]
-  //   β = [beta0, beta1, beta2]
-  // ----------------------------------------------------------
-  const X_final = buildDesignMatrix3(xs, c);
-  const beta = computeOLS(X_final, Y);
-
-  if (beta === null) {
-    // 최종 OLS 역행렬 실패 (데이터가 완전히 동일한 x값을 갖는 극단 경우)
-    return null;
-  }
-
-  const [beta0, beta1, beta2] = beta;
-
-  // ----------------------------------------------------------
-  // Step 7: predict 함수 생성
-  // ----------------------------------------------------------
-  const predict = (x: number): number => {
-    return beta0 + beta1 * x + beta2 * Math.max(0, x - c);
-  };
-
-  // ----------------------------------------------------------
-  // Step 8: 시각화용 원본 데이터 도트 균등 샘플링
-  //   전체 N개 중 MAX_SAMPLE_DOTS개를 고르게 추출.
-  // ----------------------------------------------------------
-  const sampleDots: Array<{ x: number; y: number }> = [];
-  if (n <= MAX_SAMPLE_DOTS) {
-    // 데이터가 적으면 전부 포함
-    for (let i = 0; i < n; i++) {
-      sampleDots.push({ x: xs[i], y: Y[i] });
-    }
-  } else {
-    // 균등 간격으로 MAX_SAMPLE_DOTS개 샘플링
-    for (let i = 0; i < MAX_SAMPLE_DOTS; i++) {
-      const idx = Math.round((i / (MAX_SAMPLE_DOTS - 1)) * (n - 1));
-      sampleDots.push({ x: xs[idx], y: Y[idx] });
-    }
-  }
-
-  return {
-    c,
-    beta0,
-    beta1,
-    beta2,
-    slopeBefore: beta1,
-    slopeAfter: beta1 + beta2,
-    n,
-    predict,
-    sampleDots,
-  };
+  return null;
 }

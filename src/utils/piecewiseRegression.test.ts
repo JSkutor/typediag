@@ -11,7 +11,7 @@
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
-import { fitPiecewiseLinear } from "./piecewiseRegression";
+import { fitPiecewiseLinear, fitPiecewiseLinearWithDiagnostics } from "./piecewiseRegression";
 import { KeyEvent } from "@/lib/skdm/types";
 
 // ============================================================
@@ -339,6 +339,30 @@ describe("piecewiseRegression", () => {
       // 추정 분절점이 실제 분절점의 ±20% 범위 내에 있어야 함
       const tolerance = n * 0.2;
       expect(Math.abs(result.c - c_true)).toBeLessThan(tolerance);
+    });
+  });
+
+  // ----------------------------------------------------------
+  // 5. 분절점 경계 클램핑 회귀 테스트 (real data edge case)
+  // ----------------------------------------------------------
+  describe("분절점 경계 안정성", () => {
+    it("local_db 유사 데이터에서 Muggeo가 c=n-1로 수렴해도 OLS 실패하지 않음", () => {
+      setFinalUpperBoundMock(500);
+
+      const n = 524;
+      const events: KeyEvent[] = Array.from({ length: n }, (_, i) => ({
+        fromKey: "s",
+        toKey: "d",
+        latencyMs: 140 + Math.sin(i / 40) * 20 + (i > 400 ? -(i - 400) * 0.25 : i * 0.03),
+        isCorrect: true,
+      }));
+
+      const outcome = fitPiecewiseLinearWithDiagnostics(events, "d");
+      expect("result" in outcome).toBe(true);
+      if (!("result" in outcome)) return;
+
+      expect(outcome.result.c).toBeGreaterThan(0);
+      expect(outcome.result.c).toBeLessThan(n - 1);
     });
   });
 });
