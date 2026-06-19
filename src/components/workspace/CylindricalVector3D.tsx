@@ -94,7 +94,11 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
 
   return (
     <div className="cyl-viewport">
-      <CylindricalDiagnosticsPanel />
+      <CylindricalDiagnosticsPanel
+        events={events}
+        selectedTo={selectedTo}
+        setSelectedTo={setSelectedTo}
+      />
 
       {/* Three.js mount point */}
       <div ref={mountRef} className="cyl-canvas" />

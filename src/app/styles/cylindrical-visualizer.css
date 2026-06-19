@@ -497,16 +497,16 @@
 }
 
 .cyl-drawer--open .cyl-drawer__body {
-  width: min(680px, calc(100vw - 56px));
+  width: min(840px, calc(100vw - 56px));
   opacity: 1;
   pointer-events: auto;
 }
 
 .cyl-drawer__grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 460px 1fr;
   gap: 12px;
-  width: min(680px, calc(100vw - 56px));
+  width: min(840px, calc(100vw - 56px));
   height: 100%;
   overflow: hidden;
   padding-right: 4px;
@@ -552,3 +552,154 @@
   border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.02);
 }
+
+/* ==========================================================================
+   2D Piecewise Regression Visualization Styles
+   ========================================================================== */
+
+.cyl-drawer__controls-group {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.cyl-drawer__select-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cyl-select--wide {
+  width: 100%;
+  padding: 10px 12px;
+  background: rgba(20, 20, 22, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+
+.cyl-drawer__chart-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cyl-diag__chart-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.cyl-diag__svg {
+  width: 100%;
+  height: auto;
+  background: rgba(20, 20, 22, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-md);
+  overflow: visible;
+}
+
+/* Grid layout for stats underneath the SVG chart */
+.cyl-diag__stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.015);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: var(--radius-md);
+  padding: 12px;
+}
+
+.cyl-diag__stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cyl-diag__stat-lbl {
+  color: var(--text-muted);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.cyl-diag__stat-val {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.cyl-diag__failure-box {
+  background: rgba(239, 68, 68, 0.06);
+  border: 1px dashed rgba(239, 68, 68, 0.25);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cyl-diag__empty--fail {
+  color: #fca5a5 !important;
+  font-weight: 500;
+}
+
+.cyl-diag__stats-sub {
+  display: flex;
+  gap: 12px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+/* Diagnostics summary details on the right panel */
+.cyl-drawer__summary-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.cyl-drawer__summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.cyl-drawer__summary-row:last-of-type {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.cyl-drawer__summary-label {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
+.cyl-drawer__summary-val {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.cyl-drawer__desc-text {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-top: 8px;
+}
+
+.text-success {
+  color: #10b981;
+}
+
+.text-warning {
+  color: #fbbf24;
+}
+
