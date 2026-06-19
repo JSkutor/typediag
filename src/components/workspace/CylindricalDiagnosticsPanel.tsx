@@ -39,7 +39,7 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const { toKeyOptions, outcome, chartData } = useCylindricalDiagnostics(events, selectedTo);
+  const { toKeyOptions, outcome, chartData, additionalStats } = useCylindricalDiagnostics(events, selectedTo);
 
   // Render minimal SVG chart if outcome is successful
   const renderChart = () => {
@@ -199,6 +199,27 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
               <div className="cyl-drawer__chart-section">
                 <span className="cyl-label-text">2D Piecewise Regression</span>
                 {renderChart()}
+
+                <div className="cyl-diag__stats-grid">
+                  <div className="cyl-diag__stat-item">
+                    <span className="cyl-diag__stat-lbl">오타 유발율</span>
+                    <span className="cyl-diag__stat-val">
+                      {additionalStats.errorInducementRate.toFixed(1)}%
+                    </span>
+                    <span className="cyl-diag__stat-desc">
+                      ({additionalStats.errorInducementCount}/{additionalStats.totalErrorStartsCount} 오타 시작)
+                    </span>
+                  </div>
+                  <div className="cyl-diag__stat-item">
+                    <span className="cyl-diag__stat-lbl">순서 뒤바뀜 오타율</span>
+                    <span className="cyl-diag__stat-val">
+                      {additionalStats.lateKeystrokeRate.toFixed(1)}%
+                    </span>
+                    <span className="cyl-diag__stat-desc">
+                      ({additionalStats.lateKeystrokeCount}/{additionalStats.totalErrorsCount} 오타)
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </section>

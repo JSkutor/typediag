@@ -633,6 +633,14 @@
   font-weight: 600;
 }
 
+.cyl-diag__stat-desc {
+  color: var(--text-muted);
+  font-size: 0.62rem;
+  opacity: 0.75;
+  margin-top: 2px;
+  font-family: var(--font-sans);
+}
+
 .cyl-diag__failure-box {
   background: rgba(239, 68, 68, 0.06);
   border: 1px dashed rgba(239, 68, 68, 0.25);
