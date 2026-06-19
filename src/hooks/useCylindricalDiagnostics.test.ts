@@ -3,20 +3,22 @@ import { renderHook } from "@testing-library/react";
 import { useCylindricalDiagnostics } from "./useCylindricalDiagnostics";
 import { KeyEvent } from "@/lib/skdm";
 
-describe("useCylindricalDiagnostics additionalStats", () => {
-  it("should return zeros for empty events", () => {
+describe("useCylindricalDiagnostics diagnostics", () => {
+  it("should return zeros for empty events in error metrics", () => {
     const { result } = renderHook(() => useCylindricalDiagnostics([], "a"));
-    expect(result.current.additionalStats).toEqual({
-      errorInducementRate: 0,
-      errorInducementCount: 0,
+    expect(result.current.diagnostics.errorInducement).toEqual({
+      rate: 0,
+      count: 0,
       totalErrorStartsCount: 0,
-      lateKeystrokeRate: 0,
-      lateKeystrokeCount: 0,
+    });
+    expect(result.current.diagnostics.lateKeystroke).toEqual({
+      rate: 0,
+      count: 0,
       totalErrorsCount: 0,
     });
   });
 
-  it("should calculate errorInducementRate correctly", () => {
+  it("should calculate errorInducement rate correctly", () => {
     // 0. x->a (isCorrect: true) -> 정타
     // 1. y->b (isCorrect: true) -> 정타
     // 2. b->a (isCorrect: false) -> 오타 시작점! (이전 y->b가 정타이므로). toKey가 "a"이므로 오타 유발 대상.
@@ -37,14 +39,14 @@ describe("useCylindricalDiagnostics additionalStats", () => {
     const { result } = renderHook(() => useCylindricalDiagnostics(events, "a"));
     
     // totalErrorStartsCount: 2개 (b->a, d->e)
-    // errorInducementCount: 1개 (b->a)
+    // count: 1개 (b->a)
     // 따라서 1/2 = 50%
-    expect(result.current.additionalStats.totalErrorStartsCount).toBe(2);
-    expect(result.current.additionalStats.errorInducementCount).toBe(1);
-    expect(result.current.additionalStats.errorInducementRate).toBe(50);
+    expect(result.current.diagnostics.errorInducement.totalErrorStartsCount).toBe(2);
+    expect(result.current.diagnostics.errorInducement.count).toBe(1);
+    expect(result.current.diagnostics.errorInducement.rate).toBe(50);
   });
 
-  it("should calculate lateKeystrokeRate (key swap error) correctly", () => {
+  it("should calculate lateKeystroke (key swap error) correctly", () => {
     // 원래 "abc"를 입력하려다 순서가 바뀌어 "acb"를 입력한 경우
     // 올바른 자소: a -> b -> c
     // 실제 입력: a(correct) -> c(incorrect, expected b) -> b(incorrect, expected c)
@@ -62,30 +64,28 @@ describe("useCylindricalDiagnostics additionalStats", () => {
     const { result } = renderHook(() => useCylindricalDiagnostics(events, "b"));
 
     // toKey가 "b"인 오타 (totalErrorsCount) : c->b (isCorrect false, toKey "b") = 1개
-    // swappedErrors (lateKeystrokeCount):
+    // swappedErrors (count):
     // k = 1 일 때, curr = c, next = b
     // curr.isCorrect === false, next.isCorrect === false
     // next.toKey === "b" (selectedTo)
     // curr.expectedChar === "b" (selectedTo)
     // prev (events[0]): isCorrect === true
-    // 조건 일치! lateKeystrokeCount = 1개
+    // 조건 일치! count = 1개
     // 따라서 1/1 = 100%
-    expect(result.current.additionalStats.totalErrorsCount).toBe(1);
-    expect(result.current.additionalStats.lateKeystrokeCount).toBe(1);
-    expect(result.current.additionalStats.lateKeystrokeRate).toBe(100);
+    expect(result.current.diagnostics.lateKeystroke.totalErrorsCount).toBe(1);
+    expect(result.current.diagnostics.lateKeystroke.count).toBe(1);
+    expect(result.current.diagnostics.lateKeystroke.rate).toBe(100);
   });
 
-  describe("optionalStats", () => {
+  describe("commonPair & unconsciousKey & shiftPenalty", () => {
     it("should return empty structures for empty events", () => {
       const { result } = renderHook(() => useCylindricalDiagnostics([], "a"));
-      expect(result.current.optionalStats).toEqual({
-        topPair: null,
-        unconsciousKey: null,
-        shiftPenalty: null,
-      });
+      expect(result.current.diagnostics.commonPair).toBeNull();
+      expect(result.current.diagnostics.unconsciousKey).toBeNull();
+      expect(result.current.diagnostics.shiftPenalty).toBeNull();
     });
 
-    it("should calculate topPair correctly for selectedTo and filter non-alphabetic keys", () => {
+    it("should calculate commonPair correctly for selectedTo and filter non-alphabetic keys", () => {
       const events: KeyEvent[] = [
         { fromKey: "a", toKey: "b", latencyMs: 100, isCorrect: true },
         { fromKey: "b", toKey: "c", latencyMs: 100, isCorrect: true },
@@ -98,7 +98,7 @@ describe("useCylindricalDiagnostics additionalStats", () => {
 
       // If selectedTo is "b", it should match a->b (Rank #1)
       const { result: resB } = renderHook(() => useCylindricalDiagnostics(events, "b"));
-      expect(resB.current.optionalStats.topPair).toEqual({
+      expect(resB.current.diagnostics.commonPair).toEqual({
         rank: 1,
         from: "a",
         to: "b",
@@ -107,7 +107,7 @@ describe("useCylindricalDiagnostics additionalStats", () => {
 
       // If selectedTo is "c", it should match b->c (Rank #2)
       const { result: resC } = renderHook(() => useCylindricalDiagnostics(events, "c"));
-      expect(resC.current.optionalStats.topPair).toEqual({
+      expect(resC.current.diagnostics.commonPair).toEqual({
         rank: 2,
         from: "b",
         to: "c",
@@ -116,7 +116,7 @@ describe("useCylindricalDiagnostics additionalStats", () => {
 
       // If selectedTo is "d" (not in top pairs), it should return null
       const { result: resD } = renderHook(() => useCylindricalDiagnostics(events, "d"));
-      expect(resD.current.optionalStats.topPair).toBeNull();
+      expect(resD.current.diagnostics.commonPair).toBeNull();
     });
 
     it("should calculate unconsciousKey correctly for selectedTo and exclude 0% error keys", () => {
@@ -130,7 +130,7 @@ describe("useCylindricalDiagnostics additionalStats", () => {
 
       // If selectedTo is "d", it should match Rank #1
       const { result: resD } = renderHook(() => useCylindricalDiagnostics(events, "d"));
-      expect(resD.current.optionalStats.unconsciousKey).toEqual({
+      expect(resD.current.diagnostics.unconsciousKey).toEqual({
         rank: 1,
         key: "d",
         errorRate: 100,
@@ -140,7 +140,7 @@ describe("useCylindricalDiagnostics additionalStats", () => {
 
       // If selectedTo is "b", it should match Rank #2
       const { result: resB } = renderHook(() => useCylindricalDiagnostics(events, "b"));
-      expect(resB.current.optionalStats.unconsciousKey).toEqual({
+      expect(resB.current.diagnostics.unconsciousKey).toEqual({
         rank: 2,
         key: "b",
         errorRate: 100,
@@ -150,7 +150,7 @@ describe("useCylindricalDiagnostics additionalStats", () => {
 
       // If selectedTo is "a" (not in unconscious keys, errorRate 0%), it should return null
       const { result: resA } = renderHook(() => useCylindricalDiagnostics(events, "a"));
-      expect(resA.current.optionalStats.unconsciousKey).toBeNull();
+      expect(resA.current.diagnostics.unconsciousKey).toBeNull();
     });
 
     it("should calculate shiftPenalty when shift count >= 10 and difference is positive", () => {
@@ -162,7 +162,7 @@ describe("useCylindricalDiagnostics additionalStats", () => {
         events.push({ fromKey: "a", toKey: "q", latencyMs: 250, isCorrect: true, expectedChar: "ㅃ" });
       }
       const { result: resPositive } = renderHook(() => useCylindricalDiagnostics(events, "a"));
-      expect(resPositive.current.optionalStats.shiftPenalty).toEqual({
+      expect(resPositive.current.diagnostics.shiftPenalty).toEqual({
         shiftMedianMs: 250,
         nonShiftMedianMs: 100,
         differenceMs: 150,
@@ -176,17 +176,17 @@ describe("useCylindricalDiagnostics additionalStats", () => {
         negativeEvents.push({ fromKey: "a", toKey: "q", latencyMs: 150, isCorrect: true, expectedChar: "ㅃ" });
       }
       const { result: resNegative } = renderHook(() => useCylindricalDiagnostics(negativeEvents, "a"));
-      expect(resNegative.current.optionalStats.shiftPenalty).toBeNull();
+      expect(resNegative.current.diagnostics.shiftPenalty).toBeNull();
     });
   });
 
-  describe("detailedStats", () => {
+  describe("speed & correlation & transitions & relative", () => {
     it("should return default stats when events are empty", () => {
       const { result } = renderHook(() => useCylindricalDiagnostics([], "f"));
-      expect(result.current.detailedStats.medianLatencyMs).toBe(0);
-      expect(result.current.detailedStats.equivalentCpm).toBe(0);
-      expect(result.current.detailedStats.pearsonR).toBe(0);
-      expect(result.current.detailedStats.hesitationRatio).toBe(0);
+      expect(result.current.diagnostics.speedMetrics.medianLatencyMs).toBe(0);
+      expect(result.current.diagnostics.speedMetrics.equivalentCpm).toBe(0);
+      expect(result.current.diagnostics.holdCorrelation.pearsonR).toBe(0);
+      expect(result.current.diagnostics.hesitation.ratio).toBe(0);
     });
 
     it("should calculate median latency and CPM correctly", () => {
@@ -199,8 +199,8 @@ describe("useCylindricalDiagnostics additionalStats", () => {
       // Median latency of [150, 200, 250] is 200ms
       // CPM is 60000 / 200 = 300 CPM
       const { result } = renderHook(() => useCylindricalDiagnostics(events, "f"));
-      expect(result.current.detailedStats.medianLatencyMs).toBe(200);
-      expect(result.current.detailedStats.equivalentCpm).toBe(300);
+      expect(result.current.diagnostics.speedMetrics.medianLatencyMs).toBe(200);
+      expect(result.current.diagnostics.speedMetrics.equivalentCpm).toBe(300);
     });
 
     it("should calculate Pearson correlation and detect significance", () => {
@@ -212,17 +212,14 @@ describe("useCylindricalDiagnostics additionalStats", () => {
       ];
 
       const { result } = renderHook(() => useCylindricalDiagnostics(events, "f"));
-      expect(result.current.detailedStats.pearsonR).toBeCloseTo(1.0, 5);
+      expect(result.current.diagnostics.holdCorrelation.pearsonR).toBeCloseTo(1.0, 5);
       // Perfect correlation with 3 samples (df=1) yields a low p-value (approx 0.0)
-      expect(result.current.detailedStats.pValue).toBeLessThan(0.05);
-      expect(result.current.detailedStats.isCorrelationSignificant).toBe(true);
+      expect(result.current.diagnostics.holdCorrelation.pValue).toBeLessThan(0.05);
+      expect(result.current.diagnostics.holdCorrelation.isSignificant).toBe(true);
     });
 
     it("should calculate hesitation ratio based on IQR threshold", () => {
       // 10 samples: [100, 110, 120, 130, 140, 150, 160, 170, 180, 500 (outlier)]
-      // sorted: 100, 110, 120, 130, 140, 150, 160, 170, 180, 500
-      // q1 (index 2.25) -> linear interpolation
-      // q3 (index 6.75) -> linear interpolation
       const events: KeyEvent[] = [
         { fromKey: "a", toKey: "f", latencyMs: 100, isCorrect: true },
         { fromKey: "a", toKey: "f", latencyMs: 110, isCorrect: true },
@@ -238,8 +235,8 @@ describe("useCylindricalDiagnostics additionalStats", () => {
 
       const { result } = renderHook(() => useCylindricalDiagnostics(events, "f"));
       // 500 should be detected as an outlier since IQR is around 45ms and Q3 + 1.5 * IQR is around 235ms.
-      expect(result.current.detailedStats.hesitationRatio).toBe(10); // 1 out of 10
-      expect(result.current.detailedStats.hasHesitationTendency).toBe(true);
+      expect(result.current.diagnostics.hesitation.ratio).toBe(10); // 1 out of 10
+      expect(result.current.diagnostics.hesitation.hasTendency).toBe(true);
     });
 
     it("should compute transition ratios correctly for a target key", () => {
@@ -261,7 +258,7 @@ describe("useCylindricalDiagnostics additionalStats", () => {
       ];
 
       const { result } = renderHook(() => useCylindricalDiagnostics(events, "f"));
-      const ratios = result.current.detailedStats.transitionRatios;
+      const ratios = result.current.diagnostics.fingerTransitions.ratios;
       
       // Total transitions = 6. Each counts for ~16.67%
       expect(ratios.oppositeHand).toBeCloseTo(16.67, 1);
@@ -284,10 +281,9 @@ describe("useCylindricalDiagnostics additionalStats", () => {
 
       const { result } = renderHook(() => useCylindricalDiagnostics(events, "f"));
       // Other left hand keys: [150, 170], median is 160ms.
-      // relativeSpeedMs = 200 - 160 = +40ms (target is slower by 40ms)
-      expect(result.current.detailedStats.comparedToMedianMs).toBe(160);
-      expect(result.current.detailedStats.relativeSpeedMs).toBe(40);
+      // relativeSpeedMs = 200 - 160 = +40ms
+      expect(result.current.diagnostics.relativeSpeed.handMedianMs).toBe(160);
+      expect(result.current.diagnostics.relativeSpeed.speedDiffMs).toBe(40);
     });
   });
 });
-
