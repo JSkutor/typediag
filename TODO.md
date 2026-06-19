@@ -28,6 +28,52 @@
   선형회귀 넣으면 좋을거 같음.
   간단함. 기울기 구하는거임.
 
+  일단 선형회귀는 그냥 raw 데이터 이용해서 하면 됨. 기울기 구하고.
+  데이터 개수가 적을 때는 막아야됨.
+  finalUpperBound (50개 미만일 때 저장 x)
+  
+  분절회귀. 이러면 모래시계 모양은 아니긴 한데 상관없음. 이게 더 좋을듯.
+  함수랑 같이 실제 데이들도 도트로 보여주는 게 좋을거 같음. 다는 아니고 좀만.
+  
+  방정식을 반환하는 독립적인 모듈 만들어야됨.
+  그리드 서치를 통해 c 초깃값을 설정하고,
+  무제오 알고리즘(Muggeo's Method)을 통해 최종적으로 c값을 도출.
+  그리고 최소제곱법을 통해 방정식 도출 후 반환.
+
+    입력:
+    interface KeyEvent {
+    fromKey: string | null;
+    toKey: string;
+    latencyMs: number;
+    keyChar?: string;
+    holdDurationMs?: number | null;
+    isCorrect?: boolean | null;
+    expectedChar?: string | null;
+    }
+    이 배열에서 toKey 랑 isCorrect 만족하는 데이터 필터.
+
+    import pwlf
+    import numpy as np
+    x = np.arange(len(data))
+    y = np.array([2,4,6,8,10,11,12,13])
+    my_pwlf = pwlf.PiecewiseLinFit(x, y)
+    c0 = my_pwlf.fit(2)
+
+    시간순 그대로 X,Y 각각 2차원 행렬로 변환.
+    X = [[x1, max(0, x1 - c0), I(x1 > c0)], [], ...]
+    Y = [[y1], [y2], ...]
+    (duration은 여기선 안쓰지만 활용도 좋을거 같음.)
+
+    c0, X, Y 를 입력으로 무제오 알고리즘 -> c 도출
+    
+    c로 최소제곱법(OLS) -> 방정식 도출
+    
+    
+
+  그리고 좀 대강 분석해서 텍스트로 설명도 넣어주고.
+  
+
+
 - 오타 유발율:
   tokey랑 isCorrect false 값으로 필터링 해서, 그 이전 쌍이 correct 인지 탐지.
 - db 탐색 잘 되면 늦게 눌러서 키 순서가 바뀌어서 오타를 낸 경우 카운트

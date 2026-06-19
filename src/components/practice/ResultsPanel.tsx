@@ -2,43 +2,44 @@
 
 import { useMemo } from "react";
 
-import { buildLayout, runPipeline, type KeyEvent } from "@/lib/skdm";
+import { useWorkspaceStore } from "@/store/useWorkspaceStore";
 import styles from "./ResultsPanel.module.css";
-
-interface ResultsPanelProps {
-  events: KeyEvent[];
-}
 
 const KEY_LABEL: Record<string, string> = { space: "␣", ",": ",", ".": "." };
 
-export function ResultsPanel({ events }: ResultsPanelProps) {
-  const results = useMemo(() => runPipeline(events, buildLayout()), [events]);
+/**
+ * Displays pre-computed SKDM key stats from the workspace store.
+ * Pipeline runs once on Tab → diagnostics transition (see useDiagnosticsTransition).
+ */
+export function ResultsPanel() {
+  const keyStats = useWorkspaceStore((state) => state.keyStats);
+  const analysisEvents = useWorkspaceStore((state) => state.analysisEvents);
 
   const rows = useMemo(
     () =>
-      Object.values(results)
+      Object.values(keyStats)
         .slice()
         .sort((a, b) => b.zSmoothed - a.zSmoothed),
-    [results],
+    [keyStats],
   );
 
   const observed = rows.filter((r) => r.confidence > 0).length;
   const slowest = rows.slice(0, 10);
 
-  if (events.length === 0) return null;
+  if (analysisEvents.length === 0) return null;
 
   return (
     <section className={styles.panel} aria-label="분석 결과">
       <div className={styles.header}>
-        <h2 className={styles.title}>실시간 SKDM 분석</h2>
+        <h2 className={styles.title}>SKDM 분석</h2>
         <span className={styles.meta}>
-          전이 {events.length} · 관측된 키 {observed}/{rows.length}
+          전이 {analysisEvents.length} · 관측된 키 {observed}/{rows.length}
         </span>
       </div>
 
       <p className={styles.hint}>
-        평활화된 지연(zSmoothed)이 클수록 손가락이 더 머뭇거린 키입니다. 3D 히트맵 시각화는 Phase
-        3에서 추가됩니다.
+        Tab으로 진단 모드에 진입할 때 계산된 결과입니다. 평활화된 지연(zSmoothed)이 클수록 손가락이
+        더 머뭇거린 키입니다.
       </p>
 
       <ol className={styles.list}>
