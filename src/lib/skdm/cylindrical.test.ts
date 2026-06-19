@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   buildCylindricalVectors,
   getAvailableCenterKeys,
+  getDefaultCylindricalSelection,
   getGlobalCylindricalMax,
 } from "./cylindrical";
 import type { KeyEvent } from "./types";
@@ -90,6 +91,77 @@ describe("cylindrical module", () => {
 
       expect(max.maxR).toBe(2);
       expect(max.maxZ).toBe(150);
+    });
+  });
+
+  describe("getDefaultCylindricalSelection", () => {
+    it("should pick the To key with the most incoming data and its slowest From key", () => {
+      const events: KeyEvent[] = [
+        ...mockEvents,
+        {
+          fromKey: "c",
+          toKey: "t",
+          keyChar: "t",
+          latencyMs: 120,
+          holdDurationMs: 50,
+          isCorrect: true,
+          expectedChar: null,
+        },
+        {
+          fromKey: "h",
+          toKey: "t",
+          keyChar: "t",
+          latencyMs: 130,
+          holdDurationMs: 50,
+          isCorrect: true,
+          expectedChar: null,
+        },
+        {
+          fromKey: "h",
+          toKey: "t",
+          keyChar: "t",
+          latencyMs: 140,
+          holdDurationMs: 50,
+          isCorrect: true,
+          expectedChar: null,
+        },
+        {
+          fromKey: "e",
+          toKey: "t",
+          keyChar: "t",
+          latencyMs: 150,
+          holdDurationMs: 50,
+          isCorrect: true,
+          expectedChar: null,
+        },
+      ];
+
+      const selection = getDefaultCylindricalSelection(events);
+      expect(selection).toEqual({ toKey: "t", fromKey: "e" });
+    });
+
+    it("should honor a preferred To key when it has data and pick highest latency From key", () => {
+      const selection = getDefaultCylindricalSelection(mockEvents, "e");
+      expect(selection).toEqual({ toKey: "e", fromKey: "a" });
+    });
+
+    it("should fall back to the richest To key when preferred key has no data", () => {
+      const events: KeyEvent[] = [
+        ...mockEvents,
+        {
+          fromKey: "x",
+          toKey: "y",
+          keyChar: "y",
+          latencyMs: 100,
+          holdDurationMs: 50,
+          isCorrect: true,
+          expectedChar: null,
+        },
+      ];
+
+      const selection = getDefaultCylindricalSelection(events, "z");
+      expect(selection?.toKey).toBe("e");
+      expect(selection?.fromKey).toBe("a");
     });
   });
 

@@ -135,3 +135,76 @@ export function getAvailableCenterKeys(events: KeyEvent[]): string[] {
   }
   return Array.from(keys).sort();
 }
+
+export interface CylindricalSelection {
+  toKey: string;
+  fromKey: string;
+}
+
+/** Pick the map entry with the highest count; ties break alphabetically. */
+function pickMaxCountKey(counts: Map<string, number>): string | null {
+  let bestKey: string | null = null;
+  let bestCount = -1;
+
+  for (const [key, count] of counts) {
+    if (count > bestCount || (count === bestCount && bestKey !== null && key < bestKey)) {
+      bestCount = count;
+      bestKey = key;
+    }
+  }
+
+  return bestKey;
+}
+
+/** Count incoming alphabetic transitions per toKey (same filters as buildCylindricalVectors). */
+function countIncomingTransitions(events: KeyEvent[]): Map<string, number> {
+  const cleaned = filterInterruptedTransitions(events);
+  const [validEvents] = filterOutliers(cleaned);
+  const counts = new Map<string, number>();
+
+  for (const ev of validEvents) {
+    if (ev.fromKey === null) continue;
+    const from = ev.fromKey.toLowerCase();
+    const to = ev.toKey.toLowerCase();
+    if (from === to) continue;
+    if (!/^[a-z]$/.test(from) || !/^[a-z]$/.test(to)) continue;
+
+    counts.set(to, (counts.get(to) ?? 0) + 1);
+  }
+
+  return counts;
+}
+
+/**
+ * Default To/From selection for the cylindrical view.
+ * Chooses the To key with the most incoming transitions, then the From key
+ * with the highest mean latency (z) for that center. An optional preferred To
+ * key is used when it has data; otherwise falls back to the richest To key.
+ */
+export function getDefaultCylindricalSelection(
+  events: KeyEvent[],
+  preferredToKey?: string,
+): CylindricalSelection | null {
+  const toCounts = countIncomingTransitions(events);
+  if (toCounts.size === 0) return null;
+
+  const preferred = preferredToKey?.toLowerCase();
+  const toKey =
+    preferred && /^[a-z]$/.test(preferred) && toCounts.has(preferred)
+      ? preferred
+      : pickMaxCountKey(toCounts);
+
+  if (!toKey) return null;
+
+  const vectors = buildCylindricalVectors(events, toKey);
+  const withData = vectors.filter((v) => v.r > 0);
+  if (withData.length === 0) {
+    return { toKey, fromKey: vectors[0]?.fromKey ?? "" };
+  }
+
+  const slowestFrom = withData.reduce((best, v) =>
+    v.z > best.z || (v.z === best.z && v.fromKey < best.fromKey) ? v : best,
+  );
+
+  return { toKey, fromKey: slowestFrom.fromKey };
+}
