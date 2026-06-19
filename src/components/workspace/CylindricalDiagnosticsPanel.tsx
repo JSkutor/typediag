@@ -1,17 +1,13 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import { KeyEvent } from "@/lib/skdm";
+import { useCylindricalDiagnostics } from "@/hooks/useCylindricalDiagnostics";
 import {
-  fitPiecewiseLinearWithDiagnostics,
   type PiecewiseFitSuccess,
   type PiecewiseFitFailure,
 } from "@/utils/piecewiseRegression";
-import {
-  countCorrectEventsByToKey,
-  ensureFinalUpperBound,
-  PIECEWISE_FAILURE_LABEL,
-} from "@/lib/dev/piecewiseDev";
+import { PIECEWISE_FAILURE_LABEL } from "@/lib/dev/piecewiseDev";
 
 interface CylindricalDiagnosticsPanelProps {
   events: KeyEvent[];
@@ -43,18 +39,7 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  // Get sorted keys based on count of correct events
-  const toKeyOptions = useMemo(
-    () => [...countCorrectEventsByToKey(events).entries()].sort((a, b) => b[1] - a[1]),
-    [events],
-  );
-
-  // Compute piecewise regression
-  const outcome = useMemo(() => {
-    if (!selectedTo || events.length === 0) return null;
-    ensureFinalUpperBound(events);
-    return fitPiecewiseLinearWithDiagnostics(events, selectedTo);
-  }, [events, selectedTo]);
+  const { toKeyOptions, outcome, chartData } = useCylindricalDiagnostics(events, selectedTo);
 
   // Render minimal SVG chart if outcome is successful
   const renderChart = () => {
@@ -75,12 +60,11 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
       );
     }
 
-    const { points } = outcome.diagnostics;
-    const { result } = outcome;
-
-    if (points.length === 0) {
+    if (!chartData || chartData.points.length === 0) {
       return <p className="cyl-diag__empty">시각화할 수 있는 데이터 포인트가 없습니다.</p>;
     }
+
+    const { points, regressionSamples, xMax, domainYMin, domainYMax, yTickValues } = chartData;
 
     const WIDTH = 410;
     const HEIGHT = 200;
@@ -88,33 +72,12 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
     const plotWidth = WIDTH - PAD.left - PAD.right;
     const plotHeight = HEIGHT - PAD.top - PAD.bottom;
 
-    const xMax = Math.max(...points.map((p) => p.x), 1);
-    const yValues = points.map((p) => p.y);
-    const regressionSamples = [
-      { x: 0, y: result.predict(0) },
-      { x: result.c, y: result.predict(result.c) },
-      { x: xMax, y: result.predict(xMax) },
-    ];
-
-    const yMin = Math.min(...yValues, ...regressionSamples.map((p) => p.y));
-    const yMax = Math.max(...yValues, ...regressionSamples.map((p) => p.y));
-    const yPadding = Math.max(8, (yMax - yMin) * 0.08);
-    const domainYMin = yMin - yPadding;
-    const domainYMax = yMax + yPadding;
-
     const toSvgX = (x: number) => scaleLinear(x, 0, xMax, PAD.left, PAD.left + plotWidth);
     const toSvgY = (y: number) => scaleLinear(y, domainYMin, domainYMax, PAD.top + plotHeight, PAD.top);
 
     const regressionPath = regressionSamples
       .map((point, index) => `${index === 0 ? "M" : "L"} ${toSvgX(point.x).toFixed(1)} ${toSvgY(point.y).toFixed(1)}`)
       .join(" ");
-
-    // Generate 4 ticks for y-axis
-    const yTicksCount = 4;
-    const yTickValues = Array.from({ length: yTicksCount }, (_, i) => {
-      const t = i / (yTicksCount - 1);
-      return domainYMin + t * (domainYMax - domainYMin);
-    });
 
     return (
       <div className="cyl-diag__chart-container">
