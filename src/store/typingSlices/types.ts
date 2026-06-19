@@ -13,7 +13,7 @@ export interface InputSlice {
   qwertyBuffer: string;
   mvsaCache: MvsaCache;
   alignments: AlignResult[];
-  setTarget: (target: string | { id: string; content: string; language: string }) => void;
+  setTarget: (target: string | { id: string; content: string; language: string; tags?: string[] }) => void;
   nextTarget: () => void;
   setTypedText: (value: string) => void;
   handlePhysicalKeyPress: (code: string, shiftKey: boolean, timestamp: number) => void;
