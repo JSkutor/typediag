@@ -22,7 +22,7 @@ export const OUTLIER_HARD_CUTOFF_MS = 2000.0;
 export const OUTLIER_IQR_MIN_UPPER_BOUND_MS = 500.0;
 export const OUTLIER_BLEND_START_EVENTS = 50;
 export const OUTLIER_BLEND_END_EVENTS = 1500;
-export const OUTLIER_IQR_MULTIPLIER = 1.5;
+export const OUTLIER_IQR_MULTIPLIER = 2.5;
 
 /** Minimum observed frequency for a pair (kept at 1 = keep all). */
 export const MIN_FREQUENCY = 1;

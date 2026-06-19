@@ -52,8 +52,11 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
   // Initial view: richest To key and its richest From transition
   useEffect(() => {
     if (!defaultSelection) return;
-    setSelectedTo(defaultSelection.toKey);
-    setSelectedFrom(defaultSelection.fromKey);
+    const timer = setTimeout(() => {
+      setSelectedTo(defaultSelection.toKey);
+      setSelectedFrom(defaultSelection.fromKey);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [defaultSelection]);
 
   // --- Manager lifecycle ---

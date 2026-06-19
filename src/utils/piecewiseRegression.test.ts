@@ -11,7 +11,11 @@
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
-import { fitPiecewiseLinear, fitPiecewiseLinearWithDiagnostics } from "./piecewiseRegression";
+import {
+  fitPiecewiseLinear,
+  fitPiecewiseLinearWithDiagnostics,
+  aggregateToWindows,
+} from "./piecewiseRegression";
 import { KeyEvent } from "@/lib/skdm/types";
 
 // ============================================================
@@ -108,11 +112,11 @@ describe("piecewiseRegression", () => {
       expect(result).toBeNull();
     });
 
-    it("필터링 후 데이터 49개 → null 반환 (50개 미만 임계값)", () => {
+    it("필터링 후 데이터 19개 → null 반환 (20개 미만 임계값)", () => {
       setFinalUpperBoundMock(1000);
 
-      // 49개만 생성 (isCorrect: true, toKey: 'a')
-      const events: KeyEvent[] = Array.from({ length: 49 }, (_, i) => ({
+      // 19개만 생성 (isCorrect: true, toKey: 'a')
+      const events: KeyEvent[] = Array.from({ length: 19 }, (_, i) => ({
         fromKey: null,
         toKey: "a",
         latencyMs: 100 + i,
@@ -123,11 +127,11 @@ describe("piecewiseRegression", () => {
       expect(result).toBeNull();
     });
 
-    it("정확히 50개이면 null 반환 안 함 (경계값 확인)", () => {
+    it("정확히 20개이면 null 반환 안 함 (경계값 확인)", () => {
       setFinalUpperBoundMock(2000);
 
-      const events = generateSyntheticEvents(50, 25, -0.3, -0.7);
-      // 50개 정확히라도 계산 시도 (결과가 null이 아님을 확인)
+      const events = generateSyntheticEvents(20, 10, -0.3, -0.7);
+      // 20개 정확히라도 계산 시도 (결과가 null이 아님을 확인)
       // (수치 문제로 null이 될 수도 있으므로 엄격하게 확인하지 않음)
       // 단, 예외가 발생하지 않아야 함
       expect(() => fitPiecewiseLinear(events, "a")).not.toThrow();
@@ -136,15 +140,15 @@ describe("piecewiseRegression", () => {
     it("isCorrect !== true인 이벤트는 필터링됨", () => {
       setFinalUpperBoundMock(1000);
 
-      // 60개 생성하되, 30개는 isCorrect: false
+      // 30개 생성하되, 10개는 isCorrect: true, 20개는 isCorrect: false
       const events: KeyEvent[] = [
-        ...Array.from({ length: 30 }, (_, i) => ({
+        ...Array.from({ length: 10 }, (_, i) => ({
           fromKey: null,
           toKey: "a",
           latencyMs: 200 + i,
           isCorrect: true,
         })),
-        ...Array.from({ length: 30 }, (_, i) => ({
+        ...Array.from({ length: 20 }, (_, i) => ({
           fromKey: null,
           toKey: "a",
           latencyMs: 200 + i,
@@ -152,7 +156,7 @@ describe("piecewiseRegression", () => {
         })),
       ];
 
-      // isCorrect: true 30개만 남아서 50개 미만 → null
+      // isCorrect: true 10개만 남아서 20개 미만 → null
       const result = fitPiecewiseLinear(events, "a");
       expect(result).toBeNull();
     });
@@ -160,15 +164,15 @@ describe("piecewiseRegression", () => {
     it("upperBound를 초과하는 이벤트는 이상치로 제거됨", () => {
       setFinalUpperBoundMock(300); // 300ms 초과는 제거
 
-      // 100개 생성, 그 중 60개는 500ms (상한 초과)
+      // 100개 생성, 그 중 90개는 500ms (상한 초과)
       const events: KeyEvent[] = [
-        ...Array.from({ length: 40 }, (_, i) => ({
+        ...Array.from({ length: 10 }, (_, i) => ({
           fromKey: null,
           toKey: "a",
           latencyMs: 200 + i,
           isCorrect: true,
         })),
-        ...Array.from({ length: 60 }, () => ({
+        ...Array.from({ length: 90 }, () => ({
           fromKey: null,
           toKey: "a",
           latencyMs: 500, // 이상치: 300ms 초과
@@ -176,7 +180,7 @@ describe("piecewiseRegression", () => {
         })),
       ];
 
-      // 유효 데이터 40개 → 50개 미만 → null
+      // 유효 데이터 10개 → 20개 미만 → null
       const result = fitPiecewiseLinear(events, "a");
       expect(result).toBeNull();
     });
@@ -233,14 +237,14 @@ describe("piecewiseRegression", () => {
       expect(result.slopeAfter).toBeCloseTo(result.beta1 + result.beta2, 10);
     });
 
-    it("n은 필터링된 실제 데이터 수와 일치", () => {
+    it("n은 균등하게 분할된 윈도우 수(20개)와 일치", () => {
       setFinalUpperBoundMock(2000);
       const events = generateSyntheticEvents(200, 100, 0.1, -0.4, 2);
       const result = fitPiecewiseLinear(events, "a");
       if (result === null) return;
 
-      // 전부 isCorrect: true이고 상한 이하이므로 n = 200
-      expect(result.n).toBe(200);
+      // 200개의 데이터가 들어갔으나 20개 윈도우로 압축되어 n = 20
+      expect(result.n).toBe(20);
     });
 
     it("sampleDots는 MAX_SAMPLE_DOTS(40) 이하 개수", () => {
@@ -363,6 +367,28 @@ describe("piecewiseRegression", () => {
 
       expect(outcome.result.c).toBeGreaterThan(0);
       expect(outcome.result.c).toBeLessThan(n - 1);
+    });
+  });
+
+  // ----------------------------------------------------------
+  // 6. aggregateToWindows 단위 테스트
+  // ----------------------------------------------------------
+  describe("aggregateToWindows", () => {
+    it("20개보다 많은 데이터를 20개의 윈도우로 쪼개고 중앙값을 올바르게 계산함", () => {
+      // 0부터 99까지 100개의 숫자
+      const latencies = Array.from({ length: 100 }, (_, i) => i);
+      const { xs, Y } = aggregateToWindows(latencies, 20);
+
+      expect(xs.length).toBe(20);
+      expect(Y.length).toBe(20);
+
+      // 첫 번째 윈도우: 0 ~ 4. 중앙값 = 2. 중심 인덱스 = 2
+      expect(xs[0]).toBe(2);
+      expect(Y[0]).toBe(2);
+
+      // 마지막 윈도우: 95 ~ 99. 중앙값 = 97. 중심 인덱스 = 97
+      expect(xs[19]).toBe(97);
+      expect(Y[19]).toBe(97);
     });
   });
 });

@@ -378,6 +378,48 @@ function buildSampleDots(xs: number[], Y: number[], n: number): Array<{ x: numbe
 }
 
 /**
+ * 주어진 값 배열에서 중앙값을 계산합니다.
+ */
+function getMedian(values: number[]): number {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  if (sorted.length % 2 !== 0) {
+    return sorted[mid];
+  }
+  return (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+/**
+ * 데이터를 windowCount개의 균등한 윈도우로 분할하고, 각 윈도우 내 latency 중앙값을 대푯값으로 추출합니다.
+ * X 좌표는 원본 데이터 상에서의 인덱스 스케일을 보존하기 위해 각 윈도우의 중간 인덱스를 사용합니다 (Option 2).
+ */
+export function aggregateToWindows(
+  latencies: number[],
+  windowCount = 20,
+): { xs: number[]; Y: number[] } {
+  const n = latencies.length;
+  const xs: number[] = [];
+  const Y: number[] = [];
+
+  for (let i = 0; i < windowCount; i++) {
+    const startIdx = Math.floor((i * n) / windowCount);
+    const endIdx = Math.floor(((i + 1) * n) / windowCount);
+    const windowValues = latencies.slice(startIdx, endIdx);
+
+    // X 좌표: 윈도우 원본 인덱스 범위의 중앙값
+    const midIdx = (startIdx + endIdx - 1) / 2;
+    // Y 좌표: 윈도우 내 latency 중앙값
+    const median = getMedian(windowValues);
+
+    xs.push(midIdx);
+    Y.push(median);
+  }
+
+  return { xs, Y };
+}
+
+/**
  * 특정 키에 대한 분절 선형 회귀를 수행하고 방정식·진단 정보를 반환.
  */
 export function fitPiecewiseLinearWithDiagnostics(
@@ -405,7 +447,7 @@ export function fitPiecewiseLinearWithDiagnostics(
   const filtered = rawCorrect.filter((e) => e.latencyMs > 0 && e.latencyMs <= upperBoundMs);
   const excludedByBoundCount = rawCorrectCount - filtered.length;
 
-  if (filtered.length < 50) {
+  if (filtered.length < 20) {
     return {
       reason: "insufficient_data",
       targetToKey,
@@ -416,9 +458,9 @@ export function fitPiecewiseLinearWithDiagnostics(
     };
   }
 
-  const n = filtered.length;
-  const xs: number[] = Array.from({ length: n }, (_, i) => i);
-  const Y: number[] = filtered.map((e) => e.latencyMs);
+  const rawLatencies = filtered.map((e) => e.latencyMs);
+  const { xs, Y } = aggregateToWindows(rawLatencies, 20);
+  const n = xs.length;
   const points = xs.map((x, i) => ({ x, y: Y[i] }));
 
   const c0 = gridSearchC0(xs, Y);

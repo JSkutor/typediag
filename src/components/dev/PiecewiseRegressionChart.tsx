@@ -26,12 +26,13 @@ export function PiecewiseRegressionChart({
   const plotWidth = WIDTH - PAD.left - PAD.right;
   const plotHeight = HEIGHT - PAD.top - PAD.bottom;
 
-  const xMax = Math.max(1, result.n - 1);
+  const xMax = points.length > 0 ? Math.max(...points.map((p) => p.x)) : 1;
   const yValues = points.map((p) => p.y);
-  const regressionSamples = Array.from({ length: Math.max(2, result.n) }, (_, i) => {
-    const x = (i / Math.max(1, result.n - 1)) * xMax;
-    return { x, y: result.predict(x) };
-  });
+  const regressionSamples = [
+    { x: 0, y: result.predict(0) },
+    { x: result.c, y: result.predict(result.c) },
+    { x: xMax, y: result.predict(xMax) },
+  ];
 
   const yMin = Math.min(...yValues, ...regressionSamples.map((p) => p.y));
   const yMax = Math.max(...yValues, ...regressionSamples.map((p) => p.y));
@@ -51,6 +52,12 @@ export function PiecewiseRegressionChart({
   const tickValues = Array.from({ length: yTicks }, (_, i) => {
     const t = i / (yTicks - 1);
     return domainYMin + t * (domainYMax - domainYMin);
+  });
+
+  const xTicks = 5;
+  const xTickValues = Array.from({ length: xTicks }, (_, i) => {
+    const t = i / (xTicks - 1);
+    return t * xMax;
   });
 
   return (
@@ -75,6 +82,30 @@ export function PiecewiseRegressionChart({
             x={PAD.left - 8}
             y={toSvgY(tick) + 4}
             textAnchor="end"
+            fill="var(--text-muted)"
+            fontSize={11}
+            fontFamily="var(--font-mono)"
+          >
+            {Math.round(tick)}
+          </text>
+        </g>
+      ))}
+
+      {xTickValues.map((tick) => (
+        <g key={tick}>
+          <line
+            x1={toSvgX(tick)}
+            x2={toSvgX(tick)}
+            y1={PAD.top}
+            y2={PAD.top + plotHeight}
+            stroke="var(--border-subtle)"
+            strokeDasharray="2 2"
+            opacity={0.4}
+          />
+          <text
+            x={toSvgX(tick)}
+            y={PAD.top + plotHeight + 16}
+            textAnchor="middle"
             fill="var(--text-muted)"
             fontSize={11}
             fontFamily="var(--font-mono)"
