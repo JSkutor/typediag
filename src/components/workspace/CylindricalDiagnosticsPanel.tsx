@@ -39,7 +39,7 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const { toKeyOptions, outcome, chartData, additionalStats } = useCylindricalDiagnostics(events, selectedTo);
+  const { toKeyOptions, outcome, chartData, additionalStats, optionalStats } = useCylindricalDiagnostics(events, selectedTo);
 
   // Render minimal SVG chart if outcome is successful
   const renderChart = () => {
@@ -221,6 +221,75 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
                   </div>
                 </div>
               </div>
+
+              {/* 추가 진단 통계 (선택) */}
+              {(optionalStats.topPair !== null ||
+                optionalStats.unconsciousKey !== null ||
+                optionalStats.shiftPenalty !== null) && (
+                <div className="cyl-drawer__optional-section">
+                  <span className="cyl-label-text">추가 진단 통계 (선택)</span>
+                  <div className="cyl-diag__optional-grid">
+                    {/* 1. 자주 치는 순서쌍 top5 중 해당 쌍 */}
+                    {optionalStats.topPair !== null && (
+                      <div className="cyl-diag__optional-card">
+                        <span className="cyl-diag__stat-lbl">자주 치는 순서쌍 순위</span>
+                        <div className="cyl-diag__optional-item" style={{ fontSize: "0.82rem", marginTop: "4px" }}>
+                          <span className="cyl-diag__rank-num" style={{ fontSize: "0.85rem", color: "var(--accent)" }}>
+                            #{optionalStats.topPair.rank}
+                          </span>
+                          <span className="cyl-diag__pair-text" style={{ fontWeight: 600 }}>
+                            {formatKey(optionalStats.topPair.from)} → {formatKey(optionalStats.topPair.to)}
+                          </span>
+                          <span className="cyl-diag__count" style={{ fontSize: "0.65rem" }}>
+                            ({optionalStats.topPair.count}회)
+                          </span>
+                        </div>
+                        <p style={{ fontSize: "0.62rem", color: "var(--text-muted)", margin: "4px 0 0 0", lineHeight: 1.3 }}>
+                          현재 선택된 키가 전체 상위 5개 빈번한 입력 쌍에 포함되어 있습니다.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* 2. 무의식적으로 치는 키 top3 중 해당 키 */}
+                    {optionalStats.unconsciousKey !== null && (
+                      <div className="cyl-diag__optional-card">
+                        <span className="cyl-diag__stat-lbl">무의식적인 키 오타 순위</span>
+                        <div className="cyl-diag__optional-item" style={{ fontSize: "0.82rem", marginTop: "4px" }}>
+                          <span className="cyl-diag__rank-num" style={{ fontSize: "0.85rem", color: "var(--warning)" }}>
+                            #{optionalStats.unconsciousKey.rank}
+                          </span>
+                          <span className="cyl-diag__key-text">
+                            {formatKey(optionalStats.unconsciousKey.key)}
+                          </span>
+                          <span className="cyl-diag__error-rate text-warning" style={{ fontSize: "0.78rem" }}>
+                            {optionalStats.unconsciousKey.errorRate.toFixed(1)}%
+                          </span>
+                        </div>
+                        <p style={{ fontSize: "0.62rem", color: "var(--text-muted)", margin: "4px 0 0 0", lineHeight: 1.3 }}>
+                          현재 선택된 키가 오타율이 높은 전체 상위 3개 키에 속합니다.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* 3. 시프트 지연 패널티 */}
+                    {optionalStats.shiftPenalty !== null && (
+                      <div className="cyl-diag__optional-card cyl-diag__optional-card--full">
+                        <span className="cyl-diag__stat-lbl">Shift 입력 지연 패널티</span>
+                        <div className="cyl-diag__penalty-content">
+                          <span className="cyl-diag__penalty-val">
+                            +{optionalStats.shiftPenalty.differenceMs.toFixed(1)} ms
+                          </span>
+                          <p className="cyl-diag__penalty-desc">
+                            Shift 혼용 자소 입력 반응 속도 중앙값이 일반 자소보다{" "}
+                            {optionalStats.shiftPenalty.differenceMs.toFixed(1)}ms 더 지연됩니다.
+                            (Shift 사용 횟수: {optionalStats.shiftPenalty.shiftCount}회)
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </section>
 

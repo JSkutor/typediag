@@ -74,4 +74,110 @@ describe("useCylindricalDiagnostics additionalStats", () => {
     expect(result.current.additionalStats.lateKeystrokeCount).toBe(1);
     expect(result.current.additionalStats.lateKeystrokeRate).toBe(100);
   });
+
+  describe("optionalStats", () => {
+    it("should return empty structures for empty events", () => {
+      const { result } = renderHook(() => useCylindricalDiagnostics([], "a"));
+      expect(result.current.optionalStats).toEqual({
+        topPair: null,
+        unconsciousKey: null,
+        shiftPenalty: null,
+      });
+    });
+
+    it("should calculate topPair correctly for selectedTo and filter non-alphabetic keys", () => {
+      const events: KeyEvent[] = [
+        { fromKey: "a", toKey: "b", latencyMs: 100, isCorrect: true },
+        { fromKey: "b", toKey: "c", latencyMs: 100, isCorrect: true },
+        { fromKey: "c", toKey: "shift_l", latencyMs: 100, isCorrect: true }, // shift_l is excluded
+        { fromKey: "shift_l", toKey: "d", latencyMs: 100, isCorrect: true }, // shift_l is excluded
+        { fromKey: "d", toKey: "a", latencyMs: 100, isCorrect: false }, // incorrect, excluded
+        { fromKey: "a", toKey: "space", latencyMs: 100, isCorrect: true }, // space is non-alphabetic, excluded
+        { fromKey: "a", toKey: "b", latencyMs: 100, isCorrect: true }, // repeated a->b
+      ];
+
+      // If selectedTo is "b", it should match a->b (Rank #1)
+      const { result: resB } = renderHook(() => useCylindricalDiagnostics(events, "b"));
+      expect(resB.current.optionalStats.topPair).toEqual({
+        rank: 1,
+        from: "a",
+        to: "b",
+        count: 2,
+      });
+
+      // If selectedTo is "c", it should match b->c (Rank #2)
+      const { result: resC } = renderHook(() => useCylindricalDiagnostics(events, "c"));
+      expect(resC.current.optionalStats.topPair).toEqual({
+        rank: 2,
+        from: "b",
+        to: "c",
+        count: 1,
+      });
+
+      // If selectedTo is "d" (not in top pairs), it should return null
+      const { result: resD } = renderHook(() => useCylindricalDiagnostics(events, "d"));
+      expect(resD.current.optionalStats.topPair).toBeNull();
+    });
+
+    it("should calculate unconsciousKey correctly for selectedTo and exclude 0% error keys", () => {
+      const events: KeyEvent[] = [
+        { fromKey: "a", toKey: "b", latencyMs: 100, isCorrect: false }, // error rate 100%
+        { fromKey: "b", toKey: "c", latencyMs: 100, isCorrect: false },
+        { fromKey: "c", toKey: "c", latencyMs: 100, isCorrect: true }, // error rate 50%
+        { fromKey: "c", toKey: "d", latencyMs: 100, isCorrect: false },
+        { fromKey: "d", toKey: "d", latencyMs: 100, isCorrect: false }, // error rate 100% (2 total, 2 incorrect)
+      ];
+
+      // If selectedTo is "d", it should match Rank #1
+      const { result: resD } = renderHook(() => useCylindricalDiagnostics(events, "d"));
+      expect(resD.current.optionalStats.unconsciousKey).toEqual({
+        rank: 1,
+        key: "d",
+        errorRate: 100,
+        errorCount: 2,
+        totalCount: 2,
+      });
+
+      // If selectedTo is "b", it should match Rank #2
+      const { result: resB } = renderHook(() => useCylindricalDiagnostics(events, "b"));
+      expect(resB.current.optionalStats.unconsciousKey).toEqual({
+        rank: 2,
+        key: "b",
+        errorRate: 100,
+        errorCount: 1,
+        totalCount: 1,
+      });
+
+      // If selectedTo is "a" (not in unconscious keys, errorRate 0%), it should return null
+      const { result: resA } = renderHook(() => useCylindricalDiagnostics(events, "a"));
+      expect(resA.current.optionalStats.unconsciousKey).toBeNull();
+    });
+
+    it("should calculate shiftPenalty when shift count >= 10 and difference is positive", () => {
+      const events: KeyEvent[] = [];
+      
+      // 1. Difference is positive (+150ms)
+      for (let i = 0; i < 10; i++) {
+        events.push({ fromKey: "a", toKey: "g", latencyMs: 100, isCorrect: true, expectedChar: "ㅇ" });
+        events.push({ fromKey: "a", toKey: "q", latencyMs: 250, isCorrect: true, expectedChar: "ㅃ" });
+      }
+      const { result: resPositive } = renderHook(() => useCylindricalDiagnostics(events, "a"));
+      expect(resPositive.current.optionalStats.shiftPenalty).toEqual({
+        shiftMedianMs: 250,
+        nonShiftMedianMs: 100,
+        differenceMs: 150,
+        shiftCount: 10,
+      });
+
+      // 2. Difference is negative (-50ms) -> should suppress and return null
+      const negativeEvents: KeyEvent[] = [];
+      for (let i = 0; i < 10; i++) {
+        negativeEvents.push({ fromKey: "a", toKey: "g", latencyMs: 200, isCorrect: true, expectedChar: "ㅇ" });
+        negativeEvents.push({ fromKey: "a", toKey: "q", latencyMs: 150, isCorrect: true, expectedChar: "ㅃ" });
+      }
+      const { result: resNegative } = renderHook(() => useCylindricalDiagnostics(negativeEvents, "a"));
+      expect(resNegative.current.optionalStats.shiftPenalty).toBeNull();
+    });
+  });
 });
+
