@@ -797,4 +797,192 @@
   margin: 0;
 }
 
+/* ==========================================================================
+   Detailed Diagnostics Stats Layout (Column 2)
+   ========================================================================== */
+.cyl-diag__detailed-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.cyl-diag__detailed-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cyl-diag__detailed-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.cyl-diag__detailed-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.015);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: var(--radius-md);
+  min-height: 100px;
+}
+
+.cyl-diag__detailed-card--full {
+  grid-column: span 2;
+  min-height: auto;
+}
+
+.cyl-diag__card-desc {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  line-height: 1.3;
+  margin: 6px 0 0 0;
+  opacity: 0.75;
+}
+
+/* Stat Box Configurations */
+.cyl-diag__median-box,
+.cyl-diag__relative-box,
+.cyl-diag__correlation-box,
+.cyl-diag__hesitation-box {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
+.cyl-diag__median-val {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+
+.cyl-diag__cpm-val {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent);
+  font-family: var(--font-mono);
+}
+
+.cyl-diag__relative-val {
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.cyl-diag__relative-sub {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.cyl-diag__correlation-val {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+
+.cyl-diag__correlation-sig {
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+
+.cyl-diag__correlation-p {
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  margin-top: 2px;
+}
+
+.cyl-diag__hesitation-val {
+  font-size: 1.15rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.cyl-diag__hesitation-badge {
+  font-size: 0.58rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.cyl-diag__hesitation-desc {
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  margin-top: 2px;
+}
+
+/* Badges styling */
+.badge-success {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.badge-warning {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+/* Finger Transition Progress Tracker */
+.cyl-diag__transition-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+  width: 100%;
+}
+
+.cyl-diag__transition-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cyl-diag__transition-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cyl-diag__transition-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.68rem;
+}
+
+.cyl-diag__transition-lbl {
+  color: var(--text-secondary);
+}
+
+.cyl-diag__transition-val {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
+.cyl-diag__transition-bar-bg {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.cyl-diag__transition-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.35s ease;
+}
+
 

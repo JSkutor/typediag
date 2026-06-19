@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { KeyEvent } from "@/lib/skdm";
 import { useCylindricalDiagnostics } from "@/hooks/useCylindricalDiagnostics";
+import { KEYBOARD_META } from "@/lib/skdm/keyboardMeta";
 import {
   type PiecewiseFitSuccess,
   type PiecewiseFitFailure,
@@ -39,7 +40,7 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const { toKeyOptions, outcome, chartData, additionalStats, optionalStats } = useCylindricalDiagnostics(events, selectedTo);
+  const { toKeyOptions, outcome, chartData, additionalStats, optionalStats, detailedStats } = useCylindricalDiagnostics(events, selectedTo);
 
   // Render minimal SVG chart if outcome is successful
   const renderChart = () => {
@@ -294,38 +295,138 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
           </section>
 
           <section className="cyl-drawer__col cyl-drawer__col--diagnostics">
+            {/* Detailed Spatial Analytics Section */}
             <header className="cyl-drawer__col-header">
-              <span className="cyl-label-text">Diagnostics Summary</span>
+              <span className="cyl-label-text">Detailed Spatial Analytics</span>
             </header>
 
-            <div className="cyl-drawer__placeholder">
-              {outcome && isSuccess(outcome) ? (
-                <div className="cyl-drawer__summary-content">
-                  <div className="cyl-drawer__summary-row">
-                    <span className="cyl-drawer__summary-label">분절 이전 추세</span>
-                    <span className={`cyl-drawer__summary-val ${outcome.result.slopeBefore < 0 ? "text-success" : "text-warning"}`}>
-                      {outcome.result.slopeBefore < 0 ? "학습/안정화" : "지연 증가"}
-                    </span>
+            <div className="cyl-diag__detailed-container">
+              {events.length > 0 && selectedTo ? (
+                <div className="cyl-diag__detailed-content">
+                  {/* Row 1: Latency/CPM and Same Hand Speed Comparison */}
+                  <div className="cyl-diag__detailed-grid">
+                    <div className="cyl-diag__detailed-card">
+                      <span className="cyl-diag__stat-lbl">반응 속도 & CPM</span>
+                      <div className="cyl-diag__median-box">
+                        <span className="cyl-diag__median-val">{detailedStats.medianLatencyMs.toFixed(1)} ms</span>
+                        <span className="cyl-diag__cpm-val">{detailedStats.equivalentCpm} CPM</span>
+                      </div>
+                      <p className="cyl-diag__card-desc">
+                        해당 키 정타 입력의 대기 시간(latency) 중앙값 및 1분당 타수 환산 값입니다.
+                      </p>
+                    </div>
+
+                    <div className="cyl-diag__detailed-card">
+                      <span className="cyl-diag__stat-lbl">동일 손 속도 비교</span>
+                      <div className="cyl-diag__relative-box">
+                        {detailedStats.comparedToMedianMs > 0 ? (
+                          <>
+                            <span className={`cyl-diag__relative-val ${detailedStats.relativeSpeedMs <= 0 ? "text-success" : "text-warning"}`}>
+                              {detailedStats.relativeSpeedMs <= 0 
+                                ? `${Math.abs(detailedStats.relativeSpeedMs).toFixed(1)} ms 빠름` 
+                                : `${detailedStats.relativeSpeedMs.toFixed(1)} ms 느림`}
+                            </span>
+                            <span className="cyl-diag__relative-sub">
+                              같은 손 평균: {detailedStats.comparedToMedianMs.toFixed(1)} ms
+                            </span>
+                          </>
+                        ) : (
+                          <span className="cyl-diag__relative-val text-muted" style={{ fontSize: "0.82rem" }}>비교 대상 없음</span>
+                        )}
+                      </div>
+                      <p className="cyl-diag__card-desc">
+                        동일한 손을 사용하는 다른 키들의 중간값과 반응 속도를 비교합니다.
+                      </p>
+                    </div>
                   </div>
-                  <div className="cyl-drawer__summary-row">
-                    <span className="cyl-drawer__summary-label">분절 이후 추세</span>
-                    <span className={`cyl-drawer__summary-val ${outcome.result.slopeAfter < 0 ? "text-success" : "text-warning"}`}>
-                      {outcome.result.slopeAfter < 0 ? "안정화 지속" : "후반 피로/지연"}
-                    </span>
+
+                  {/* Row 2: Hold Duration Correlation & Hesitation Ratio */}
+                  <div className="cyl-diag__detailed-grid">
+                    <div className="cyl-diag__detailed-card">
+                      <span className="cyl-diag__stat-lbl">Hold Duration 상관계수</span>
+                      <div className="cyl-diag__correlation-box">
+                        <span className="cyl-diag__correlation-val">
+                          r = {detailedStats.pearsonR.toFixed(3)}
+                        </span>
+                        <span className={`cyl-diag__correlation-sig ${detailedStats.isCorrelationSignificant ? "text-warning" : "text-muted"}`}>
+                          {detailedStats.isCorrelationSignificant ? "상관성 유의미" : "상관성 무관"}
+                        </span>
+                      </div>
+                      <div className="cyl-diag__correlation-p">
+                        p-value: {detailedStats.pValue < 0.001 ? "< 0.001" : detailedStats.pValue.toFixed(3)}
+                        {detailedStats.correlationCount > 0 && ` (n=${detailedStats.correlationCount})`}
+                      </div>
+                      <p className="cyl-diag__card-desc">
+                        키를 누르는 지속 시간(Hold Duration)과 지연 반응속도 간의 피어슨 상관계수입니다.
+                        (r &gt; 0.4, p &lt; 0.05 일 때 유의미한 상관성으로 판단)
+                      </p>
+                    </div>
+
+                    <div className="cyl-diag__detailed-card">
+                      <span className="cyl-diag__stat-lbl">머뭇거림 비율 (IQR)</span>
+                      <div className="cyl-diag__hesitation-box">
+                        <span className={`cyl-diag__hesitation-val ${detailedStats.hasHesitationTendency ? "text-warning" : "text-success"}`}>
+                          {detailedStats.hesitationRatio.toFixed(1)}%
+                        </span>
+                        <span className={`cyl-diag__hesitation-badge ${detailedStats.hasHesitationTendency ? "badge-warning" : "badge-success"}`}>
+                          {detailedStats.hasHesitationTendency ? "머뭇거림 의심" : "정상"}
+                        </span>
+                      </div>
+                      <div className="cyl-diag__hesitation-desc">
+                        기준선: {detailedStats.iqrThreshold.toFixed(1)} ms 초과 (Q3 + 1.5 IQR)
+                      </div>
+                      <p className="cyl-diag__card-desc">
+                        사분위수 범위(IQR) 기반 이상치 임계선보다 느리게 입력된 타건 비율입니다.
+                        (임계선 초과 비율 5% 이상일 때 머뭇거림 경향으로 분석)
+                      </p>
+                    </div>
                   </div>
-                  <div className="cyl-drawer__summary-row">
-                    <span className="cyl-drawer__summary-label">성능 변화율</span>
-                    <span className="cyl-drawer__summary-val">
-                      {(outcome.result.slopeAfter - outcome.result.slopeBefore).toFixed(2)} ms/idx
-                    </span>
+
+                  {/* Row 3: Finger Transition Percentages */}
+                  <div className="cyl-diag__detailed-card cyl-diag__detailed-card--full">
+                    <span className="cyl-diag__stat-lbl">어느 손가락에서 넘어오는지 비율</span>
+                    <div className="cyl-diag__transition-container">
+                      {(() => {
+                        const targetMeta = KEYBOARD_META[selectedTo.toLowerCase()];
+                        const isLeft = targetMeta ? targetMeta.hand === "L" : true;
+                        
+                        const items = [
+                          { label: isLeft ? "오른손 전체" : "왼손 전체", value: detailedStats.transitionRatios.oppositeHand, color: "var(--accent)" },
+                          { label: isLeft ? "왼 소지" : "오른 소지", value: detailedStats.transitionRatios.sameHandPinky, color: "#a855f7" },
+                          { label: isLeft ? "왼 약지" : "오른 약지", value: detailedStats.transitionRatios.sameHandRing, color: "#3b82f6" },
+                          { label: isLeft ? "왼 중지" : "오른 중지", value: detailedStats.transitionRatios.sameHandMiddle, color: "#10b981" },
+                          { label: isLeft ? "왼 검지" : "오른 검지", value: detailedStats.transitionRatios.sameHandIndex, color: "#ec4899" },
+                          { label: "기타 (스페이스 등)", value: detailedStats.transitionRatios.other, color: "var(--text-muted)" },
+                        ];
+                        
+                        return (
+                          <div className="cyl-diag__transition-list">
+                            {items.map((item) => (
+                              <div key={item.label} className="cyl-diag__transition-item">
+                                <div className="cyl-diag__transition-meta">
+                                  <span className="cyl-diag__transition-lbl">{item.label}</span>
+                                  <span className="cyl-diag__transition-val">{item.value.toFixed(1)}%</span>
+                                </div>
+                                <div className="cyl-diag__transition-bar-bg">
+                                  <div 
+                                    className="cyl-diag__transition-bar-fill" 
+                                    style={{ width: `${item.value}%`, backgroundColor: item.color }} 
+                                  />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                    <p className="cyl-diag__card-desc" style={{ marginTop: "4px" }}>
+                      현재 선택된 키 바로 직전에 입력한 키의 손가락 위치 분포입니다.
+                      어떤 손가락 연결 패턴에서 지연 병목이 생기는지 진단할 수 있습니다.
+                    </p>
                   </div>
-                  <p className="cyl-drawer__desc-text">
-                    선택된 키 입력의 누적 회수에 따른 경과 지연(latency) 변화를 나타냅니다.
-                    분절점(c)은 타이핑 속도가 안정화되거나 피로 임계점에 도달해 패턴이 급격히 변화하는 지점입니다.
-                  </p>
                 </div>
               ) : (
-                <p className="cyl-diag__empty">정상적으로 분석이 완료된 키에 한해 요약 리포트가 표시됩니다.</p>
+                <p className="cyl-diag__empty">진단할 타자 데이터가 존재하지 않습니다.</p>
               )}
             </div>
           </section>

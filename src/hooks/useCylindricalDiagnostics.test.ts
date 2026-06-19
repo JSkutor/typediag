@@ -179,5 +179,115 @@ describe("useCylindricalDiagnostics additionalStats", () => {
       expect(resNegative.current.optionalStats.shiftPenalty).toBeNull();
     });
   });
+
+  describe("detailedStats", () => {
+    it("should return default stats when events are empty", () => {
+      const { result } = renderHook(() => useCylindricalDiagnostics([], "f"));
+      expect(result.current.detailedStats.medianLatencyMs).toBe(0);
+      expect(result.current.detailedStats.equivalentCpm).toBe(0);
+      expect(result.current.detailedStats.pearsonR).toBe(0);
+      expect(result.current.detailedStats.hesitationRatio).toBe(0);
+    });
+
+    it("should calculate median latency and CPM correctly", () => {
+      const events: KeyEvent[] = [
+        { fromKey: "a", toKey: "f", latencyMs: 150, isCorrect: true },
+        { fromKey: "a", toKey: "f", latencyMs: 250, isCorrect: true },
+        { fromKey: "a", toKey: "f", latencyMs: 200, isCorrect: true },
+        { fromKey: "a", toKey: "f", latencyMs: 500, isCorrect: false }, // incorrect should be ignored
+      ];
+      // Median latency of [150, 200, 250] is 200ms
+      // CPM is 60000 / 200 = 300 CPM
+      const { result } = renderHook(() => useCylindricalDiagnostics(events, "f"));
+      expect(result.current.detailedStats.medianLatencyMs).toBe(200);
+      expect(result.current.detailedStats.equivalentCpm).toBe(300);
+    });
+
+    it("should calculate Pearson correlation and detect significance", () => {
+      // Create a dataset where hold duration and latency are perfectly linearly correlated
+      const events: KeyEvent[] = [
+        { fromKey: "a", toKey: "f", latencyMs: 100, holdDurationMs: 50, isCorrect: true },
+        { fromKey: "a", toKey: "f", latencyMs: 200, holdDurationMs: 100, isCorrect: true },
+        { fromKey: "a", toKey: "f", latencyMs: 300, holdDurationMs: 150, isCorrect: true },
+      ];
+
+      const { result } = renderHook(() => useCylindricalDiagnostics(events, "f"));
+      expect(result.current.detailedStats.pearsonR).toBeCloseTo(1.0, 5);
+      // Perfect correlation with 3 samples (df=1) yields a low p-value (approx 0.0)
+      expect(result.current.detailedStats.pValue).toBeLessThan(0.05);
+      expect(result.current.detailedStats.isCorrelationSignificant).toBe(true);
+    });
+
+    it("should calculate hesitation ratio based on IQR threshold", () => {
+      // 10 samples: [100, 110, 120, 130, 140, 150, 160, 170, 180, 500 (outlier)]
+      // sorted: 100, 110, 120, 130, 140, 150, 160, 170, 180, 500
+      // q1 (index 2.25) -> linear interpolation
+      // q3 (index 6.75) -> linear interpolation
+      const events: KeyEvent[] = [
+        { fromKey: "a", toKey: "f", latencyMs: 100, isCorrect: true },
+        { fromKey: "a", toKey: "f", latencyMs: 110, isCorrect: true },
+        { fromKey: "a", toKey: "f", latencyMs: 120, isCorrect: true },
+        { fromKey: "a", toKey: "f", latencyMs: 130, isCorrect: true },
+        { fromKey: "a", toKey: "f", latencyMs: 140, isCorrect: true },
+        { fromKey: "a", toKey: "f", latencyMs: 150, isCorrect: true },
+        { fromKey: "a", toKey: "f", latencyMs: 160, isCorrect: true },
+        { fromKey: "a", toKey: "f", latencyMs: 170, isCorrect: true },
+        { fromKey: "a", toKey: "f", latencyMs: 180, isCorrect: true },
+        { fromKey: "a", toKey: "f", latencyMs: 500, isCorrect: true }, // Outlier
+      ];
+
+      const { result } = renderHook(() => useCylindricalDiagnostics(events, "f"));
+      // 500 should be detected as an outlier since IQR is around 45ms and Q3 + 1.5 * IQR is around 235ms.
+      expect(result.current.detailedStats.hesitationRatio).toBe(10); // 1 out of 10
+      expect(result.current.detailedStats.hasHesitationTendency).toBe(true);
+    });
+
+    it("should compute transition ratios correctly for a target key", () => {
+      // target key "f" (Left hand, Index finger)
+      // fromKeys:
+      // - "y" (Right hand, Index finger) -> oppositeHand
+      // - "a" (Left hand, Pinky) -> sameHandPinky
+      // - "s" (Left hand, Ring) -> sameHandRing
+      // - "d" (Left hand, Middle) -> sameHandMiddle
+      // - "g" (Left hand, Index) -> sameHandIndex
+      // - "space" (No meta/non-alphabetic) -> other
+      const events: KeyEvent[] = [
+        { fromKey: "y", toKey: "f", latencyMs: 100, isCorrect: true },
+        { fromKey: "a", toKey: "f", latencyMs: 100, isCorrect: true },
+        { fromKey: "s", toKey: "f", latencyMs: 100, isCorrect: true },
+        { fromKey: "d", toKey: "f", latencyMs: 100, isCorrect: true },
+        { fromKey: "g", toKey: "f", latencyMs: 100, isCorrect: true },
+        { fromKey: "space", toKey: "f", latencyMs: 100, isCorrect: true },
+      ];
+
+      const { result } = renderHook(() => useCylindricalDiagnostics(events, "f"));
+      const ratios = result.current.detailedStats.transitionRatios;
+      
+      // Total transitions = 6. Each counts for ~16.67%
+      expect(ratios.oppositeHand).toBeCloseTo(16.67, 1);
+      expect(ratios.sameHandPinky).toBeCloseTo(16.67, 1);
+      expect(ratios.sameHandRing).toBeCloseTo(16.67, 1);
+      expect(ratios.sameHandMiddle).toBeCloseTo(16.67, 1);
+      expect(ratios.sameHandIndex).toBeCloseTo(16.67, 1);
+      expect(ratios.other).toBeCloseTo(16.67, 1);
+    });
+
+    it("should calculate relative speed compared to the same hand", () => {
+      // Target key "f" is on Left hand
+      // Other keys on Left hand: "d" and "s"
+      const events: KeyEvent[] = [
+        { fromKey: "a", toKey: "f", latencyMs: 200, isCorrect: true }, // Target median is 200ms
+        { fromKey: "a", toKey: "d", latencyMs: 150, isCorrect: true },
+        { fromKey: "a", toKey: "s", latencyMs: 170, isCorrect: true },
+        { fromKey: "a", toKey: "j", latencyMs: 100, isCorrect: true }, // Right hand (should be ignored)
+      ];
+
+      const { result } = renderHook(() => useCylindricalDiagnostics(events, "f"));
+      // Other left hand keys: [150, 170], median is 160ms.
+      // relativeSpeedMs = 200 - 160 = +40ms (target is slower by 40ms)
+      expect(result.current.detailedStats.comparedToMedianMs).toBe(160);
+      expect(result.current.detailedStats.relativeSpeedMs).toBe(40);
+    });
+  });
 });
 
