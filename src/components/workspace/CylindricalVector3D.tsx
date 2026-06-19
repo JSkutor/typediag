@@ -52,8 +52,11 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
   // Initial view: richest To key and its richest From transition
   useEffect(() => {
     if (!defaultSelection) return;
-    setSelectedTo(defaultSelection.toKey);
-    setSelectedFrom(defaultSelection.fromKey);
+    const timer = setTimeout(() => {
+      setSelectedTo(defaultSelection.toKey);
+      setSelectedFrom(defaultSelection.fromKey);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [defaultSelection]);
 
   // --- Manager lifecycle ---
@@ -91,7 +94,11 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
 
   return (
     <div className="cyl-viewport">
-      <CylindricalDiagnosticsPanel />
+      <CylindricalDiagnosticsPanel
+        events={events}
+        selectedTo={selectedTo}
+        setSelectedTo={setSelectedTo}
+      />
 
       {/* Three.js mount point */}
       <div ref={mountRef} className="cyl-canvas" />

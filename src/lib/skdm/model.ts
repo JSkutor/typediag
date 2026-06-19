@@ -18,6 +18,7 @@ import {
   OUTLIER_IQR_MIN_UPPER_BOUND_MS,
   OUTLIER_IQR_MULTIPLIER,
 } from "./config";
+import { persistSkdmFinalUpperBound } from "./outlierBoundStorage";
 import { mean, median, percentile, std } from "./stats";
 import type { KeyEvent, KeyPosition, KeyResult, PairStat } from "./types";
 
@@ -75,9 +76,10 @@ export function filterInterruptedTransitions(events: KeyEvent[]): KeyEvent[] {
  * Remove upper outliers and return the effective max latency (clip bound).
  * 1. Hard cutoff (e.g. 2000ms).
  * 2. If events >= min_events, dynamic log-IQR threshold (with min guard).
- * 3. Returns [validEvents, maxObserved].
+ * 3. Returns [validEvents, maxObserved, finalUpperBound].
+ *    finalUpperBound is null when dynamic IQR blending was not applied (< 50 events).
  */
-export function filterOutliers(events: KeyEvent[]): [KeyEvent[], number] {
+export function filterOutliers(events: KeyEvent[]): [KeyEvent[], number, number | null] {
   // 1. Hard Cutoff
   let validEvents = events.filter((ev) => ev.latencyMs <= OUTLIER_HARD_CUTOFF_MS);
 
@@ -87,14 +89,14 @@ export function filterOutliers(events: KeyEvent[]): [KeyEvent[], number] {
       validEvents.length > 0
         ? Math.max(...validEvents.map((ev) => ev.latencyMs))
         : OUTLIER_HARD_CUTOFF_MS;
-    return [validEvents, maxObserved];
+    return [validEvents, maxObserved, null];
   }
 
   // 3. IQR
   const latencies = validEvents.filter((ev) => ev.latencyMs > 0).map((ev) => ev.latencyMs);
 
   if (latencies.length === 0) {
-    return [validEvents, OUTLIER_HARD_CUTOFF_MS];
+    return [validEvents, OUTLIER_HARD_CUTOFF_MS, null];
   }
 
   const logLatencies = latencies.map((v) => Math.log(v));
@@ -121,7 +123,7 @@ export function filterOutliers(events: KeyEvent[]): [KeyEvent[], number] {
   const maxObserved =
     validEvents.length > 0 ? Math.max(...validEvents.map((ev) => ev.latencyMs)) : finalUpperBound;
 
-  return [validEvents, maxObserved];
+  return [validEvents, maxObserved, finalUpperBound];
 }
 
 /** Aggregate raw events into (from, to) pair statistics. */
@@ -339,7 +341,17 @@ export function runPipeline(
   layout: Record<string, KeyPosition>,
 ): Record<string, KeyResult> {
   const cleanedEvents = filterInterruptedTransitions(events);
-  const [validEvents, maxClipMs] = filterOutliers(cleanedEvents);
+  const [validEvents, maxClipMs, finalUpperBound] = filterOutliers(cleanedEvents);
+
+  if (finalUpperBound !== null) {
+    persistSkdmFinalUpperBound({
+      final_upper_bound_ms: finalUpperBound,
+      max_clip_ms: maxClipMs,
+      source_event_count: cleanedEvents.length,
+      updated_at: new Date().toISOString(),
+    });
+  }
+
   const pairStats = aggregatePairs(validEvents, maxClipMs);
   let results = summarizeKeys(pairStats, layout, validEvents);
   results = smooth(results);

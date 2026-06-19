@@ -54,9 +54,10 @@ describe("model unit tests", () => {
         { fromKey: "b", toKey: "c", latencyMs: 2500 }, // Exceeds 2000ms hard cutoff
       ];
 
-      const [valid] = filterOutliers(events);
+      const [valid, , finalUpperBound] = filterOutliers(events);
       expect(valid.length).toBe(1);
       expect(valid[0].toKey).toBe("b");
+      expect(finalUpperBound).toBeNull();
     });
 
     it("should apply dynamic log-IQR filtering if event count is sufficient", () => {
@@ -73,9 +74,11 @@ describe("model unit tests", () => {
         latencyMs: 1500, // Sub 2000ms, but an outlier compared to IQR
       });
 
-      const [valid, maxObserved] = filterOutliers(events);
+      const [valid, maxObserved, finalUpperBound] = filterOutliers(events);
       expect(valid.length).toBe(1600); // 1500ms event is filtered out by IQR
       expect(maxObserved).toBeLessThan(1500);
+      expect(finalUpperBound).not.toBeNull();
+      expect(finalUpperBound).toBeLessThan(1500);
     });
   });
 });
