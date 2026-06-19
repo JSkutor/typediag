@@ -9,6 +9,7 @@ import {
   getGlobalCylindricalMax,
 } from "@/lib/skdm/cylindrical";
 import { Cylindrical3DManager, LabelProjection, CylindricalToggles } from "./Cylindrical3DManager";
+import { CylindricalDiagnosticsPanel } from "./CylindricalDiagnosticsPanel";
 
 interface CylindricalVector3DProps {
   isActivated: boolean;
@@ -90,6 +91,8 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
 
   return (
     <div className="cyl-viewport">
+      <CylindricalDiagnosticsPanel />
+
       {/* Three.js mount point */}
       <div ref={mountRef} className="cyl-canvas" />
 
