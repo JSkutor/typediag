@@ -51,3 +51,7 @@ __pycache__/
 
 # local
 *.local.md
+
+# agent / tooling (regeneratable or IDE-local)
+/graphify-out/
+.cursor/
