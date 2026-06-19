@@ -3,6 +3,7 @@ import type { KeyEvent } from "@/lib/skdm";
 import type { MvsaCache, AlignResult } from "@/utils/mvsa";
 
 export type SessionStatus = "idle" | "running" | "done";
+export type TypingMode = "default" | "subject" | "hardcore" | "plain";
 
 export interface InputSlice {
   targetText: string;
@@ -13,6 +14,8 @@ export interface InputSlice {
   qwertyBuffer: string;
   mvsaCache: MvsaCache;
   alignments: AlignResult[];
+  mode: TypingMode;
+  setMode: (mode: TypingMode) => void;
   setTarget: (target: string | { id: string; content: string; language: string; tags?: string[] }) => void;
   nextTarget: () => void;
   setTypedText: (value: string) => void;

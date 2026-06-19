@@ -5,6 +5,37 @@ import { evaluateKeystroke } from "@/utils/typingEvaluator";
 import { getKeyToken } from "./utils";
 import { runMvsa, getCharQwertyIndices } from "@/utils/mvsa";
 
+// Hardcore 모드를 위한 취약 키 무작위 조합 생성 뼈대
+const generateHardcoreText = (): string => {
+  const samples = [
+    "나채저주히 자옆 나픈 자로뱌 냐캐",
+    "냑채저주히 쟈옆 나픈 자로뱌 냐캐",
+    "지연 속도 측정용 난해 텍스트 구조",
+    "키보드 지연 병목 현상 분석용 문자열",
+  ];
+  const idx = Math.floor(Math.random() * samples.length);
+  return samples[idx];
+};
+
+// Subject 모드를 위한 주제별 Mock 텍스트 목록 및 로더
+const getSubjectText = (subject?: string): string => {
+  const subjects: Record<string, string[]> = {
+    programming: [
+      "const typingStore = create<TypingStore>((set, get) => ({ ... }));",
+      "import { Canvas } from '@react-three/fiber';",
+      "function calculateKeystrokeDynamics(events: KeyEvent[]) { ... }",
+    ],
+    default: [
+      "[주제 연습: 과학] 인공지능과 우주 항공 기술의 융합이 가속화되고 있습니다.",
+      "[주제 연습: 경제] 글로벌 금리 동향과 환율 변동이 시장에 미치는 영향이 큽니다.",
+      "[주제 연습: 문학] 별 헤는 밤, 하늘에 가득 찬 별들을 보며 시를 짓습니다.",
+    ],
+  };
+  const list = subjects[subject || "default"] || subjects.default;
+  const idx = Math.floor(Math.random() * list.length);
+  return list[idx];
+};
+
 export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
   targetText: "",
   targetLanguage: "en",
@@ -14,6 +45,49 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
   qwertyBuffer: "",
   mvsaCache: new Map(),
   alignments: [],
+  mode: "default",
+
+  setMode: (mode) => {
+    set({ mode });
+    if (mode === "default") {
+      get().setTarget(targets[0]);
+    } else if (mode === "subject") {
+      const text = getSubjectText();
+      get().setTarget({
+        id: "target_subject_mock",
+        content: text,
+        language: /[가-힣]/.test(text) ? "ko" : "en",
+        tags: ["subject", "mock"],
+      });
+    } else if (mode === "hardcore") {
+      const text = generateHardcoreText();
+      get().setTarget({
+        id: "target_hardcore_mock",
+        content: text,
+        language: "ko",
+        tags: ["hardcore", "mock"],
+      });
+    } else if (mode === "plain") {
+      set({
+        targetText: "",
+        targetLanguage: "ko",
+        targetId: "target_plain",
+        typedText: "",
+        maxTypedTextLength: 0,
+        qwertyBuffer: "",
+        mvsaCache: new Map(),
+        alignments: [],
+        events: [],
+        status: "idle",
+        startedAt: null,
+        finishedAt: null,
+        lastKey: null,
+        lastKeyAt: null,
+        runInitPromise: null,
+        pressedKeys: {},
+      });
+    }
+  },
 
   setTarget: (target) => {
     let text = "";
@@ -58,9 +132,30 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
   },
 
   nextTarget: () => {
-    const currentIndex = targets.findIndex((t) => t.content === get().targetText);
-    const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % targets.length;
-    get().setTarget(targets[nextIndex]);
+    const { mode } = get();
+    if (mode === "default") {
+      const currentIndex = targets.findIndex((t) => t.content === get().targetText);
+      const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % targets.length;
+      get().setTarget(targets[nextIndex]);
+    } else if (mode === "subject") {
+      const text = getSubjectText();
+      get().setTarget({
+        id: `target_subject_${Date.now()}`,
+        content: text,
+        language: /[가-힣]/.test(text) ? "ko" : "en",
+        tags: ["subject"],
+      });
+    } else if (mode === "hardcore") {
+      const text = generateHardcoreText();
+      get().setTarget({
+        id: `target_hardcore_${Date.now()}`,
+        content: text,
+        language: "ko",
+        tags: ["hardcore"],
+      });
+    } else if (mode === "plain") {
+      get().reset();
+    }
   },
 
   setTypedText: (value) =>
@@ -68,11 +163,14 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
       const isKorean =
         state.targetLanguage === "ko" ||
         (state.targetLanguage === "en" && /[가-힣]/.test(state.targetText));
+
+      const targetText = state.mode === "plain" ? value : state.targetText;
       return {
+        targetText,
         typedText: value,
         qwertyBuffer: value,
         maxTypedTextLength: value.length,
-        alignments: runMvsa(state.targetText, value, isKorean, state.mvsaCache),
+        alignments: runMvsa(targetText, value, isKorean, state.mvsaCache),
       };
     }),
 
@@ -85,10 +183,14 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
     }
 
     if (code === "ArrowLeft") {
-      const currentIndex = targets.findIndex((t) => t.content === get().targetText);
-      const prevIndex =
-        currentIndex === -1 ? 0 : (currentIndex - 1 + targets.length) % targets.length;
-      get().setTarget(targets[prevIndex]);
+      if (state.mode === "default") {
+        const currentIndex = targets.findIndex((t) => t.content === get().targetText);
+        const prevIndex =
+          currentIndex === -1 ? 0 : (currentIndex - 1 + targets.length) % targets.length;
+        get().setTarget(targets[prevIndex]);
+      } else {
+        get().nextTarget();
+      }
       return;
     }
 
@@ -143,9 +245,7 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
           let shouldDeleteCharByChar = false;
           if (lastInputIndex !== -1) {
             const lastOp = alignments[lastInputIndex].op;
-            // 사용자가 이전에 완성했던 글자로 되돌아갈 때만 (length < max) 글자 단위로 지웁니다.
             const isGoingBackwards = state.typedText.length < state.maxTypedTextLength;
-            // PARTIAL이나 PENDING은 "탱"처럼 다음 글자의 초성이 받침으로 딸려온 과도기적 상태이므로 자소 단위로 지워야 합니다.
             const isCompleteVisualChar = lastOp !== "PARTIAL" && lastOp !== "PENDING";
 
             shouldDeleteCharByChar = isGoingBackwards && isCompleteVisualChar;
@@ -167,9 +267,15 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
         }
 
         const nextTyped = isKorean ? assembleHangulWithPunctuation(nextBuffer) : nextBuffer;
-        const nextAlignments = runMvsa(state.targetText, nextBuffer, isKorean, state.mvsaCache);
+        const nextTargetText = state.mode === "plain" ? nextTyped : state.targetText;
+        const nextAlignments = runMvsa(nextTargetText, nextBuffer, isKorean, state.mvsaCache);
 
-        set({ qwertyBuffer: nextBuffer, typedText: nextTyped, alignments: nextAlignments });
+        set({
+          targetText: nextTargetText,
+          qwertyBuffer: nextBuffer,
+          typedText: nextTyped,
+          alignments: nextAlignments,
+        });
         get().recordKey("backspace", timestamp, evalResult);
       }
       return;
@@ -186,8 +292,9 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
       );
       const nextBuffer = state.qwertyBuffer + char;
       const nextTyped = isKorean ? assembleHangulWithPunctuation(nextBuffer) : nextBuffer;
+      const nextTargetText = state.mode === "plain" ? nextTyped : state.targetText;
 
-      const alignments = runMvsa(state.targetText, nextBuffer, isKorean, state.mvsaCache);
+      const alignments = runMvsa(nextTargetText, nextBuffer, isKorean, state.mvsaCache);
       const lastInputIndex = alignments.findLastIndex((d) => d.inputIndex !== undefined);
       const pendingTargets = alignments.slice(lastInputIndex + 1).some((d) => d.op === "PENDING");
       let shouldFinish = !pendingTargets;
@@ -200,6 +307,7 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
       };
 
       set((s) => ({
+        targetText: nextTargetText,
         qwertyBuffer: nextBuffer,
         typedText: nextTyped,
         maxTypedTextLength: nextTyped.length,
@@ -211,6 +319,10 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
         if (lastOp && lastOp.op === "PARTIAL") {
           shouldFinish = false;
         }
+      }
+
+      if (state.mode === "plain") {
+        shouldFinish = false;
       }
 
       if (shouldFinish) {
