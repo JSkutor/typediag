@@ -1,8 +1,16 @@
-import { describe, it, expect } from "vitest";
+import { afterEach, beforeEach, describe, it, expect } from "vitest";
 import { runPipeline, buildLayout, triangulate } from "./index";
+import { readSkdmFinalUpperBound } from "./outlierBoundStorage";
 import { KeyEvent } from "./types";
 
 describe("SKDM Pipeline", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+  });
   it("should process physical key events and return KeyStats and triangles without mutating logic", () => {
     // We explicitly avoid modifying mathematical logic,
     // only verifying that it executes correctly.
@@ -53,5 +61,34 @@ describe("SKDM Pipeline", () => {
 
     const { triangles } = triangulate(results);
     expect(triangles).toBeDefined(); // Triangles are generated from the base layout coordinates
+  });
+
+  it("should persist finalUpperBound to localStorage when dynamic IQR is applied", () => {
+    const events: KeyEvent[] = Array.from({ length: 60 }).map((_, i) => ({
+      fromKey: i === 0 ? null : "a",
+      toKey: "b",
+      latencyMs: 100 + (i % 5),
+      isCorrect: true,
+    }));
+
+    runPipeline(events, buildLayout());
+
+    const stored = readSkdmFinalUpperBound();
+    expect(stored).not.toBeNull();
+    expect(stored?.final_upper_bound_ms).toBeGreaterThan(0);
+    expect(stored?.max_clip_ms).toBeGreaterThan(0);
+    expect(stored?.source_event_count).toBe(60);
+    expect(stored?.updated_at).toBeTruthy();
+  });
+
+  it("should not persist finalUpperBound when dynamic IQR is not applied", () => {
+    const events: KeyEvent[] = [
+      { fromKey: "a", toKey: "b", latencyMs: 120 },
+      { fromKey: "b", toKey: "c", latencyMs: 110 },
+    ];
+
+    runPipeline(events, buildLayout());
+
+    expect(readSkdmFinalUpperBound()).toBeNull();
   });
 });

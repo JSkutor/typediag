@@ -82,3 +82,19 @@ export function getMetaRow(key: string): number {
 export function isShiftCombinable(key: string): boolean {
   return KEYBOARD_META[key.toLowerCase()]?.shiftCombinable ?? false;
 }
+
+/** Check if a character requires Shift modifier in standard layout. */
+export function needsShift(char: string | null | undefined): boolean {
+  if (!char) return false;
+  // 한글 쌍자음 / 모음 (ㅃ, ㅉ, ㄸ, ㄲ, ㅆ, ㅒ, ㅖ)
+  const krShift = /[ㅃㅉㄸㄲㅆㅒㅖ]/;
+  if (krShift.test(char)) return true;
+  // 영어 대문자 (A-Z)
+  const enUpper = /[A-Z]/;
+  if (enUpper.test(char)) return true;
+  // 특수문자 중 Shift가 필요한 것들
+  const specialShift = /[~!@#$%^&*()_+{}|:"<>?]/;
+  if (specialShift.test(char)) return true;
+  return false;
+}
+

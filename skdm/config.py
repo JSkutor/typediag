@@ -76,7 +76,7 @@ OUTLIER_HARD_CUTOFF_MS: float = 2000.0
 OUTLIER_IQR_MIN_UPPER_BOUND_MS: float = 500.0
 OUTLIER_BLEND_START_EVENTS: int = 50
 OUTLIER_BLEND_END_EVENTS: int = 1500
-OUTLIER_IQR_MULTIPLIER: float = 1.5
+OUTLIER_IQR_MULTIPLIER: float = 2.5
 
 # 압축 시 해당 키 쌍의 최소 관측 빈도. 미만이면 신뢰도 매우 낮음으로 취급.
 # 일단 1 로 두어 모든 관측을 살린다(데이터가 적은 상황 가정).

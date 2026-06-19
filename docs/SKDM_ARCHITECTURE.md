@@ -107,7 +107,7 @@ Python `filter_backspaces`와 동일 로직. **스택 기반이 아님.**
 | `OUTLIER_HARD_CUTOFF_MS` | 2000 |
 | `OUTLIER_BLEND_START_EVENTS` | 50 |
 | `OUTLIER_BLEND_END_EVENTS` | 1500 |
-| `OUTLIER_IQR_MULTIPLIER` | 1.5 |
+| `OUTLIER_IQR_MULTIPLIER` | 2.5 |
 | `OUTLIER_IQR_MIN_UPPER_BOUND_MS` | 500 |
 
 단계:
@@ -115,7 +115,7 @@ Python `filter_backspaces`와 동일 로직. **스택 기반이 아님.**
 1. `latencyMs > 2000` 이벤트 제거
 2. 남은 개수 `N < 50` → 상한 없이 통과, `maxClipMs` = 유효 이벤트 latency 최댓값 (없으면 2000)
 3. `N ≥ 50` → `latencyMs > 0`만 log 변환 후 Q1, Q3, IQR 계산  
-   `T_IQR = exp(Q3 + 1.5 × IQR)`, `T_dynamic = max(T_IQR, 500)`
+   `T_IQR = exp(Q3 + 2.5 × IQR)`, `T_dynamic = max(T_IQR, 500)`
 4. 블렌딩:
    - `N ≥ 1500` → `finalUpperBound = T_dynamic`
    - `50 ≤ N < 1500` → `w = (N - 50) / (1500 - 50)`,  
