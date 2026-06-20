@@ -37,3 +37,5 @@ npm run build
 - `docs/SKDM_ARCHITECTURE.md` — SKDM pipeline and 3D visualization architecture
 - `docs/STATE_MANAGEMENT.md` — Zustand slices & session lifecycle
 - `docs/DESIGN_SYSTEM.md` — UI theme (“Space Grey & Cobalt”)
+- `docs/DIAGNOSTICS.md` — 3D diagnostics stats & mathematical ideation specifications (Korean)
+- `docs/TYPING_MODES.md` — Typing modes, optimization, and hardcore MLP model specifications (Korean)
