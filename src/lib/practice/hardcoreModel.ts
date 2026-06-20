@@ -1,7 +1,7 @@
 import vocab from "./hardcore_vocab.json";
 import weights from "./hardcore_weights.json";
 import { assembleHangulWithPunctuation } from "@/utils/keyboardMap";
-import { isValidHangulSequence } from "./hangulRules";
+import { isValidHangulSequence, PUNCTUATION_AND_SPACE } from "./hangulRules";
 
 const KOREAN_TO_QWERTY_SHIFT: Record<string, string> = {
   ㅃ: "Q",
@@ -75,6 +75,7 @@ export function predictNextLogits(contextIds: number[], modelWeights: HardcoreWe
 
 /**
  * Blends predicted logits with user's weak keys.
+ * Unifies operations strictly into English QWERTY space.
  */
 export function blendLogits(
   logits: number[],
@@ -84,16 +85,19 @@ export function blendLogits(
   const blended = [...logits];
   for (const keyId of weakKeys) {
     if (keyId >= 0 && keyId < blended.length) {
-      blended[keyId] += blendStrength;
-
-      // 만약 약한 키가 한글 쌍자음/쌍모음이면 대응되는 QWERTY 대문자에도 부스트 적용
       const char = vocab[keyId];
-      if (char && KOREAN_TO_QWERTY_SHIFT[char]) {
+      if (!char) continue;
+
+      let targetId = keyId;
+
+      // 만약 약한 키가 한글 쌍자음/쌍모음이면 대응되는 QWERTY 대문자로 완전히 치환 (영어 연산 통일)
+      if (KOREAN_TO_QWERTY_SHIFT[char]) {
         const qwertyChar = KOREAN_TO_QWERTY_SHIFT[char];
-        const qwertyId = vocab.indexOf(qwertyChar);
-        if (qwertyId !== -1) {
-          blended[qwertyId] += blendStrength;
-        }
+        targetId = vocab.indexOf(qwertyChar);
+      }
+
+      if (targetId !== -1) {
+        blended[targetId] += blendStrength;
       }
     }
   }
@@ -118,17 +122,41 @@ export function applyMask(generatedChars: string[], logits: number[]): number[] 
   const len = generatedChars.length;
   const prevChar = len > 0 ? generatedChars[len - 1] : " ";
   const prevPrevChar = len > 1 ? generatedChars[len - 2] : " ";
+  const prevPrevPrevChar = len > 2 ? generatedChars[len - 3] : " ";
 
   // Rule 1: No double spaces
   if (prevChar === " " && spaceId !== -1) {
     masked[spaceId] = -Infinity;
   }
 
+  // Rule 1.5: Punctuation (., ?, !) must be followed by a space
+  const punctuationList = [",", ".", "?", "!"];
+  if (punctuationList.includes(prevChar) && spaceId !== -1) {
+    for (let i = 0; i < logits.length; i++) {
+      if (i !== spaceId) {
+        masked[i] = -Infinity;
+      }
+    }
+    return masked;
+  }
+
   // Rule 2: Hangul pairing validity rules (simplified)
   for (let i = 0; i < logits.length; i++) {
     const nextChar = vocab[i];
-    if (nextChar && nextChar !== " ") {
-      if (!isValidHangulSequence(prevPrevChar, prevChar, nextChar)) {
+    if (nextChar) {
+      if (!isValidHangulSequence(prevPrevChar, prevChar, nextChar, prevPrevPrevChar)) {
+        masked[i] = -Infinity;
+      }
+    }
+  }
+
+  // Rule 3: If any of the last 6 generated characters is a space or punctuation, block next punctuation/space
+  const last6 = generatedChars.slice(-6);
+  const hasPunctInLast6 = last6.some((c) => PUNCTUATION_AND_SPACE.includes(c));
+  if (hasPunctInLast6) {
+    for (let i = 0; i < logits.length; i++) {
+      const nextChar = vocab[i];
+      if (nextChar && PUNCTUATION_AND_SPACE.includes(nextChar)) {
         masked[i] = -Infinity;
       }
     }
@@ -138,19 +166,66 @@ export function applyMask(generatedChars: string[], logits: number[]): number[] 
 }
 
 /**
- * Samples next character ID from logits using Softmax and Top-K/Top-P.
+ * Samples next character ID from logits using Temperature, Top-K, Top-P, and Softmax.
  */
-export function sampleNextId(logits: number[], temperature: number = 1.0): number {
-  // Apply temperature
-  const tempLogits = logits.map((l) => l / temperature);
+export function sampleNextId(
+  logits: number[],
+  temperature: number = 1.0,
+  topK: number = 0,
+  topP: number = 1.0,
+  useSymmetricLog: boolean = true,
+): number {
+  let processedLogits = [...logits];
 
-  // Softmax
+  // Apply Symmetric Log-Transform to dampen high values and increase diversity
+  if (useSymmetricLog) {
+    processedLogits = processedLogits.map((l) => {
+      if (l === -Infinity) return -Infinity;
+      return Math.sign(l) * Math.log(Math.abs(l) + 1);
+    });
+  }
+
+  // 1. Apply temperature
+  let tempLogits = processedLogits.map((l) => l / temperature);
+
+  // 2. Top-K filtering
+  if (topK > 0 && topK < tempLogits.length) {
+    const sortedIndices = tempLogits
+      .map((val, idx) => ({ val, idx }))
+      .sort((a, b) => b.val - a.val);
+
+    const kThreshold = sortedIndices[topK - 1].val;
+    tempLogits = tempLogits.map((l) => (l < kThreshold ? -Infinity : l));
+  }
+
+  // 3. Softmax
   const maxLogit = Math.max(...tempLogits);
   const exps = tempLogits.map((l) => Math.exp(l - maxLogit));
   const sumExps = exps.reduce((a, b) => a + b, 0);
-  const probs = exps.map((e) => e / sumExps);
+  let probs = exps.map((e) => e / sumExps);
 
-  // Random sampling based on cumulative distribution
+  // 4. Top-P (Nucleus) filtering
+  if (topP > 0.0 && topP < 1.0) {
+    const sortedProbs = probs.map((val, idx) => ({ val, idx })).sort((a, b) => b.val - a.val);
+
+    let cumulativeProb = 0;
+    const allowedIndices = new Set<number>();
+
+    for (const item of sortedProbs) {
+      allowedIndices.add(item.idx);
+      cumulativeProb += item.val;
+      if (cumulativeProb >= topP) {
+        break;
+      }
+    }
+
+    // Mask out non-allowed and re-normalize
+    probs = probs.map((p, idx) => (allowedIndices.has(idx) ? p : 0));
+    const newSum = probs.reduce((a, b) => a + b, 0);
+    probs = probs.map((p) => (newSum > 0 ? p / newSum : 0));
+  }
+
+  // 5. Random sampling based on cumulative distribution
   const r = Math.random();
   let cumulative = 0;
   for (let i = 0; i < probs.length; i++) {
@@ -160,6 +235,45 @@ export function sampleNextId(logits: number[], temperature: number = 1.0): numbe
     }
   }
   return probs.length - 1; // Fallback
+}
+
+/**
+ * Applies static logit biases to adjust the baseline frequency of specific characters.
+ * Decreases probabilities of double consonants, complex vowels, and punctuations.
+ * Increases probability of spaces.
+ */
+export function applyStaticBiases(logits: number[]): number[] {
+  const biased = [...logits];
+
+  // 1. 대문자(쌍자음 대응)에 강한 페널티 부여
+  const penaltyChars = ["Q", "W", "E", "R", "T"];
+  const penaltyValue = -10.0;
+
+  for (const char of penaltyChars) {
+    const id = vocab.indexOf(char);
+    if (id !== -1) {
+      biased[id] += penaltyValue;
+    }
+  }
+
+  // 2. 특정 대문자(O, P) 및 문장 부호에 더 강력한 페널티 부여
+  const strongPenaltyChars = ["O", "P", ",", ".", "?", "!"];
+  const strongPenaltyValue = -15.0; // 더 강력하게 페널티 적용
+
+  for (const char of strongPenaltyChars) {
+    const id = vocab.indexOf(char);
+    if (id !== -1) {
+      biased[id] += strongPenaltyValue;
+    }
+  }
+
+  // 2. 띄어쓰기(Space) 부스트 대폭 강화
+  const spaceId = vocab.indexOf(" ");
+  if (spaceId !== -1) {
+    biased[spaceId] += 10.0; // 스페이스 부스트 강화
+  }
+
+  return biased;
 }
 
 /**
@@ -184,14 +298,17 @@ export function generateHardcorePracticeText(length: number = 30): string {
     // 2. Invert logits to prioritize rare sequences
     logits = invertLogits(logits);
 
-    // 3. Blend user's weak keys (Hardcoded boost of 5.0 for now)
+    // 3. Static logit biases (penalize shifts, boost space)
+    logits = applyStaticBiases(logits);
+
+    // 4. Blend user's weak keys (Hardcoded boost of 5.0 for now)
     logits = blendLogits(logits, weakKeys, 5.0);
 
-    // 4. Rule-based Masking
+    // 5. Rule-based Masking
     logits = applyMask(generatedChars, logits);
 
-    // 5. Sample next character ID
-    const nextId = sampleNextId(logits, 1.2); // slight temperature bump for variety
+    // 6. Sample next character ID
+    const nextId = sampleNextId(logits, 2, 40, 0.9); // increased temperature, added Top-K/Top-P
 
     const nextChar = vocab[nextId] || " ";
     generatedChars.push(nextChar);

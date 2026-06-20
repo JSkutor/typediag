@@ -8,6 +8,9 @@
 // 1) 자음: 쌍자음
 export const CONSONANTS_DOUBLE = ['ㄲ', 'ㄸ', 'ㅃ', 'ㅆ', 'ㅉ'];
 
+// QWEROP 키에 해당하는 자모 (Shift + q, w, e, r, o, p)
+export const QWEROP_JAMO = ['ㅃ', 'ㅉ', 'ㄸ', 'ㄲ', 'ㅒ', 'ㅖ'];
+
 // 2) 자음: 겹받침 (논리적 개념, QWERTY 단일 키로는 존재하지 않음)
 export const CONSONANTS_COMPOUND = ['ㄳ', 'ㄵ', 'ㄶ', 'ㄺ', 'ㄻ', 'ㄼ', 'ㄽ', 'ㄾ', 'ㄿ', 'ㅀ', 'ㅄ'];
 
@@ -65,18 +68,26 @@ export function isVowel(jamo: string): boolean {
 // ---------------------------------------------------------
 // 3. 정합성 검사 로직 (isValidHangulSequence)
 // ---------------------------------------------------------
-export function isValidHangulSequence(prevPrevChar: string, prevChar: string, nextChar: string): boolean {
-  // 스페이스나 문장부호 후보는 언제나 입력 가능
-  if (PUNCTUATION_AND_SPACE.includes(nextChar)) {
-    return true;
-  }
-
+export function isValidHangulSequence(
+  prevPrevChar: string,
+  prevChar: string,
+  nextChar: string,
+  prevPrevPrevChar?: string
+): boolean {
   const prevPrev = toJamo(prevPrevChar);
   const prev = toJamo(prevChar);
   const next = toJamo(nextChar);
 
+  // QWEROP 중복 방지 규칙: 이전 2글자 안에 QWEROP 자모 중 하나가 포함되어 있으면 또 나오는 것을 금지
+  if (QWEROP_JAMO.includes(next)) {
+    if (QWEROP_JAMO.includes(prev) || QWEROP_JAMO.includes(prevPrev)) {
+      return false;
+    }
+  }
+
   const prevPrevIsV = isVowel(prevPrev);
   const prevPrevIsC = isConsonant(prevPrev);
+  const prevPrevIsPunct = PUNCTUATION_AND_SPACE.includes(prevPrevChar);
 
   const prevIsV = isVowel(prev);
   const prevIsC = isConsonant(prev);
@@ -84,9 +95,48 @@ export function isValidHangulSequence(prevPrevChar: string, prevChar: string, ne
 
   const nextIsV = isVowel(next);
   const nextIsC = isConsonant(next);
+  const nextIsPunct = PUNCTUATION_AND_SPACE.includes(nextChar);
+
+  // 0. 문장부호 관련 특수 규칙 (순서 준수)
+  if (nextIsPunct) {
+    // A. 문장부호 다음에 문장부호는 불가능
+    if (prevIsPunct) {
+      return false;
+    }
+
+    // D. 문장부호 자음 문장부호: 불가능
+    if (prevPrevIsPunct && prevIsC) {
+      return false;
+    }
+
+    // B. 자음 자음 자음 부호: 불가능
+    if (prevPrevIsC && prevIsC) {
+      const prevPrevPrev = prevPrevPrevChar ? toJamo(prevPrevPrevChar) : " ";
+      const prevPrevPrevIsC = isConsonant(prevPrevPrev);
+      if (prevPrevPrevIsC) {
+        return false;
+      }
+    }
+
+    // C. 자음 자음 부호: 자음 2개가 겹받침 순서쌍인 경우만 가능
+    if (prevPrevIsC && prevIsC) {
+      const isValidPair = 
+        !!(COMPOUND_CONSONANT_PAIRS[prevPrev] && COMPOUND_CONSONANT_PAIRS[prevPrev].includes(prev));
+      if (!isValidPair) {
+        return false;
+      }
+    }
+
+    return true;
+  }
 
   // 1. 문장기호 모음: 불가능
   if (prevIsPunct && nextIsV) {
+    return false;
+  }
+
+  // 1-2. 문장부호 자음 자음: 불가능
+  if (prevPrevIsPunct && prevIsC && nextIsC) {
     return false;
   }
 
@@ -95,18 +145,17 @@ export function isValidHangulSequence(prevPrevChar: string, prevChar: string, ne
     return false;
   }
 
-  // 3. 모음 자음 자음(기준): 겹받침, 일부 쌍자음의 두번째 키만 가능
+  // 3. 모음 자음 자음(기준): 겹받침의 두번째 키만 가능
   if (prevPrevIsV && prevIsC && nextIsC) {
     const isValidJongseongSecondKey = 
-      (COMPOUND_CONSONANT_PAIRS[prev] && COMPOUND_CONSONANT_PAIRS[prev].includes(next)) || 
-      (prev === next && ['ㄱ', 'ㅅ'].includes(prev)); // ㄲ, ㅆ
+      !!(COMPOUND_CONSONANT_PAIRS[prev] && COMPOUND_CONSONANT_PAIRS[prev].includes(next));
     
     return isValidJongseongSecondKey;
   }
 
-  // 4. 모음 모음 자음(기준): 겹받침, 일부 쌍자음의 첫번째 키만 가능
+  // 4. 모음 모음 자음(기준): 겹받침의 첫번째 키만 가능
   if (prevPrevIsV && prevIsV && nextIsC) {
-    const allowedFirstKeys = ['ㄱ', 'ㄴ', 'ㄹ', 'ㅂ', 'ㅅ'];
+    const allowedFirstKeys = ['ㄱ', 'ㄴ', 'ㄹ', 'ㅂ'];
     return allowedFirstKeys.includes(next);
   }
 
