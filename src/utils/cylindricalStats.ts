@@ -87,8 +87,23 @@ export function calculateKeystrokeDiagnostics(
     holdCorrelation: { pearsonR: 0, pValue: 1.0, isSignificant: false, sampleCount: 0 },
     hesitation: { ratio: 0, hasTendency: false, thresholdMs: 0 },
     fingerTransitions: {
-      ratios: { oppositeHand: 0, sameHandPinky: 0, sameHandRing: 0, sameHandMiddle: 0, sameHandIndex: 0, other: 0 },
-      counts: { oppositeHand: 0, sameHandPinky: 0, sameHandRing: 0, sameHandMiddle: 0, sameHandIndex: 0, other: 0, total: 0 },
+      ratios: {
+        oppositeHand: 0,
+        sameHandPinky: 0,
+        sameHandRing: 0,
+        sameHandMiddle: 0,
+        sameHandIndex: 0,
+        other: 0,
+      },
+      counts: {
+        oppositeHand: 0,
+        sameHandPinky: 0,
+        sameHandRing: 0,
+        sameHandMiddle: 0,
+        sameHandIndex: 0,
+        other: 0,
+        total: 0,
+      },
     },
     relativeSpeed: { speedDiffMs: 0, handMedianMs: 0 },
   };
@@ -137,8 +152,10 @@ export function calculateKeystrokeDiagnostics(
     }
   }
 
-  const errorInducementRate = totalErrorStartsCount > 0 ? (errorInducementCount / totalErrorStartsCount) * 100 : 0;
-  const lateKeystrokeRate = totalErrorsCount > 0 ? (lateKeystrokeCount / totalErrorsCount) * 100 : 0;
+  const errorInducementRate =
+    totalErrorStartsCount > 0 ? (errorInducementCount / totalErrorStartsCount) * 100 : 0;
+  const lateKeystrokeRate =
+    totalErrorsCount > 0 ? (lateKeystrokeCount / totalErrorsCount) * 100 : 0;
 
   // 2) 선택적 진단 (optionalStats 대응)
   const EXCLUDE_KEYS = new Set(["shift_l", "shift_r", "backspace", "enter"]);
@@ -159,9 +176,7 @@ export function calculateKeystrokeDiagnostics(
       pairCounts.set(pairKey, (pairCounts.get(pairKey) || 0) + 1);
     }
   }
-  const allTopPairs = [...pairCounts.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5);
+  const allTopPairs = [...pairCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
 
   let commonPair = null;
   const matchIdx = allTopPairs.findIndex(([pair]) => pair.split("→")[1] === selectedTo);
@@ -235,11 +250,17 @@ export function calculateKeystrokeDiagnostics(
   }
 
   // 3) 상세 통계 (detailedStats 대응)
-  const targetCorrectEvents = events.filter((ev) => ev.toKey === selectedTo && ev.isCorrect === true);
+  const targetCorrectEvents = events.filter(
+    (ev) => ev.toKey === selectedTo && ev.isCorrect === true,
+  );
   if (targetCorrectEvents.length === 0) {
     return {
       ...defaultDiagnostics,
-      errorInducement: { rate: errorInducementRate, count: errorInducementCount, totalErrorStartsCount },
+      errorInducement: {
+        rate: errorInducementRate,
+        count: errorInducementCount,
+        totalErrorStartsCount,
+      },
       lateKeystroke: { rate: lateKeystrokeRate, count: lateKeystrokeCount, totalErrorsCount },
       commonPair,
       unconsciousKey,
@@ -365,7 +386,10 @@ export function calculateKeystrokeDiagnostics(
   if (targetMeta) {
     const targetHand = targetMeta.hand;
     const otherKeysSameHandLatencies = events
-      .filter((ev) => ev.isCorrect === true && ev.toKey !== selectedTo && getHand(ev.toKey) === targetHand)
+      .filter(
+        (ev) =>
+          ev.isCorrect === true && ev.toKey !== selectedTo && getHand(ev.toKey) === targetHand,
+      )
       .map((ev) => ev.latencyMs);
 
     if (otherKeysSameHandLatencies.length > 0) {

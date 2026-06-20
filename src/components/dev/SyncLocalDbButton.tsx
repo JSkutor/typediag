@@ -33,7 +33,7 @@ export function SyncLocalDbButton({ className, style }: SyncLocalDbButtonProps) 
     }
 
     const confirmSync = confirm(
-      `localStorage의 타건 기록(Run ${runs.length}개, Page ${pages.length}개)을 local_db.json에 추가(동기화)하시겠습니까?\n이미 local_db.json에 있는 동일 ID의 기록은 업데이트되며, 새로운 기록은 추가됩니다.`
+      `localStorage의 타건 기록(Run ${runs.length}개, Page ${pages.length}개)을 local_db.json에 추가(동기화)하시겠습니까?\n이미 local_db.json에 있는 동일 ID의 기록은 업데이트되며, 새로운 기록은 추가됩니다.`,
     );
     if (!confirmSync) return;
 
@@ -97,7 +97,7 @@ export function SyncLocalDbButton({ className, style }: SyncLocalDbButtonProps) 
       }
 
       alert(
-        `localStorage 데이터(Run ${runs.length}개, Page ${pages.length}개)가 local_db.json에 성공적으로 추가되었습니다!`
+        `localStorage 데이터(Run ${runs.length}개, Page ${pages.length}개)가 local_db.json에 성공적으로 추가되었습니다!`,
       );
     } catch (error: unknown) {
       console.error("[SyncLocalDbButton] Sync failed:", error);

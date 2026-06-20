@@ -16,7 +16,10 @@ export interface InputSlice {
   alignments: AlignResult[];
   mode: TypingMode;
   setMode: (mode: TypingMode) => void;
-  setTarget: (target: string | { id: string; content: string; language: string; tags?: string[] }) => void;
+  setTargetLanguage: (lang: string) => void;
+  setTarget: (
+    target: string | { id: string; content: string; language: string; tags?: string[] },
+  ) => void;
   nextTarget: () => void;
   setTypedText: (value: string) => void;
   handlePhysicalKeyPress: (code: string, shiftKey: boolean, timestamp: number) => void;
@@ -42,6 +45,7 @@ export interface SessionSlice {
   currentRunId: string | null;
   runInitPromise: Promise<string> | null;
   finish: (timestamp?: number) => void;
+  saveCurrentPage: () => Promise<void>;
   reset: () => void;
   loadLocalDbData: () => Promise<void>;
   startNewRun: () => void;

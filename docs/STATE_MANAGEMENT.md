@@ -36,7 +36,8 @@ src/store/
 
 #### Backspace deletion (`handlePhysicalKeyPress`)
 
-There is no native `<input>` — deletion mutates `qwertyBuffer` directly, then re-assembles `typedText` and re-runs MVSA.
+- **In `done` status**: Pressing `Backspace` transitions the status back to `"running"`, clears `finishedAt`, and continues to delete characters normally.
+- **In other statuses**: There is no native `<input>` — deletion mutates `qwertyBuffer` directly, then re-assembles `typedText` and re-runs MVSA.
 
 | Language | Default | When `shouldDeleteCharByChar` |
 | :--- | :--- | :--- |
@@ -82,7 +83,8 @@ When deleting by character, `getCharQwertyIndices(qwertyBuffer)` finds each visu
   - `runInitPromise`: Pending initialization promise to prevent race conditions during early typing inputs.
 - **Key Actions**:
   - `startPage(now)`: Resolves or triggers a new run ID via `SessionService`.
-  - `finish(timestamp)`: Completes the current page, persists statistics to the database, and transitions state.
+  - `finish(timestamp)`: Completes the current page (transitions status to `"done"` and sets finished timestamp) without immediately persisting to the database.
+  - `saveCurrentPage()`: Synchronously sets status to `"idle"` (to prevent duplicate saves) and asynchronously persists the current completed page to the database. Triggered during page transition actions (`nextTarget`, `setTarget`, `setMode`).
   - `reset()`: Resets the state of the active run.
 
 ### 1.4. Keyboard Bindings (`useWorkspaceKeybindings.ts`)

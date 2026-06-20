@@ -242,8 +242,9 @@ export function DevPiecewisePanel() {
                 · x
               </div>
               <div>
-                x &gt; c : y = {outcome.result.beta0.toFixed(3)} + ({outcome.result.beta1.toFixed(4)}
-                ) · x + ({outcome.result.beta2.toFixed(4)}) · (x − {outcome.result.c.toFixed(2)})
+                x &gt; c : y = {outcome.result.beta0.toFixed(3)} + (
+                {outcome.result.beta1.toFixed(4)}) · x + ({outcome.result.beta2.toFixed(4)}) · (x −{" "}
+                {outcome.result.c.toFixed(2)})
               </div>
               <div style={{ marginTop: "0.75rem" }}>
                 predict(0) = {outcome.result.predict(0).toFixed(2)} ms · predict(c) ={" "}

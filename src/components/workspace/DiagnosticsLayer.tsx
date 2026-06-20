@@ -5,7 +5,6 @@ import { CylindricalVector3D } from "./CylindricalVector3D";
 import { DashboardPanel } from "./DashboardPanel";
 import { ErrorBoundary3D } from "./ErrorBoundary3D";
 
-
 export const DiagnosticsLayer: React.FC = () => {
   const uiState = useWorkspaceStore((state) => state.uiState);
   const diagnosticMode = useWorkspaceStore((state) => state.diagnosticMode);
@@ -57,8 +56,6 @@ export const DiagnosticsLayer: React.FC = () => {
             }}
           />
         )}
-
-
 
         {/* Dashboard Panel (non-cylindrical, non-surface — cylindrical has its own panel) */}
         {diagnosticMode !== "cylindrical" && diagnosticMode !== "surface" && (

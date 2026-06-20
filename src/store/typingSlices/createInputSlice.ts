@@ -1,20 +1,16 @@
 import { StoreSlice, InputSlice } from "./types";
 import targets from "@/data/targets.json";
+import { generateHardcorePracticeText } from "@/lib/practice/hardcoreModel";
 import { getQwertyChar, assembleHangulWithPunctuation } from "@/utils/keyboardMap";
 import { evaluateKeystroke } from "@/utils/typingEvaluator";
 import { getKeyToken } from "./utils";
 import { runMvsa, getCharQwertyIndices } from "@/utils/mvsa";
 
-// Hardcore 모드를 위한 취약 키 무작위 조합 생성 뼈대
+// Hardcore 모드를 위한 취약 키 무작위 조합 생성
 const generateHardcoreText = (): string => {
-  const samples = [
-    "나채저주히 자옆 나픈 자로뱌 냐캐",
-    "냑채저주히 쟈옆 나픈 자로뱌 냐캐",
-    "지연 속도 측정용 난해 텍스트 구조",
-    "키보드 지연 병목 현상 분석용 문자열",
-  ];
-  const idx = Math.floor(Math.random() * samples.length);
-  return samples[idx];
+  // Base length 70 with random offset +/- 10 -> range [60, 80]
+  const randomLength = 70 + Math.floor(Math.random() * 21) - 10;
+  return generateHardcorePracticeText(randomLength);
 };
 
 // Subject 모드를 위한 주제별 Mock 텍스트 목록 및 로더
@@ -48,6 +44,9 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
   mode: "default",
 
   setMode: (mode) => {
+    if (get().status === "done") {
+      get().saveCurrentPage();
+    }
     set({ mode });
     if (mode === "default") {
       get().setTarget(targets[0]);
@@ -89,7 +88,26 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
     }
   },
 
+  setTargetLanguage: (language) => {
+    const isKorean = language === "ko";
+    set((state) => {
+      const nextTyped = isKorean
+        ? assembleHangulWithPunctuation(state.qwertyBuffer)
+        : state.qwertyBuffer;
+      const nextTargetText = state.mode === "plain" ? nextTyped : state.targetText;
+      return {
+        targetLanguage: language,
+        targetText: nextTargetText,
+        typedText: nextTyped,
+        alignments: runMvsa(nextTargetText, state.qwertyBuffer, isKorean, state.mvsaCache),
+      };
+    });
+  },
+
   setTarget: (target) => {
+    if (get().status === "done") {
+      get().saveCurrentPage();
+    }
     let text = "";
     let language = "en";
     let id = "";
@@ -132,6 +150,9 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
   },
 
   nextTarget: () => {
+    if (get().status === "done") {
+      get().saveCurrentPage();
+    }
     const { mode } = get();
     if (mode === "default") {
       const currentIndex = targets.findIndex((t) => t.content === get().targetText);
@@ -195,10 +216,14 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
     }
 
     if (state.status === "done") {
-      if (code === "Space" || code === "Enter") {
-        get().nextTarget();
+      if (code === "Backspace") {
+        set({ status: "running", finishedAt: null });
+      } else {
+        if (code === "Space" || code === "Enter") {
+          get().nextTarget();
+        }
+        return;
       }
-      return;
     }
 
     if (state.pressedKeys[code] === undefined) {
@@ -317,6 +342,13 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
 
       if (shouldFinish && isKorean) {
         if (lastOp && lastOp.op === "PARTIAL") {
+          shouldFinish = false;
+        }
+      }
+
+      if (shouldFinish && state.mode === "hardcore") {
+        const hasInsert = alignments.some((d) => d.op === "INSERT");
+        if (hasInsert) {
           shouldFinish = false;
         }
       }

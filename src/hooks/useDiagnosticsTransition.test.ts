@@ -85,4 +85,21 @@ describe("useDiagnosticsTransition", () => {
     expect(workspaceState.analysisEvents.length).toBe(1);
     expect(workspaceState.analysisEvents[0].fromKey).toBe("a"); // Sourced from store fallback
   });
+
+  it("should call saveCurrentPage before transition if status is 'done'", async () => {
+    const saveSpy = vi.fn().mockResolvedValue(undefined);
+    useTypingStore.setState({
+      status: "done",
+      saveCurrentPage: saveSpy,
+      currentRunId: "test_run_1",
+    });
+
+    const { result } = renderHook(() => useDiagnosticsTransition());
+
+    await act(async () => {
+      await result.current.startDiagnosticsTransition();
+    });
+
+    expect(saveSpy).toHaveBeenCalledTimes(1);
+  });
 });

@@ -371,15 +371,83 @@ describe("useTypingStore", () => {
     store.handlePhysicalKeyPress("KeyE", false, 1100);
     expect(useTypingStore.getState().status).toBe("done");
 
-    // Wait for the async db save to run in microtasks
+    // Wait and verify it is NOT saved yet
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    let pages = await db.getPagesForRun(runId!);
+    expect(pages).toHaveLength(0);
+
+    // Call nextTarget to trigger save
+    store.nextTarget();
     await new Promise((resolve) => setTimeout(resolve, 10));
 
-    const pages = await db.getPagesForRun(runId!);
+    pages = await db.getPagesForRun(runId!);
     expect(pages).toHaveLength(1);
     expect(pages[0].typed_text).toBe("he");
     expect(pages[0].cpm).toBeGreaterThan(0);
     expect(pages[0].accuracy).toBe(100);
     expect(pages[0].key_events).toHaveLength(2); // Null from_key event + transition event
+  });
+
+  it("should not finish in hardcore mode if there are excess characters (INSERT)", () => {
+    useTypingStore.setState({
+      mode: "hardcore",
+      targetText: "구구",
+      targetLanguage: "ko",
+      targetId: "hardcore_test",
+      typedText: "",
+      qwertyBuffer: "",
+      status: "idle",
+    });
+
+    const store = useTypingStore.getState();
+
+    // Type '구' ('r', 'n') -> matches first '구'
+    store.handlePhysicalKeyPress("KeyR", false, 1000);
+    store.handlePhysicalKeyRelease("KeyR", 1050);
+    store.handlePhysicalKeyPress("KeyN", false, 1100);
+    store.handlePhysicalKeyRelease("KeyN", 1150);
+
+    expect(useTypingStore.getState().status).toBe("running");
+
+    // Type typo 'ㅌ' ('x') -> becomes '구ㅌ' (Qwerty 'rnx')
+    useTypingStore.getState().handlePhysicalKeyPress("KeyX", false, 1200);
+    useTypingStore.getState().handlePhysicalKeyRelease("KeyX", 1250);
+
+    // Type '구' ('r', 'n') -> becomes '구ㅌ구' (Qwerty 'rnxrn')
+    // Both target '구' characters are matched, but there is an 'INSERT' ('ㅌ') in the middle.
+    useTypingStore.getState().handlePhysicalKeyPress("KeyR", false, 1300);
+    useTypingStore.getState().handlePhysicalKeyRelease("KeyR", 1350);
+    useTypingStore.getState().handlePhysicalKeyPress("KeyN", false, 1400);
+    useTypingStore.getState().handlePhysicalKeyRelease("KeyN", 1450);
+
+    // It should not finish since it contains an INSERT
+    expect(useTypingStore.getState().status).toBe("running");
+    expect(useTypingStore.getState().finishedAt).toBeNull();
+
+    // Press Backspace three times to remove '구' (2 jamos) and 'ㅌ' (1 jamo)
+    // This empties the buffer as the last backspace deletes the whole visual character '구'
+    useTypingStore.getState().handlePhysicalKeyPress("Backspace", false, 1500);
+    useTypingStore.getState().handlePhysicalKeyRelease("Backspace", 1550);
+    useTypingStore.getState().handlePhysicalKeyPress("Backspace", false, 1600);
+    useTypingStore.getState().handlePhysicalKeyRelease("Backspace", 1650);
+    useTypingStore.getState().handlePhysicalKeyPress("Backspace", false, 1660);
+    useTypingStore.getState().handlePhysicalKeyRelease("Backspace", 1670);
+
+    expect(useTypingStore.getState().status).toBe("running");
+
+    // Type '구구' ('r', 'n', 'r', 'n') -> buffer becomes 'rnrn' ('구구'), matching perfectly
+    useTypingStore.getState().handlePhysicalKeyPress("KeyR", false, 1700);
+    useTypingStore.getState().handlePhysicalKeyRelease("KeyR", 1750);
+    useTypingStore.getState().handlePhysicalKeyPress("KeyN", false, 1800);
+    useTypingStore.getState().handlePhysicalKeyRelease("KeyN", 1850);
+    useTypingStore.getState().handlePhysicalKeyPress("KeyR", false, 1900);
+    useTypingStore.getState().handlePhysicalKeyRelease("KeyR", 1950);
+    useTypingStore.getState().handlePhysicalKeyPress("KeyN", false, 2000);
+    useTypingStore.getState().handlePhysicalKeyRelease("KeyN", 2050);
+
+    // Now it should finish successfully
+    expect(useTypingStore.getState().status).toBe("done");
+    expect(useTypingStore.getState().finishedAt).not.toBeNull();
   });
 
   it("should create a new run if idle for more than 3 minutes on next session typing start", async () => {
@@ -393,6 +461,9 @@ describe("useTypingStore", () => {
 
     const runId1 = useTypingStore.getState().currentRunId!;
     store.handlePhysicalKeyPress("KeyE", false, 1100);
+
+    // Trigger save by calling nextTarget()
+    store.nextTarget();
 
     await new Promise((resolve) => setTimeout(resolve, 20));
     const pages1 = await db.getPagesForRun(runId1);
@@ -432,6 +503,9 @@ describe("useTypingStore", () => {
     // Press 'e' at 1,000ms + 5 minutes (301,000ms)
     store.handlePhysicalKeyPress("KeyE", false, 302000);
 
+    // Trigger save by calling nextTarget()
+    store.nextTarget();
+
     await new Promise((resolve) => setTimeout(resolve, 20));
 
     const finalRunId = useTypingStore.getState().currentRunId!;
@@ -446,5 +520,25 @@ describe("useTypingStore", () => {
     const pages = await db.getPagesForRun(finalRunId);
     expect(pages).toHaveLength(1);
     expect(pages[0].run_id).toBe(finalRunId);
+  });
+
+  it("should allow backspace in done status to revert to running status and delete the last character", () => {
+    const store = useTypingStore.getState();
+    store.setTarget("he");
+
+    // Type 'h'
+    store.handlePhysicalKeyPress("KeyH", false, 1000);
+    // Type 'e' -> completes the target, status becomes 'done'
+    store.handlePhysicalKeyPress("KeyE", false, 1100);
+
+    expect(useTypingStore.getState().status).toBe("done");
+    expect(useTypingStore.getState().typedText).toBe("he");
+
+    // Press Backspace in 'done' status
+    store.handlePhysicalKeyPress("Backspace", false, 1200);
+
+    expect(useTypingStore.getState().status).toBe("running");
+    expect(useTypingStore.getState().finishedAt).toBeNull();
+    expect(useTypingStore.getState().typedText).toBe("h");
   });
 });
