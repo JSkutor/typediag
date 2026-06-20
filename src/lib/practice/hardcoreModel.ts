@@ -2,6 +2,16 @@ import vocab from "./hardcore_vocab.json";
 import weights from "./hardcore_weights.json";
 import { assembleHangulWithPunctuation } from "@/utils/keyboardMap";
 
+const KOREAN_TO_QWERTY_SHIFT: Record<string, string> = {
+  ㅃ: "Q",
+  ㅉ: "W",
+  ㄸ: "E",
+  ㄲ: "R",
+  ㅆ: "T",
+  ㅒ: "O",
+  ㅖ: "P",
+};
+
 export interface HardcoreWeights {
   emb_matrix: number[][]; // V x 16
   w1: number[][]; // 96 x 64
@@ -74,6 +84,16 @@ export function blendLogits(
   for (const keyId of weakKeys) {
     if (keyId >= 0 && keyId < blended.length) {
       blended[keyId] += blendStrength;
+
+      // 만약 약한 키가 한글 쌍자음/쌍모음이면 대응되는 QWERTY 대문자에도 부스트 적용
+      const char = vocab[keyId];
+      if (char && KOREAN_TO_QWERTY_SHIFT[char]) {
+        const qwertyChar = KOREAN_TO_QWERTY_SHIFT[char];
+        const qwertyId = vocab.indexOf(qwertyChar);
+        if (qwertyId !== -1) {
+          blended[qwertyId] += blendStrength;
+        }
+      }
     }
   }
   return blended;

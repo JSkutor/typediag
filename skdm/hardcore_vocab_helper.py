@@ -24,7 +24,12 @@ CHAR_TO_ID = {char: idx for idx, char in enumerate(HARDCORE_VOCAB)}
 
 
 def get_char_id(char: str) -> int:
-    """Converts a character to its vocab ID. Returns -1 if not found."""
+    """Converts a character to its vocab ID. Returns -1 if not found.
+    
+    Checks direct match first (for uppercase/special chars) and falls back to lowercase.
+    """
+    if char in CHAR_TO_ID:
+        return CHAR_TO_ID[char]
     return CHAR_TO_ID.get(char.lower(), -1)
 
 

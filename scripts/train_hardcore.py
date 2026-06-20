@@ -163,6 +163,50 @@ class HardcoreMLP:
         }
 
 
+CHO_MAP = [
+    "r", "R", "s", "e", "E", "f", "a", "q", "Q", "t", "T", "d", "w", "W", "c", "z", "x", "v", "g"
+]
+
+JUNG_MAP = [
+    "k", "o", "i", "O", "j", "p", "u", "P", "h", "hk", "ho", "hl", "y", "n", "nj", "np", "nl", "b", "m", "ml", "l"
+]
+
+JONG_MAP = [
+    "", "r", "R", "rt", "s", "sw", "sg", "e", "f", "fr", "fa", "fq", "ft", "fx", "fv", "fg", "a", "q", "qt", "t", "T", "d", "w", "c", "z", "x", "v", "g"
+]
+
+SINGLE_JAMO_MAP = {
+    "ㄱ": "r", "ㄲ": "R", "ㄴ": "s", "ㄷ": "e", "ㄸ": "E", "ㄹ": "f", "ㅁ": "a", 
+    "ㅂ": "q", "ㅃ": "Q", "ㅅ": "t", "ㅆ": "T", "ㅇ": "d", "ㅈ": "w", "ㅉ": "W", 
+    "ㅊ": "c", "ㅋ": "z", "ㅌ": "x", "ㅍ": "v", "ㅎ": "g",
+    "ㅏ": "k", "ㅐ": "o", "ㅑ": "i", "ㅒ": "O", "ㅓ": "j", "ㅔ": "p", "ㅕ": "u", 
+    "ㅖ": "P", "ㅗ": "h", "ㅘ": "hk", "ㅙ": "ho", "ㅚ": "hl", "ㅛ": "y", "ㅜ": "n", 
+    "ㅝ": "nj", "ㅞ": "np", "ㅟ": "nl", "ㅠ": "b", "ㅡ": "m", "ㅢ": "ml", "ㅣ": "l",
+    "ㄵ": "sw", "ㄶ": "sg", "ㄺ": "fr", "ㄻ": "fa", "ㄼ": "fq", "ㄽ": "ft", "ㄾ": "fx", 
+    "ㄿ": "fv", "ㅀ": "fg", "ㅄ": "qt"
+}
+
+def convert_korean_to_qwerty(text: str) -> str:
+    result = []
+    for char in text:
+        code = ord(char)
+        if 0xAC00 <= code <= 0xD7A3:
+            idx = code - 0xAC00
+            cho_idx = idx // (21 * 28)
+            jung_idx = (idx % (21 * 28)) // 28
+            jong_idx = idx % 28
+            
+            result.append(CHO_MAP[cho_idx])
+            result.append(JUNG_MAP[jung_idx])
+            if JONG_MAP[jong_idx]:
+                result.append(JONG_MAP[jong_idx])
+        elif char in SINGLE_JAMO_MAP:
+            result.append(SINGLE_JAMO_MAP[char])
+        else:
+            result.append(char)
+    return "".join(result)
+
+
 def prepare_dataset(
     vocab_size: int, context_size: int = 6
 ) -> tuple[np.ndarray, np.ndarray]:
@@ -181,9 +225,12 @@ def prepare_dataset(
         if not content:
             continue
 
+        # Convert Korean content dynamically into QWERTY string
+        qwerty_content = convert_korean_to_qwerty(content)
+
         # Convert chars to IDs, substituting missing chars with space (if available)
         valid_ids = []
-        for c in content:
+        for c in qwerty_content:
             cid = hardcore_vocab_helper.get_char_id(c)
             if cid != -1:
                 valid_ids.append(cid)

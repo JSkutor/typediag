@@ -1,20 +1,14 @@
 import { StoreSlice, InputSlice } from "./types";
 import targets from "@/data/targets.json";
+import { generateHardcorePracticeText } from "@/lib/practice/hardcoreModel";
 import { getQwertyChar, assembleHangulWithPunctuation } from "@/utils/keyboardMap";
 import { evaluateKeystroke } from "@/utils/typingEvaluator";
 import { getKeyToken } from "./utils";
 import { runMvsa, getCharQwertyIndices } from "@/utils/mvsa";
 
-// Hardcore 모드를 위한 취약 키 무작위 조합 생성 뼈대
+// Hardcore 모드를 위한 취약 키 무작위 조합 생성
 const generateHardcoreText = (): string => {
-  const samples = [
-    "나채저주히 자옆 나픈 자로뱌 냐캐",
-    "냑채저주히 쟈옆 나픈 자로뱌 냐캐",
-    "지연 속도 측정용 난해 텍스트 구조",
-    "키보드 지연 병목 현상 분석용 문자열",
-  ];
-  const idx = Math.floor(Math.random() * samples.length);
-  return samples[idx];
+  return generateHardcorePracticeText(30);
 };
 
 // Subject 모드를 위한 주제별 Mock 텍스트 목록 및 로더
