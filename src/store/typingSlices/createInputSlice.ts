@@ -8,7 +8,9 @@ import { runMvsa, getCharQwertyIndices } from "@/utils/mvsa";
 
 // Hardcore 모드를 위한 취약 키 무작위 조합 생성
 const generateHardcoreText = (): string => {
-  return generateHardcorePracticeText(30);
+  // Base length 70 with random offset +/- 10 -> range [60, 80]
+  const randomLength = 70 + Math.floor(Math.random() * 21) - 10;
+  return generateHardcorePracticeText(randomLength);
 };
 
 // Subject 모드를 위한 주제별 Mock 텍스트 목록 및 로더
@@ -84,6 +86,22 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
         pressedKeys: {},
       });
     }
+  },
+
+  setTargetLanguage: (language) => {
+    const isKorean = language === "ko";
+    set((state) => {
+      const nextTyped = isKorean
+        ? assembleHangulWithPunctuation(state.qwertyBuffer)
+        : state.qwertyBuffer;
+      const nextTargetText = state.mode === "plain" ? nextTyped : state.targetText;
+      return {
+        targetLanguage: language,
+        targetText: nextTargetText,
+        typedText: nextTyped,
+        alignments: runMvsa(nextTargetText, state.qwertyBuffer, isKorean, state.mvsaCache),
+      };
+    });
   },
 
   setTarget: (target) => {

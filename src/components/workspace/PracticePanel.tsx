@@ -4,7 +4,14 @@ import React from "react";
 import { useTypingStore, TypingMode } from "@/store/useTypingStore";
 
 export const PracticePanel: React.FC = () => {
-  const { qwertyBuffer, alignments: diffResult, mode, setMode } = useTypingStore();
+  const {
+    qwertyBuffer,
+    alignments: diffResult,
+    mode,
+    setMode,
+    targetLanguage,
+    setTargetLanguage,
+  } = useTypingStore();
 
   const lastInputIndex = React.useMemo(() => {
     return diffResult.findLastIndex((d) => d.inputIndex !== undefined);
@@ -77,6 +84,43 @@ export const PracticePanel: React.FC = () => {
             </option>
           </select>
         </div>
+
+        {mode === "plain" && (
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "16px" }}>
+            <span
+              style={{
+                fontSize: "0.875rem",
+                color: "var(--color-text-muted, #888)",
+                fontWeight: 500,
+              }}
+            >
+              Language:
+            </span>
+            <select
+              value={targetLanguage}
+              onChange={(e) => setTargetLanguage(e.target.value)}
+              style={{
+                fontSize: "0.875rem",
+                padding: "4px 8px",
+                borderRadius: "4px",
+                backgroundColor: "rgba(255, 255, 255, 0.05)",
+                border: "1px solid rgba(255, 255, 255, 0.15)",
+                color: "var(--color-text-primary, #fff)",
+                cursor: "pointer",
+                outline: "none",
+                fontFamily: "inherit",
+                width: "100px",
+              }}
+            >
+              <option value="ko" style={{ backgroundColor: "#1e1e1e" }}>
+                한국어
+              </option>
+              <option value="en" style={{ backgroundColor: "#1e1e1e" }}>
+                English
+              </option>
+            </select>
+          </div>
+        )}
       </div>
 
       <div
@@ -96,7 +140,7 @@ export const PracticePanel: React.FC = () => {
               marginRight: "8px",
             }}
           >
-            여기에 자유롭게 입력하세요...
+            {targetLanguage === "ko" ? "여기에 자유롭게 입력하세요..." : "Type freely here..."}
           </span>
         )}
         {diffResult.length === 0 && <span className="typing-cursor left" />}

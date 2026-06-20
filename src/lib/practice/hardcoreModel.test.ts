@@ -94,7 +94,7 @@ describe("hardcoreModel sampleNextId", () => {
 describe("hardcoreModel generateHardcorePracticeText", () => {
   it("should not end with an incomplete Hangul consonant or vowel", () => {
     for (let i = 0; i < 50; i++) {
-      const text = generateHardcorePracticeText(30);
+      const text = generateHardcorePracticeText(70);
       expect(text.length).toBeGreaterThan(0);
       const lastChar = text[text.length - 1];
       // 마지막 글자가 단독 자음/모음이 아니어야 함

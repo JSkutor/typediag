@@ -314,7 +314,7 @@ export function applyStaticBiases(logits: number[]): number[] {
  * Sequence is generated using the MLP model and blended with weak keys,
  * then assembled into Korean syllables.
  */
-export function generateHardcorePracticeText(length: number = 30): string {
+export function generateHardcorePracticeText(length: number = 70): string {
   const spaceId = vocab.indexOf(" ") !== -1 ? vocab.indexOf(" ") : 0;
 
   // Initialize context with 6 spaces

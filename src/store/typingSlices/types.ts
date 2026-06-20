@@ -16,6 +16,7 @@ export interface InputSlice {
   alignments: AlignResult[];
   mode: TypingMode;
   setMode: (mode: TypingMode) => void;
+  setTargetLanguage: (lang: string) => void;
   setTarget: (
     target: string | { id: string; content: string; language: string; tags?: string[] },
   ) => void;

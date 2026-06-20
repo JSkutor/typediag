@@ -10,6 +10,13 @@ export function useDiagnosticsTransition() {
   const setAnalysisData = useWorkspaceStore((state) => state.setAnalysisData);
 
   const startDiagnosticsTransition = useCallback(async () => {
+    const typingStore = useTypingStore.getState();
+
+    // If the current page is completed (done) but not yet saved, save it now
+    if (typingStore.status === "done") {
+      await typingStore.saveCurrentPage();
+    }
+
     const currentRunId = useTypingStore.getState().currentRunId;
     let eventsToAnalyze: KeyEvent[] = [];
 
