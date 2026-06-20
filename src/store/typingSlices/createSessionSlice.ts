@@ -20,7 +20,16 @@ export const createSessionSlice: StoreSlice<SessionSlice> = (set, get) => ({
   },
 
   saveCurrentPage: async () => {
-    const { status, targetText, targetId, targetLanguage, events, startedAt, finishedAt, typedText } = get();
+    const {
+      status,
+      targetText,
+      targetId,
+      targetLanguage,
+      events,
+      startedAt,
+      finishedAt,
+      typedText,
+    } = get();
     if (status !== "done" || !startedAt || !finishedAt) return;
 
     // Prevent duplicate saves by synchronously resetting status

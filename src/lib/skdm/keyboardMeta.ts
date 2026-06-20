@@ -97,4 +97,3 @@ export function needsShift(char: string | null | undefined): boolean {
   if (specialShift.test(char)) return true;
   return false;
 }
-

@@ -4,10 +4,7 @@ import React, { useState } from "react";
 import { KeyEvent } from "@/lib/skdm";
 import { useCylindricalDiagnostics } from "@/hooks/useCylindricalDiagnostics";
 import { KEYBOARD_META } from "@/lib/skdm/keyboardMeta";
-import {
-  type PiecewiseFitSuccess,
-  type PiecewiseFitFailure,
-} from "@/utils/piecewiseRegression";
+import { type PiecewiseFitSuccess, type PiecewiseFitFailure } from "@/utils/piecewiseRegression";
 import { PIECEWISE_FAILURE_LABEL } from "@/lib/dev/piecewiseDev";
 
 interface CylindricalDiagnosticsPanelProps {
@@ -27,7 +24,13 @@ function isSuccess(
   return "result" in outcome;
 }
 
-function scaleLinear(value: number, domainMin: number, domainMax: number, rangeMin: number, rangeMax: number) {
+function scaleLinear(
+  value: number,
+  domainMin: number,
+  domainMax: number,
+  rangeMin: number,
+  rangeMax: number,
+) {
   if (domainMax === domainMin) return (rangeMin + rangeMax) / 2;
   const t = (value - domainMin) / (domainMax - domainMin);
   return rangeMin + t * (rangeMax - rangeMin);
@@ -40,7 +43,10 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const { toKeyOptions, outcome, chartData, diagnostics } = useCylindricalDiagnostics(events, selectedTo);
+  const { toKeyOptions, outcome, chartData, diagnostics } = useCylindricalDiagnostics(
+    events,
+    selectedTo,
+  );
 
   // Render minimal SVG chart if outcome is successful
   const renderChart = () => {
@@ -74,10 +80,14 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
     const plotHeight = HEIGHT - PAD.top - PAD.bottom;
 
     const toSvgX = (x: number) => scaleLinear(x, 0, xMax, PAD.left, PAD.left + plotWidth);
-    const toSvgY = (y: number) => scaleLinear(y, domainYMin, domainYMax, PAD.top + plotHeight, PAD.top);
+    const toSvgY = (y: number) =>
+      scaleLinear(y, domainYMin, domainYMax, PAD.top + plotHeight, PAD.top);
 
     const regressionPath = regressionSamples
-      .map((point, index) => `${index === 0 ? "M" : "L"} ${toSvgX(point.x).toFixed(1)} ${toSvgY(point.y).toFixed(1)}`)
+      .map(
+        (point, index) =>
+          `${index === 0 ? "M" : "L"} ${toSvgX(point.x).toFixed(1)} ${toSvgY(point.y).toFixed(1)}`,
+      )
       .join(" ");
 
     return (
@@ -208,7 +218,8 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
                       {diagnostics.errorInducement.rate.toFixed(1)}%
                     </span>
                     <span className="cyl-diag__stat-desc">
-                      ({diagnostics.errorInducement.count}/{diagnostics.errorInducement.totalErrorStartsCount} 오타 시작)
+                      ({diagnostics.errorInducement.count}/
+                      {diagnostics.errorInducement.totalErrorStartsCount} 오타 시작)
                     </span>
                   </div>
                   <div className="cyl-diag__stat-item">
@@ -217,7 +228,8 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
                       {diagnostics.lateKeystroke.rate.toFixed(1)}%
                     </span>
                     <span className="cyl-diag__stat-desc">
-                      ({diagnostics.lateKeystroke.count}/{diagnostics.lateKeystroke.totalErrorsCount} 오타)
+                      ({diagnostics.lateKeystroke.count}/
+                      {diagnostics.lateKeystroke.totalErrorsCount} 오타)
                     </span>
                   </div>
                 </div>
@@ -234,18 +246,32 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
                     {diagnostics.commonPair !== null && (
                       <div className="cyl-diag__optional-card">
                         <span className="cyl-diag__stat-lbl">자주 치는 순서쌍 순위</span>
-                        <div className="cyl-diag__optional-item" style={{ fontSize: "0.82rem", marginTop: "4px" }}>
-                          <span className="cyl-diag__rank-num" style={{ fontSize: "0.85rem", color: "var(--accent)" }}>
+                        <div
+                          className="cyl-diag__optional-item"
+                          style={{ fontSize: "0.82rem", marginTop: "4px" }}
+                        >
+                          <span
+                            className="cyl-diag__rank-num"
+                            style={{ fontSize: "0.85rem", color: "var(--accent)" }}
+                          >
                             #{diagnostics.commonPair.rank}
                           </span>
                           <span className="cyl-diag__pair-text" style={{ fontWeight: 600 }}>
-                            {formatKey(diagnostics.commonPair.from)} → {formatKey(diagnostics.commonPair.to)}
+                            {formatKey(diagnostics.commonPair.from)} →{" "}
+                            {formatKey(diagnostics.commonPair.to)}
                           </span>
                           <span className="cyl-diag__count" style={{ fontSize: "0.65rem" }}>
                             ({diagnostics.commonPair.count}회)
                           </span>
                         </div>
-                        <p style={{ fontSize: "0.62rem", color: "var(--text-muted)", margin: "4px 0 0 0", lineHeight: 1.3 }}>
+                        <p
+                          style={{
+                            fontSize: "0.62rem",
+                            color: "var(--text-muted)",
+                            margin: "4px 0 0 0",
+                            lineHeight: 1.3,
+                          }}
+                        >
                           현재 선택된 키가 전체 상위 5개 빈번한 입력 쌍에 포함되어 있습니다.
                         </p>
                       </div>
@@ -255,18 +281,34 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
                     {diagnostics.unconsciousKey !== null && (
                       <div className="cyl-diag__optional-card">
                         <span className="cyl-diag__stat-lbl">무의식적인 키 오타 순위</span>
-                        <div className="cyl-diag__optional-item" style={{ fontSize: "0.82rem", marginTop: "4px" }}>
-                          <span className="cyl-diag__rank-num" style={{ fontSize: "0.85rem", color: "var(--warning)" }}>
+                        <div
+                          className="cyl-diag__optional-item"
+                          style={{ fontSize: "0.82rem", marginTop: "4px" }}
+                        >
+                          <span
+                            className="cyl-diag__rank-num"
+                            style={{ fontSize: "0.85rem", color: "var(--warning)" }}
+                          >
                             #{diagnostics.unconsciousKey.rank}
                           </span>
                           <span className="cyl-diag__key-text">
                             {formatKey(diagnostics.unconsciousKey.key)}
                           </span>
-                          <span className="cyl-diag__error-rate text-warning" style={{ fontSize: "0.78rem" }}>
+                          <span
+                            className="cyl-diag__error-rate text-warning"
+                            style={{ fontSize: "0.78rem" }}
+                          >
                             {diagnostics.unconsciousKey.errorRate.toFixed(1)}%
                           </span>
                         </div>
-                        <p style={{ fontSize: "0.62rem", color: "var(--text-muted)", margin: "4px 0 0 0", lineHeight: 1.3 }}>
+                        <p
+                          style={{
+                            fontSize: "0.62rem",
+                            color: "var(--text-muted)",
+                            margin: "4px 0 0 0",
+                            lineHeight: 1.3,
+                          }}
+                        >
                           현재 선택된 키가 오타율이 높은 전체 상위 3개 키에 속합니다.
                         </p>
                       </div>
@@ -308,8 +350,12 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
                     <div className="cyl-diag__detailed-card">
                       <span className="cyl-diag__stat-lbl">반응 속도 & CPM</span>
                       <div className="cyl-diag__median-box">
-                        <span className="cyl-diag__median-val">{diagnostics.speedMetrics.medianLatencyMs.toFixed(1)} ms</span>
-                        <span className="cyl-diag__cpm-val">{diagnostics.speedMetrics.equivalentCpm} CPM</span>
+                        <span className="cyl-diag__median-val">
+                          {diagnostics.speedMetrics.medianLatencyMs.toFixed(1)} ms
+                        </span>
+                        <span className="cyl-diag__cpm-val">
+                          {diagnostics.speedMetrics.equivalentCpm} CPM
+                        </span>
                       </div>
                       <p className="cyl-diag__card-desc">
                         해당 키 정타 입력의 대기 시간(latency) 중앙값 및 1분당 타수 환산 값입니다.
@@ -321,9 +367,11 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
                       <div className="cyl-diag__relative-box">
                         {diagnostics.relativeSpeed.handMedianMs > 0 ? (
                           <>
-                            <span className={`cyl-diag__relative-val ${diagnostics.relativeSpeed.speedDiffMs <= 0 ? "text-success" : "text-warning"}`}>
-                              {diagnostics.relativeSpeed.speedDiffMs <= 0 
-                                ? `${Math.abs(diagnostics.relativeSpeed.speedDiffMs).toFixed(1)} ms 빠름` 
+                            <span
+                              className={`cyl-diag__relative-val ${diagnostics.relativeSpeed.speedDiffMs <= 0 ? "text-success" : "text-warning"}`}
+                            >
+                              {diagnostics.relativeSpeed.speedDiffMs <= 0
+                                ? `${Math.abs(diagnostics.relativeSpeed.speedDiffMs).toFixed(1)} ms 빠름`
                                 : `${diagnostics.relativeSpeed.speedDiffMs.toFixed(1)} ms 느림`}
                             </span>
                             <span className="cyl-diag__relative-sub">
@@ -331,7 +379,12 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
                             </span>
                           </>
                         ) : (
-                          <span className="cyl-diag__relative-val text-muted" style={{ fontSize: "0.82rem" }}>비교 대상 없음</span>
+                          <span
+                            className="cyl-diag__relative-val text-muted"
+                            style={{ fontSize: "0.82rem" }}
+                          >
+                            비교 대상 없음
+                          </span>
                         )}
                       </div>
                       <p className="cyl-diag__card-desc">
@@ -348,32 +401,45 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
                         <span className="cyl-diag__correlation-val">
                           r = {diagnostics.holdCorrelation.pearsonR.toFixed(3)}
                         </span>
-                        <span className={`cyl-diag__correlation-sig ${diagnostics.holdCorrelation.isSignificant ? "text-warning" : "text-muted"}`}>
-                          {diagnostics.holdCorrelation.isSignificant ? "상관성 유의미" : "상관성 무관"}
+                        <span
+                          className={`cyl-diag__correlation-sig ${diagnostics.holdCorrelation.isSignificant ? "text-warning" : "text-muted"}`}
+                        >
+                          {diagnostics.holdCorrelation.isSignificant
+                            ? "상관성 유의미"
+                            : "상관성 무관"}
                         </span>
                       </div>
                       <div className="cyl-diag__correlation-p">
-                        p-value: {diagnostics.holdCorrelation.pValue < 0.001 ? "< 0.001" : diagnostics.holdCorrelation.pValue.toFixed(3)}
-                        {diagnostics.holdCorrelation.sampleCount > 0 && ` (n=${diagnostics.holdCorrelation.sampleCount})`}
+                        p-value:{" "}
+                        {diagnostics.holdCorrelation.pValue < 0.001
+                          ? "< 0.001"
+                          : diagnostics.holdCorrelation.pValue.toFixed(3)}
+                        {diagnostics.holdCorrelation.sampleCount > 0 &&
+                          ` (n=${diagnostics.holdCorrelation.sampleCount})`}
                       </div>
                       <p className="cyl-diag__card-desc">
-                        키를 누르는 지속 시간(Hold Duration)과 지연 반응속도 간의 피어슨 상관계수입니다.
-                        (r &gt; 0.4, p &lt; 0.05 일 때 유의미한 상관성으로 판단)
+                        키를 누르는 지속 시간(Hold Duration)과 지연 반응속도 간의 피어슨
+                        상관계수입니다. (r &gt; 0.4, p &lt; 0.05 일 때 유의미한 상관성으로 판단)
                       </p>
                     </div>
 
                     <div className="cyl-diag__detailed-card">
                       <span className="cyl-diag__stat-lbl">머뭇거림 비율 (IQR)</span>
                       <div className="cyl-diag__hesitation-box">
-                        <span className={`cyl-diag__hesitation-val ${diagnostics.hesitation.hasTendency ? "text-warning" : "text-success"}`}>
+                        <span
+                          className={`cyl-diag__hesitation-val ${diagnostics.hesitation.hasTendency ? "text-warning" : "text-success"}`}
+                        >
                           {diagnostics.hesitation.ratio.toFixed(1)}%
                         </span>
-                        <span className={`cyl-diag__hesitation-badge ${diagnostics.hesitation.hasTendency ? "badge-warning" : "badge-success"}`}>
+                        <span
+                          className={`cyl-diag__hesitation-badge ${diagnostics.hesitation.hasTendency ? "badge-warning" : "badge-success"}`}
+                        >
                           {diagnostics.hesitation.hasTendency ? "머뭇거림 의심" : "정상"}
                         </span>
                       </div>
                       <div className="cyl-diag__hesitation-desc">
-                        기준선: {diagnostics.hesitation.thresholdMs.toFixed(1)} ms 초과 (Q3 + 1.5 IQR)
+                        기준선: {diagnostics.hesitation.thresholdMs.toFixed(1)} ms 초과 (Q3 + 1.5
+                        IQR)
                       </div>
                       <p className="cyl-diag__card-desc">
                         사분위수 범위(IQR) 기반 이상치 임계선보다 느리게 입력된 타건 비율입니다.
@@ -389,28 +455,54 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
                       {(() => {
                         const targetMeta = KEYBOARD_META[selectedTo.toLowerCase()];
                         const isLeft = targetMeta ? targetMeta.hand === "L" : true;
-                        
+
                         const items = [
-                          { label: isLeft ? "오른손 전체" : "왼손 전체", value: diagnostics.fingerTransitions.ratios.oppositeHand, color: "var(--accent)" },
-                          { label: isLeft ? "왼 소지" : "오른 소지", value: diagnostics.fingerTransitions.ratios.sameHandPinky, color: "#a855f7" },
-                          { label: isLeft ? "왼 약지" : "오른 약지", value: diagnostics.fingerTransitions.ratios.sameHandRing, color: "#3b82f6" },
-                          { label: isLeft ? "왼 중지" : "오른 중지", value: diagnostics.fingerTransitions.ratios.sameHandMiddle, color: "#10b981" },
-                          { label: isLeft ? "왼 검지" : "오른 검지", value: diagnostics.fingerTransitions.ratios.sameHandIndex, color: "#ec4899" },
-                          { label: "기타 (스페이스 등)", value: diagnostics.fingerTransitions.ratios.other, color: "var(--text-muted)" },
+                          {
+                            label: isLeft ? "오른손 전체" : "왼손 전체",
+                            value: diagnostics.fingerTransitions.ratios.oppositeHand,
+                            color: "var(--accent)",
+                          },
+                          {
+                            label: isLeft ? "왼 소지" : "오른 소지",
+                            value: diagnostics.fingerTransitions.ratios.sameHandPinky,
+                            color: "#a855f7",
+                          },
+                          {
+                            label: isLeft ? "왼 약지" : "오른 약지",
+                            value: diagnostics.fingerTransitions.ratios.sameHandRing,
+                            color: "#3b82f6",
+                          },
+                          {
+                            label: isLeft ? "왼 중지" : "오른 중지",
+                            value: diagnostics.fingerTransitions.ratios.sameHandMiddle,
+                            color: "#10b981",
+                          },
+                          {
+                            label: isLeft ? "왼 검지" : "오른 검지",
+                            value: diagnostics.fingerTransitions.ratios.sameHandIndex,
+                            color: "#ec4899",
+                          },
+                          {
+                            label: "기타 (스페이스 등)",
+                            value: diagnostics.fingerTransitions.ratios.other,
+                            color: "var(--text-muted)",
+                          },
                         ];
-                        
+
                         return (
                           <div className="cyl-diag__transition-list">
                             {items.map((item) => (
                               <div key={item.label} className="cyl-diag__transition-item">
                                 <div className="cyl-diag__transition-meta">
                                   <span className="cyl-diag__transition-lbl">{item.label}</span>
-                                  <span className="cyl-diag__transition-val">{item.value.toFixed(1)}%</span>
+                                  <span className="cyl-diag__transition-val">
+                                    {item.value.toFixed(1)}%
+                                  </span>
                                 </div>
                                 <div className="cyl-diag__transition-bar-bg">
-                                  <div 
-                                    className="cyl-diag__transition-bar-fill" 
-                                    style={{ width: `${item.value}%`, backgroundColor: item.color }} 
+                                  <div
+                                    className="cyl-diag__transition-bar-fill"
+                                    style={{ width: `${item.value}%`, backgroundColor: item.color }}
                                   />
                                 </div>
                               </div>
@@ -420,8 +512,8 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
                       })()}
                     </div>
                     <p className="cyl-diag__card-desc" style={{ marginTop: "4px" }}>
-                      현재 선택된 키 바로 직전에 입력한 키의 손가락 위치 분포입니다.
-                      어떤 손가락 연결 패턴에서 지연 병목이 생기는지 진단할 수 있습니다.
+                      현재 선택된 키 바로 직전에 입력한 키의 손가락 위치 분포입니다. 어떤 손가락
+                      연결 패턴에서 지연 병목이 생기는지 진단할 수 있습니다.
                     </p>
                   </div>
                 </div>
@@ -435,4 +527,3 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
     </div>
   );
 };
-

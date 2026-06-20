@@ -70,9 +70,7 @@ describe("useWorkspaceKeybindings", () => {
 
     handlePhysicalKeyPress.mockClear();
 
-    window.dispatchEvent(
-      new KeyboardEvent("keydown", { code: "KeyA", key: "a", repeat: true }),
-    );
+    window.dispatchEvent(new KeyboardEvent("keydown", { code: "KeyA", key: "a", repeat: true }));
     expect(handlePhysicalKeyPress).not.toHaveBeenCalled();
   });
 

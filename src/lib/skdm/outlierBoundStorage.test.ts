@@ -1,9 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import {
-  persistSkdmFinalUpperBound,
-  readSkdmFinalUpperBound,
-} from "./outlierBoundStorage";
+import { persistSkdmFinalUpperBound, readSkdmFinalUpperBound } from "./outlierBoundStorage";
 
 describe("outlierBoundStorage", () => {
   beforeEach(() => {

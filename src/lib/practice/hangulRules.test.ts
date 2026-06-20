@@ -36,7 +36,7 @@ describe("isValidHangulSequence", () => {
     // Invalid double consonant key inputs (ㄲ, ㅆ)
     expect(isValidHangulSequence("ㅏ", "ㄱ", "ㄱ")).toBe(false);
     expect(isValidHangulSequence("ㅏ", "ㅅ", "ㅅ")).toBe(false);
- 
+
     // Invalid C -> C combination after V (e.g. ㅏ -> ㅁ -> ㄷ)
     expect(isValidHangulSequence("ㅏ", "ㅁ", "ㄷ")).toBe(false);
   });
@@ -48,7 +48,7 @@ describe("isValidHangulSequence", () => {
     expect(isValidHangulSequence("ㅗ", "ㅏ", "ㄴ")).toBe(true);
     expect(isValidHangulSequence("ㅗ", "ㅏ", "ㄹ")).toBe(true);
     expect(isValidHangulSequence("ㅗ", "ㅏ", "ㅂ")).toBe(true);
- 
+
     // Disallowed first keys (e.g. 'ㅁ', 'ㄷ', 'ㅅ')
     expect(isValidHangulSequence("ㅗ", "ㅏ", "ㅁ")).toBe(false);
     expect(isValidHangulSequence("ㅗ", "ㅏ", "ㄷ")).toBe(false);
@@ -99,6 +99,14 @@ describe("isValidHangulSequence", () => {
     expect(isValidHangulSequence("ㅅ", "ㅅ", ".")).toBe(false);
     expect(isValidHangulSequence("ㅁ", "ㄷ", " ")).toBe(false);
     expect(isValidHangulSequence("ㅈ", "ㅁ", ".")).toBe(false);
+
+    // E. 모음 + 받침불가자음 + 문장부호: 불가능 (예: ㅔ + ㅃ + 공백 -> '에ㅃ ')
+    expect(isValidHangulSequence("ㅔ", "ㅃ", " ")).toBe(false);
+    expect(isValidHangulSequence("ㅏ", "ㅉ", ".")).toBe(false);
+    expect(isValidHangulSequence("ㅗ", "ㄸ", " ")).toBe(false);
+    // 받침 가능 쌍자음은 허용됨
+    expect(isValidHangulSequence("ㅏ", "ㄲ", " ")).toBe(true);
+    expect(isValidHangulSequence("ㅏ", "ㅆ", ".")).toBe(true);
   });
 
   // 7. QWEROP 중복 방지 규칙: 이전 2글자 내에 QWEROP 키 중 하나가 포함되어 있으면 또 나오는 것 금지

@@ -38,7 +38,13 @@ export const PracticePanel: React.FC = () => {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <span style={{ fontSize: "0.875rem", color: "var(--color-text-muted, #888)", fontWeight: 500 }}>
+          <span
+            style={{
+              fontSize: "0.875rem",
+              color: "var(--color-text-muted, #888)",
+              fontWeight: 500,
+            }}
+          >
             Mode:
           </span>
           <select
@@ -57,10 +63,18 @@ export const PracticePanel: React.FC = () => {
               width: "150px",
             }}
           >
-            <option value="default" style={{ backgroundColor: "#1e1e1e" }}>Default</option>
-            <option value="subject" style={{ backgroundColor: "#1e1e1e" }}>Subject (LLM)</option>
-            <option value="hardcore" style={{ backgroundColor: "#1e1e1e" }}>Hardcore</option>
-            <option value="plain" style={{ backgroundColor: "#1e1e1e" }}>Plain Notepad</option>
+            <option value="default" style={{ backgroundColor: "#1e1e1e" }}>
+              Default
+            </option>
+            <option value="subject" style={{ backgroundColor: "#1e1e1e" }}>
+              Subject (LLM)
+            </option>
+            <option value="hardcore" style={{ backgroundColor: "#1e1e1e" }}>
+              Hardcore
+            </option>
+            <option value="plain" style={{ backgroundColor: "#1e1e1e" }}>
+              Plain Notepad
+            </option>
           </select>
         </div>
       </div>

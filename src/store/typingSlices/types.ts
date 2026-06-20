@@ -16,7 +16,9 @@ export interface InputSlice {
   alignments: AlignResult[];
   mode: TypingMode;
   setMode: (mode: TypingMode) => void;
-  setTarget: (target: string | { id: string; content: string; language: string; tags?: string[] }) => void;
+  setTarget: (
+    target: string | { id: string; content: string; language: string; tags?: string[] },
+  ) => void;
   nextTarget: () => void;
   setTypedText: (value: string) => void;
   handlePhysicalKeyPress: (code: string, shiftKey: boolean, timestamp: number) => void;

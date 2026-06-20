@@ -12,7 +12,13 @@ const WIDTH = 720;
 const HEIGHT = 360;
 const PAD = { top: 24, right: 24, bottom: 44, left: 56 };
 
-function scaleLinear(value: number, domainMin: number, domainMax: number, rangeMin: number, rangeMax: number) {
+function scaleLinear(
+  value: number,
+  domainMin: number,
+  domainMax: number,
+  rangeMin: number,
+  rangeMax: number,
+) {
   if (domainMax === domainMin) return (rangeMin + rangeMax) / 2;
   const t = (value - domainMin) / (domainMax - domainMin);
   return rangeMin + t * (rangeMax - rangeMin);
@@ -45,7 +51,10 @@ export function PiecewiseRegressionChart({
     scaleLinear(y, domainYMin, domainYMax, PAD.top + plotHeight, PAD.top);
 
   const regressionPath = regressionSamples
-    .map((point, index) => `${index === 0 ? "M" : "L"} ${toSvgX(point.x).toFixed(2)} ${toSvgY(point.y).toFixed(2)}`)
+    .map(
+      (point, index) =>
+        `${index === 0 ? "M" : "L"} ${toSvgX(point.x).toFixed(2)} ${toSvgY(point.y).toFixed(2)}`,
+    )
     .join(" ");
 
   const yTicks = 5;

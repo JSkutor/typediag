@@ -1,7 +1,7 @@
 import vocab from "./hardcore_vocab.json";
 import weights from "./hardcore_weights.json";
 import { assembleHangulWithPunctuation } from "@/utils/keyboardMap";
-import { isValidHangulSequence, PUNCTUATION_AND_SPACE } from "./hangulRules";
+import { isValidHangulSequence, PUNCTUATION_AND_SPACE, toJamo, isVowel } from "./hangulRules";
 
 const KOREAN_TO_QWERTY_SHIFT: Record<string, string> = {
   ㅃ: "Q",
@@ -115,7 +115,11 @@ export function invertLogits(logits: number[]): number[] {
  * Applies rule-based masking on logits to prevent invalid combinations.
  * (e.g. no double spaces, invalid shift sequences, etc.)
  */
-export function applyMask(generatedChars: string[], logits: number[]): number[] {
+export function applyMask(
+  generatedChars: string[],
+  logits: number[],
+  isLastChar: boolean = false,
+): number[] {
   const masked = [...logits];
   const spaceId = vocab.indexOf(" ");
 
@@ -158,6 +162,24 @@ export function applyMask(generatedChars: string[], logits: number[]): number[] 
       const nextChar = vocab[i];
       if (nextChar && PUNCTUATION_AND_SPACE.includes(nextChar)) {
         masked[i] = -Infinity;
+      }
+    }
+  }
+
+  // Rule 4: 문장의 마지막 글자인 경우, 미완성 자모로 끝나지 않도록 제어
+  // 이전 글자가 모음인 경우, 받침 불가 자음(ㅃ, ㅉ, ㄸ)이 오면 모음 결합 없이 끝나므로 차단
+  if (isLastChar) {
+    const prevCharJamo = toJamo(prevChar);
+    if (isVowel(prevCharJamo)) {
+      const noJongseongJamo = ["ㅃ", "ㅉ", "ㄸ"];
+      for (let i = 0; i < logits.length; i++) {
+        const nextChar = vocab[i];
+        if (nextChar) {
+          const nextJamo = toJamo(nextChar);
+          if (noJongseongJamo.includes(nextJamo)) {
+            masked[i] = -Infinity;
+          }
+        }
       }
     }
   }
@@ -256,21 +278,32 @@ export function applyStaticBiases(logits: number[]): number[] {
     }
   }
 
-  // 2. 특정 대문자(O, P) 및 문장 부호에 더 강력한 페널티 부여
-  const strongPenaltyChars = ["O", "P", ",", ".", "?", "!"];
-  const strongPenaltyValue = -15.0; // 더 강력하게 페널티 적용
+  // 2. 특정 대문자(O, P)에 페널티 부여 (분리)
+  const opPenaltyChars = ["O", "P"];
+  const opPenaltyValue = -15.0;
 
-  for (const char of strongPenaltyChars) {
+  for (const char of opPenaltyChars) {
     const id = vocab.indexOf(char);
     if (id !== -1) {
-      biased[id] += strongPenaltyValue;
+      biased[id] += opPenaltyValue;
+    }
+  }
+
+  // 3. 문장 부호(,, ., ?, !)에 더 강력한 페널티 부여 (분리)
+  const punctuationPenaltyChars = [",", ".", "?", "!"];
+  const punctuationPenaltyValue = -18.0;
+
+  for (const char of punctuationPenaltyChars) {
+    const id = vocab.indexOf(char);
+    if (id !== -1) {
+      biased[id] += punctuationPenaltyValue;
     }
   }
 
   // 2. 띄어쓰기(Space) 부스트 대폭 강화
   const spaceId = vocab.indexOf(" ");
   if (spaceId !== -1) {
-    biased[spaceId] += 10.0; // 스페이스 부스트 강화
+    biased[spaceId] += 13.0; // 스페이스 부스트 강화
   }
 
   return biased;
@@ -305,7 +338,7 @@ export function generateHardcorePracticeText(length: number = 30): string {
     logits = blendLogits(logits, weakKeys, 5.0);
 
     // 5. Rule-based Masking
-    logits = applyMask(generatedChars, logits);
+    logits = applyMask(generatedChars, logits, step === length - 1);
 
     // 6. Sample next character ID
     const nextId = sampleNextId(logits, 2, 40, 0.9); // increased temperature, added Top-K/Top-P
@@ -319,5 +352,12 @@ export function generateHardcorePracticeText(length: number = 30): string {
   }
 
   const generatedQwerty = generatedChars.join("");
-  return assembleHangulWithPunctuation(generatedQwerty);
+  let result = assembleHangulWithPunctuation(generatedQwerty);
+
+  // 마지막 글자가 완성되지 않은 단독 자음/모음인 경우 제거 (완성된 음절로 끝나도록 함)
+  while (result.length > 0 && /[ㄱ-ㅎㅏ-ㅣ]/.test(result[result.length - 1])) {
+    result = result.slice(0, -1);
+  }
+
+  return result;
 }
