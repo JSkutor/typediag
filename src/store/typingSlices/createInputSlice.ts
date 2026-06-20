@@ -42,6 +42,9 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
   mode: "default",
 
   setMode: (mode) => {
+    if (get().status === "done") {
+      get().saveCurrentPage();
+    }
     set({ mode });
     if (mode === "default") {
       get().setTarget(targets[0]);
@@ -84,6 +87,9 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
   },
 
   setTarget: (target) => {
+    if (get().status === "done") {
+      get().saveCurrentPage();
+    }
     let text = "";
     let language = "en";
     let id = "";
@@ -126,6 +132,9 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
   },
 
   nextTarget: () => {
+    if (get().status === "done") {
+      get().saveCurrentPage();
+    }
     const { mode } = get();
     if (mode === "default") {
       const currentIndex = targets.findIndex((t) => t.content === get().targetText);
@@ -189,10 +198,14 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
     }
 
     if (state.status === "done") {
-      if (code === "Space" || code === "Enter") {
-        get().nextTarget();
+      if (code === "Backspace") {
+        set({ status: "running", finishedAt: null });
+      } else {
+        if (code === "Space" || code === "Enter") {
+          get().nextTarget();
+        }
+        return;
       }
-      return;
     }
 
     if (state.pressedKeys[code] === undefined) {
@@ -311,6 +324,13 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
 
       if (shouldFinish && isKorean) {
         if (lastOp && lastOp.op === "PARTIAL") {
+          shouldFinish = false;
+        }
+      }
+
+      if (shouldFinish && state.mode === "hardcore") {
+        const hasInsert = alignments.some((d) => d.op === "INSERT");
+        if (hasInsert) {
           shouldFinish = false;
         }
       }

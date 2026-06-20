@@ -12,36 +12,51 @@ export const createSessionSlice: StoreSlice<SessionSlice> = (set, get) => ({
   runInitPromise: null,
 
   finish: (timestamp) => {
-    const { status, targetText, targetId, targetLanguage, events, startedAt, typedText } = get();
+    const { status } = get();
     if (status === "done") return;
 
     const finishedAt = timestamp ?? Date.now();
     set({ status: "done", finishedAt });
+  },
 
-    (async () => {
-      const { runInitPromise } = get();
-      if (runInitPromise) {
-        await runInitPromise;
-      }
+  saveCurrentPage: async () => {
+    const { status, targetText, targetId, targetLanguage, events, startedAt, finishedAt, typedText } = get();
+    if (status !== "done" || !startedAt || !finishedAt) return;
 
-      const runId = get().currentRunId;
-      if (!runId || !startedAt) return;
+    // Prevent duplicate saves by synchronously resetting status
+    set({ status: "idle" });
 
-      const newRunId = await sessionService.finishPage(
-        runId,
-        targetText,
-        typedText,
-        events,
-        startedAt,
-        finishedAt,
-        targetId,
-        targetLanguage,
-      );
+    // Capture variables to prevent race condition when state is reset synchronously
+    const capturedTargetText = targetText;
+    const capturedTargetId = targetId;
+    const capturedTargetLanguage = targetLanguage;
+    const capturedEvents = [...events];
+    const capturedStartedAt = startedAt;
+    const capturedFinishedAt = finishedAt;
+    const capturedTypedText = typedText;
 
-      if (newRunId !== runId) {
-        set({ currentRunId: newRunId });
-      }
-    })();
+    const { runInitPromise } = get();
+    if (runInitPromise) {
+      await runInitPromise;
+    }
+
+    const runId = get().currentRunId;
+    if (!runId) return;
+
+    const newRunId = await sessionService.finishPage(
+      runId,
+      capturedTargetText,
+      capturedTypedText,
+      capturedEvents,
+      capturedStartedAt,
+      capturedFinishedAt,
+      capturedTargetId,
+      capturedTargetLanguage,
+    );
+
+    if (newRunId !== runId) {
+      set({ currentRunId: newRunId });
+    }
   },
 
   reset: () =>
