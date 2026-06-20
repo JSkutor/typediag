@@ -7,8 +7,6 @@ and exports the trained weights.
 import json
 import os
 import numpy as np
-
-# Adjust path to import skdm.hardcore_vocab_helper
 import sys
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -20,29 +18,63 @@ from skdm import hardcore_vocab_helper
 class HardcoreMLP:
     """A 2-layer Multi-Layer Perceptron (MLP) trained in pure NumPy."""
 
-    def __init__(self, vocab_size: int, embed_dim: int = 16, hidden_dim: int = 64):
+    def __init__(
+        self,
+        vocab_size: int,
+        embed_dim: int = 16,
+        hidden_dim: int = 64,
+        context_size: int = 6,
+    ):
         self.vocab_size = vocab_size
         self.embed_dim = embed_dim
         self.hidden_dim = hidden_dim
+        self.context_size = context_size
 
-        # TODO: Initialize weights and biases (Embedding, W1, b1, W2, b2)
-        self.emb_matrix = np.zeros((vocab_size, embed_dim))
-        self.w1 = np.zeros((embed_dim * 5, hidden_dim))
+        # Initialize weights and biases
+        np.random.seed(42)
+        # He initialization for W1 and Xavier for W2
+        self.emb_matrix = np.random.randn(vocab_size, embed_dim) * 0.1
+        self.w1 = np.random.randn(embed_dim * context_size, hidden_dim) * np.sqrt(
+            2.0 / (embed_dim * context_size)
+        )
         self.b1 = np.zeros(hidden_dim)
-        self.w2 = np.zeros((hidden_dim, vocab_size))
+        self.w2 = np.random.randn(hidden_dim, vocab_size) * np.sqrt(1.0 / hidden_dim)
         self.b2 = np.zeros(vocab_size)
+
+        # Adam state
+        self.m = {
+            "emb": np.zeros_like(self.emb_matrix),
+            "w1": np.zeros_like(self.w1),
+            "b1": np.zeros_like(self.b1),
+            "w2": np.zeros_like(self.w2),
+            "b2": np.zeros_like(self.b2),
+        }
+        self.v = {
+            "emb": np.zeros_like(self.emb_matrix),
+            "w1": np.zeros_like(self.w1),
+            "b1": np.zeros_like(self.b1),
+            "w2": np.zeros_like(self.w2),
+            "b2": np.zeros_like(self.b2),
+        }
+        self.t = 0
 
     def forward(self, inputs: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Performs forward pass.
 
-        inputs: shape (batch_size, 5) representing context character IDs.
+        inputs: shape (batch_size, context_size) representing context character IDs.
         Returns: logits, hidden layer activations, embedded vectors.
         """
-        # TODO: Implement embedding lookup, flatten, ReLU hidden layer, and output logits
-        logits = np.zeros((inputs.shape[0], self.vocab_size))
-        h = np.zeros((inputs.shape[0], self.hidden_dim))
-        embeds = np.zeros((inputs.shape[0], 5 * self.embed_dim))
-        return logits, h, embeds
+        batch_size = inputs.shape[0]
+
+        embeds = self.emb_matrix[inputs]
+        embeds_flat = embeds.reshape(batch_size, -1)
+
+        z1 = np.dot(embeds_flat, self.w1) + self.b1
+        h = np.maximum(0, z1)  # ReLU
+
+        logits = np.dot(h, self.w2) + self.b2
+
+        return logits, h, embeds_flat
 
     def backward(
         self,
@@ -50,17 +82,75 @@ class HardcoreMLP:
         targets: np.ndarray,
         logits: np.ndarray,
         h: np.ndarray,
-        embeds: np.ndarray,
+        embeds_flat: np.ndarray,
     ) -> dict[str, np.ndarray]:
         """Performs backward pass. Returns gradients."""
-        grads = {}
-        # TODO: Implement backpropagation for Cross Entropy Loss and ReLU
-        return grads
+        batch_size = inputs.shape[0]
 
-    def train_step(self, inputs: np.ndarray, targets: np.ndarray, lr: float = 0.01):
+        # Softmax and CE Loss gradient
+        max_logits = np.max(logits, axis=1, keepdims=True)
+        exp_logits = np.exp(logits - max_logits)
+        probs = exp_logits / np.sum(exp_logits, axis=1, keepdims=True)
+
+        d_logits = probs.copy()
+        d_logits[np.arange(batch_size), targets] -= 1
+        d_logits /= batch_size
+
+        d_w2 = np.dot(h.T, d_logits)
+        d_b2 = np.sum(d_logits, axis=0)
+
+        d_h = np.dot(d_logits, self.w2.T)
+        d_z1 = d_h.copy()
+        d_z1[h <= 0] = 0  # ReLU derivative
+
+        d_w1 = np.dot(embeds_flat.T, d_z1)
+        d_b1 = np.sum(d_z1, axis=0)
+
+        d_embeds_flat = np.dot(d_z1, self.w1.T)
+        d_embeds = d_embeds_flat.reshape(batch_size, self.context_size, self.embed_dim)
+
+        d_emb_matrix = np.zeros_like(self.emb_matrix)
+        np.add.at(d_emb_matrix, inputs, d_embeds)
+
+        return {"emb": d_emb_matrix, "w1": d_w1, "b1": d_b1, "w2": d_w2, "b2": d_b2}
+
+    def train_step(
+        self, inputs: np.ndarray, targets: np.ndarray, lr: float = 0.001
+    ) -> float:
         """Single gradient step update."""
-        # TODO: Forward, backward, and update parameters
-        pass
+        logits, h, embeds_flat = self.forward(inputs)
+        grads = self.backward(inputs, targets, logits, h, embeds_flat)
+
+        # Adam update
+        beta1 = 0.9
+        beta2 = 0.999
+        epsilon = 1e-8
+        self.t += 1
+
+        params = {
+            "emb": self.emb_matrix,
+            "w1": self.w1,
+            "b1": self.b1,
+            "w2": self.w2,
+            "b2": self.b2,
+        }
+
+        for k in params:
+            g = grads[k]
+            self.m[k] = beta1 * self.m[k] + (1 - beta1) * g
+            self.v[k] = beta2 * self.v[k] + (1 - beta2) * (g**2)
+
+            m_hat = self.m[k] / (1 - beta1**self.t)
+            v_hat = self.v[k] / (1 - beta2**self.t)
+
+            params[k] -= lr * m_hat / (np.sqrt(v_hat) + epsilon)
+
+        # Calc loss for monitoring
+        max_logits = np.max(logits, axis=1, keepdims=True)
+        exp_logits = np.exp(logits - max_logits)
+        probs = exp_logits / np.sum(exp_logits, axis=1, keepdims=True)
+        loss = -np.mean(np.log(probs[np.arange(inputs.shape[0]), targets] + 1e-10))
+        return loss
 
     def export_weights(self) -> dict:
         """Returns weights as serializable lists for JSON export."""
@@ -73,30 +163,88 @@ class HardcoreMLP:
         }
 
 
-def prepare_dataset(vocab_size: int) -> tuple[np.ndarray, np.ndarray]:
+def prepare_dataset(
+    vocab_size: int, context_size: int = 6
+) -> tuple[np.ndarray, np.ndarray]:
     """Loads target sentences and prepares (X, y) sliding window training data."""
-    # TODO: Load src/data/targets.json, extract sentences, convert chars to IDs, slide window of size 5
-    X = np.zeros((10, 5), dtype=int)
-    y = np.zeros(10, dtype=int)
-    return X, y
+    targets_path = os.path.join(PROJECT_ROOT, "src", "data", "targets.json")
+    with open(targets_path, "r", encoding="utf-8") as f:
+        targets_data = json.load(f)
+
+    X_list = []
+    y_list = []
+
+    space_id = hardcore_vocab_helper.get_char_id(" ")
+
+    for item in targets_data:
+        content = item.get("content", "")
+        if not content:
+            continue
+
+        # Convert chars to IDs, substituting missing chars with space (if available)
+        valid_ids = []
+        for c in content:
+            cid = hardcore_vocab_helper.get_char_id(c)
+            if cid != -1:
+                valid_ids.append(cid)
+            elif space_id != -1:
+                valid_ids.append(space_id)
+
+        if len(valid_ids) <= context_size:
+            continue
+
+        for i in range(len(valid_ids) - context_size):
+            window = valid_ids[i : i + context_size]
+            target = valid_ids[i + context_size]
+            X_list.append(window)
+            y_list.append(target)
+
+    return np.array(X_list, dtype=int), np.array(y_list, dtype=int)
 
 
 def main():
-    print("Training Hardcore MLP model skeleton...")
-    # TODO: Load dataset, initialize model, run training epochs, and save weights
+    print("Training Hardcore MLP model...")
+    vocab_size = len(hardcore_vocab_helper.HARDCORE_VOCAB)
+    context_size = 6
+    X, y = prepare_dataset(vocab_size, context_size)
+    print(f"Dataset prepared: X shape {X.shape}, y shape {y.shape}")
+
+    model = HardcoreMLP(vocab_size=vocab_size, context_size=context_size)
+
+    epochs = 10
+    batch_size = 64
+    lr = 0.001
+
+    num_samples = X.shape[0]
+    indices = np.arange(num_samples)
+
+    for epoch in range(epochs):
+        np.random.shuffle(indices)
+        X_shuffled = X[indices]
+        y_shuffled = y[indices]
+
+        epoch_loss = 0.0
+        num_batches = 0
+
+        for i in range(0, num_samples, batch_size):
+            X_batch = X_shuffled[i : i + batch_size]
+            y_batch = y_shuffled[i : i + batch_size]
+
+            loss = model.train_step(X_batch, y_batch, lr=lr)
+            epoch_loss += loss
+            num_batches += 1
+
+        avg_loss = epoch_loss / num_batches
+        print(f"Epoch {epoch + 1}/{epochs} - Loss: {avg_loss:.4f}")
+
     weights_path = os.path.join(
         PROJECT_ROOT, "src", "lib", "practice", "hardcore_weights.json"
     )
-    mock_weights = {
-        "emb_matrix": [],
-        "w1": [],
-        "b1": [],
-        "w2": [],
-        "b2": [],
-    }
+    weights = model.export_weights()
     with open(weights_path, "w", encoding="utf-8") as f:
-        json.dump(mock_weights, f, indent=2)
-    print(f"Skeleton weights saved to {weights_path}")
+        # Use compact JSON dump
+        json.dump(weights, f, separators=(",", ":"))
+    print(f"Trained weights saved to {weights_path}")
 
 
 if __name__ == "__main__":

@@ -268,7 +268,7 @@ key - id 변환 딕셔너리 생성.
 자연어 - id 변환 함수.
 api 문장들 sliding window로 자름. 6개 input, 1개 target.
 임베딩 벡터: V x 16
-은닉층 차원수 64. (16 x 5) x 64 이후 ReLU.
+은닉층 차원수 64. (16 x 6) x 64 이후 ReLU.
 출력층: 64 x V
 Cross-Entropy Loss, Adam Optimizer
 학습 완료 후 가중치 json으로 변환.

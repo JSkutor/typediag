@@ -4,7 +4,7 @@ import { assembleHangulWithPunctuation } from "@/utils/keyboardMap";
 
 export interface HardcoreWeights {
   emb_matrix: number[][]; // V x 16
-  w1: number[][];         // 80 x 64
+  w1: number[][];         // 96 x 64
   b1: number[];           // 64
   w2: number[][];         // 64 x V
   b2: number[];           // V
@@ -21,12 +21,45 @@ export function getUserWeakKeys(): number[] {
 }
 
 /**
- * Runs MLP forward pass on given 5-character context.
+ * Runs MLP forward pass on given 6-character context.
  * Returns raw logits (length V).
  */
 export function predictNextLogits(contextIds: number[], modelWeights: HardcoreWeights): number[] {
-  // TODO: Embed contextIds -> Flatten -> Hidden Layer with ReLU -> Output logits
-  return new Array(vocab.length).fill(0);
+  const { emb_matrix, w1, b1, w2, b2 } = modelWeights;
+  
+  // 1. Embedding lookup & Flatten
+  const embedsFlat: number[] = [];
+  for (let i = 0; i < contextIds.length; i++) {
+    const id = contextIds[i];
+    // fallback if out of bounds (though should be handled)
+    const emb = emb_matrix[id] || new Array(16).fill(0);
+    embedsFlat.push(...emb);
+  }
+  
+  // 2. Hidden Layer (z1 = embedsFlat * w1 + b1)
+  const hiddenSize = b1.length;
+  const h = new Array(hiddenSize).fill(0);
+  for (let j = 0; j < hiddenSize; j++) {
+    let sum = b1[j];
+    for (let i = 0; i < embedsFlat.length; i++) {
+      sum += embedsFlat[i] * w1[i][j];
+    }
+    // ReLU
+    h[j] = Math.max(0, sum);
+  }
+  
+  // 3. Output logits (logits = h * w2 + b2)
+  const vocabSize = b2.length;
+  const logits = new Array(vocabSize).fill(0);
+  for (let j = 0; j < vocabSize; j++) {
+    let sum = b2[j];
+    for (let i = 0; i < hiddenSize; i++) {
+      sum += h[i] * w2[i][j];
+    }
+    logits[j] = sum;
+  }
+  
+  return logits;
 }
 
 /**
@@ -68,7 +101,7 @@ export function sampleNextId(logits: number[], temperature: number = 1.0): numbe
  * then assembled into Korean syllables.
  */
 export function generateHardcorePracticeText(length: number = 30): string {
-  // TODO: Start with space padding context: [0, 0, 0, 0, 0]
+  // TODO: Start with space padding context: [0, 0, 0, 0, 0, 0]
   // Loop to generate 'length' character IDs
   // Map back to QWERTY chars
   // Call assembleHangulWithPunctuation
