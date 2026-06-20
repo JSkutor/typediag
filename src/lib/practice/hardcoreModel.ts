@@ -1,6 +1,7 @@
 import vocab from "./hardcore_vocab.json";
 import weights from "./hardcore_weights.json";
 import { assembleHangulWithPunctuation } from "@/utils/keyboardMap";
+import { isValidHangulSequence } from "./hangulRules";
 
 const KOREAN_TO_QWERTY_SHIFT: Record<string, string> = {
   ㅃ: "Q",
@@ -110,16 +111,29 @@ export function invertLogits(logits: number[]): number[] {
  * Applies rule-based masking on logits to prevent invalid combinations.
  * (e.g. no double spaces, invalid shift sequences, etc.)
  */
-export function applyMask(prevChar: string, logits: number[]): number[] {
+export function applyMask(generatedChars: string[], logits: number[]): number[] {
   const masked = [...logits];
   const spaceId = vocab.indexOf(" ");
+
+  const len = generatedChars.length;
+  const prevChar = len > 0 ? generatedChars[len - 1] : " ";
+  const prevPrevChar = len > 1 ? generatedChars[len - 2] : " ";
 
   // Rule 1: No double spaces
   if (prevChar === " " && spaceId !== -1) {
     masked[spaceId] = -Infinity;
   }
 
-  // TODO: Add other invalid combinations here based on hangul assembly constraints
+  // Rule 2: Hangul pairing validity rules (simplified)
+  for (let i = 0; i < logits.length; i++) {
+    const nextChar = vocab[i];
+    if (nextChar && nextChar !== " ") {
+      if (!isValidHangulSequence(prevPrevChar, prevChar, nextChar)) {
+        masked[i] = -Infinity;
+      }
+    }
+  }
+
   return masked;
 }
 
@@ -174,8 +188,7 @@ export function generateHardcorePracticeText(length: number = 30): string {
     logits = blendLogits(logits, weakKeys, 5.0);
 
     // 4. Rule-based Masking
-    const prevChar = generatedChars.length > 0 ? generatedChars[generatedChars.length - 1] : " ";
-    logits = applyMask(prevChar, logits);
+    logits = applyMask(generatedChars, logits);
 
     // 5. Sample next character ID
     const nextId = sampleNextId(logits, 1.2); // slight temperature bump for variety
