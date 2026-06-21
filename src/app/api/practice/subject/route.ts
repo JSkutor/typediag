@@ -8,6 +8,13 @@ interface VectorTarget {
   id: string;
   content: string;
   language: string;
+  source: "default" | "subject" | "custom";
+  generator_model: string | null;
+  subject: string | null;
+  user_id: string | null;
+  usage_count: number;
+  last_used_at: string | null;
+  created_at: string;
   embedding: number[];
 }
 

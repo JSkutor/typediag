@@ -15,6 +15,12 @@ export interface TargetTextRow {
   id: string;
   content: string;
   language: string;
+  source: "default" | "subject" | "custom";
+  generator_model: string | null;
+  subject: string | null;
+  user_id: string | null;
+  usage_count: number;
+  last_used_at: string | null;
   created_at: string;
 }
 
@@ -99,11 +105,17 @@ export const db = {
    * Get list of all target texts (mocked from targets.json).
    */
   async getTargetTexts(): Promise<TargetTextRow[]> {
-    return targets.map((t) => ({
+    return targets.map((t: any) => ({
       id: t.id,
       content: t.content,
       language: t.language,
-      created_at: new Date("2026-06-15T00:00:00Z").toISOString(),
+      source: t.source || "default",
+      generator_model: t.generator_model || null,
+      subject: t.subject || null,
+      user_id: t.user_id || null,
+      usage_count: t.usage_count || 0,
+      last_used_at: t.last_used_at || null,
+      created_at: t.created_at || new Date("2026-06-15T00:00:00Z").toISOString(),
     }));
   },
 

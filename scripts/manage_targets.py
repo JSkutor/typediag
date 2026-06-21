@@ -39,6 +39,12 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             content TEXT UNIQUE NOT NULL,
             language TEXT NOT NULL,
+            source TEXT DEFAULT 'default',
+            generator_model TEXT,
+            subject TEXT,
+            user_id TEXT,
+            usage_count INTEGER DEFAULT 0,
+            last_used_at DATETIME,
             raw_key TEXT,
             pure_hangul_count INTEGER,
             embedding TEXT,
@@ -109,8 +115,8 @@ def import_results(min_len=50, max_len=110):
                 # DB 저장
                 try:
                     cursor.execute(
-                        "INSERT INTO target_texts (content, language, raw_key, pure_hangul_count) VALUES (?, ?, ?, ?)",
-                        (content, "ko", key, hangul_cnt)
+                        "INSERT INTO target_texts (content, language, source, generator_model, raw_key, pure_hangul_count) VALUES (?, ?, ?, ?, ?, ?)",
+                        (content, "ko", "default", "gemini-batch", key, hangul_cnt)
                     )
                     inserted_count += 1
                 except sqlite3.IntegrityError:
@@ -143,7 +149,7 @@ def export_to_json():
     
     # DB에서 데이터 조회 (임베딩 정보 포함)
     cursor.execute("""
-        SELECT content, language, embedding, pure_hangul_count 
+        SELECT content, language, embedding, pure_hangul_count, source, generator_model, subject, user_id, usage_count, last_used_at, created_at
         FROM target_texts 
         ORDER BY id ASC
     """)
@@ -167,7 +173,14 @@ def export_to_json():
         base_item = {
             "id": f"target_{idx:03d}",
             "content": row[0],
-            "language": row[1]
+            "language": row[1],
+            "source": row[4] or "default",
+            "generator_model": row[5],
+            "subject": row[6],
+            "user_id": row[7],
+            "usage_count": row[8] or 0,
+            "last_used_at": row[9],
+            "created_at": row[10]
         }
         
         client_list.append(base_item)

@@ -26,38 +26,40 @@
 - `created_at`: 생성 일시 (Timestamp, Not Null)
 - `updated_at`: 수정 일시 (Timestamp, Not Null)
 
-### 2. target_text (제시문)
+### 2. target_texts (제시문)
 
-연습용으로 시스템에 등록된 원본 문장 데이터입니다.
+타자 연습을 위해 시스템에 등록되거나 실시간으로 생성된 원본 문장 데이터입니다. (Preset, LLM 생성, 사용자 등록 통합)
 
-- `id`: 고유 식별값 (UUID, PK)
-- `content`: 제시문 내용 (문자열, Not Null)
-- `language`: 문장의 언어 (예: 'ko', 'en') (문자열, Not Null)
-- `created_at`: 생성 일시 (Timestamp, Not Null)
-
-### 3. subject_texts (주제별 문장 - Vector Search)
-
-사용자가 원하는 주제(Subject)를 입력했을 때, Semantic 유사도 검색을 통해 적절한 타자 연습 문장을 반환하기 위한 테이블입니다.
-PostgreSQL의 `pgvector` 확장을 사용합니다.
-
-- `id`: 고유 식별값 (SERIAL, PK)
-- `subject`: 원래 생성 요청에 사용된 주제 키워드 혹은 카테고리 (TEXT)
-- `content`: 타자 연습 문장 본문 (TEXT)
-- `embedding`: OpenAI `text-embedding-3-large`을 통해 추출된 3072차원 벡터 (vector(3072))
-- `created_at`: 생성 일시 (TIMESTAMP, Default: CURRENT_TIMESTAMP)
+- `id`: 고유 식별값 (VARCHAR(50), PK. Preset은 'target_001' 형태, LLM/User 생성은 UUID)
+- `content`: 제시문 내용 (TEXT, Not Null)
+- `language`: 문장의 언어 (예: 'ko', 'en') (VARCHAR(10), Not Null)
+- `source`: 생성 출처 ('default', 'subject', 'custom') (VARCHAR(20), Not Null)
+- `generator_model`: 생성 LLM 모델명 등 (예: 'gemini-2.5-flash-lite') (VARCHAR(50), Nullable)
+- `prompt`: 유저가 입력한 주제어 (VARCHAR/TEXT, Nullable. source가 'subject'인 경우 필수)
+- `user_id`: 문장 생성을 요청했거나 등록한 사용자 식별값 (UUID, FK, Nullable - 비회원은 NULL)
+- `usage_count`: 완주(연습 완료) 횟수 (INT, Not Null, Default 0)
+- `last_used_at`: 최근 완주 일시 (Timestamp, Nullable)
+- `embedding`: Upstage Solar Embedding API 벡터 (vector(4096), Nullable)
+- `created_at`: 생성 일시 (Timestamp, Default: CURRENT_TIMESTAMP)
 
 ```sql
 CREATE EXTENSION IF NOT EXISTS vector;
-CREATE TABLE subject_texts (
-    id SERIAL PRIMARY KEY,
+CREATE TABLE target_texts (
+    id VARCHAR(50) PRIMARY KEY,
+    content TEXT NOT NULL,
+    language VARCHAR(10) NOT NULL,
+    source VARCHAR(20) NOT NULL,
+    generator_model VARCHAR(50),
     subject TEXT,
-    content TEXT,
-    embedding vector(3072),
+    user_id UUID,
+    usage_count INT DEFAULT 0 NOT NULL,
+    last_used_at TIMESTAMP,
+    embedding vector(4096),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
-### 4. run (연습 세션)
+### 3. run (연습 세션)
 
 사용자가 1회 연습을 시작해서 끝낼 때까지의 단위 기록입니다.
 
