@@ -3,7 +3,7 @@ import type { KeyEvent } from "@/lib/skdm";
 import type { MvsaCache, AlignResult } from "@/utils/mvsa";
 
 export type SessionStatus = "idle" | "running" | "done";
-export type TypingMode = "default" | "subject" | "hardcore" | "plain";
+export type TypingMode = "normal" | "subject" | "hardcore" | "plain";
 
 export interface InputSlice {
   targetText: string;

@@ -340,7 +340,10 @@ target text 없음.
 ### 기타
 
 TODO: 그 duration이랑 latency랑 상관관계 보는거, 바로 다음 쌍의 latency도 참조하게 해.
-
+TODO: \n 에서 스페이스 잘 정렬되게.
+TODO: 정답을 입력하다 만 경우(종성 x) 빨간 색 안보임.
+TODO: 누락도 빨간색으로 안뜸. 오타로는 저장되고 있는건지.
+TODO: surface 더 부드럽게, 키로 수직선.
 
 
 ### 기간별
@@ -348,6 +351,7 @@ TODO: 그 duration이랑 latency랑 상관관계 보는거, 바로 다음 쌍의
 
 ## Later:
 
+TODO: 글씨 가독성. 색 등.
 
 ### 카메라 위치 고정
 z 좀 올리고, 우클릭 안되게.

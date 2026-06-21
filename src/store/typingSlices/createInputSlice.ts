@@ -41,14 +41,14 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
   qwertyBuffer: "",
   mvsaCache: new Map(),
   alignments: [],
-  mode: "default",
+  mode: "normal",
 
   setMode: (mode) => {
     if (get().status === "done") {
       get().saveCurrentPage();
     }
     set({ mode });
-    if (mode === "default") {
+    if (mode === "normal") {
       get().setTarget(targets[0]);
     } else if (mode === "subject") {
       const text = getSubjectText();
@@ -154,7 +154,7 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
       get().saveCurrentPage();
     }
     const { mode } = get();
-    if (mode === "default") {
+    if (mode === "normal") {
       const currentIndex = targets.findIndex((t) => t.content === get().targetText);
       const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % targets.length;
       get().setTarget(targets[nextIndex]);
@@ -204,7 +204,7 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
     }
 
     if (code === "ArrowLeft") {
-      if (state.mode === "default") {
+      if (state.mode === "normal") {
         const currentIndex = targets.findIndex((t) => t.content === get().targetText);
         const prevIndex =
           currentIndex === -1 ? 0 : (currentIndex - 1 + targets.length) % targets.length;

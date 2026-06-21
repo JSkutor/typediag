@@ -9,8 +9,6 @@ export const PracticePanel: React.FC = () => {
     alignments: diffResult,
     mode,
     setMode,
-    targetLanguage,
-    setTargetLanguage,
   } = useTypingStore();
 
   const lastInputIndex = React.useMemo(() => {
@@ -25,102 +23,83 @@ export const PracticePanel: React.FC = () => {
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        justifyContent: "center",
+        justifyContent: "flex-start",
+        paddingTop: "5rem",
         fontSize: "1.875rem",
         fontFamily: "var(--font-mono)",
         lineHeight: 1.625,
         position: "relative",
+        minHeight: "360px",
       }}
     >
-      {/* Mode selector dropdown */}
+      {/* Mode selector segmented controls (Pill) */}
       <div
         className="mode-selector-container"
         style={{
           display: "flex",
-          justifyContent: "flex-start",
+          justifyContent: "center",
           width: "100%",
           maxWidth: "1024px",
-          margin: "0 auto 1.5rem auto",
+          margin: "0 auto 2.5rem auto",
           padding: "0 1rem",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <span
-            style={{
-              fontSize: "0.875rem",
-              color: "var(--color-text-muted, #888)",
-              fontWeight: 500,
-            }}
-          >
-            Mode:
-          </span>
-          <select
-            value={mode}
-            onChange={(e) => setMode(e.target.value as TypingMode)}
-            style={{
-              fontSize: "0.875rem",
-              padding: "4px 8px",
-              borderRadius: "4px",
-              backgroundColor: "rgba(255, 255, 255, 0.05)",
-              border: "1px solid rgba(255, 255, 255, 0.15)",
-              color: "var(--color-text-primary, #fff)",
-              cursor: "pointer",
-              outline: "none",
-              fontFamily: "inherit",
-              width: "150px",
-            }}
-          >
-            <option value="default" style={{ backgroundColor: "#1e1e1e" }}>
-              Default
-            </option>
-            <option value="subject" style={{ backgroundColor: "#1e1e1e" }}>
-              Subject (LLM)
-            </option>
-            <option value="hardcore" style={{ backgroundColor: "#1e1e1e" }}>
-              Hardcore
-            </option>
-            <option value="plain" style={{ backgroundColor: "#1e1e1e" }}>
-              Plain Notepad
-            </option>
-          </select>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "4px",
+            backgroundColor: "rgba(255, 255, 255, 0.02)",
+            border: "1px solid var(--border-subtle, rgba(228, 230, 235, 0.08))",
+            borderRadius: "9999px",
+            padding: "4px",
+            boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.2)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+          }}
+        >
+          {(["normal", "subject", "hardcore", "plain"] as TypingMode[]).map((m) => {
+            const isActive = mode === m;
+            return (
+              <button
+                key={m}
+                onClick={() => setMode(m)}
+                style={{
+                  fontSize: "0.8125rem",
+                  fontWeight: isActive ? 600 : 500,
+                  padding: "6px 16px",
+                  borderRadius: "9999px",
+                  border: "none",
+                  backgroundColor: isActive ? "var(--accent, #3861fb)" : "transparent",
+                  color: isActive ? "var(--text-inverse, #f0f2f5)" : "var(--text-secondary, #8d929b)",
+                  cursor: "pointer",
+                  outline: "none",
+                  fontFamily: "var(--font-sans)",
+                  transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+                  boxShadow: isActive ? "0 2px 8px rgba(56, 97, 251, 0.4)" : "none",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  textTransform: "capitalize",
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.color = "var(--text-primary, #e4e6eb)";
+                    e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.04)";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.color = "var(--text-secondary, #8d929b)";
+                    e.currentTarget.style.backgroundColor = "transparent";
+                  }
+                }}
+              >
+                {m}
+              </button>
+            );
+          })}
         </div>
-
-        {mode === "plain" && (
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "16px" }}>
-            <span
-              style={{
-                fontSize: "0.875rem",
-                color: "var(--color-text-muted, #888)",
-                fontWeight: 500,
-              }}
-            >
-              Language:
-            </span>
-            <select
-              value={targetLanguage}
-              onChange={(e) => setTargetLanguage(e.target.value)}
-              style={{
-                fontSize: "0.875rem",
-                padding: "4px 8px",
-                borderRadius: "4px",
-                backgroundColor: "rgba(255, 255, 255, 0.05)",
-                border: "1px solid rgba(255, 255, 255, 0.15)",
-                color: "var(--color-text-primary, #fff)",
-                cursor: "pointer",
-                outline: "none",
-                fontFamily: "inherit",
-                width: "100px",
-              }}
-            >
-              <option value="ko" style={{ backgroundColor: "#1e1e1e" }}>
-                한국어
-              </option>
-              <option value="en" style={{ backgroundColor: "#1e1e1e" }}>
-                English
-              </option>
-            </select>
-          </div>
-        )}
       </div>
 
       <div
@@ -140,7 +119,7 @@ export const PracticePanel: React.FC = () => {
               marginRight: "8px",
             }}
           >
-            {targetLanguage === "ko" ? "여기에 자유롭게 입력하세요..." : "Type freely here..."}
+            여기에 자유롭게 입력하세요...
           </span>
         )}
         {diffResult.length === 0 && <span className="typing-cursor left" />}
