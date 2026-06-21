@@ -5,6 +5,7 @@ import { getQwertyChar, assembleHangulWithPunctuation } from "@/utils/keyboardMa
 import { evaluateKeystroke } from "@/utils/typingEvaluator";
 import { getKeyToken } from "./utils";
 import { runMvsa, getCharQwertyIndices } from "@/utils/mvsa";
+import { validateSubject } from "@/utils/validation";
 
 // Hardcore 모드를 위한 취약 키 무작위 조합 생성
 const generateHardcoreText = (): string => {
@@ -36,6 +37,21 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
   isSubjectInputActive: false,
   isSubjectLoading: false,
   fetchSubjectTarget: async (subject: string) => {
+    // 1. 클라이언트 측 1차 유효성 검사 실행
+    const validation = validateSubject(subject);
+    if (!validation.isValid) {
+      const errorMsg = validation.reason || "의미가 없습니다.";
+      set({
+        targetText: errorMsg,
+        typedText: "",
+        qwertyBuffer: "",
+        maxTypedTextLength: 0,
+        alignments: runMvsa(errorMsg, "", true),
+        isSubjectInputActive: true,
+      });
+      return;
+    }
+
     set({ isSubjectLoading: true });
     try {
       const res = await fetch("/api/practice/subject", {
@@ -43,7 +59,10 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subject }),
       });
-      if (!res.ok) throw new Error("Failed to fetch subject target");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "올바른 한글 입력이 아닙니다.");
+      }
       const { data } = await res.json();
       get().setTarget({
         id: data.id,
@@ -53,13 +72,15 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
       set({ isSubjectInputActive: false });
     } catch (error) {
       console.error(error);
-      // fallback
-      get().setTarget({
-        id: "target_subject_error",
-        content: "주제 벡터 검색 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
-        language: "ko",
+      const errorMessage = error instanceof Error ? error.message : "올바른 한글 입력이 아닙니다.";
+      set({
+        targetText: errorMessage,
+        typedText: "",
+        qwertyBuffer: "",
+        maxTypedTextLength: 0,
+        alignments: runMvsa(errorMessage, "", true),
+        isSubjectInputActive: true,
       });
-      set({ isSubjectInputActive: false });
     } finally {
       set({ isSubjectLoading: false });
     }
@@ -83,15 +104,16 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
     if (mode === "normal") {
       get().setTarget(targets[0]);
     } else if (mode === "subject") {
+      const guideText = "원하는 주제를 입력하세요...";
       set({
-        targetText: "",
+        targetText: guideText,
         targetLanguage: "ko",
         targetId: "",
         typedText: "",
         maxTypedTextLength: 0,
         qwertyBuffer: "",
         mvsaCache: new Map(),
-        alignments: [],
+        alignments: runMvsa(guideText, "", true),
         events: [],
         status: "idle",
         startedAt: null,
@@ -204,15 +226,16 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
       const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % targets.length;
       get().setTarget(targets[nextIndex]);
     } else if (mode === "subject") {
+      const guideText = "원하는 주제를 입력하세요...";
       set({
-        targetText: "",
+        targetText: guideText,
         targetLanguage: "ko",
         targetId: "",
         typedText: "",
         maxTypedTextLength: 0,
         qwertyBuffer: "",
         mvsaCache: new Map(),
-        alignments: [],
+        alignments: runMvsa(guideText, "", true),
         events: [],
         status: "idle",
         startedAt: null,
@@ -254,6 +277,56 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
 
   handlePhysicalKeyPress: (code, shiftKey, timestamp) => {
     const state = get();
+
+    if (state.mode === "subject" && state.isSubjectInputActive) {
+      if (state.isSubjectLoading) return;
+
+      const isKorean = state.targetLanguage === "ko";
+
+      if (code === "Enter") {
+        const query = state.typedText.trim();
+        if (query && query !== "원하는 주제를 입력하세요...") {
+          get().fetchSubjectTarget(query);
+        }
+        return;
+      }
+
+      if (code === "Backspace") {
+        if (state.qwertyBuffer.length > 0) {
+          const nextBuffer = state.qwertyBuffer.slice(0, -1);
+          const nextTyped = isKorean ? assembleHangulWithPunctuation(nextBuffer) : nextBuffer;
+          const nextTargetText = nextBuffer.length === 0 ? "원하는 주제를 입력하세요..." : nextTyped;
+          const nextAlignments = nextBuffer.length === 0
+            ? runMvsa(nextTargetText, "", isKorean, state.mvsaCache)
+            : runMvsa(nextTargetText, nextBuffer, isKorean, state.mvsaCache);
+
+          set({
+            targetText: nextTargetText,
+            qwertyBuffer: nextBuffer,
+            typedText: nextTyped,
+            alignments: nextAlignments,
+          });
+        }
+        return;
+      }
+
+      const char = getQwertyChar(code, shiftKey);
+      if (char !== null) {
+        const nextBuffer = state.qwertyBuffer + char;
+        const nextTyped = isKorean ? assembleHangulWithPunctuation(nextBuffer) : nextBuffer;
+        const nextTargetText = nextTyped;
+        const nextAlignments = runMvsa(nextTargetText, nextBuffer, isKorean, state.mvsaCache);
+
+        set({
+          targetText: nextTargetText,
+          qwertyBuffer: nextBuffer,
+          typedText: nextTyped,
+          maxTypedTextLength: nextTyped.length,
+          alignments: nextAlignments,
+        });
+      }
+      return;
+    }
 
     if (code === "ArrowRight") {
       get().nextTarget();

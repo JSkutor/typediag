@@ -109,39 +109,11 @@ export const PracticePanel: React.FC = () => {
         aria-live="polite"
         aria-atomic="true"
       >
-        {mode === "subject" && useTypingStore.getState().isSubjectInputActive ? (
+        {mode === "subject" && useTypingStore.getState().isSubjectLoading ? (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem" }}>
-            {useTypingStore.getState().isSubjectLoading ? (
-              <div style={{ color: "var(--text-secondary, #8d929b)", fontStyle: "italic", animation: "pulse 1.5s infinite" }}>
-                주제에 맞는 문장을 찾는 중입니다...
-              </div>
-            ) : (
-              <input
-                type="text"
-                placeholder="연습할 주제를 입력 후 Enter를 누르세요..."
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && e.currentTarget.value.trim()) {
-                    useTypingStore.getState().fetchSubjectTarget(e.currentTarget.value.trim());
-                  }
-                }}
-                autoFocus
-                style={{
-                  width: "100%",
-                  maxWidth: "600px",
-                  padding: "1rem 1.5rem",
-                  fontSize: "1.25rem",
-                  borderRadius: "1rem",
-                  border: "1px solid var(--border-subtle, rgba(228, 230, 235, 0.08))",
-                  backgroundColor: "rgba(255, 255, 255, 0.03)",
-                  color: "var(--text-primary, #e4e6eb)",
-                  outline: "none",
-                  boxShadow: "inset 0 2px 4px rgba(0, 0, 0, 0.1)",
-                  backdropFilter: "blur(8px)",
-                  WebkitBackdropFilter: "blur(8px)",
-                  textAlign: "center",
-                }}
-              />
-            )}
+            <div style={{ color: "var(--text-secondary, #8d929b)", fontStyle: "italic", animation: "pulse 1.5s infinite" }}>
+              주제에 맞는 문장을 찾는 중입니다...
+            </div>
           </div>
         ) : (
           <>

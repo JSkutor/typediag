@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { findNearestNeighbors } from "@/utils/vectorSearchMock";
 import fs from "fs";
 import path from "path";
+import { validateSubject } from "@/utils/validation";
 
 interface VectorTarget {
   id: string;
@@ -28,6 +29,15 @@ export async function POST(req: Request) {
     if (!subject || typeof subject !== "string") {
       return NextResponse.json(
         { error: "Invalid subject provided" },
+        { status: 400 }
+      );
+    }
+
+    // 1단계: 유효성 검사 실행
+    const validation = validateSubject(subject);
+    if (!validation.isValid) {
+      return NextResponse.json(
+        { error: validation.reason || "올바르지 않은 주제입니다." },
         { status: 400 }
       );
     }
