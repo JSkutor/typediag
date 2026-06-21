@@ -105,65 +105,103 @@ export const PracticePanel: React.FC = () => {
       <div
         id="typing-text-container"
         className="typing-text-container inline-block text-left"
-        style={{ maxWidth: "1024px" }}
+        style={{ maxWidth: "1024px", width: "100%", textAlign: "center" }}
         aria-live="polite"
         aria-atomic="true"
       >
-        {mode === "plain" && qwertyBuffer.length === 0 && (
-          <span
-            style={{
-              fontSize: "1.5rem",
-              color: "rgba(255, 255, 255, 0.2)",
-              fontStyle: "italic",
-              pointerEvents: "none",
-              marginRight: "8px",
-            }}
-          >
-            여기에 자유롭게 입력하세요...
-          </span>
+        {mode === "subject" && useTypingStore.getState().isSubjectInputActive ? (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem" }}>
+            {useTypingStore.getState().isSubjectLoading ? (
+              <div style={{ color: "var(--text-secondary, #8d929b)", fontStyle: "italic", animation: "pulse 1.5s infinite" }}>
+                주제에 맞는 문장을 찾는 중입니다...
+              </div>
+            ) : (
+              <input
+                type="text"
+                placeholder="연습할 주제를 입력 후 Enter를 누르세요..."
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && e.currentTarget.value.trim()) {
+                    useTypingStore.getState().fetchSubjectTarget(e.currentTarget.value.trim());
+                  }
+                }}
+                autoFocus
+                style={{
+                  width: "100%",
+                  maxWidth: "600px",
+                  padding: "1rem 1.5rem",
+                  fontSize: "1.25rem",
+                  borderRadius: "1rem",
+                  border: "1px solid var(--border-subtle, rgba(228, 230, 235, 0.08))",
+                  backgroundColor: "rgba(255, 255, 255, 0.03)",
+                  color: "var(--text-primary, #e4e6eb)",
+                  outline: "none",
+                  boxShadow: "inset 0 2px 4px rgba(0, 0, 0, 0.1)",
+                  backdropFilter: "blur(8px)",
+                  WebkitBackdropFilter: "blur(8px)",
+                  textAlign: "center",
+                }}
+              />
+            )}
+          </div>
+        ) : (
+          <>
+            {mode === "plain" && qwertyBuffer.length === 0 && (
+              <span
+                style={{
+                  fontSize: "1.5rem",
+                  color: "rgba(255, 255, 255, 0.2)",
+                  fontStyle: "italic",
+                  pointerEvents: "none",
+                  marginRight: "8px",
+                }}
+              >
+                여기에 자유롭게 입력하세요...
+              </span>
+            )}
+            {diffResult.length === 0 && <span className="typing-cursor left" />}
+            {diffResult.map((d, i) => {
+              const isOmitted = d.op === "OMIT";
+
+              let highlightClass = "";
+              if (d.op === "EQUAL" || d.op === "PARTIAL") highlightClass = "text-char-primary";
+              else if (d.op === "INSERT" || d.op === "REPLACE")
+                highlightClass = "text-char-error opacity-80";
+
+              if (d.op === "INSERT" && d.char === " ") {
+                highlightClass += " border-b-4 border-red-500/70";
+              }
+
+              const showCursorRight = qwertyBuffer.length > 0 && i === lastInputIndex;
+              const showCursorLeft = qwertyBuffer.length === 0 && i === 0;
+
+              return (
+                <span key={i} id={`text-char-${i}`} className="text-char-container relative">
+                  {d.op !== "INSERT" && (
+                    <span
+                      className={`text-char-muted ${isOmitted ? "border-b-4 border-red-500/30" : ""}`}
+                    >
+                      {d.targetChar === " " ? "\u00A0" : d.targetChar}
+                    </span>
+                  )}
+
+                  {(d.op === "EQUAL" ||
+                    d.op === "PARTIAL" ||
+                    d.op === "REPLACE" ||
+                    d.op === "INSERT") && (
+                    <span
+                      className={`${d.op !== "INSERT" ? "text-char-overlay" : ""} ${highlightClass}`}
+                    >
+                      {d.char === " " ? "\u00A0" : d.char}
+                    </span>
+                  )}
+
+                  {showCursorLeft && <span className="typing-cursor left" />}
+                  {showCursorRight && <span className="typing-cursor right" />}
+                </span>
+              );
+            })}
+          </>
         )}
-        {diffResult.length === 0 && <span className="typing-cursor left" />}
-        {diffResult.map((d, i) => {
-          const isOmitted = d.op === "OMIT";
-
-          let highlightClass = "";
-          if (d.op === "EQUAL" || d.op === "PARTIAL") highlightClass = "text-char-primary";
-          else if (d.op === "INSERT" || d.op === "REPLACE")
-            highlightClass = "text-char-error opacity-80";
-
-          if (d.op === "INSERT" && d.char === " ") {
-            highlightClass += " border-b-4 border-red-500/70";
-          }
-
-          const showCursorRight = qwertyBuffer.length > 0 && i === lastInputIndex;
-          const showCursorLeft = qwertyBuffer.length === 0 && i === 0;
-
-          return (
-            <span key={i} id={`text-char-${i}`} className="text-char-container relative">
-              {d.op !== "INSERT" && (
-                <span
-                  className={`text-char-muted ${isOmitted ? "border-b-4 border-red-500/30" : ""}`}
-                >
-                  {d.targetChar === " " ? "\u00A0" : d.targetChar}
-                </span>
-              )}
-
-              {(d.op === "EQUAL" ||
-                d.op === "PARTIAL" ||
-                d.op === "REPLACE" ||
-                d.op === "INSERT") && (
-                <span
-                  className={`${d.op !== "INSERT" ? "text-char-overlay" : ""} ${highlightClass}`}
-                >
-                  {d.char === " " ? "\u00A0" : d.char}
-                </span>
-              )}
-
-              {showCursorLeft && <span className="typing-cursor left" />}
-              {showCursorRight && <span className="typing-cursor right" />}
-            </span>
-          );
-        })}
       </div>
     </div>
   );

@@ -6,6 +6,11 @@ export type SessionStatus = "idle" | "running" | "done";
 export type TypingMode = "normal" | "subject" | "hardcore" | "plain";
 
 export interface InputSlice {
+  // Subject Mode 전용 상태
+  isSubjectInputActive: boolean;
+  isSubjectLoading: boolean;
+  fetchSubjectTarget: (subject: string) => Promise<void>;
+
   targetText: string;
   targetLanguage: string;
   targetId: string;

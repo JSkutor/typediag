@@ -33,6 +33,38 @@ const getSubjectText = (subject?: string): string => {
 };
 
 export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
+  isSubjectInputActive: false,
+  isSubjectLoading: false,
+  fetchSubjectTarget: async (subject: string) => {
+    set({ isSubjectLoading: true });
+    try {
+      const res = await fetch("/api/practice/subject", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subject }),
+      });
+      if (!res.ok) throw new Error("Failed to fetch subject target");
+      const { data } = await res.json();
+      get().setTarget({
+        id: data.id,
+        content: data.content,
+        language: data.language,
+      });
+      set({ isSubjectInputActive: false });
+    } catch (error) {
+      console.error(error);
+      // fallback
+      get().setTarget({
+        id: "target_subject_error",
+        content: "주제 벡터 검색 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+        language: "ko",
+      });
+      set({ isSubjectInputActive: false });
+    } finally {
+      set({ isSubjectLoading: false });
+    }
+  },
+
   targetText: "",
   targetLanguage: "en",
   targetId: "",
@@ -51,11 +83,25 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
     if (mode === "normal") {
       get().setTarget(targets[0]);
     } else if (mode === "subject") {
-      const text = getSubjectText();
-      get().setTarget({
-        id: "target_subject_mock",
-        content: text,
-        language: /[가-힣]/.test(text) ? "ko" : "en",
+      set({
+        targetText: "",
+        targetLanguage: "ko",
+        targetId: "",
+        typedText: "",
+        maxTypedTextLength: 0,
+        qwertyBuffer: "",
+        mvsaCache: new Map(),
+        alignments: [],
+        events: [],
+        status: "idle",
+        startedAt: null,
+        finishedAt: null,
+        lastKey: null,
+        lastKeyAt: null,
+        runInitPromise: null,
+        pressedKeys: {},
+        isSubjectInputActive: true,
+        isSubjectLoading: false,
       });
     } else if (mode === "hardcore") {
       const text = generateHardcoreText();
@@ -144,6 +190,7 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
       lastKeyAt: null,
       runInitPromise: null,
       pressedKeys: {},
+      isSubjectInputActive: false,
     });
   },
 
@@ -157,11 +204,25 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
       const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % targets.length;
       get().setTarget(targets[nextIndex]);
     } else if (mode === "subject") {
-      const text = getSubjectText();
-      get().setTarget({
-        id: `target_subject_${Date.now()}`,
-        content: text,
-        language: /[가-힣]/.test(text) ? "ko" : "en",
+      set({
+        targetText: "",
+        targetLanguage: "ko",
+        targetId: "",
+        typedText: "",
+        maxTypedTextLength: 0,
+        qwertyBuffer: "",
+        mvsaCache: new Map(),
+        alignments: [],
+        events: [],
+        status: "idle",
+        startedAt: null,
+        finishedAt: null,
+        lastKey: null,
+        lastKeyAt: null,
+        runInitPromise: null,
+        pressedKeys: {},
+        isSubjectInputActive: true,
+        isSubjectLoading: false,
       });
     } else if (mode === "hardcore") {
       const text = generateHardcoreText();
