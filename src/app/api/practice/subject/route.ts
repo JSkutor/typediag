@@ -77,7 +77,7 @@ export async function POST(req: Request) {
 
     // 2. 벡터 유사도 검색
     const targets = getVectorTargets() || [];
-    const results = findNearestNeighbors(queryEmbedding, targets, 1);
+    const results = findNearestNeighbors(queryEmbedding, targets, 3);
 
     if (!results || results.length === 0) {
       return NextResponse.json(
@@ -87,12 +87,15 @@ export async function POST(req: Request) {
     }
 
     // 3. 결과 반환 (프론트엔드로는 큰 embedding 배열을 보낼 필요가 없음)
-    const bestMatch = results[0];
-    const { embedding: _embedding, ...matchWithoutEmbedding } = bestMatch;
+    const matchesWithoutEmbedding = results.map((r) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { embedding, ...matchWithoutEmbedding } = r;
+      return matchWithoutEmbedding;
+    });
 
     return NextResponse.json({
       success: true,
-      data: matchWithoutEmbedding,
+      data: matchesWithoutEmbedding,
     });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";

@@ -36,6 +36,8 @@ const getSubjectText = (subject?: string): string => {
 export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
   isSubjectInputActive: false,
   isSubjectLoading: false,
+  subjectTargets: [],
+  subjectTargetIndex: -1,
   fetchSubjectTarget: async (subject: string) => {
     // 1. 클라이언트 측 1차 유효성 검사 실행
     const validation = validateSubject(subject);
@@ -48,6 +50,8 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
         maxTypedTextLength: 0,
         alignments: runMvsa(errorMsg, "", true),
         isSubjectInputActive: true,
+        subjectTargets: [],
+        subjectTargetIndex: -1,
       });
       return;
     }
@@ -64,10 +68,17 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
         throw new Error(errorData.error || "올바른 한글 입력이 아닙니다.");
       }
       const { data } = await res.json();
+      if (!Array.isArray(data) || data.length === 0) {
+        throw new Error("검색 결과가 없습니다.");
+      }
+      set({
+        subjectTargets: data,
+        subjectTargetIndex: 0,
+      });
       get().setTarget({
-        id: data.id,
-        content: data.content,
-        language: data.language,
+        id: data[0].id,
+        content: data[0].content,
+        language: data[0].language,
       });
       set({ isSubjectInputActive: false });
     } catch (error) {
@@ -80,6 +91,8 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
         maxTypedTextLength: 0,
         alignments: runMvsa(errorMessage, "", true),
         isSubjectInputActive: true,
+        subjectTargets: [],
+        subjectTargetIndex: -1,
       });
     } finally {
       set({ isSubjectLoading: false });
@@ -124,6 +137,8 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
         pressedKeys: {},
         isSubjectInputActive: true,
         isSubjectLoading: false,
+        subjectTargets: [],
+        subjectTargetIndex: -1,
       });
     } else if (mode === "hardcore") {
       const text = generateHardcoreText();
@@ -226,27 +241,36 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
       const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % targets.length;
       get().setTarget(targets[nextIndex]);
     } else if (mode === "subject") {
-      const guideText = "원하는 주제를 입력하세요...";
-      set({
-        targetText: guideText,
-        targetLanguage: "ko",
-        targetId: "",
-        typedText: "",
-        maxTypedTextLength: 0,
-        qwertyBuffer: "",
-        mvsaCache: new Map(),
-        alignments: runMvsa(guideText, "", true),
-        events: [],
-        status: "idle",
-        startedAt: null,
-        finishedAt: null,
-        lastKey: null,
-        lastKeyAt: null,
-        runInitPromise: null,
-        pressedKeys: {},
-        isSubjectInputActive: true,
-        isSubjectLoading: false,
-      });
+      const { subjectTargets, subjectTargetIndex } = get();
+      if (subjectTargets.length > 0) {
+        const nextIndex = (subjectTargetIndex + 1) % subjectTargets.length;
+        set({ subjectTargetIndex: nextIndex });
+        get().setTarget(subjectTargets[nextIndex]);
+      } else {
+        const guideText = "원하는 주제를 입력하세요...";
+        set({
+          targetText: guideText,
+          targetLanguage: "ko",
+          targetId: "",
+          typedText: "",
+          maxTypedTextLength: 0,
+          qwertyBuffer: "",
+          mvsaCache: new Map(),
+          alignments: runMvsa(guideText, "", true),
+          events: [],
+          status: "idle",
+          startedAt: null,
+          finishedAt: null,
+          lastKey: null,
+          lastKeyAt: null,
+          runInitPromise: null,
+          pressedKeys: {},
+          isSubjectInputActive: true,
+          isSubjectLoading: false,
+          subjectTargets: [],
+          subjectTargetIndex: -1,
+        });
+      }
     } else if (mode === "hardcore") {
       const text = generateHardcoreText();
       get().setTarget({
@@ -339,6 +363,16 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
         const prevIndex =
           currentIndex === -1 ? 0 : (currentIndex - 1 + targets.length) % targets.length;
         get().setTarget(targets[prevIndex]);
+      } else if (state.mode === "subject") {
+        const { subjectTargets, subjectTargetIndex } = get();
+        if (subjectTargets.length > 0) {
+          const prevIndex =
+            (subjectTargetIndex - 1 + subjectTargets.length) % subjectTargets.length;
+          set({ subjectTargetIndex: prevIndex });
+          get().setTarget(subjectTargets[prevIndex]);
+        } else {
+          get().nextTarget();
+        }
       } else {
         get().nextTarget();
       }

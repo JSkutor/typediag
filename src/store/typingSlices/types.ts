@@ -10,6 +10,8 @@ export interface InputSlice {
   isSubjectInputActive: boolean;
   isSubjectLoading: boolean;
   fetchSubjectTarget: (subject: string) => Promise<void>;
+  subjectTargets: { id: string; content: string; language: string }[];
+  subjectTargetIndex: number;
 
   targetText: string;
   targetLanguage: string;

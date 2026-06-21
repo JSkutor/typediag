@@ -394,6 +394,7 @@ target text 없음.
 
 ### 기타
 
+TODO: target 중에 ' 있는거 있음. api 결과에서 거르는 거 확인 필요.
 TODO: hardcore 모드 사용자 데이터 연동 로직 구현 아직 안함. 
 TODO: 그 duration이랑 latency랑 상관관계 보는거, 바로 다음 쌍의 latency도 참조하게 해.
 TODO: \n 에서 스페이스 잘 정렬되게.
