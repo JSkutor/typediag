@@ -14,28 +14,11 @@ const generateHardcoreText = (): string => {
   return generateHardcorePracticeText(randomLength);
 };
 
-// Subject 모드를 위한 주제별 Mock 텍스트 목록 및 로더
-const getSubjectText = (subject?: string): string => {
-  const subjects: Record<string, string[]> = {
-    programming: [
-      "const typingStore = create<TypingStore>((set, get) => ({ ... }));",
-      "import { Canvas } from '@react-three/fiber';",
-      "function calculateKeystrokeDynamics(events: KeyEvent[]) { ... }",
-    ],
-    default: [
-      "[주제 연습: 과학] 인공지능과 우주 항공 기술의 융합이 가속화되고 있습니다.",
-      "[주제 연습: 경제] 글로벌 금리 동향과 환율 변동이 시장에 미치는 영향이 큽니다.",
-      "[주제 연습: 문학] 별 헤는 밤, 하늘에 가득 찬 별들을 보며 시를 짓습니다.",
-    ],
-  };
-  const list = subjects[subject || "default"] || subjects.default;
-  const idx = Math.floor(Math.random() * list.length);
-  return list[idx];
-};
-
 export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
   isSubjectInputActive: false,
   isSubjectLoading: false,
+  isSubjectGenerating: false,
+  currentSubject: "",
   subjectTargets: [],
   subjectTargetIndex: -1,
   fetchSubjectTarget: async (subject: string) => {
@@ -74,6 +57,7 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
       set({
         subjectTargets: data,
         subjectTargetIndex: 0,
+        currentSubject: subject.trim(),
       });
       get().setTarget({
         id: data[0].id,
@@ -137,6 +121,8 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
         pressedKeys: {},
         isSubjectInputActive: true,
         isSubjectLoading: false,
+        isSubjectGenerating: false,
+        currentSubject: "",
         subjectTargets: [],
         subjectTargetIndex: -1,
       });
@@ -241,11 +227,53 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
       const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % targets.length;
       get().setTarget(targets[nextIndex]);
     } else if (mode === "subject") {
-      const { subjectTargets, subjectTargetIndex } = get();
+      const { subjectTargets, subjectTargetIndex, currentSubject } = get();
       if (subjectTargets.length > 0) {
         const nextIndex = (subjectTargetIndex + 1) % subjectTargets.length;
         set({ subjectTargetIndex: nextIndex });
         get().setTarget(subjectTargets[nextIndex]);
+
+        // 3번째 문장(index 2)으로 넘어가는 순간, LLM으로 다음 문장 미리 생성
+        if (nextIndex === 2 && currentSubject && !get().isSubjectGenerating) {
+          set({ isSubjectGenerating: true });
+          fetch("/api/practice/subject/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ subject: currentSubject }),
+          })
+            .then(async (res) => {
+              if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                const errMsg =
+                  errData.error || "부적절한 주제이거나 문장 생성에 실패했습니다.";
+                // 에러 문구도 하나의 "연습 문장"으로 추가하여 흐름 유지
+                set((s) => ({
+                  subjectTargets: [
+                    ...s.subjectTargets,
+                    {
+                      id: `target_error_${Date.now()}`,
+                      content: errMsg,
+                      language: "ko",
+                    },
+                  ],
+                  isSubjectGenerating: false,
+                }));
+                return;
+              }
+              const { data } = await res.json();
+              if (data?.content) {
+                set((s) => ({
+                  subjectTargets: [...s.subjectTargets, data],
+                  isSubjectGenerating: false,
+                }));
+              } else {
+                set({ isSubjectGenerating: false });
+              }
+            })
+            .catch(() => {
+              set({ isSubjectGenerating: false });
+            });
+        }
       } else {
         const guideText = "원하는 주제를 입력하세요...";
         set({
@@ -267,6 +295,8 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
           pressedKeys: {},
           isSubjectInputActive: true,
           isSubjectLoading: false,
+          isSubjectGenerating: false,
+          currentSubject: "",
           subjectTargets: [],
           subjectTargetIndex: -1,
         });
@@ -495,7 +525,7 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
         expectedChar: lastOp && lastOp.op === "REPLACE" ? lastOp.targetChar || null : null,
       };
 
-      set((s) => ({
+      set((_s) => ({
         targetText: nextTargetText,
         qwertyBuffer: nextBuffer,
         typedText: nextTyped,
