@@ -11,7 +11,8 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(PROJECT_ROOT, "scripts", "data")
 DB_FILE = os.path.join(DATA_DIR, "targets.db")
 OUTPUT_JSONL = os.path.join(DATA_DIR, "batch_output.jsonl")
-TARGETS_JSON_PATH = os.path.join(PROJECT_ROOT, "src", "data", "targets.json")
+TARGETS_CLIENT_PATH = os.path.join(PROJECT_ROOT, "src", "data", "targets_client.json")
+TARGETS_VECTOR_PATH = os.path.join(PROJECT_ROOT, "src", "data", "targets_vector.json")
 
 def get_pure_hangul_count(text):
     """공백과 문장부호를 제외한 순수 한글 글자 수 계산"""
@@ -40,7 +41,7 @@ def init_db():
             language TEXT NOT NULL,
             raw_key TEXT,
             pure_hangul_count INTEGER,
-            tags TEXT,
+            embedding TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     """)
@@ -92,9 +93,9 @@ def import_results(min_len=50, max_len=110):
                 raw_content = content_data.get("content", "")
                 raw_tags = content_data.get("tags", [])
                 
-                # 태그 정제
+                # 태그 정제 (더 이상 사용 안함, 하위 호환성 위해 로드만)
                 tags = [str(t).strip() for t in raw_tags if t]
-                tags_json = json.dumps(tags, ensure_ascii=False)
+                # tags_json = json.dumps(tags, ensure_ascii=False)
                 
                 # 문장 정제 및 순수 한글 글자수 계산
                 content = clean_sentence(raw_content)
@@ -108,8 +109,8 @@ def import_results(min_len=50, max_len=110):
                 # DB 저장
                 try:
                     cursor.execute(
-                        "INSERT INTO target_texts (content, language, raw_key, pure_hangul_count, tags) VALUES (?, ?, ?, ?, ?)",
-                        (content, "ko", key, hangul_cnt, tags_json)
+                        "INSERT INTO target_texts (content, language, raw_key, pure_hangul_count) VALUES (?, ?, ?, ?)",
+                        (content, "ko", key, hangul_cnt)
                     )
                     inserted_count += 1
                 except sqlite3.IntegrityError:
@@ -129,8 +130,9 @@ def import_results(min_len=50, max_len=110):
 
 def export_to_json():
     """
-    SQLite DB에 저장된 모든 문장을 Next.js의 src/data/targets.json에 덮어씁니다.
-    - 기존 targets.json이 존재하는 경우 백업을 생성합니다.
+    SQLite DB에 저장된 문장을 두 개의 JSON으로 내보냅니다.
+    - targets_client.json: 프론트엔드 번들용 (임베딩 제외, 가벼움)
+    - targets_vector.json: 서버 API 및 유사도 검색용 (임베딩 포함, 무거움)
     """
     if not os.path.exists(DB_FILE):
         print(f"에러: SQLite DB 파일({DB_FILE})이 존재하지 않습니다. 먼저 import 명령을 수행해 주세요.", file=sys.stderr)
@@ -139,9 +141,9 @@ def export_to_json():
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     
-    # DB에서 데이터 조회 (태그 정보 포함)
+    # DB에서 데이터 조회 (임베딩 정보 포함)
     cursor.execute("""
-        SELECT content, language, tags, pure_hangul_count 
+        SELECT content, language, embedding, pure_hangul_count 
         FROM target_texts 
         ORDER BY id ASC
     """)
@@ -153,32 +155,45 @@ def export_to_json():
         return
         
     # JSON 파일 데이터 구성
-    targets_list = []
+    client_list = []
+    vector_list = []
     for idx, row in enumerate(rows, 1):
-        # tags 파싱
+        # embedding 파싱
         try:
-            tags = json.loads(row[2]) if row[2] else []
+            embedding = json.loads(row[2]) if row[2] else []
         except:
-            tags = []
+            embedding = []
             
-        targets_list.append({
+        base_item = {
             "id": f"target_{idx:03d}",
             "content": row[0],
-            "language": row[1],
-            "tags": tags
+            "language": row[1]
+        }
+        
+        client_list.append(base_item)
+        vector_list.append({
+            **base_item,
+            "embedding": embedding
         })
         
-    # 기존 targets.json 백업 생성
-    if os.path.exists(TARGETS_JSON_PATH):
-        backup_path = TARGETS_JSON_PATH + ".bak"
-        print(f"기존 {TARGETS_JSON_PATH} 파일을 백업합니다 -> {backup_path}")
-        shutil.copyfile(TARGETS_JSON_PATH, backup_path)
+    # 기존 targets.json 백업 (구버전 삭제 방지)
+    old_targets_path = os.path.join(PROJECT_ROOT, "src", "data", "targets.json")
+    if os.path.exists(old_targets_path):
+        backup_path = old_targets_path + ".bak"
+        print(f"기존 {old_targets_path} 파일을 백업합니다 -> {backup_path}")
+        shutil.copyfile(old_targets_path, backup_path)
+        os.remove(old_targets_path)
         
     # JSON 파일 쓰기
-    with open(TARGETS_JSON_PATH, "w", encoding="utf-8") as f:
-        json.dump(targets_list, f, ensure_ascii=False, indent=2)
+    with open(TARGETS_CLIENT_PATH, "w", encoding="utf-8") as f:
+        json.dump(client_list, f, ensure_ascii=False, indent=2)
         
-    print(f"\n성공적으로 {len(targets_list)}개의 문장을 {TARGETS_JSON_PATH}에 덮어썼습니다! (태그 속성 포함)")
+    with open(TARGETS_VECTOR_PATH, "w", encoding="utf-8") as f:
+        json.dump(vector_list, f, ensure_ascii=False, indent=2)
+        
+    print(f"\n성공적으로 {len(client_list)}개의 문장을 내보냈습니다!")
+    print(f"- 클라이언트용: {TARGETS_CLIENT_PATH}")
+    print(f"- 벡터 검색용: {TARGETS_VECTOR_PATH}")
     
     # 분포 요약 출력
     lengths = [row[3] for row in rows]
@@ -210,9 +225,10 @@ def show_db_stats():
     
     if total > 0:
         print("\n최근 등록된 예시 문장 5개:")
-        cursor.execute("SELECT id, content, pure_hangul_count, tags FROM target_texts ORDER BY id DESC LIMIT 5")
+        cursor.execute("SELECT id, content, pure_hangul_count, embedding FROM target_texts ORDER BY id DESC LIMIT 5")
         for row in cursor.fetchall():
-            print(f"[{row[0]}] (순수한글 {row[2]}자, 태그: {row[3]}): {row[1]}")
+            emb_status = "임베딩 완료" if row[3] else "임베딩 안됨"
+            print(f"[{row[0]}] (순수한글 {row[2]}자, {emb_status}): {row[1]}")
             
     conn.close()
 

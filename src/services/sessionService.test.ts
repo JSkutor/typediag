@@ -3,7 +3,7 @@ import { sessionService } from "./sessionService";
 import { db } from "@/utils/db";
 
 // Mock targets for targetText lookups
-vi.mock("@/data/targets.json", () => ({
+vi.mock("@/data/targets_client.json", () => ({
   default: [
     { id: "target_ko", content: "한글 텍스트", language: "ko" },
     { id: "target_en", content: "hello world", language: "en" },

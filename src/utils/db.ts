@@ -1,4 +1,4 @@
-import targets from "@/data/targets.json";
+import targets from "@/data/targets_client.json";
 import { safeParseStorage, safeSetStorage } from "./storage";
 
 // --- DB Entity Definitions matching db_schema.md ---

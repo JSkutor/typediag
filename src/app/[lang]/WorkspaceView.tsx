@@ -11,7 +11,7 @@ import { WorkspaceControls } from "@/components/workspace/WorkspaceControls";
 import { PracticeLayer } from "@/components/workspace/PracticeLayer";
 import { DiagnosticsLayer } from "@/components/workspace/DiagnosticsLayer";
 
-import targets from "@/data/targets.json";
+import targets from "@/data/targets_client.json";
 
 export default function WorkspaceView({ lang, tab }: { lang: string; tab: string }) {
   useResponsiveScale();

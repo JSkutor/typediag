@@ -1,5 +1,5 @@
 import { StoreSlice, InputSlice } from "./types";
-import targets from "@/data/targets.json";
+import targets from "@/data/targets_client.json";
 import { generateHardcorePracticeText } from "@/lib/practice/hardcoreModel";
 import { getQwertyChar, assembleHangulWithPunctuation } from "@/utils/keyboardMap";
 import { evaluateKeystroke } from "@/utils/typingEvaluator";
@@ -56,7 +56,6 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
         id: "target_subject_mock",
         content: text,
         language: /[가-힣]/.test(text) ? "ko" : "en",
-        tags: ["subject", "mock"],
       });
     } else if (mode === "hardcore") {
       const text = generateHardcoreText();
@@ -64,7 +63,6 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
         id: "target_hardcore_mock",
         content: text,
         language: "ko",
-        tags: ["hardcore", "mock"],
       });
     } else if (mode === "plain") {
       set({
@@ -164,7 +162,6 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
         id: `target_subject_${Date.now()}`,
         content: text,
         language: /[가-힣]/.test(text) ? "ko" : "en",
-        tags: ["subject"],
       });
     } else if (mode === "hardcore") {
       const text = generateHardcoreText();
@@ -172,7 +169,6 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
         id: `target_hardcore_${Date.now()}`,
         content: text,
         language: "ko",
-        tags: ["hardcore"],
       });
     } else if (mode === "plain") {
       get().reset();

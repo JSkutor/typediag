@@ -35,7 +35,29 @@
 - `language`: 문장의 언어 (예: 'ko', 'en') (문자열, Not Null)
 - `created_at`: 생성 일시 (Timestamp, Not Null)
 
-### 3. run (연습 세션)
+### 3. subject_texts (주제별 문장 - Vector Search)
+
+사용자가 원하는 주제(Subject)를 입력했을 때, Semantic 유사도 검색을 통해 적절한 타자 연습 문장을 반환하기 위한 테이블입니다.
+PostgreSQL의 `pgvector` 확장을 사용합니다.
+
+- `id`: 고유 식별값 (SERIAL, PK)
+- `subject`: 원래 생성 요청에 사용된 주제 키워드 혹은 카테고리 (TEXT)
+- `content`: 타자 연습 문장 본문 (TEXT)
+- `embedding`: OpenAI `text-embedding-3-small`을 통해 추출된 1536차원 벡터 (vector(1536))
+- `created_at`: 생성 일시 (TIMESTAMP, Default: CURRENT_TIMESTAMP)
+
+```sql
+CREATE EXTENSION IF NOT EXISTS vector;
+CREATE TABLE subject_texts (
+    id SERIAL PRIMARY KEY,
+    subject TEXT,
+    content TEXT,
+    embedding vector(1536),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### 4. run (연습 세션)
 
 사용자가 1회 연습을 시작해서 끝낼 때까지의 단위 기록입니다.
 
@@ -49,7 +71,7 @@
 - `accuracy`: 세션 전체의 정확도 퍼센트 (Float, Nullable)
 - `created_at`: 생성 일시 (Timestamp, Not Null)
 
-### 4. page (문장 타이핑 결과)
+### 5. page (문장 타이핑 결과)
 
 한 세션 내에서 개별 문장을 타이핑한 결과 및 상세 키 로그를 저장합니다.
 (프론트엔드에서 한 페이지의 타건이 끝났을 때 1회의 API 호출로 통계와 키 배열 전체를 저장합니다.)

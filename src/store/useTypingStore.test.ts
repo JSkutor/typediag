@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { useTypingStore } from "./useTypingStore";
-import targets from "@/data/targets.json";
+import targets from "@/data/targets_client.json";
 
 describe("useTypingStore", () => {
   beforeEach(() => {

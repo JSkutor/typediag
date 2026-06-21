@@ -18,7 +18,7 @@ export interface InputSlice {
   setMode: (mode: TypingMode) => void;
   setTargetLanguage: (lang: string) => void;
   setTarget: (
-    target: string | { id: string; content: string; language: string; tags?: string[] },
+    target: string | { id: string; content: string; language: string; embedding?: number[] },
   ) => void;
   nextTarget: () => void;
   setTypedText: (value: string) => void;

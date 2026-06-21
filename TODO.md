@@ -365,11 +365,23 @@ postgreSQL 에서도 지원한다고 함.
 저가 api 후보: Gemini 2.5 Flash-Lite, GPT-4o mini, V4-Flash.
 임베딩 모델: text-embedding-3-small (openai)
 
-
-
-
-
-
+###### 구현 순서 (Roadmap)
+1. DB 설정 및 테이블 스키마 정의 (Database Setup)
+   - PostgreSQL `pgvector` 활성화 및 `subject_texts` 테이블 생성 (id, subject, text, embedding (vector, 1536차원), created_at).
+   - 로컬 개발 환경용 pgvector 모의 처리(Mock) 설계.
+2. 외부 API 유틸리티 구현 (Embedding & LLM Client)
+   - OpenAI `text-embedding-3-small` 임베딩 API 연동.
+   - `Gemini 2.5 Flash-Lite` / `GPT-4o mini` 등 저가 LLM API 연동.
+3. 코어 비즈니스 로직 구현 (Subject Service)
+   - 입력값 검증 필터링 (무의미어/비속어 차단).
+   - 흐름 제어: 주제어 임베딩 ➔ 벡터 검색 ➔ [Hit] DB 조회 및 즉시 반환 ➔ [Miss] LLM 생성 & 비동기 백그라운드 임베딩 DB 저장.
+4. Next.js API 엔드포인트 작성 (API Route)
+   - POST `/api/practice/subject` 엔드포인트 구현 및 Rate Limiting 적용.
+5. Zustand 상태 관리 연결 (Zustand Slice)
+   - `createSubjectSlice.ts` 신설 혹은 통합을 통한 모드 상태 관리 추가.
+6. UI 컴포넌트 및 로딩 애니메이션 구현 (UI Layout)
+   - 주제어 입력창 UI 추가.
+   - 대기 시간 동안 보여줄 아스키/인터랙티브 로딩 애니메이션 추가.
 
 #### plain
 스크롤 가능, 페이지 기능은 유지.
@@ -382,6 +394,7 @@ target text 없음.
 
 ### 기타
 
+TODO: hardcore 모드 사용자 데이터 연동 로직 구현 아직 안함. 
 TODO: 그 duration이랑 latency랑 상관관계 보는거, 바로 다음 쌍의 latency도 참조하게 해.
 TODO: \n 에서 스페이스 잘 정렬되게.
 TODO: 정답을 입력하다 만 경우(종성 x) 빨간 색 안보임.

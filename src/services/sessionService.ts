@@ -1,7 +1,7 @@
 import { db } from "@/utils/db";
 import { calculateMetrics, calculateLatencyAfterGap } from "@/lib/practice/metrics";
 import type { KeyEvent } from "@/lib/skdm";
-import targets from "@/data/targets.json";
+import targets from "@/data/targets_client.json";
 
 export class SessionService {
   private static instance: SessionService;
