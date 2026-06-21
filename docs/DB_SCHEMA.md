@@ -43,7 +43,7 @@ PostgreSQL의 `pgvector` 확장을 사용합니다.
 - `id`: 고유 식별값 (SERIAL, PK)
 - `subject`: 원래 생성 요청에 사용된 주제 키워드 혹은 카테고리 (TEXT)
 - `content`: 타자 연습 문장 본문 (TEXT)
-- `embedding`: OpenAI `text-embedding-3-small`을 통해 추출된 1536차원 벡터 (vector(1536))
+- `embedding`: OpenAI `text-embedding-3-large`을 통해 추출된 3072차원 벡터 (vector(3072))
 - `created_at`: 생성 일시 (TIMESTAMP, Default: CURRENT_TIMESTAMP)
 
 ```sql
@@ -52,7 +52,7 @@ CREATE TABLE subject_texts (
     id SERIAL PRIMARY KEY,
     subject TEXT,
     content TEXT,
-    embedding vector(1536),
+    embedding vector(3072),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```

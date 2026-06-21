@@ -11,7 +11,10 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(PROJECT_ROOT, "scripts", "data")
 DB_FILE = os.path.join(DATA_DIR, "targets.db")
 
-client = OpenAI()
+client = OpenAI(
+    api_key=os.environ.get("UPSTAGE_API_KEY"),
+    base_url="https://api.upstage.ai/v1"
+)
 
 def generate_embeddings():
     if not os.path.exists(DB_FILE):
@@ -44,7 +47,7 @@ def generate_embeddings():
         try:
             response = client.embeddings.create(
                 input=texts,
-                model="text-embedding-3-small"
+                model="embedding-query"
             )
             
             # Update DB with generated embeddings

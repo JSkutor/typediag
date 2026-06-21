@@ -3,8 +3,15 @@ import { findNearestNeighbors } from "@/utils/vectorSearchMock";
 import fs from "fs";
 import path from "path";
 
+interface VectorTarget {
+  id: string;
+  content: string;
+  language: string;
+  embedding: number[];
+}
+
 // 캐싱을 위한 전역 변수
-let cachedVectorTargets: any[] | null = null;
+let cachedVectorTargets: VectorTarget[] | null = null;
 
 function getVectorTargets() {
   if (cachedVectorTargets) return cachedVectorTargets;
@@ -25,21 +32,21 @@ export async function POST(req: Request) {
       );
     }
 
-    // 1. OpenAI 임베딩 API 호출
-    const openAiApiKey = process.env.OPENAI_API_KEY;
-    if (!openAiApiKey) {
-      throw new Error("OPENAI_API_KEY is not set in environment variables.");
+    // 1. Upstage 임베딩 API 호출
+    const upstageApiKey = process.env.UPSTAGE_API_KEY;
+    if (!upstageApiKey) {
+      throw new Error("UPSTAGE_API_KEY is not set in environment variables.");
     }
 
-    const embeddingRes = await fetch("https://api.openai.com/v1/embeddings", {
+    const embeddingRes = await fetch("https://api.upstage.ai/v1/embeddings", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${openAiApiKey}`,
+        Authorization: `Bearer ${upstageApiKey}`,
       },
       body: JSON.stringify({
         input: subject,
-        model: "text-embedding-3-small",
+        model: "embedding-query",
       }),
     });
 
@@ -64,16 +71,17 @@ export async function POST(req: Request) {
 
     // 3. 결과 반환 (프론트엔드로는 큰 embedding 배열을 보낼 필요가 없음)
     const bestMatch = results[0];
-    const { embedding, ...matchWithoutEmbedding } = bestMatch;
+    const { embedding: _embedding, ...matchWithoutEmbedding } = bestMatch;
 
     return NextResponse.json({
       success: true,
       data: matchWithoutEmbedding,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     console.error("Subject Mode Search Error:", error);
     return NextResponse.json(
-      { error: "Internal server error", details: error.message },
+      { error: "Internal server error", details: errorMessage },
       { status: 500 }
     );
   }

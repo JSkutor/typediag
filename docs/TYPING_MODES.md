@@ -85,7 +85,7 @@ Subject Mode는 사용자가 직접 입력한 주제에 맞는 타자 연습 문
 
 ```mermaid
 graph TD
-    UserInput([유저 주제어 입력]) --> Embedding[임베딩 생성: text-embedding-3-small]
+    UserInput([유저 주제어 입력]) --> Embedding[임베딩 생성: text-embedding-3-large]
     Embedding --> VectorSearch[Vector Similarity Search: pgvector]
     
     VectorSearch --> MatchCheck{유사도 >= 임계값 θ?}
@@ -102,7 +102,7 @@ graph TD
 ```
 
 1. **유저 주제어 입력**: 사용자가 연습 패널의 입력 창에 자신이 원하는 연습 주제(예: "우주 여행", "여름 바다")를 입력합니다.
-2. **의미 벡터 추출 (Embedding)**: 입력된 주제어를 OpenAI의 `text-embedding-3-small` 임베딩 API를 통해 벡터로 변환합니다. (호출 비용이 극히 저렴함)
+2. **의미 벡터 추출 (Embedding)**: 입력된 주제어를 OpenAI의 `text-embedding-3-large` 임베딩 API를 통해 벡터로 변환합니다. (호출 비용이 극히 저렴함)
 3. **유사도 매칭 및 캐시 히트**:
    - PostgreSQL의 `pgvector` 인덱스를 조회하여 기존 DB에 저장되어 있는 문장들의 임베딩 벡터와 코사인 유사도(Cosine Similarity)를 비교합니다.
    - 유사도가 사전 정의된 임계값 $\theta$ (예: $0.85$) 이상인 문장이 존재할 경우, LLM API 호출 없이 즉시 해당 문장을 DB에서 로드하여 제공합니다 (비용 0, Latency < 100ms).
@@ -114,7 +114,7 @@ graph TD
 
 ### 3.2. 핵심 설계 파라미터 (Core Design Parameters)
 
-- **임베딩 모델**: OpenAI `text-embedding-3-small` (차원 수: 1536)
+- **임베딩 모델**: OpenAI `text-embedding-3-large` (차원 수: 3072)
 - **저가 LLM API 후보**: Gemini 2.5 Flash-Lite, GPT-4o mini
 - **유사도 판단 기준**: Cosine Similarity $\ge 0.85$ (성능/정합성 트레이드오프에 따라 튜닝 가능)
 - **프롬프트 룰셋**: 타자 연습에 적합하도록 문장의 난이도(특수문자 제한), 적당한 길이(300~500자), 가독성을 엄격하게 제한하는 시스템 프롬프트 지정
