@@ -1,0 +1,15 @@
+{
+  "version": "7",
+  "dialects": {
+    "postgresql": 0
+  },
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1782135728603,
+      "tag": "0000_woozy_meteorite",
+      "breakpoints": true
+    }
+  ]
+}

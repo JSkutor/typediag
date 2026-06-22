@@ -4,12 +4,7 @@ import React from "react";
 import { useTypingStore, TypingMode } from "@/store/useTypingStore";
 
 export const PracticePanel: React.FC = () => {
-  const {
-    qwertyBuffer,
-    alignments: diffResult,
-    mode,
-    setMode,
-  } = useTypingStore();
+  const { qwertyBuffer, alignments: diffResult, mode, setMode, subjectTargets, subjectTargetIndex, isSubjectInputActive, isSubjectLoading } = useTypingStore();
 
   const lastInputIndex = React.useMemo(() => {
     return diffResult.findLastIndex((d) => d.inputIndex !== undefined);
@@ -71,7 +66,9 @@ export const PracticePanel: React.FC = () => {
                   borderRadius: "9999px",
                   border: "none",
                   backgroundColor: isActive ? "var(--accent, #3861fb)" : "transparent",
-                  color: isActive ? "var(--text-inverse, #f0f2f5)" : "var(--text-secondary, #8d929b)",
+                  color: isActive
+                    ? "var(--text-inverse, #f0f2f5)"
+                    : "var(--text-secondary, #8d929b)",
                   cursor: "pointer",
                   outline: "none",
                   fontFamily: "var(--font-sans)",
@@ -102,68 +99,101 @@ export const PracticePanel: React.FC = () => {
         </div>
       </div>
 
+      {mode === "subject" && !isSubjectInputActive && subjectTargets.length > 0 && (
+        <div style={{
+          position: "absolute",
+          top: "1rem",
+          right: "1rem",
+          fontSize: "0.875rem",
+          color: "var(--text-secondary, #8d929b)",
+          backgroundColor: "rgba(255, 255, 255, 0.05)",
+          padding: "4px 12px",
+          borderRadius: "9999px",
+        }}>
+          준비된 텍스트: {subjectTargets.length - subjectTargetIndex}
+        </div>
+      )}
+
       <div
         id="typing-text-container"
         className="typing-text-container inline-block text-left"
-        style={{ maxWidth: "1024px" }}
+        style={{ maxWidth: "1024px", width: "100%", textAlign: "center" }}
         aria-live="polite"
         aria-atomic="true"
       >
-        {mode === "plain" && qwertyBuffer.length === 0 && (
-          <span
-            style={{
-              fontSize: "1.5rem",
-              color: "rgba(255, 255, 255, 0.2)",
-              fontStyle: "italic",
-              pointerEvents: "none",
-              marginRight: "8px",
-            }}
+        {mode === "subject" && isSubjectLoading ? (
+          <div
+            style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem" }}
           >
-            여기에 자유롭게 입력하세요...
-          </span>
+            <div
+              style={{
+                color: "var(--text-secondary, #8d929b)",
+                fontStyle: "italic",
+                animation: "pulse 1.5s infinite",
+              }}
+            >
+              주제에 맞는 문장을 찾는 중입니다...
+            </div>
+          </div>
+        ) : (
+          <>
+            {mode === "plain" && qwertyBuffer.length === 0 && (
+              <span
+                style={{
+                  fontSize: "1.5rem",
+                  color: "rgba(255, 255, 255, 0.2)",
+                  fontStyle: "italic",
+                  pointerEvents: "none",
+                  marginRight: "8px",
+                }}
+              >
+                여기에 자유롭게 입력하세요...
+              </span>
+            )}
+            {diffResult.length === 0 && <span className="typing-cursor left" />}
+            {diffResult.map((d, i) => {
+              const isOmitted = d.op === "OMIT";
+
+              let highlightClass = "";
+              if (d.op === "EQUAL" || d.op === "PARTIAL") highlightClass = "text-char-primary";
+              else if (d.op === "INSERT" || d.op === "REPLACE")
+                highlightClass = "text-char-error opacity-80";
+
+              if (d.op === "INSERT" && d.char === " ") {
+                highlightClass += " border-b-4 border-red-500/70";
+              }
+
+              const showCursorRight = qwertyBuffer.length > 0 && i === lastInputIndex;
+              const showCursorLeft = qwertyBuffer.length === 0 && i === 0;
+
+              return (
+                <span key={i} id={`text-char-${i}`} className="text-char-container relative">
+                  {d.op !== "INSERT" && (
+                    <span
+                      className={`text-char-muted ${isOmitted ? "border-b-4 border-red-500/30" : ""}`}
+                    >
+                      {d.targetChar === " " ? "\u00A0" : d.targetChar}
+                    </span>
+                  )}
+
+                  {(d.op === "EQUAL" ||
+                    d.op === "PARTIAL" ||
+                    d.op === "REPLACE" ||
+                    d.op === "INSERT") && (
+                    <span
+                      className={`${d.op !== "INSERT" ? "text-char-overlay" : ""} ${highlightClass}`}
+                    >
+                      {d.char === " " ? "\u00A0" : d.char}
+                    </span>
+                  )}
+
+                  {showCursorLeft && <span className="typing-cursor left" />}
+                  {showCursorRight && <span className="typing-cursor right" />}
+                </span>
+              );
+            })}
+          </>
         )}
-        {diffResult.length === 0 && <span className="typing-cursor left" />}
-        {diffResult.map((d, i) => {
-          const isOmitted = d.op === "OMIT";
-
-          let highlightClass = "";
-          if (d.op === "EQUAL" || d.op === "PARTIAL") highlightClass = "text-char-primary";
-          else if (d.op === "INSERT" || d.op === "REPLACE")
-            highlightClass = "text-char-error opacity-80";
-
-          if (d.op === "INSERT" && d.char === " ") {
-            highlightClass += " border-b-4 border-red-500/70";
-          }
-
-          const showCursorRight = qwertyBuffer.length > 0 && i === lastInputIndex;
-          const showCursorLeft = qwertyBuffer.length === 0 && i === 0;
-
-          return (
-            <span key={i} id={`text-char-${i}`} className="text-char-container relative">
-              {d.op !== "INSERT" && (
-                <span
-                  className={`text-char-muted ${isOmitted ? "border-b-4 border-red-500/30" : ""}`}
-                >
-                  {d.targetChar === " " ? "\u00A0" : d.targetChar}
-                </span>
-              )}
-
-              {(d.op === "EQUAL" ||
-                d.op === "PARTIAL" ||
-                d.op === "REPLACE" ||
-                d.op === "INSERT") && (
-                <span
-                  className={`${d.op !== "INSERT" ? "text-char-overlay" : ""} ${highlightClass}`}
-                >
-                  {d.char === " " ? "\u00A0" : d.char}
-                </span>
-              )}
-
-              {showCursorLeft && <span className="typing-cursor left" />}
-              {showCursorRight && <span className="typing-cursor right" />}
-            </span>
-          );
-        })}
       </div>
     </div>
   );

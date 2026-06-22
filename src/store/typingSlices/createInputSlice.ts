@@ -1,10 +1,11 @@
 import { StoreSlice, InputSlice } from "./types";
-import targets from "@/data/targets.json";
+import targets from "@/data/targets_client.json";
 import { generateHardcorePracticeText } from "@/lib/practice/hardcoreModel";
 import { getQwertyChar, assembleHangulWithPunctuation } from "@/utils/keyboardMap";
 import { evaluateKeystroke } from "@/utils/typingEvaluator";
 import { getKeyToken } from "./utils";
 import { runMvsa, getCharQwertyIndices } from "@/utils/mvsa";
+import { validateSubject } from "@/utils/validation";
 
 // Hardcore 모드를 위한 취약 키 무작위 조합 생성
 const generateHardcoreText = (): string => {
@@ -13,26 +14,120 @@ const generateHardcoreText = (): string => {
   return generateHardcorePracticeText(randomLength);
 };
 
-// Subject 모드를 위한 주제별 Mock 텍스트 목록 및 로더
-const getSubjectText = (subject?: string): string => {
-  const subjects: Record<string, string[]> = {
-    programming: [
-      "const typingStore = create<TypingStore>((set, get) => ({ ... }));",
-      "import { Canvas } from '@react-three/fiber';",
-      "function calculateKeystrokeDynamics(events: KeyEvent[]) { ... }",
-    ],
-    default: [
-      "[주제 연습: 과학] 인공지능과 우주 항공 기술의 융합이 가속화되고 있습니다.",
-      "[주제 연습: 경제] 글로벌 금리 동향과 환율 변동이 시장에 미치는 영향이 큽니다.",
-      "[주제 연습: 문학] 별 헤는 밤, 하늘에 가득 찬 별들을 보며 시를 짓습니다.",
-    ],
-  };
-  const list = subjects[subject || "default"] || subjects.default;
-  const idx = Math.floor(Math.random() * list.length);
-  return list[idx];
-};
+export const createInputSlice: StoreSlice<InputSlice> = (set, get) => {
+  const requestMoreSubjectTargets = (subject: string) => {
+    if (!subject || get().isSubjectGenerating || get().subjectTargets.length >= 100) {
+      return;
+    }
 
-export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
+    set({ isSubjectGenerating: true });
+    void (async () => {
+      try {
+        const res = await fetch("/api/practice/subject/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ subject }),
+        });
+        if (!res?.ok) {
+          const errData = await res.json().catch(() => ({}));
+          console.warn("[createInputSlice] Subject generate failed:", errData?.error || "Unknown error");
+          return;
+        }
+        const { data } = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          set((s) => ({
+            subjectTargets: [...s.subjectTargets, ...data].slice(0, 100),
+          }));
+        }
+      } catch (error) {
+        console.warn("[createInputSlice] Subject generate failed:", error);
+      } finally {
+        set({ isSubjectGenerating: false });
+      }
+    })();
+  };
+
+  return {
+  isSubjectInputActive: false,
+  isSubjectLoading: false,
+  isSubjectGenerating: false,
+  currentSubject: "",
+  subjectTargets: [],
+  subjectTargetIndex: -1,
+  fetchSubjectTarget: async (subject: string) => {
+    // 1. 클라이언트 측 1차 유효성 검사 실행
+    const validation = validateSubject(subject);
+    if (!validation.isValid) {
+      const errorMsg = validation.reason || "의미가 없습니다.";
+      set({
+        targetText: errorMsg,
+        typedText: "",
+        qwertyBuffer: "",
+        maxTypedTextLength: 0,
+        alignments: runMvsa(errorMsg, "", true),
+        isSubjectInputActive: true,
+        subjectTargets: [],
+        subjectTargetIndex: -1,
+      });
+      return;
+    }
+
+    set({ isSubjectLoading: true });
+    try {
+      let res = await fetch("/api/practice/subject", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subject }),
+      });
+
+      if (res.status === 404) {
+        res = await fetch("/api/practice/subject/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ subject }),
+        });
+      }
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData?.error || "올바른 한글 입력이 아닙니다.");
+      }
+      const { data } = await res.json();
+      if (!Array.isArray(data) || data.length === 0) {
+        throw new Error("검색 결과가 없습니다.");
+      }
+      set({
+        subjectTargets: data,
+        subjectTargetIndex: 0,
+        currentSubject: subject.trim(),
+      });
+      get().setTarget({
+        id: data[0].id,
+        content: data[0].content,
+        language: data[0].language,
+      });
+      set({ isSubjectInputActive: false });
+      if (data.length < 3) {
+        requestMoreSubjectTargets(subject.trim());
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "올바른 한글 입력이 아닙니다.";
+      console.warn("[fetchSubjectTarget]", errorMessage);
+      set({
+        targetText: errorMessage,
+        typedText: "",
+        qwertyBuffer: "",
+        maxTypedTextLength: 0,
+        alignments: runMvsa(errorMessage, "", true),
+        isSubjectInputActive: true,
+        subjectTargets: [],
+        subjectTargetIndex: -1,
+      });
+    } finally {
+      set({ isSubjectLoading: false });
+    }
+  },
+
   targetText: "",
   targetLanguage: "en",
   targetId: "",
@@ -51,12 +146,30 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
     if (mode === "normal") {
       get().setTarget(targets[0]);
     } else if (mode === "subject") {
-      const text = getSubjectText();
-      get().setTarget({
-        id: "target_subject_mock",
-        content: text,
-        language: /[가-힣]/.test(text) ? "ko" : "en",
-        tags: ["subject", "mock"],
+      const guideText = "원하는 주제를 입력하세요...";
+      set({
+        targetText: guideText,
+        targetLanguage: "ko",
+        targetId: "",
+        typedText: "",
+        maxTypedTextLength: 0,
+        qwertyBuffer: "",
+        mvsaCache: new Map(),
+        alignments: runMvsa(guideText, "", true),
+        events: [],
+        status: "idle",
+        startedAt: null,
+        finishedAt: null,
+        lastKey: null,
+        lastKeyAt: null,
+        runInitPromise: null,
+        pressedKeys: {},
+        isSubjectInputActive: true,
+        isSubjectLoading: false,
+        isSubjectGenerating: false,
+        currentSubject: "",
+        subjectTargets: [],
+        subjectTargetIndex: -1,
       });
     } else if (mode === "hardcore") {
       const text = generateHardcoreText();
@@ -64,7 +177,6 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
         id: "target_hardcore_mock",
         content: text,
         language: "ko",
-        tags: ["hardcore", "mock"],
       });
     } else if (mode === "plain") {
       set({
@@ -146,6 +258,7 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
       lastKeyAt: null,
       runInitPromise: null,
       pressedKeys: {},
+      isSubjectInputActive: false,
     });
   },
 
@@ -159,20 +272,56 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
       const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % targets.length;
       get().setTarget(targets[nextIndex]);
     } else if (mode === "subject") {
-      const text = getSubjectText();
-      get().setTarget({
-        id: `target_subject_${Date.now()}`,
-        content: text,
-        language: /[가-힣]/.test(text) ? "ko" : "en",
-        tags: ["subject"],
-      });
+      const { subjectTargets, subjectTargetIndex, currentSubject } = get();
+      if (subjectTargets.length > 0) {
+        // 프리페치 조건 판단: 현재 치고 완료한 'subjectTargetIndex' 기준 남은 문장 수 계산
+        const remainingCount = subjectTargets.length - 1 - subjectTargetIndex;
+
+        // 남은 문장이 3개 이하일 때, LLM으로 다음 문장 20개 미리 생성 (최대 100개까지만)
+        if (remainingCount <= 3 && currentSubject) {
+          requestMoreSubjectTargets(currentSubject);
+        }
+
+        if (remainingCount === 0 && get().isSubjectGenerating) {
+          return;
+        }
+
+        const nextIndex = (subjectTargetIndex + 1) % subjectTargets.length;
+        set({ subjectTargetIndex: nextIndex });
+        get().setTarget(subjectTargets[nextIndex]);
+      } else {
+        const guideText = "원하는 주제를 입력하세요...";
+        set({
+          targetText: guideText,
+          targetLanguage: "ko",
+          targetId: "",
+          typedText: "",
+          maxTypedTextLength: 0,
+          qwertyBuffer: "",
+          mvsaCache: new Map(),
+          alignments: runMvsa(guideText, "", true),
+          events: [],
+          status: "idle",
+          startedAt: null,
+          finishedAt: null,
+          lastKey: null,
+          lastKeyAt: null,
+          runInitPromise: null,
+          pressedKeys: {},
+          isSubjectInputActive: true,
+          isSubjectLoading: false,
+          isSubjectGenerating: false,
+          currentSubject: "",
+          subjectTargets: [],
+          subjectTargetIndex: -1,
+        });
+      }
     } else if (mode === "hardcore") {
       const text = generateHardcoreText();
       get().setTarget({
         id: `target_hardcore_${Date.now()}`,
         content: text,
         language: "ko",
-        tags: ["hardcore"],
       });
     } else if (mode === "plain") {
       get().reset();
@@ -198,6 +347,58 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
   handlePhysicalKeyPress: (code, shiftKey, timestamp) => {
     const state = get();
 
+    if (state.mode === "subject" && state.isSubjectInputActive) {
+      if (state.isSubjectLoading) return;
+
+      const isKorean = state.targetLanguage === "ko";
+
+      if (code === "Enter") {
+        const query = state.typedText.trim();
+        if (query && query !== "원하는 주제를 입력하세요...") {
+          get().fetchSubjectTarget(query);
+        }
+        return;
+      }
+
+      if (code === "Backspace") {
+        if (state.qwertyBuffer.length > 0) {
+          const nextBuffer = state.qwertyBuffer.slice(0, -1);
+          const nextTyped = isKorean ? assembleHangulWithPunctuation(nextBuffer) : nextBuffer;
+          const nextTargetText =
+            nextBuffer.length === 0 ? "원하는 주제를 입력하세요..." : nextTyped;
+          const nextAlignments =
+            nextBuffer.length === 0
+              ? runMvsa(nextTargetText, "", isKorean, state.mvsaCache)
+              : runMvsa(nextTargetText, nextBuffer, isKorean, state.mvsaCache);
+
+          set({
+            targetText: nextTargetText,
+            qwertyBuffer: nextBuffer,
+            typedText: nextTyped,
+            alignments: nextAlignments,
+          });
+        }
+        return;
+      }
+
+      const char = getQwertyChar(code, shiftKey);
+      if (char !== null) {
+        const nextBuffer = state.qwertyBuffer + char;
+        const nextTyped = isKorean ? assembleHangulWithPunctuation(nextBuffer) : nextBuffer;
+        const nextTargetText = nextTyped;
+        const nextAlignments = runMvsa(nextTargetText, nextBuffer, isKorean, state.mvsaCache);
+
+        set({
+          targetText: nextTargetText,
+          qwertyBuffer: nextBuffer,
+          typedText: nextTyped,
+          maxTypedTextLength: nextTyped.length,
+          alignments: nextAlignments,
+        });
+      }
+      return;
+    }
+
     if (code === "ArrowRight") {
       get().nextTarget();
       return;
@@ -209,6 +410,16 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
         const prevIndex =
           currentIndex === -1 ? 0 : (currentIndex - 1 + targets.length) % targets.length;
         get().setTarget(targets[prevIndex]);
+      } else if (state.mode === "subject") {
+        const { subjectTargets, subjectTargetIndex } = get();
+        if (subjectTargets.length > 0) {
+          let prevIndex = (subjectTargetIndex - 1) % subjectTargets.length;
+          if (prevIndex < 0) prevIndex += subjectTargets.length;
+          set({ subjectTargetIndex: prevIndex });
+          get().setTarget(subjectTargets[prevIndex]);
+        } else {
+          get().nextTarget();
+        }
       } else {
         get().nextTarget();
       }
@@ -331,13 +542,13 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
         expectedChar: lastOp && lastOp.op === "REPLACE" ? lastOp.targetChar || null : null,
       };
 
-      set((s) => ({
+      set({
         targetText: nextTargetText,
         qwertyBuffer: nextBuffer,
         typedText: nextTyped,
         maxTypedTextLength: nextTyped.length,
         alignments,
-      }));
+      });
       get().recordKey(keyToken, timestamp, evalResult);
 
       if (shouldFinish && isKorean) {
@@ -362,4 +573,5 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
       }
     }
   },
-});
+};
+};

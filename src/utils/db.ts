@@ -1,34 +1,32 @@
-import targets from "@/data/targets.json";
-import { safeParseStorage, safeSetStorage } from "./storage";
+/**
+ * Database access layer for TypeDiag.
+ *
+ * Replaces the previous localStorage-based implementation with Drizzle ORM
+ * queries against PostgreSQL (TimescaleDB).
+ *
+ * The public API (function signatures) is intentionally kept compatible with
+ * the previous version so that sessionService.ts and other consumers need
+ * minimal changes.
+ */
 
-// --- DB Entity Definitions matching db_schema.md ---
+import { eq, desc, sql, inArray } from "drizzle-orm";
+import { drizzleDb } from "@/db";
+import {
+  users,
+  targetTexts,
+  runs,
+  pages,
+  keyEvents,
+  type Run,
+  type Page,
+  type NewKeyEvent,
+} from "@/db/schema";
 
-export interface UserRow {
-  id: string;
-  email: string | null;
-  nickname: string;
-  created_at: string;
-  updated_at: string;
-}
+// --- Row type re-exports for consumers ---
 
-export interface TargetTextRow {
-  id: string;
-  content: string;
-  language: string;
-  created_at: string;
-}
-
-export interface RunRow {
-  id: string;
-  user_id: string | null;
-  status: "pending" | "in_progress" | "completed";
-  started_at: string; // ISO string
-  finished_at: string | null; // ISO string
-  cpm: number | null;
-  wpm: number | null;
-  accuracy: number | null;
-  created_at: string; // ISO string
-}
+export type { Run as RunRow } from "@/db/schema";
+export type { Page as PageRow } from "@/db/schema";
+export type { TargetText as TargetTextRow } from "@/db/schema";
 
 export interface KeyEventSchema {
   from_key: string | null;
@@ -40,104 +38,164 @@ export interface KeyEventSchema {
   expected_char: string | null;
 }
 
-export interface PageRow {
-  id: string;
-  run_id: string;
-  target_text_id: string;
-  order_index: number;
-  language: string;
-  typed_text: string;
-  wpm: number;
-  cpm: number;
-  accuracy: number;
-  started_at: string; // ISO string
-  finished_at: string; // ISO string
-  elapsed_time_ms: number;
-  key_events: KeyEventSchema[];
-  created_at: string; // ISO string
+function isPostgresUniqueViolation(error: unknown): boolean {
+  const candidates = [error, (error as { cause?: unknown })?.cause];
+  return candidates.some((candidate) => (candidate as { code?: string })?.code === "23505");
 }
 
-// --- LocalStorage Keys ---
-const KEYS = {
-  RUNS: "typediag_db_runs_v1",
-  PAGES: "typediag_db_pages_v1",
-};
-
-// --- Mock User ---
-const MOCK_USER: UserRow = {
-  id: "user_001",
-  email: "user@example.com",
-  nickname: "Typing Master",
-  created_at: new Date("2026-06-15T00:00:00Z").toISOString(),
-  updated_at: new Date("2026-06-15T00:00:00Z").toISOString(),
-};
-
-// --- Helper Functions to read/write localStorage ---
-function getStored<T>(key: string, defaultVal: T): T {
-  return safeParseStorage(key, defaultVal);
-}
-
-function setStored<T>(key: string, value: T): void {
-  safeSetStorage(key, value);
-}
-
-// --- Dev Server Sync Helpers ---
-// NOTE: By default, we use localStorage for typing practice runs.
-// The local_db.json data is only fetched explicitly when clicking the developer button.
-
-// --- Asynchronous DB API (easy to migrate to Prisma/Supabase/API endpoints later) ---
+// --- Asynchronous DB API (Drizzle ORM) ---
 
 export const db = {
   /**
-   * Get the current user profile.
+   * Get an existing user by their Clerk ID or create a new user (guest or normal).
    */
-  async getCurrentUser(): Promise<UserRow> {
-    return MOCK_USER;
+  async getOrCreateUserByClerkId(clerkId: string) {
+    const existing = await drizzleDb.select().from(users).where(eq(users.id, clerkId)).limit(1);
+    if (existing[0]) {
+      return existing[0];
+    }
+
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        const [newUser] = await drizzleDb
+          .insert(users)
+          .values({ id: clerkId })
+          .onConflictDoNothing({ target: users.id })
+          .returning();
+
+        if (newUser) {
+          return newUser;
+        }
+
+        const concurrentUser = await drizzleDb
+          .select()
+          .from(users)
+          .where(eq(users.id, clerkId))
+          .limit(1);
+        if (concurrentUser[0]) {
+          return concurrentUser[0];
+        }
+      } catch (error: unknown) {
+        if (!isPostgresUniqueViolation(error)) {
+          throw error;
+        }
+
+        const concurrentUser = await drizzleDb
+          .select()
+          .from(users)
+          .where(eq(users.id, clerkId))
+          .limit(1);
+        if (concurrentUser[0]) {
+          return concurrentUser[0];
+        }
+      }
+    }
+
+    throw new Error(`Failed to create user for clerkId: ${clerkId}`);
   },
 
   /**
-   * Get list of all target texts (mocked from targets.json).
+   * Transfer all guest-owned runs and target texts to a member account, then remove the guest row.
    */
-  async getTargetTexts(): Promise<TargetTextRow[]> {
-    return targets.map((t) => ({
-      id: t.id,
-      content: t.content,
-      language: t.language,
-      created_at: new Date("2026-06-15T00:00:00Z").toISOString(),
-    }));
+  async mergeGuestData(guestUserId: string, memberUserId: string): Promise<void> {
+    if (guestUserId === memberUserId) {
+      return;
+    }
+
+    await drizzleDb.transaction(async (tx) => {
+      await tx.update(runs).set({ userId: memberUserId }).where(eq(runs.userId, guestUserId));
+      await tx
+        .update(targetTexts)
+        .set({ userId: memberUserId })
+        .where(eq(targetTexts.userId, guestUserId));
+      await tx.delete(users).where(eq(users.id, guestUserId));
+    });
+  },
+  /**
+   * Get list of all target texts.
+   */
+  async getTargetTexts() {
+    return drizzleDb
+      .select({
+        id: targetTexts.id,
+        content: targetTexts.content,
+        language: targetTexts.language,
+        source: targetTexts.source,
+        generatorModel: targetTexts.generatorModel,
+        subject: targetTexts.subject,
+        userId: targetTexts.userId,
+        usageCount: targetTexts.usageCount,
+        lastUsedAt: targetTexts.lastUsedAt,
+        createdAt: targetTexts.createdAt,
+      })
+      .from(targetTexts);
   },
 
   /**
    * Find a target text by its ID or content.
    */
-  async findTargetText(query: { id?: string; content?: string }): Promise<TargetTextRow | null> {
-    const all = await this.getTargetTexts();
+  async findTargetText(query: { id?: string; content?: string }) {
     if (query.id) {
-      return all.find((t) => t.id === query.id) || null;
+      const result = await drizzleDb
+        .select()
+        .from(targetTexts)
+        .where(eq(targetTexts.id, query.id))
+        .limit(1);
+      return result[0] || null;
     }
     if (query.content) {
-      return all.find((t) => t.content === query.content) || null;
+      const result = await drizzleDb
+        .select()
+        .from(targetTexts)
+        .where(eq(targetTexts.content, query.content))
+        .limit(1);
+      return result[0] || null;
     }
     return null;
   },
 
   /**
+   * Persist LLM-generated subject sentences without embedding.
+   * Skips duplicates by content (unique constraint).
+   */
+  async insertSubjectGeneratedTargets(
+    items: Array<{ id: string; content: string; language: string; subject: string }>,
+  ): Promise<void> {
+    if (items.length === 0) return;
+
+    await drizzleDb
+      .insert(targetTexts)
+      .values(
+        items.map((item) => ({
+          id: item.id,
+          content: item.content,
+          language: item.language,
+          source: "subject",
+          generatorModel: "gemini-2.5-flash-lite",
+          subject: item.subject,
+        })),
+      )
+      .onConflictDoNothing({ target: targetTexts.content });
+  },
+
+  /**
    * Create a new practice run (session).
    */
-  async createRun(
-    runData: Omit<RunRow, "created_at" | "finished_at" | "cpm" | "wpm" | "accuracy">,
-  ): Promise<RunRow> {
-    const runs = getStored<RunRow[]>(KEYS.RUNS, []);
-    const newRun: RunRow = {
-      ...runData,
-      finished_at: null,
-      cpm: null,
-      wpm: null,
-      accuracy: null,
-      created_at: new Date().toISOString(),
-    };
-    runs.push(newRun);
-    setStored(KEYS.RUNS, runs);
+  async createRun(runData: {
+    id?: string;
+    user_id?: string | null;
+    status: string;
+    started_at: string;
+  }): Promise<Run> {
+    const [newRun] = await drizzleDb
+      .insert(runs)
+      .values({
+        ...(runData.id ? { id: runData.id } : {}),
+        userId: runData.user_id || null,
+        status: runData.status,
+        startedAt: new Date(runData.started_at),
+      })
+      .returning();
     return newRun;
   },
 
@@ -145,87 +203,179 @@ export const db = {
    * Delete a run session.
    */
   async deleteRun(runId: string): Promise<void> {
-    const runs = getStored<RunRow[]>(KEYS.RUNS, []);
-    const updatedRuns = runs.filter((r) => r.id !== runId);
-    setStored(KEYS.RUNS, updatedRuns);
+    await drizzleDb.delete(runs).where(eq(runs.id, runId));
   },
 
   /**
-   * Update an existing run session (e.g. status, CPM, WPM, accuracy, finished_at).
+   * Update an existing run session.
    */
   async updateRun(
     runId: string,
-    updates: Partial<Omit<RunRow, "id" | "created_at">>,
-  ): Promise<RunRow> {
-    const runs = getStored<RunRow[]>(KEYS.RUNS, []);
-    const idx = runs.findIndex((r) => r.id === runId);
-    if (idx === -1) {
+    updates: {
+      status?: string;
+      started_at?: string;
+      finished_at?: string | null;
+      cpm?: number | null;
+      wpm?: number | null;
+      accuracy?: number | null;
+    },
+  ): Promise<Run> {
+    const updateValues: Record<string, unknown> = {};
+    if (updates.status !== undefined) updateValues.status = updates.status;
+    if (updates.started_at !== undefined) updateValues.startedAt = new Date(updates.started_at);
+    if (updates.finished_at !== undefined)
+      updateValues.finishedAt = updates.finished_at ? new Date(updates.finished_at) : null;
+    if (updates.cpm !== undefined) updateValues.cpm = updates.cpm;
+    if (updates.wpm !== undefined) updateValues.wpm = updates.wpm;
+    if (updates.accuracy !== undefined) updateValues.accuracy = updates.accuracy;
+
+    const [updated] = await drizzleDb
+      .update(runs)
+      .set(updateValues)
+      .where(eq(runs.id, runId))
+      .returning();
+
+    if (!updated) {
       throw new Error(`Run with ID ${runId} not found`);
     }
-    const updatedRun = {
-      ...runs[idx],
-      ...updates,
-    };
-    runs[idx] = updatedRun;
-    setStored(KEYS.RUNS, runs);
-    return updatedRun;
+    return updated;
   },
 
   /**
    * Get a run by its ID.
    */
-  async getRun(runId: string): Promise<RunRow | null> {
-    const runs = getStored<RunRow[]>(KEYS.RUNS, []);
-    return runs.find((r) => r.id === runId) || null;
+  async getRun(runId: string): Promise<Run | null> {
+    const result = await drizzleDb.select().from(runs).where(eq(runs.id, runId)).limit(1);
+    return result[0] || null;
   },
 
   /**
    * Get all runs in descending order.
    */
-  async getAllRuns(): Promise<RunRow[]> {
-    const runs = getStored<RunRow[]>(KEYS.RUNS, []);
-    return runs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  async getAllRuns(): Promise<Run[]> {
+    return drizzleDb.select().from(runs).orderBy(desc(runs.createdAt));
   },
 
   /**
-   * Get the latest run (session).
+   * Get the latest run (session) for a specific user.
    */
-  async getLatestRun(): Promise<RunRow | null> {
-    const runs = await this.getAllRuns();
-    return runs[0] || null;
+  async getLatestRun(userId: string): Promise<Run | null> {
+    const result = await drizzleDb
+      .select()
+      .from(runs)
+      .where(eq(runs.userId, userId))
+      .orderBy(desc(runs.createdAt))
+      .limit(1);
+    return result[0] || null;
   },
 
   /**
-   * Create a new page typing result (sentence).
+   * Create a new page typing result and its associated key events.
+   * Key events are bulk-inserted into the separate key_events table.
    */
-  async createPage(pageData: Omit<PageRow, "created_at">): Promise<PageRow> {
-    const pages = getStored<PageRow[]>(KEYS.PAGES, []);
-    const newPage: PageRow = {
-      ...pageData,
-      created_at: new Date().toISOString(),
-    };
-    pages.push(newPage);
-    setStored(KEYS.PAGES, pages);
+  async createPage(pageData: {
+    id?: string;
+    run_id: string;
+    target_text_id: string | null;
+    order_index: number;
+    language: string;
+    typed_text: string;
+    wpm: number;
+    cpm: number;
+    accuracy: number;
+    started_at: string;
+    finished_at: string;
+    elapsed_time_ms: number;
+    key_events: KeyEventSchema[];
+  }): Promise<Page> {
+    // Ensure target text exists in target_texts to prevent FK violation
+    let targetTextId: string | null = pageData.target_text_id;
+    if (targetTextId) {
+      const exists = await drizzleDb
+        .select({ id: targetTexts.id })
+        .from(targetTexts)
+        .where(eq(targetTexts.id, targetTextId))
+        .limit(1);
+      if (exists.length === 0) {
+        targetTextId = null;
+      }
+    }
+
+    // page와 key_events를 하나의 트랜잭션으로 묶어 고아 page 생성 방지
+    const newPage = await drizzleDb.transaction(async (tx) => {
+      const [page] = await tx
+        .insert(pages)
+        .values({
+          runId: pageData.run_id,
+          targetTextId,
+          orderIndex: pageData.order_index,
+          language: pageData.language,
+          typedText: pageData.typed_text,
+          wpm: pageData.wpm,
+          cpm: pageData.cpm,
+          accuracy: pageData.accuracy,
+          startedAt: new Date(pageData.started_at),
+          finishedAt: new Date(pageData.finished_at),
+          elapsedTimeMs: pageData.elapsed_time_ms,
+        })
+        .returning();
+
+      // Bulk insert key events into the normalized key_events table
+      if (pageData.key_events.length > 0) {
+        const keyEventRows: NewKeyEvent[] = pageData.key_events.map((ev, idx) => ({
+          pageId: page.id,
+          seq: idx,
+          fromKey: ev.from_key,
+          toKey: ev.to_key,
+          keyChar: ev.key_char || "",
+          latency: ev.latency,
+          holdDurationMs: ev.hold_duration_ms != null ? ev.hold_duration_ms : null,
+          isCorrect: ev.is_correct,
+          expectedChar: ev.expected_char,
+          createdAt: page.createdAt,
+        }));
+
+        // Batch insert in chunks of 500 to avoid exceeding query parameter limits
+        const CHUNK_SIZE = 500;
+        for (let i = 0; i < keyEventRows.length; i += CHUNK_SIZE) {
+          const chunk = keyEventRows.slice(i, i + CHUNK_SIZE);
+          await tx.insert(keyEvents).values(chunk);
+        }
+      }
+
+      return page;
+    });
+
     return newPage;
   },
 
   /**
    * Get all pages for a specific run.
    */
-  async getPagesForRun(runId: string): Promise<PageRow[]> {
-    const pages = getStored<PageRow[]>(KEYS.PAGES, []);
-    return pages.filter((p) => p.run_id === runId).sort((a, b) => a.order_index - b.order_index);
+  async getPagesForRun(runId: string): Promise<Page[]> {
+    return drizzleDb.select().from(pages).where(eq(pages.runId, runId)).orderBy(pages.orderIndex);
+  },
+
+  /**
+   * Get key events for a specific page.
+   */
+  async getKeyEventsForPage(pageId: string) {
+    return drizzleDb
+      .select()
+      .from(keyEvents)
+      .where(eq(keyEvents.pageId, pageId))
+      .orderBy(keyEvents.seq);
   },
 
   /**
    * Finalize a run by compiling metrics from all its pages.
    */
-  async finalizeRun(runId: string, finishedAtStr?: string): Promise<RunRow | null> {
+  async finalizeRun(runId: string, finishedAtStr?: string): Promise<Run | null> {
     const run = await this.getRun(runId);
     if (!run) return null;
 
-    const pages = await this.getPagesForRun(runId);
-    if (pages.length === 0) {
+    const runPages = await this.getPagesForRun(runId);
+    if (runPages.length === 0) {
       return this.updateRun(runId, {
         status: "completed",
         finished_at: finishedAtStr || new Date().toISOString(),
@@ -235,33 +385,55 @@ export const db = {
       });
     }
 
-    const validPages = pages.filter((p) => p.elapsed_time_ms > 0);
-    const pagesToAggregate = validPages.length > 0 ? validPages : pages;
+    const validPages = runPages.filter((p) => p.elapsedTimeMs > 0);
+    const pagesToAggregate = validPages.length > 0 ? validPages : runPages;
 
-    const totalTimeMs = pagesToAggregate.reduce((sum, p) => sum + p.elapsed_time_ms, 0);
+    const totalTimeMs = pagesToAggregate.reduce((sum, p) => sum + p.elapsedTimeMs, 0);
+
+    // Count key events per page for weighted accuracy calculation
+    const pageIds = pagesToAggregate.map((p) => p.id);
+    const countMap = new Map<string, number>();
+
+    if (pageIds.length > 0) {
+      const keyEventCountsResult = await drizzleDb
+        .select({ pageId: keyEvents.pageId, count: sql<number>`count(*)::int` })
+        .from(keyEvents)
+        .where(inArray(keyEvents.pageId, pageIds))
+        .groupBy(keyEvents.pageId);
+
+      for (const r of keyEventCountsResult) {
+        countMap.set(r.pageId, r.count);
+      }
+    }
+
+    const pageKeyEventCounts = pagesToAggregate.map((p) => countMap.get(p.id) ?? 0);
+
     const avgCpm =
       totalTimeMs > 0
         ? Math.round(
-            pagesToAggregate.reduce((sum, p) => sum + p.cpm * p.elapsed_time_ms, 0) / totalTimeMs,
+            pagesToAggregate.reduce((sum, p) => sum + p.cpm * p.elapsedTimeMs, 0) / totalTimeMs,
           )
         : Math.round(pagesToAggregate.reduce((sum, p) => sum + p.cpm, 0) / pagesToAggregate.length);
 
     const avgWpm =
       totalTimeMs > 0
         ? Math.round(
-            pagesToAggregate.reduce((sum, p) => sum + p.wpm * p.elapsed_time_ms, 0) / totalTimeMs,
+            pagesToAggregate.reduce((sum, p) => sum + p.wpm * p.elapsedTimeMs, 0) / totalTimeMs,
           )
         : Math.round(pagesToAggregate.reduce((sum, p) => sum + p.wpm, 0) / pagesToAggregate.length);
 
-    const totalKeystrokes = pagesToAggregate.reduce((sum, p) => sum + p.key_events.length, 0);
+    const totalKeystrokes = pageKeyEventCounts.reduce((sum, c) => sum + c, 0);
     const avgAccuracy =
       totalKeystrokes > 0
-        ? pagesToAggregate.reduce((sum, p) => sum + p.accuracy * p.key_events.length, 0) /
-          totalKeystrokes
+        ? pagesToAggregate.reduce(
+            (sum, p, i) => sum + (p.accuracy ?? 0) * pageKeyEventCounts[i],
+            0,
+          ) / totalKeystrokes
         : totalTimeMs > 0
-          ? pagesToAggregate.reduce((sum, p) => sum + p.accuracy * p.elapsed_time_ms, 0) /
+          ? pagesToAggregate.reduce((sum, p) => sum + (p.accuracy ?? 0) * p.elapsedTimeMs, 0) /
             totalTimeMs
-          : pagesToAggregate.reduce((sum, p) => sum + p.accuracy, 0) / pagesToAggregate.length;
+          : pagesToAggregate.reduce((sum, p) => sum + (p.accuracy ?? 0), 0) /
+            pagesToAggregate.length;
 
     return this.updateRun(runId, {
       status: "completed",
@@ -276,8 +448,8 @@ export const db = {
    * Sync active session on app mount:
    * If there is an unfinished run, finalize it if idle for more than 3 minutes.
    */
-  async syncSessionOnMount(): Promise<void> {
-    const latestRun = await this.getLatestRun();
+  async syncSessionOnMount(userId: string): Promise<void> {
+    const latestRun = await this.getLatestRun(userId);
     if (!latestRun || latestRun.status === "completed") {
       return;
     }
@@ -287,9 +459,11 @@ export const db = {
       return;
     }
 
-    const pages = await this.getPagesForRun(latestRun.id);
+    const runPages = await this.getPagesForRun(latestRun.id);
     const lastActiveStr =
-      pages.length > 0 ? pages[pages.length - 1].finished_at : latestRun.started_at;
+      runPages.length > 0
+        ? runPages[runPages.length - 1].finishedAt.toISOString()
+        : latestRun.startedAt.toISOString();
     const lastActiveAt = new Date(lastActiveStr).getTime();
     const now = Date.now();
 
