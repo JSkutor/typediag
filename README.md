@@ -14,6 +14,8 @@ Instead of stopping at WPM/accuracy, it builds a **Spatial Keystroke Dynamics Mo
 ## Tech
 
 Next.js (App Router), React, Zustand (slice pattern), Three.js, Vitest, Vanilla CSS.
+Database & Vector Search: PostgreSQL (TimescaleDB), Drizzle ORM, pgvector.
+AI & APIs: Upstage Embedding API, Gemini 2.5 Flash-Lite.
 
 ## Run locally
 
@@ -38,4 +40,5 @@ npm run build
 - `docs/STATE_MANAGEMENT.md` — Zustand slices & session lifecycle
 - `docs/DESIGN_SYSTEM.md` — UI theme (“Space Grey & Cobalt”)
 - `docs/DIAGNOSTICS.md` — 3D diagnostics stats & mathematical ideation specifications (Korean)
-- `docs/TYPING_MODES.md` — Typing modes, optimization, and hardcore MLP model specifications (Korean)
+- `docs/HARDCORE_MODE.md` — Hardcore MLP Language Model specifications (Korean)
+- `docs/SUBJECT_MODE.md` — Subject Mode vector caching (pgvector) and LLM generation architecture (Korean)

@@ -7,6 +7,32 @@
 
 ## 테이블 관계 구조
 
+```mermaid
+erDiagram
+    users ||--o{ runs : "has many"
+    target_texts ||--o{ pages : "referenced by"
+    runs ||--o{ pages : "contains"
+    pages ||--o{ key_events : "generates"
+    
+    users {
+        string id PK "Clerk/Guest ID"
+    }
+    target_texts {
+        string id PK
+        vector embedding "4096D (pgvector)"
+    }
+    runs {
+        uuid id PK
+    }
+    pages {
+        uuid id PK
+    }
+    key_events {
+        bigint id PK
+        timestamp created_at "Timescale Hypertable"
+    }
+```
+
 - 사용자(`users`)는 여러 연습 세션(`runs`)을 가집니다. (1:N)
 - 각 연습 세션(`runs`)은 여러 문장 타이핑 결과(`pages`)로 구성됩니다. (1:N)
 - 각 문장 타이핑 결과(`pages`)는 제시문 정보(`target_texts`)를 참조합니다. (N:1)
