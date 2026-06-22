@@ -85,39 +85,38 @@ Subject Mode는 사용자가 직접 입력한 주제에 맞는 타자 연습 문
 
 ```mermaid
 graph TD
-    UserInput([유저 주제어 입력]) --> Embedding[임베딩 생성: text-embedding-3-large]
+    UserInput([유저 주제어 입력]) --> Embedding[임베딩 생성: Upstage embedding-query]
     Embedding --> VectorSearch[Vector Similarity Search: pgvector]
     
-    VectorSearch --> MatchCheck{유사도 >= 임계값 θ?}
+    VectorSearch --> MatchCheck{코사인 유사도 > 0.5?}
     
     MatchCheck -- Yes (Cache Hit) --> DBReturn[DB에서 즉시 가져옴]
     DBReturn --> End([연습 문장 반환: 0의 LLM 비용, 초고속])
     
-    MatchCheck -- No (Cache Miss) --> LLMCall[저가 LLM API 호출: Gemini 2.5 Flash-Lite / GPT-4o mini]
-    LLMCall --> ReturnStream[유저에게 문장 반환 및 스트리밍]
-    LLMCall --> AsyncJob[비동기 저장 작업]
-    AsyncJob --> NewEmbedding[신규 문장 임베딩 생성]
-    NewEmbedding --> DBSave[(DB 저장: pgvector 테이블)]
-    ReturnStream --> End
+    MatchCheck -- No (Cache Miss) --> LLMCall[저가 LLM API 호출: Gemini 2.5 Flash-Lite]
+    LLMCall --> ReturnData[유저에게 문장 반환]
+    LLMCall --> AsyncJob[비동기 저장 작업: embedding 없이 content만 저장]
+    AsyncJob --> DBSave[(DB 저장: target_texts 테이블)]
 ```
 
 1. **유저 주제어 입력**: 사용자가 연습 패널의 입력 창에 자신이 원하는 연습 주제(예: "우주 여행", "여름 바다")를 입력합니다.
-2. **의미 벡터 추출 (Embedding)**: 입력된 주제어를 OpenAI의 `text-embedding-3-large` 임베딩 API를 통해 벡터로 변환합니다. (호출 비용이 극히 저렴함)
+2. **의미 벡터 추출 (Embedding)**: 입력된 주제어를 Upstage `embedding-query` API를 통해 4096차원 벡터로 변환합니다.
 3. **유사도 매칭 및 캐시 히트**:
-   - PostgreSQL의 `pgvector` 인덱스를 조회하여 기존 DB에 저장되어 있는 문장들의 임베딩 벡터와 코사인 유사도(Cosine Similarity)를 비교합니다.
-   - 유사도가 사전 정의된 임계값 $\theta$ (예: $0.85$) 이상인 문장이 존재할 경우, LLM API 호출 없이 즉시 해당 문장을 DB에서 로드하여 제공합니다 (비용 0, Latency < 100ms).
+   - PostgreSQL의 `pgvector` 인덱스를 조회하여 기존 DB에 저장된 문장들의 임베딩 벡터와 코사인 유사도(Cosine Similarity)를 비교합니다.
+   - 유사도가 `0.5` 초과인 문장이 존재할 경우, LLM API 호출 없이 즉시 해당 문장을 DB에서 상위 20개 로드하여 제공합니다 (비용 0, Latency < 100ms).
 4. **캐시 미스 및 LLM Fallback**:
-   - 유사한 문장이 없을 경우, `Gemini 2.5 Flash-Lite` 또는 `GPT-4o mini`와 같은 저비용 고성능 LLM API를 호출하여 해당 주제에 맞는 타자 연습 전용 텍스트를 실시간으로 자동 생성합니다.
+   - 유사한 문장이 없을 경우, `Gemini 2.5 Flash-Lite` LLM API를 호출하여 해당 주제에 맞는 타자 연습 전용 텍스트를 20개 실시간으로 자동 생성합니다.
 5. **데이터 플라이휠 (Data Flywheel)**:
-   - 캐시 미스로 새로 생성된 문장은 사용자에게 반환됨과 동시에 백그라운드에서 임베딩 연산을 거쳐 DB에 저장됩니다.
-   - 유저들이 입력을 다양하게 할수록 DB 내 데이터가 자연스럽게 누적 및 풍부해지며, 캐시 히트율이 점진적으로 상승하여 비용 절감 효과가 커집니다.
+   - 캐시 미스로 새로 생성된 문장은 사용자에게 반환됨과 동시에 백그라운드에서 DB에 저장됩니다.
+   - 현재는 `embedding` 컬럼 없이 content만 저장되므로, 저장된 문장이 이후 pgvector 유사도 검색에 히트되지 않습니다. (TODO: 생성 후 임베딩 배치 저장 파이프라인 추가 필요)
 
 ### 3.2. 핵심 설계 파라미터 (Core Design Parameters)
 
-- **임베딩 모델**: OpenAI `text-embedding-3-large` (차원 수: 3072)
-- **저가 LLM API 후보**: Gemini 2.5 Flash-Lite, GPT-4o mini
-- **유사도 판단 기준**: Cosine Similarity $\ge 0.85$ (성능/정합성 트레이드오프에 따라 튜닝 가능)
-- **프롬프트 룰셋**: 타자 연습에 적합하도록 문장의 난이도(특수문자 제한), 적당한 길이(300~500자), 가독성을 엄격하게 제한하는 시스템 프롬프트 지정
+- **임베딩 모델**: Upstage `embedding-query` (차원 수: 4096)
+- **저가 LLM API**: Gemini 2.5 Flash-Lite
+- **유사도 판단 기준**: Cosine Similarity > 0.5 (성능/정합성 트레이드오프에 따라 튜닝 가능)
+- **최대 반환 결과**: 상위 20개 (`.limit(20)`)
+- **문장 길이 기준**: 순수 한글 60~100자 (공백·문장부호 제외, `targetSentenceConstraints.json` 기준)
 
 ### 3.3. 에러 핸들링 및 예외 처리 (Exception Handling)
 

@@ -40,7 +40,7 @@ describe("SessionService", () => {
     it("should resume an existing pending run", async () => {
       const pendingTime = new Date("2026-06-16T10:00:00Z");
       const pendingRun = await db.createRun({
-        id: "pending_run",
+        id: "00000000-0000-0000-0000-000000000001",
         user_id: testUserId,
         status: "pending",
         started_at: pendingTime.toISOString(),
@@ -58,7 +58,7 @@ describe("SessionService", () => {
     it("should finalize an in_progress run and create new if older than 3 minutes", async () => {
       const pastTime = new Date("2026-06-16T10:00:00Z");
       const oldRun = await db.createRun({
-        id: "old_run",
+        id: "00000000-0000-0000-0000-000000000002",
         user_id: testUserId,
         status: "in_progress",
         started_at: pastTime.toISOString(),

@@ -535,13 +535,13 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
         expectedChar: lastOp && lastOp.op === "REPLACE" ? lastOp.targetChar || null : null,
       };
 
-      set((_s) => ({
+      set({
         targetText: nextTargetText,
         qwertyBuffer: nextBuffer,
         typedText: nextTyped,
         maxTypedTextLength: nextTyped.length,
         alignments,
-      }));
+      });
       get().recordKey(keyToken, timestamp, evalResult);
 
       if (shouldFinish && isKorean) {

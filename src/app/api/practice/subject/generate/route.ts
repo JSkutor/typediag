@@ -102,12 +102,8 @@ export async function POST(req: Request) {
       );
     }
 
-    const ids = sentences.map(
-      () => `target_gen_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`,
-    );
-
-    const responseData = sentences.map((content, idx) => ({
-      id: ids[idx],
+    const responseData = sentences.map((content) => ({
+      id: `target_gen_${crypto.randomUUID()}`,
       content,
       language: "ko",
     }));

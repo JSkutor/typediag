@@ -190,6 +190,7 @@ export const db = {
     const [newRun] = await drizzleDb
       .insert(runs)
       .values({
+        ...(runData.id ? { id: runData.id } : {}),
         userId: runData.user_id || null,
         status: runData.status,
         startedAt: new Date(runData.started_at),
@@ -300,45 +301,50 @@ export const db = {
       }
     }
 
-    const [newPage] = await drizzleDb
-      .insert(pages)
-      .values({
-        runId: pageData.run_id,
-        targetTextId,
-        orderIndex: pageData.order_index,
-        language: pageData.language,
-        typedText: pageData.typed_text,
-        wpm: pageData.wpm,
-        cpm: pageData.cpm,
-        accuracy: pageData.accuracy,
-        startedAt: new Date(pageData.started_at),
-        finishedAt: new Date(pageData.finished_at),
-        elapsedTimeMs: pageData.elapsed_time_ms,
-      })
-      .returning();
+    // page와 key_events를 하나의 트랜잭션으로 묶어 고아 page 생성 방지
+    const newPage = await drizzleDb.transaction(async (tx) => {
+      const [page] = await tx
+        .insert(pages)
+        .values({
+          runId: pageData.run_id,
+          targetTextId,
+          orderIndex: pageData.order_index,
+          language: pageData.language,
+          typedText: pageData.typed_text,
+          wpm: pageData.wpm,
+          cpm: pageData.cpm,
+          accuracy: pageData.accuracy,
+          startedAt: new Date(pageData.started_at),
+          finishedAt: new Date(pageData.finished_at),
+          elapsedTimeMs: pageData.elapsed_time_ms,
+        })
+        .returning();
 
-    // Bulk insert key events into the normalized key_events table
-    if (pageData.key_events.length > 0) {
-      const keyEventRows: NewKeyEvent[] = pageData.key_events.map((ev, idx) => ({
-        pageId: newPage.id,
-        seq: idx,
-        fromKey: ev.from_key,
-        toKey: ev.to_key,
-        keyChar: ev.key_char || "",
-        latency: ev.latency,
-        holdDurationMs: ev.hold_duration_ms != null ? ev.hold_duration_ms : null,
-        isCorrect: ev.is_correct,
-        expectedChar: ev.expected_char,
-        createdAt: newPage.createdAt,
-      }));
+      // Bulk insert key events into the normalized key_events table
+      if (pageData.key_events.length > 0) {
+        const keyEventRows: NewKeyEvent[] = pageData.key_events.map((ev, idx) => ({
+          pageId: page.id,
+          seq: idx,
+          fromKey: ev.from_key,
+          toKey: ev.to_key,
+          keyChar: ev.key_char || "",
+          latency: ev.latency,
+          holdDurationMs: ev.hold_duration_ms != null ? ev.hold_duration_ms : null,
+          isCorrect: ev.is_correct,
+          expectedChar: ev.expected_char,
+          createdAt: page.createdAt,
+        }));
 
-      // Batch insert in chunks of 500 to avoid exceeding query parameter limits
-      const CHUNK_SIZE = 500;
-      for (let i = 0; i < keyEventRows.length; i += CHUNK_SIZE) {
-        const chunk = keyEventRows.slice(i, i + CHUNK_SIZE);
-        await drizzleDb.insert(keyEvents).values(chunk);
+        // Batch insert in chunks of 500 to avoid exceeding query parameter limits
+        const CHUNK_SIZE = 500;
+        for (let i = 0; i < keyEventRows.length; i += CHUNK_SIZE) {
+          const chunk = keyEventRows.slice(i, i + CHUNK_SIZE);
+          await tx.insert(keyEvents).values(chunk);
+        }
       }
-    }
+
+      return page;
+    });
 
     return newPage;
   },

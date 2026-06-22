@@ -37,6 +37,13 @@ export function validateTargetSentence(
   minPureHangul: number,
   maxPureHangul: number,
 ): TargetSentenceValidation {
+  // multiline 체크는 cleanSentence 이전에 수행해야 함.
+  // cleanSentence는 \r\n을 공백으로 치환해버려서 정리 후에는 감지 불가.
+  if (/[\r\n]/.test(raw)) {
+    const cleaned = cleanSentence(raw);
+    return { isValid: false, reason: "multiline", pureHangulCount: getPureHangulCount(cleaned), cleaned };
+  }
+
   const cleaned = cleanSentence(raw);
   const pureHangulCount = getPureHangulCount(cleaned);
 
@@ -45,9 +52,6 @@ export function validateTargetSentence(
   }
   if (CONTROL_CHAR_PATTERN.test(cleaned)) {
     return { isValid: false, reason: "control_char", pureHangulCount, cleaned };
-  }
-  if (/[\r\n]/.test(cleaned)) {
-    return { isValid: false, reason: "multiline", pureHangulCount, cleaned };
   }
   if (!ALLOWED_PUNCTUATION.test(cleaned)) {
     return { isValid: false, reason: "invalid_char", pureHangulCount, cleaned };

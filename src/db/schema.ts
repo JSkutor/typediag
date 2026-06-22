@@ -105,12 +105,12 @@ export const keyEvents = pgTable(
     pageId: uuid("page_id")
       .references(() => pages.id, { onDelete: "cascade" })
       .notNull(),
-    seq: smallint("seq").notNull(),
+    seq: integer("seq").notNull(),
     fromKey: varchar("from_key", { length: 20 }),
     toKey: varchar("to_key", { length: 20 }).notNull(),
     keyChar: varchar("key_char", { length: 10 }).default(""),
     latency: integer("latency").notNull(),
-    holdDurationMs: smallint("hold_duration_ms"),
+    holdDurationMs: integer("hold_duration_ms"),
     isCorrect: boolean("is_correct"),
     expectedChar: varchar("expected_char", { length: 10 }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

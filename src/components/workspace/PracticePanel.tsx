@@ -4,7 +4,7 @@ import React from "react";
 import { useTypingStore, TypingMode } from "@/store/useTypingStore";
 
 export const PracticePanel: React.FC = () => {
-  const { qwertyBuffer, alignments: diffResult, mode, setMode, subjectTargets, subjectTargetIndex, isSubjectInputActive } = useTypingStore();
+  const { qwertyBuffer, alignments: diffResult, mode, setMode, subjectTargets, subjectTargetIndex, isSubjectInputActive, isSubjectLoading } = useTypingStore();
 
   const lastInputIndex = React.useMemo(() => {
     return diffResult.findLastIndex((d) => d.inputIndex !== undefined);
@@ -121,7 +121,7 @@ export const PracticePanel: React.FC = () => {
         aria-live="polite"
         aria-atomic="true"
       >
-        {mode === "subject" && useTypingStore.getState().isSubjectLoading ? (
+        {mode === "subject" && isSubjectLoading ? (
           <div
             style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem" }}
           >

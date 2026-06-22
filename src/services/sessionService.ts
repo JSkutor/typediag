@@ -81,22 +81,15 @@ export class SessionService {
   ): Promise<string> {
     let currentRunId = runId;
 
-    // Determine language and targetTextId using provided arguments or fallback lookups
-    const finalLanguage =
-      language ||
-      (await (async () => {
-        const targetTextObj = await db.findTargetText({ content: targetText });
-        if (targetTextObj) return targetTextObj.language;
-        const isKorean = /[가-힣]/.test(targetText);
-        return isKorean ? "ko" : "en";
-      })());
+    // targetId나 language 중 하나라도 없을 때만 DB 조회 (동일 쿼리 중복 방지)
+    let targetTextObj: Awaited<ReturnType<typeof db.findTargetText>> = null;
+    if (!targetId || !language) {
+      targetTextObj = await db.findTargetText({ content: targetText });
+    }
 
-    const finalTargetTextId =
-      targetId ||
-      (await (async () => {
-        const targetTextObj = await db.findTargetText({ content: targetText });
-        return targetTextObj ? targetTextObj.id : "unknown";
-      })());
+    const isKorean = /[가-힣]/.test(targetText);
+    const finalLanguage = language ?? (targetTextObj?.language ?? (isKorean ? "ko" : "en"));
+    const finalTargetTextId = targetId ?? (targetTextObj?.id ?? "unknown");
 
     const getPerfNow = () => {
       if (typeof performance !== "undefined" && typeof performance.now === "function") {

@@ -421,6 +421,12 @@ target text 없음.
 
 ### 기타
 
+슬슬 느려진다.
+mode 기능 이후에 기능 추가 없다.
+애초에 더 생각한것도 없음.
+바로 다듬고 MVP다.
+개같은거
+
 TODO: target 중에 ' 있는거 있음. api 결과에서 거르는 거 확인 필요.
 TODO: hardcore 모드 사용자 데이터 연동 로직 구현 아직 안함. 
 TODO: 그 duration이랑 latency랑 상관관계 보는거, 바로 다음 쌍의 latency도 참조하게 해.

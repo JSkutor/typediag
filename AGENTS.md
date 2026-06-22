@@ -127,6 +127,12 @@ graphify-ts mcp 명령을 사용해 구조를 파악하라.
 - TODO.md 는 사용자의 메모장이므로 사용자의 직접적인 명령이 없을 때 임의로 수정하지 마라. 사용자가 커밋을 요청했을 때 `TODO.md`에 변경분이 있으면 함께 스테이징·커밋에 포함할 것.
 - 사용자가 커밋을 요청하지 않았는데 임의로 `git commit`을 만들지 마라.
 - 세션·키 이벤트 영속화를 localStorage나 JSON 파일 DB로 되돌리지 마라. 정본은 PostgreSQL + `src/utils/db.ts`이다.
+- React 컴포넌트 렌더 함수 내에서 `useXxxStore.getState()`를 직접 호출하지 마라. 구독이 없어 상태 변화 시 리렌더가 트리거되지 않는다. 반드시 훅(selector) 방식으로 사용할 것.
+- DB 쿼리에서 `.limit()`을 빠뜨리지 마라. 특히 벡터 유사도 검색처럼 임계값 필터만으로는 행 수를 제어할 수 없는 경우, 응답 페이로드가 무한정 커질 수 있다.
+- 테스트에서 DB의 UUID 타입 컬럼에 `"old_run"`, `"pending_run"` 같은 임의 문자열 ID를 사용하지 마라. 유효한 UUID 형식(`"00000000-0000-0000-0000-000000000001"` 또는 `crypto.randomUUID()`)을 사용할 것.
+- `createPage`처럼 상위 row와 하위 row를 동시에 insert할 때 트랜잭션으로 묶지 않으면 중간 실패 시 고아(orphan) 데이터가 발생한다. 반드시 `drizzleDb.transaction()`으로 묶을 것.
+- `cleanSentence`처럼 개행문자(`\r\n`)를 공백으로 치환하는 함수를 거치기 전에 multiline 체크를 수행해야 한다. 정제 후에는 개행 감지가 불가능하다.
+
 
 ---
 

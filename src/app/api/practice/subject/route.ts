@@ -47,8 +47,10 @@ export async function POST(req: Request) {
     const embeddingData = await embeddingRes.json();
     const queryEmbedding = embeddingData.data[0].embedding as number[];
 
-    // 2. pgvector 코사인 유사도 검색 (기존 JS 벡터 검색 모킹 대체)
-    const vectorStr = `[${queryEmbedding.join(",")}]`;
+    // 2. pgvector 코사인 유사도 검색
+    // sql.raw()로 벡터 문자열을 삽입하여 Drizzle이 이를 파라미터가 아닌 리터럴로 처리하게 함.
+    // queryEmbedding은 Upstage API에서 받은 number[] 배열이므로 인젝션 위험 없음 (숫자만 포함).
+    const vectorLiteral = sql.raw(`'[${queryEmbedding.join(",")}]'::vector`);
 
     const results = await drizzleDb
       .select({
@@ -62,11 +64,12 @@ export async function POST(req: Request) {
         usageCount: targetTexts.usageCount,
         lastUsedAt: targetTexts.lastUsedAt,
         createdAt: targetTexts.createdAt,
-        similarity: sql<number>`1 - (${targetTexts.embedding} <=> ${vectorStr}::vector)`,
+        similarity: sql<number>`1 - (${targetTexts.embedding} <=> ${vectorLiteral})`,
       })
       .from(targetTexts)
-      .where(sql`${targetTexts.embedding} IS NOT NULL AND (1 - (${targetTexts.embedding} <=> ${vectorStr}::vector)) > 0.5`)
-      .orderBy(sql`${targetTexts.embedding} <=> ${vectorStr}::vector`);
+      .where(sql`${targetTexts.embedding} IS NOT NULL AND (1 - (${targetTexts.embedding} <=> ${vectorLiteral})) > 0.5`)
+      .orderBy(sql`${targetTexts.embedding} <=> ${vectorLiteral}`)
+      .limit(20);
 
     if (!results || results.length === 0) {
       return NextResponse.json({ error: "No matching targets found" }, { status: 404 });
