@@ -20,10 +20,7 @@
 
 Clerk 인증과 연동되는 사용자 정보를 저장합니다.
 
-- `id`: 고유 식별값 (UUID, PK)
-- `clerk_id`: Clerk에서 발급된 사용자 고유 ID (VARCHAR(255), Unique, Not Null)
-- `email`: 이메일 주소 (VARCHAR(255), Unique, Nullable)
-- `nickname`: 화면에 표시될 사용자 닉네임 (VARCHAR(100), Unique, Not Null)
+- `id`: 사용자 고유 식별값 (VARCHAR(255), PK) — Clerk `userId` 또는 게스트 `guest_<uuid>`
 - `created_at`: 생성 일시 (TimestampTZ, Not Null)
 - `updated_at`: 수정 일시 (TimestampTZ, Not Null)
 
@@ -37,7 +34,7 @@ Clerk 인증과 연동되는 사용자 정보를 저장합니다.
 - `source`: 생성 출처 (VARCHAR(20), Not Null, Default 'default')
 - `generator_model`: 생성 LLM 모델명 등 (VARCHAR(50), Nullable)
 - `subject`: 유저가 입력한 주제어 (TEXT, Nullable)
-- `user_id`: 등록한 사용자 식별값 (UUID, FK, Nullable)
+- `user_id`: 등록한 사용자 식별값 (VARCHAR(255), FK, Nullable)
 - `usage_count`: 완주 횟수 (INT, Not Null, Default 0)
 - `last_used_at`: 최근 완주 일시 (TimestampTZ, Nullable)
 - `embedding`: Upstage Solar Embedding API 벡터 (vector(4096), Nullable)
@@ -48,7 +45,7 @@ Clerk 인증과 연동되는 사용자 정보를 저장합니다.
 사용자가 1회 연습을 시작해서 끝낼 때까지의 단위 기록입니다.
 
 - `id`: 고유 식별값 (UUID, PK)
-- `user_id`: 사용자 식별값 (UUID, FK, Nullable - 비회원 연습 허용 시)
+- `user_id`: 사용자 식별값 (VARCHAR(255), FK, Nullable - 비회원 연습 허용 시)
 - `status`: 진행 상태 ('pending', 'in_progress', 'completed') (VARCHAR(20), Not Null)
 - `started_at`: 세션 시작 일시 (TimestampTZ, Not Null)
 - `finished_at`: 세션 완료 일시 (TimestampTZ, Nullable)

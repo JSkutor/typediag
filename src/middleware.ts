@@ -1,6 +1,6 @@
 import { clerkMiddleware } from "@clerk/nextjs/server";
 
-// Login enforcement is disabled until auth UX is implemented.
+// Auth is optional — guests can practice without signing in.
 export default clerkMiddleware();
 
 export const config = {

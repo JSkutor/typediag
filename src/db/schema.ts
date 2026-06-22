@@ -47,10 +47,7 @@ const vector = customType<{
 // --- Tables ---
 
 export const users = pgTable("users", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  clerkId: varchar("clerk_id", { length: 255 }).unique().notNull(),
-  email: varchar("email", { length: 255 }).unique(),
-  nickname: varchar("nickname", { length: 100 }).unique().notNull(),
+  id: varchar("id", { length: 255 }).primaryKey(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
@@ -62,7 +59,7 @@ export const targetTexts = pgTable("target_texts", {
   source: varchar("source", { length: 20 }).notNull().default("default"),
   generatorModel: varchar("generator_model", { length: 50 }),
   subject: text("subject"),
-  userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+  userId: varchar("user_id", { length: 255 }).references(() => users.id, { onDelete: "set null" }),
   usageCount: integer("usage_count").notNull().default(0),
   lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
   embedding: vector("embedding", { dimensions: 4096 }),
@@ -71,7 +68,7 @@ export const targetTexts = pgTable("target_texts", {
 
 export const runs = pgTable("runs", {
   id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+  userId: varchar("user_id", { length: 255 }).references(() => users.id, { onDelete: "set null" }),
   status: varchar("status", { length: 20 }).notNull().default("pending"),
   startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
   finishedAt: timestamp("finished_at", { withTimezone: true }),

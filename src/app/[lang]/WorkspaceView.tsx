@@ -7,6 +7,7 @@ import { useResponsiveScale } from "@/hooks/useResponsiveScale";
 import { useDiagnosticsTransition } from "@/hooks/useDiagnosticsTransition";
 import { sessionServiceClient } from "@/services/sessionServiceClient";
 
+import { AuthControls } from "@/components/auth/AuthControls";
 import { WorkspaceControls } from "@/components/workspace/WorkspaceControls";
 import { PracticeLayer } from "@/components/workspace/PracticeLayer";
 import { DiagnosticsLayer } from "@/components/workspace/DiagnosticsLayer";
@@ -38,6 +39,7 @@ export default function WorkspaceView({ lang, tab }: { lang: string; tab: string
       className="workspace-container"
       style={{ position: "relative", width: "100vw", height: "100vh", overflow: "hidden" }}
     >
+      <AuthControls variant="compact" />
       <WorkspaceControls />
 
       <PracticeLayer />

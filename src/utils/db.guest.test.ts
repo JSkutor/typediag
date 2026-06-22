@@ -7,7 +7,7 @@ describe("guest user", () => {
     const user1 = await db.getOrCreateUserByClerkId(clerkId);
     const user2 = await db.getOrCreateUserByClerkId(clerkId);
     expect(user1.id).toBe(user2.id);
-    expect(user1.clerkId).toBe(clerkId);
+    expect(user1.id).toBe(clerkId);
   });
 
   it("should return existing guest after concurrent insert race", async () => {

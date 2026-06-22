@@ -19,7 +19,7 @@
 - **3D 시각화**: Three.js / React Three Fiber (R3F)
 - **테스트**: Vitest (단위 및 패리티 검증)
 - **DB**: PostgreSQL (TimescaleDB) + Drizzle ORM (`src/utils/db.ts`, `src/db/`)
-- **인증**: Clerk (`@clerk/nextjs`) — 로그인 사용자는 Clerk `userId`로 DB `users.clerk_id`와 매핑
+- **인증**: Clerk (`@clerk/nextjs`) — 로그인 사용자는 Clerk `userId`가 DB `users.id`와 동일
 - **게스트 사용자**: 비로그인 시 `src/utils/guestUser.ts`가 `localStorage`에 `guest_<uuid>`를 발급·유지하고, 클라이언트 API 호출 시 `X-Guest-User-Id` 헤더로 전달. 서버는 Clerk ID와 동일 경로로 `db.getOrCreateUserByClerkId()` 처리
 - **세션 저장 경로**: 클라이언트 `sessionServiceClient` → `POST /api/session` → 서버 `sessionService` → `db` (localStorage/JSON DB에 세션을 직접 쓰지 않음)
 - **DB 스크립트**: `npm run db:generate`, `db:push`, `db:seed`, `db:studio`

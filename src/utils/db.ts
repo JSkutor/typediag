@@ -38,14 +38,6 @@ export interface KeyEventSchema {
   expected_char: string | null;
 }
 
-function buildUserNickname(clerkId: string): string {
-  const isGuest = clerkId.startsWith("guest_");
-  const randomSuffix = Math.floor(100000 + Math.random() * 900000);
-  return isGuest
-    ? `Guest_${clerkId.slice(6, 12)}_${randomSuffix}`
-    : `User_${clerkId.slice(-8)}_${randomSuffix}`;
-}
-
 function isPostgresUniqueViolation(error: unknown): boolean {
   const candidates = [error, (error as { cause?: unknown })?.cause];
   return candidates.some((candidate) => (candidate as { code?: string })?.code === "23505");
@@ -58,7 +50,7 @@ export const db = {
    * Get an existing user by their Clerk ID or create a new user (guest or normal).
    */
   async getOrCreateUserByClerkId(clerkId: string) {
-    const existing = await drizzleDb.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
+    const existing = await drizzleDb.select().from(users).where(eq(users.id, clerkId)).limit(1);
     if (existing[0]) {
       return existing[0];
     }
@@ -67,11 +59,8 @@ export const db = {
       try {
         const [newUser] = await drizzleDb
           .insert(users)
-          .values({
-            clerkId,
-            nickname: buildUserNickname(clerkId),
-          })
-          .onConflictDoNothing({ target: users.clerkId })
+          .values({ id: clerkId })
+          .onConflictDoNothing({ target: users.id })
           .returning();
 
         if (newUser) {
@@ -81,7 +70,7 @@ export const db = {
         const concurrentUser = await drizzleDb
           .select()
           .from(users)
-          .where(eq(users.clerkId, clerkId))
+          .where(eq(users.id, clerkId))
           .limit(1);
         if (concurrentUser[0]) {
           return concurrentUser[0];
@@ -94,7 +83,7 @@ export const db = {
         const concurrentUser = await drizzleDb
           .select()
           .from(users)
-          .where(eq(users.clerkId, clerkId))
+          .where(eq(users.id, clerkId))
           .limit(1);
         if (concurrentUser[0]) {
           return concurrentUser[0];
@@ -103,6 +92,24 @@ export const db = {
     }
 
     throw new Error(`Failed to create user for clerkId: ${clerkId}`);
+  },
+
+  /**
+   * Transfer all guest-owned runs and target texts to a member account, then remove the guest row.
+   */
+  async mergeGuestData(guestUserId: string, memberUserId: string): Promise<void> {
+    if (guestUserId === memberUserId) {
+      return;
+    }
+
+    await drizzleDb.transaction(async (tx) => {
+      await tx.update(runs).set({ userId: memberUserId }).where(eq(runs.userId, guestUserId));
+      await tx
+        .update(targetTexts)
+        .set({ userId: memberUserId })
+        .where(eq(targetTexts.userId, guestUserId));
+      await tx.delete(users).where(eq(users.id, guestUserId));
+    });
   },
   /**
    * Get list of all target texts.
