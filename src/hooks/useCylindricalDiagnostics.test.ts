@@ -37,7 +37,7 @@ describe("useCylindricalDiagnostics diagnostics", () => {
     ];
 
     const { result } = renderHook(() => useCylindricalDiagnostics(events, "a"));
-    
+
     // totalErrorStartsCount: 2개 (b->a, d->e)
     // count: 1개 (b->a)
     // 따라서 1/2 = 50%
@@ -54,7 +54,7 @@ describe("useCylindricalDiagnostics diagnostics", () => {
     // events[k] (curr): toKey "c", expectedChar "b", isCorrect false
     // events[k+1] (next): toKey "b", expectedChar "c", isCorrect false
     // prev: toKey "a", isCorrect true
-    
+
     const events: KeyEvent[] = [
       { fromKey: null, toKey: "a", latencyMs: 100, isCorrect: true, expectedChar: "a" },
       { fromKey: "a", toKey: "c", latencyMs: 150, isCorrect: false, expectedChar: "b" },
@@ -155,11 +155,23 @@ describe("useCylindricalDiagnostics diagnostics", () => {
 
     it("should calculate shiftPenalty when shift count >= 10 and difference is positive", () => {
       const events: KeyEvent[] = [];
-      
+
       // 1. Difference is positive (+150ms)
       for (let i = 0; i < 10; i++) {
-        events.push({ fromKey: "a", toKey: "g", latencyMs: 100, isCorrect: true, expectedChar: "ㅇ" });
-        events.push({ fromKey: "a", toKey: "q", latencyMs: 250, isCorrect: true, expectedChar: "ㅃ" });
+        events.push({
+          fromKey: "a",
+          toKey: "g",
+          latencyMs: 100,
+          isCorrect: true,
+          expectedChar: "ㅇ",
+        });
+        events.push({
+          fromKey: "a",
+          toKey: "q",
+          latencyMs: 250,
+          isCorrect: true,
+          expectedChar: "ㅃ",
+        });
       }
       const { result: resPositive } = renderHook(() => useCylindricalDiagnostics(events, "a"));
       expect(resPositive.current.diagnostics.shiftPenalty).toEqual({
@@ -172,10 +184,24 @@ describe("useCylindricalDiagnostics diagnostics", () => {
       // 2. Difference is negative (-50ms) -> should suppress and return null
       const negativeEvents: KeyEvent[] = [];
       for (let i = 0; i < 10; i++) {
-        negativeEvents.push({ fromKey: "a", toKey: "g", latencyMs: 200, isCorrect: true, expectedChar: "ㅇ" });
-        negativeEvents.push({ fromKey: "a", toKey: "q", latencyMs: 150, isCorrect: true, expectedChar: "ㅃ" });
+        negativeEvents.push({
+          fromKey: "a",
+          toKey: "g",
+          latencyMs: 200,
+          isCorrect: true,
+          expectedChar: "ㅇ",
+        });
+        negativeEvents.push({
+          fromKey: "a",
+          toKey: "q",
+          latencyMs: 150,
+          isCorrect: true,
+          expectedChar: "ㅃ",
+        });
       }
-      const { result: resNegative } = renderHook(() => useCylindricalDiagnostics(negativeEvents, "a"));
+      const { result: resNegative } = renderHook(() =>
+        useCylindricalDiagnostics(negativeEvents, "a"),
+      );
       expect(resNegative.current.diagnostics.shiftPenalty).toBeNull();
     });
   });
@@ -259,7 +285,7 @@ describe("useCylindricalDiagnostics diagnostics", () => {
 
       const { result } = renderHook(() => useCylindricalDiagnostics(events, "f"));
       const ratios = result.current.diagnostics.fingerTransitions.ratios;
-      
+
       // Total transitions = 6. Each counts for ~16.67%
       expect(ratios.oppositeHand).toBeCloseTo(16.67, 1);
       expect(ratios.sameHandPinky).toBeCloseTo(16.67, 1);

@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { useTypingStore } from "./useTypingStore";
-import targets from "@/data/targets.json";
+import targets from "@/data/targets_client.json";
 
 describe("useTypingStore", () => {
   beforeEach(() => {
@@ -21,6 +21,66 @@ describe("useTypingStore", () => {
     });
     if (typeof window !== "undefined") {
       localStorage.clear();
+    }
+
+    // Mock global fetch for session API routes
+    global.fetch = vi.fn().mockImplementation(async (url: string, options: any = {}) => {
+      const urlObj = new URL(url, "http://localhost");
+
+      if (urlObj.pathname === "/api/session") {
+        const { sessionService } = await import("@/services/sessionService");
+        const { db } = await import("@/utils/db");
+
+        const testUser = await db.getOrCreateUserByClerkId("test_mock_clerk_id");
+        const dbUserId = testUser.id;
+
+        if (options.method === "POST") {
+          const body = JSON.parse(options.body);
+          const { action } = body;
+
+          if (action === "start") {
+            const runId = await sessionService.startPage(dbUserId, new Date(body.now));
+            return {
+              ok: true,
+              json: async () => ({ runId }),
+            };
+          } else if (action === "finish") {
+            const runId = await sessionService.finishPage(
+              dbUserId,
+              body.runId,
+              body.targetText,
+              body.typedText,
+              body.events,
+              body.startedAt,
+              body.finishedAt,
+              body.targetId,
+              body.language,
+            );
+            return {
+              ok: true,
+              json: async () => ({ runId }),
+            };
+          } else if (action === "sync") {
+            await db.syncSessionOnMount(dbUserId);
+            return {
+              ok: true,
+              json: async () => ({ success: true }),
+            };
+          }
+        }
+      }
+      return {
+        ok: false,
+        json: async () => ({ error: "Not found" }),
+      };
+    });
+  });
+
+  afterEach(async () => {
+    await Promise.resolve();
+    const { runInitPromise } = useTypingStore.getState();
+    if (runInitPromise) {
+      await runInitPromise.catch(() => {});
     }
   });
 
@@ -358,7 +418,11 @@ describe("useTypingStore", () => {
     store.handlePhysicalKeyPress("KeyH", false, 1000);
 
     // Await run creation in background microtasks
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await Promise.resolve();
+    const runInitPromise = useTypingStore.getState().runInitPromise;
+    if (runInitPromise) {
+      await runInitPromise;
+    }
 
     const runId = useTypingStore.getState().currentRunId;
     expect(runId).not.toBeNull();
@@ -371,15 +435,83 @@ describe("useTypingStore", () => {
     store.handlePhysicalKeyPress("KeyE", false, 1100);
     expect(useTypingStore.getState().status).toBe("done");
 
-    // Wait for the async db save to run in microtasks
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    // Wait and verify it is NOT saved yet
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    let pages = await db.getPagesForRun(runId!);
+    expect(pages).toHaveLength(0);
 
-    const pages = await db.getPagesForRun(runId!);
+    // Trigger save directly and wait for it to complete in DB
+    await store.saveCurrentPage();
+
+    pages = await db.getPagesForRun(runId!);
     expect(pages).toHaveLength(1);
-    expect(pages[0].typed_text).toBe("he");
+    expect(pages[0].typedText).toBe("he");
     expect(pages[0].cpm).toBeGreaterThan(0);
     expect(pages[0].accuracy).toBe(100);
-    expect(pages[0].key_events).toHaveLength(2); // Null from_key event + transition event
+    const keyEvents = await db.getKeyEventsForPage(pages[0].id);
+    expect(keyEvents).toHaveLength(2); // Null from_key event + transition event
+  });
+
+  it("should not finish in hardcore mode if there are excess characters (INSERT)", () => {
+    useTypingStore.setState({
+      mode: "hardcore",
+      targetText: "구구",
+      targetLanguage: "ko",
+      targetId: "hardcore_test",
+      typedText: "",
+      qwertyBuffer: "",
+      status: "idle",
+    });
+
+    const store = useTypingStore.getState();
+
+    // Type '구' ('r', 'n') -> matches first '구'
+    store.handlePhysicalKeyPress("KeyR", false, 1000);
+    store.handlePhysicalKeyRelease("KeyR", 1050);
+    store.handlePhysicalKeyPress("KeyN", false, 1100);
+    store.handlePhysicalKeyRelease("KeyN", 1150);
+
+    expect(useTypingStore.getState().status).toBe("running");
+
+    // Type typo 'ㅌ' ('x') -> becomes '구ㅌ' (Qwerty 'rnx')
+    useTypingStore.getState().handlePhysicalKeyPress("KeyX", false, 1200);
+    useTypingStore.getState().handlePhysicalKeyRelease("KeyX", 1250);
+
+    // Type '구' ('r', 'n') -> becomes '구ㅌ구' (Qwerty 'rnxrn')
+    // Both target '구' characters are matched, but there is an 'INSERT' ('ㅌ') in the middle.
+    useTypingStore.getState().handlePhysicalKeyPress("KeyR", false, 1300);
+    useTypingStore.getState().handlePhysicalKeyRelease("KeyR", 1350);
+    useTypingStore.getState().handlePhysicalKeyPress("KeyN", false, 1400);
+    useTypingStore.getState().handlePhysicalKeyRelease("KeyN", 1450);
+
+    // It should not finish since it contains an INSERT
+    expect(useTypingStore.getState().status).toBe("running");
+    expect(useTypingStore.getState().finishedAt).toBeNull();
+
+    // Press Backspace three times to remove '구' (2 jamos) and 'ㅌ' (1 jamo)
+    // This empties the buffer as the last backspace deletes the whole visual character '구'
+    useTypingStore.getState().handlePhysicalKeyPress("Backspace", false, 1500);
+    useTypingStore.getState().handlePhysicalKeyRelease("Backspace", 1550);
+    useTypingStore.getState().handlePhysicalKeyPress("Backspace", false, 1600);
+    useTypingStore.getState().handlePhysicalKeyRelease("Backspace", 1650);
+    useTypingStore.getState().handlePhysicalKeyPress("Backspace", false, 1660);
+    useTypingStore.getState().handlePhysicalKeyRelease("Backspace", 1670);
+
+    expect(useTypingStore.getState().status).toBe("running");
+
+    // Type '구구' ('r', 'n', 'r', 'n') -> buffer becomes 'rnrn' ('구구'), matching perfectly
+    useTypingStore.getState().handlePhysicalKeyPress("KeyR", false, 1700);
+    useTypingStore.getState().handlePhysicalKeyRelease("KeyR", 1750);
+    useTypingStore.getState().handlePhysicalKeyPress("KeyN", false, 1800);
+    useTypingStore.getState().handlePhysicalKeyRelease("KeyN", 1850);
+    useTypingStore.getState().handlePhysicalKeyPress("KeyR", false, 1900);
+    useTypingStore.getState().handlePhysicalKeyRelease("KeyR", 1950);
+    useTypingStore.getState().handlePhysicalKeyPress("KeyN", false, 2000);
+    useTypingStore.getState().handlePhysicalKeyRelease("KeyN", 2050);
+
+    // Now it should finish successfully
+    expect(useTypingStore.getState().status).toBe("done");
+    expect(useTypingStore.getState().finishedAt).not.toBeNull();
   });
 
   it("should create a new run if idle for more than 3 minutes on next session typing start", async () => {
@@ -389,12 +521,13 @@ describe("useTypingStore", () => {
 
     // 1. First session
     store.handlePhysicalKeyPress("KeyH", false, 1000);
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await new Promise((resolve) => setTimeout(resolve, 150));
 
     const runId1 = useTypingStore.getState().currentRunId!;
     store.handlePhysicalKeyPress("KeyE", false, 1100);
 
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    // Trigger save directly and wait for it to complete in DB
+    await store.saveCurrentPage();
     const pages1 = await db.getPagesForRun(runId1);
     expect(pages1).toHaveLength(1);
 
@@ -408,7 +541,7 @@ describe("useTypingStore", () => {
     store.handlePhysicalKeyPress("KeyH", false, 250000);
 
     // Wait for async init run
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await new Promise((resolve) => setTimeout(resolve, 150));
 
     const runId2 = useTypingStore.getState().currentRunId;
     expect(runId2).not.toBeNull();
@@ -425,14 +558,15 @@ describe("useTypingStore", () => {
 
     // Press 'h' at 1,000ms
     store.handlePhysicalKeyPress("KeyH", false, 1000);
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await new Promise((resolve) => setTimeout(resolve, 150));
 
     const runId1 = useTypingStore.getState().currentRunId!;
 
     // Press 'e' at 1,000ms + 5 minutes (301,000ms)
     store.handlePhysicalKeyPress("KeyE", false, 302000);
 
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    // Trigger save directly and wait for it to complete in DB
+    await store.saveCurrentPage();
 
     const finalRunId = useTypingStore.getState().currentRunId!;
     expect(finalRunId).not.toBe(runId1);
@@ -445,6 +579,26 @@ describe("useTypingStore", () => {
 
     const pages = await db.getPagesForRun(finalRunId);
     expect(pages).toHaveLength(1);
-    expect(pages[0].run_id).toBe(finalRunId);
+    expect(pages[0].runId).toBe(finalRunId);
+  });
+
+  it("should allow backspace in done status to revert to running status and delete the last character", () => {
+    const store = useTypingStore.getState();
+    store.setTarget("he");
+
+    // Type 'h'
+    store.handlePhysicalKeyPress("KeyH", false, 1000);
+    // Type 'e' -> completes the target, status becomes 'done'
+    store.handlePhysicalKeyPress("KeyE", false, 1100);
+
+    expect(useTypingStore.getState().status).toBe("done");
+    expect(useTypingStore.getState().typedText).toBe("he");
+
+    // Press Backspace in 'done' status
+    store.handlePhysicalKeyPress("Backspace", false, 1200);
+
+    expect(useTypingStore.getState().status).toBe("running");
+    expect(useTypingStore.getState().finishedAt).toBeNull();
+    expect(useTypingStore.getState().typedText).toBe("h");
   });
 });

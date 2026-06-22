@@ -1,5 +1,5 @@
 import { KeyEvent } from "@/lib/skdm";
-import targets from "@/data/targets.json";
+import targets from "@/data/targets_client.json";
 import { db } from "@/utils/db";
 import { calculateMetrics } from "@/lib/practice/metrics";
 import { disassemble } from "es-hangul";

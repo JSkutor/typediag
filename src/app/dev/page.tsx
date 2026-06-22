@@ -1,10 +1,20 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { DevPiecewisePanel } from "@/components/dev/DevPiecewisePanel";
-import { LoadLocalDbButton } from "@/components/dev/LoadLocalDbButton";
-import { SyncLocalDbButton } from "@/components/dev/SyncLocalDbButton";
-
 import styles from "./dev.module.css";
+
+const DEV_TOOLS = [
+  {
+    href: "/dev/cosine",
+    title: "Cosine Similarity",
+    description: "Subject Mode 시맨틱 검색. DB 유사도 상위 문장 조회.",
+  },
+  {
+    href: "/dev/piecewise",
+    title: "Piecewise Regression",
+    description: "Zustand analysisEvents 기반 분절 회귀 시각화.",
+  },
+] as const;
 
 export default function DevPage() {
   if (process.env.NODE_ENV !== "development") {
@@ -15,19 +25,19 @@ export default function DevPage() {
     <div className={styles.page}>
       <div className={styles.inner}>
         <header className={styles.header}>
-          <div className={styles.headerTop}>
-            <h1 className={styles.title}>Dev · Piecewise Regression</h1>
-            <div style={{ display: "flex", gap: "8px" }}>
-              <SyncLocalDbButton />
-              <LoadLocalDbButton />
-            </div>
-          </div>
-          <p className={styles.subtitle}>
-            Zustand <code>analysisEvents</code>를 사용합니다. toKey 드롭다운으로 대상 키를 선택해
-            분절 회귀를 시각화합니다. development 모드에서만 접근 가능합니다.
-          </p>
+          <h1 className={styles.title}>Dev Tools</h1>
+          <p className={styles.subtitle}>development 모드에서만 접근 가능합니다.</p>
         </header>
-        <DevPiecewisePanel />
+        <ul className={styles.toolList}>
+          {DEV_TOOLS.map((tool) => (
+            <li key={tool.href}>
+              <Link href={tool.href} className={styles.toolCard}>
+                <span className={styles.toolCardTitle}>{tool.title}</span>
+                <span className={styles.toolCardDesc}>{tool.description}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );

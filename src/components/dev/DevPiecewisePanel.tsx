@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { PiecewiseRegressionChart } from "@/components/dev/PiecewiseRegressionChart";
@@ -58,19 +59,30 @@ export function DevPiecewisePanel() {
 
   if (analysisEvents.length === 0) {
     return (
-      <section className={styles.panel}>
+      <>
+        <nav className={styles.devNav}>
+          <Link href="/dev" className={styles.devNavLink}>
+            ← Dev 홈
+          </Link>
+        </nav>
+        <section className={styles.panel}>
         <h2 className={styles.panelTitle}>데이터 없음</h2>
         <p className={styles.emptyState}>
-          워크스페이스의 <code>analysisEvents</code>가 비어 있습니다. 상단{" "}
-          <strong>local_db.json 데이터 적용</strong> 버튼을 누르거나, 메인 화면에서 연습 후 Tab
+          워크스페이스의 <code>analysisEvents</code>가 비어 있습니다. 메인 화면에서 연습 후 Tab
           진단으로 데이터를 채우세요.
         </p>
       </section>
+      </>
     );
   }
 
   return (
     <>
+      <nav className={styles.devNav}>
+        <Link href="/dev" className={styles.devNavLink}>
+          ← Dev 홈
+        </Link>
+      </nav>
       <section className={styles.panel}>
         <h2 className={styles.panelTitle}>Zustand 데이터</h2>
         <div className={styles.controlRow}>
@@ -242,8 +254,9 @@ export function DevPiecewisePanel() {
                 · x
               </div>
               <div>
-                x &gt; c : y = {outcome.result.beta0.toFixed(3)} + ({outcome.result.beta1.toFixed(4)}
-                ) · x + ({outcome.result.beta2.toFixed(4)}) · (x − {outcome.result.c.toFixed(2)})
+                x &gt; c : y = {outcome.result.beta0.toFixed(3)} + (
+                {outcome.result.beta1.toFixed(4)}) · x + ({outcome.result.beta2.toFixed(4)}) · (x −{" "}
+                {outcome.result.c.toFixed(2)})
               </div>
               <div style={{ marginTop: "0.75rem" }}>
                 predict(0) = {outcome.result.predict(0).toFixed(2)} ms · predict(c) ={" "}

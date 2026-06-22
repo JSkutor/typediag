@@ -3,8 +3,18 @@ import type { KeyEvent } from "@/lib/skdm";
 import type { MvsaCache, AlignResult } from "@/utils/mvsa";
 
 export type SessionStatus = "idle" | "running" | "done";
+export type TypingMode = "normal" | "subject" | "hardcore" | "plain";
 
 export interface InputSlice {
+  // Subject Mode 전용 상태
+  isSubjectInputActive: boolean;
+  isSubjectLoading: boolean;
+  isSubjectGenerating: boolean; // LLM 문장 생성 중 여부
+  currentSubject: string; // 현재 입력된 주제 (생성 API 호출용)
+  fetchSubjectTarget: (subject: string) => Promise<void>;
+  subjectTargets: { id: string; content: string; language: string }[];
+  subjectTargetIndex: number;
+
   targetText: string;
   targetLanguage: string;
   targetId: string;
@@ -13,7 +23,12 @@ export interface InputSlice {
   qwertyBuffer: string;
   mvsaCache: MvsaCache;
   alignments: AlignResult[];
-  setTarget: (target: string | { id: string; content: string; language: string; tags?: string[] }) => void;
+  mode: TypingMode;
+  setMode: (mode: TypingMode) => void;
+  setTargetLanguage: (lang: string) => void;
+  setTarget: (
+    target: string | { id: string; content: string; language: string; embedding?: number[] },
+  ) => void;
   nextTarget: () => void;
   setTypedText: (value: string) => void;
   handlePhysicalKeyPress: (code: string, shiftKey: boolean, timestamp: number) => void;
@@ -39,8 +54,8 @@ export interface SessionSlice {
   currentRunId: string | null;
   runInitPromise: Promise<string> | null;
   finish: (timestamp?: number) => void;
+  saveCurrentPage: () => Promise<void>;
   reset: () => void;
-  loadLocalDbData: () => Promise<void>;
   startNewRun: () => void;
   startPage: (now: Date) => Promise<string>;
 }

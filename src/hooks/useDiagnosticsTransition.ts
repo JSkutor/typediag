@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { useTypingStore } from "@/store/useTypingStore";
 import { useWorkspaceStore } from "@/store/useWorkspaceStore";
 import { runPipeline, buildLayout, triangulate, type KeyEvent } from "@/lib/skdm";
-import { db } from "@/utils/db";
+import { getOrCreateGuestId } from "@/utils/guestUser";
 
 export function useDiagnosticsTransition() {
   const setUiState = useWorkspaceStore((state) => state.setUiState);
@@ -10,27 +10,28 @@ export function useDiagnosticsTransition() {
   const setAnalysisData = useWorkspaceStore((state) => state.setAnalysisData);
 
   const startDiagnosticsTransition = useCallback(async () => {
+    const typingStore = useTypingStore.getState();
+
+    // If the current page is completed (done) but not yet saved, save it now
+    if (typingStore.status === "done") {
+      await typingStore.saveCurrentPage();
+    }
+
     const currentRunId = useTypingStore.getState().currentRunId;
     let eventsToAnalyze: KeyEvent[] = [];
 
     if (currentRunId) {
       try {
-        const pages = await db.getPagesForRun(currentRunId);
-
-        if (pages.length > 0) {
-          // Merge all key events from pages in the current run
-          eventsToAnalyze = pages.flatMap((page) =>
-            page.key_events.map((ev) => ({
-              fromKey: ev.from_key,
-              toKey: ev.to_key,
-              latencyMs: ev.latency,
-              keyChar: ev.key_char,
-              holdDurationMs: ev.hold_duration_ms,
-              isCorrect: ev.is_correct,
-              expectedChar: ev.expected_char,
-            })),
-          );
+        const res = await fetch(`/api/session?action=analysis&runId=${currentRunId}`, {
+          headers: {
+            "X-Guest-User-Id": getOrCreateGuestId(),
+          },
+        });
+        if (!res.ok) {
+          throw new Error("Failed to fetch session analysis events");
         }
+        const data = await res.json();
+        eventsToAnalyze = data.events || [];
       } catch (err) {
         console.error("Failed to compile run stats:", err);
       }

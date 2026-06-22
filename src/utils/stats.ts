@@ -59,7 +59,7 @@ export function getStudentTPValue(t: number, df: number): number {
   if (df > 100) {
     const term1 = 1 - 2 / (9 * df);
     const term2 = t * Math.pow(1 + (t * t) / df, -1 / 3);
-    const z = term2 * term1 / Math.sqrt(2 / (9 * df));
+    const z = (term2 * term1) / Math.sqrt(2 / (9 * df));
     return 2 * (1 - normalCDF(Math.abs(z)));
   }
 

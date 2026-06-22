@@ -3,7 +3,7 @@ import { sessionService } from "./sessionService";
 import { db } from "@/utils/db";
 
 // Mock targets for targetText lookups
-vi.mock("@/data/targets.json", () => ({
+vi.mock("@/data/targets_client.json", () => ({
   default: [
     { id: "target_ko", content: "한글 텍스트", language: "ko" },
     { id: "target_en", content: "hello world", language: "en" },
@@ -11,60 +11,61 @@ vi.mock("@/data/targets.json", () => ({
 }));
 
 describe("SessionService", () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
+  let testUserId: string;
+
+  beforeEach(async () => {
     // Reset localstorage (db)
     if (typeof window !== "undefined") {
       localStorage.clear();
     }
+    const user = await db.getOrCreateUserByClerkId("test_clerk_id");
+    testUserId = user.id;
   });
 
   afterEach(() => {
-    vi.clearAllTimers();
-    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
   describe("startPage", () => {
     it("should create a new run if there is no previous run", async () => {
       const now = new Date("2026-06-16T10:00:00Z");
-      const runId = await sessionService.startPage(now);
+      const runId = await sessionService.startPage(testUserId, now);
 
       const run = await db.getRun(runId);
       expect(run).toBeDefined();
       expect(run?.status).toBe("in_progress");
-      expect(run?.started_at).toBe(now.toISOString());
+      expect(run?.startedAt?.toISOString()).toBe(now.toISOString());
     });
 
     it("should resume an existing pending run", async () => {
       const pendingTime = new Date("2026-06-16T10:00:00Z");
       const pendingRun = await db.createRun({
-        id: "pending_run",
-        user_id: "user_001",
+        id: "00000000-0000-0000-0000-000000000001",
+        user_id: testUserId,
         status: "pending",
         started_at: pendingTime.toISOString(),
       });
 
       const now = new Date("2026-06-16T10:01:00Z");
-      const runId = await sessionService.startPage(now);
+      const runId = await sessionService.startPage(testUserId, now);
 
       expect(runId).toBe(pendingRun.id);
       const run = await db.getRun(runId);
       expect(run?.status).toBe("in_progress");
-      expect(run?.started_at).toBe(now.toISOString()); // updated started_at
+      expect(run?.startedAt?.toISOString()).toBe(now.toISOString()); // updated started_at
     });
 
     it("should finalize an in_progress run and create new if older than 3 minutes", async () => {
       const pastTime = new Date("2026-06-16T10:00:00Z");
       const oldRun = await db.createRun({
-        id: "old_run",
-        user_id: "user_001",
+        id: "00000000-0000-0000-0000-000000000002",
+        user_id: testUserId,
         status: "in_progress",
         started_at: pastTime.toISOString(),
       });
 
       const now = new Date("2026-06-16T10:04:00Z"); // 4 minutes later
-      const runId = await sessionService.startPage(now);
+      const runId = await sessionService.startPage(testUserId, now);
 
       expect(runId).not.toBe(oldRun.id);
 
@@ -78,10 +79,11 @@ describe("SessionService", () => {
       const startedAt = new Date("2026-06-16T10:00:00Z").getTime();
       const finishedAt = startedAt + 60000; // 1 minute later
 
-      const runId = await sessionService.startPage(new Date(startedAt));
+      const runId = await sessionService.startPage(testUserId, new Date(startedAt));
       const events = [{ fromKey: "a", toKey: "b", latencyMs: 200, isCorrect: true, keyChar: "b" }];
 
       const newRunId = await sessionService.finishPage(
+        testUserId,
         runId,
         "hello world",
         "hello world",
@@ -100,7 +102,7 @@ describe("SessionService", () => {
       // 6 minutes elapsed
       const finishedAt = startedAt + 6 * 60 * 1000;
 
-      const runId = await sessionService.startPage(new Date(startedAt));
+      const runId = await sessionService.startPage(testUserId, new Date(startedAt));
       const events = [
         { fromKey: null, toKey: "a", latencyMs: 0 },
         // 6 minute gap
@@ -109,6 +111,7 @@ describe("SessionService", () => {
       ];
 
       const newRunId = await sessionService.finishPage(
+        testUserId,
         runId,
         "hello world",
         "hello world",
