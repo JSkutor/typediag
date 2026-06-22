@@ -147,7 +147,6 @@ def generate_prompts(count=1500):
                 f"- Number inclusion constraint: {number_condition}\n"
                 f"- Length constraint: Exactly around {target_len} Korean characters (excluding spaces and punctuation marks), with a tolerance of ±10 characters.\n"
                 f"- Requirement: Write a complex or compound sentence with two or more clauses naturally connected, rather than a simple sentence.\n"
-                f"- Tag extraction: Select 3 to 5 short key single-word terms (tags) that represent or relate to the sentence.\n"
                 f"- Warning: Do NOT include newline characters, tabs, backslashes, or other special control characters. Output strictly in a single line.\n"
                 f"- Warning: Do NOT use any special punctuation except periods (.), commas (,), exclamation marks (!), and question marks (?)."
             )
@@ -204,9 +203,8 @@ def submit_job(count=1500):
                             "type": "OBJECT",
                             "properties": {
                                 "content": {"type": "STRING"},
-                                "tags": {"type": "ARRAY", "items": {"type": "STRING"}},
                             },
-                            "required": ["content", "tags"],
+                            "required": ["content"],
                         },
                     },
                 },
@@ -217,8 +215,7 @@ def submit_job(count=1500):
     uploaded_file = client.files.upload(
         file=input_file_path,
         config=types.UploadFileConfig(
-            display_name="typediag_batch_input",
-            mime_type="application/json"
+            display_name="typediag_batch_input", mime_type="application/json"
         ),
     )
     print(f"   업로드 완료. 서버 파일명: {uploaded_file.name}")
@@ -235,7 +232,11 @@ def submit_job(count=1500):
     metadata = {
         "job_id": batch_job.name,
         "src_file": uploaded_file.name,
-        "submitted_at": batch_job.create_time.isoformat() if hasattr(batch_job.create_time, 'isoformat') else str(batch_job.create_time),
+        "submitted_at": (
+            batch_job.create_time.isoformat()
+            if hasattr(batch_job.create_time, "isoformat")
+            else str(batch_job.create_time)
+        ),
         "request_count": count,
     }
     with open(METADATA_FILE, "w", encoding="utf-8") as f:

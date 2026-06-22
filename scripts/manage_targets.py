@@ -13,6 +13,15 @@ DB_FILE = os.path.join(DATA_DIR, "targets.db")
 OUTPUT_JSONL = os.path.join(DATA_DIR, "batch_output.jsonl")
 TARGETS_CLIENT_PATH = os.path.join(PROJECT_ROOT, "src", "data", "targets_client.json")
 TARGETS_VECTOR_PATH = os.path.join(PROJECT_ROOT, "src", "data", "targets_vector.json")
+TARGET_SENTENCE_CONSTRAINTS_PATH = os.path.join(
+    PROJECT_ROOT, "src", "lib", "practice", "targetSentenceConstraints.json"
+)
+
+def load_hangul_range(scope):
+    """TypeScript SSOT(src/lib/practice/targetSentenceConstraints.json)와 동일한 범위를 사용합니다."""
+    with open(TARGET_SENTENCE_CONSTRAINTS_PATH, "r", encoding="utf-8") as f:
+        constraints = json.load(f)
+    return constraints[scope]["minPureHangul"], constraints[scope]["maxPureHangul"]
 
 def get_pure_hangul_count(text):
     """공백과 문장부호를 제외한 순수 한글 글자 수 계산"""
@@ -54,12 +63,14 @@ def init_db():
     conn.commit()
     conn.close()
 
-def import_results(min_len=50, max_len=110):
+def import_results(min_len=None, max_len=None):
     """
     Gemini Batch API 결과(JSONL)를 파싱하여 SQLite DB에 적재합니다.
     - 중복 문장은 자동으로 걸러집니다 (UNIQUE 제약조건).
     - 순수 한글 자수 조건(min_len <= hangul_count <= max_len)을 만족하는 문장만 적재합니다.
     """
+    if min_len is None or max_len is None:
+        min_len, max_len = load_hangul_range("batch")
     init_db()
     
     if not os.path.exists(OUTPUT_JSONL):
@@ -248,8 +259,9 @@ def show_db_stats():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="타겟 문장 데이터베이스 관리 및 JSON 내보내기")
     parser.add_argument("command", choices=["import", "export", "stats"], help="실행할 명령 (import: 출력 JSONL을 DB에 적재, export: DB 데이터를 targets.json으로 내보내기, stats: DB 상태 확인)")
-    parser.add_argument("--min-len", type=int, default=50, help="가져올 문장의 최소 순수 한글 자수 (기본값: 50)")
-    parser.add_argument("--max-len", type=int, default=110, help="가져올 문장의 최대 순수 한글 자수 (기본값: 110)")
+    batch_min, batch_max = load_hangul_range("batch")
+    parser.add_argument("--min-len", type=int, default=None, help=f"가져올 문장의 최소 순수 한글 자수 (기본값: {batch_min}, SSOT: targetSentenceConstraints.json)")
+    parser.add_argument("--max-len", type=int, default=None, help=f"가져올 문장의 최대 순수 한글 자수 (기본값: {batch_max}, SSOT: targetSentenceConstraints.json)")
     
     args = parser.parse_args()
     

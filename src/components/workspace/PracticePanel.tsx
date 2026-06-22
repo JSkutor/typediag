@@ -4,7 +4,7 @@ import React from "react";
 import { useTypingStore, TypingMode } from "@/store/useTypingStore";
 
 export const PracticePanel: React.FC = () => {
-  const { qwertyBuffer, alignments: diffResult, mode, setMode } = useTypingStore();
+  const { qwertyBuffer, alignments: diffResult, mode, setMode, subjectTargets, subjectTargetIndex, isSubjectInputActive } = useTypingStore();
 
   const lastInputIndex = React.useMemo(() => {
     return diffResult.findLastIndex((d) => d.inputIndex !== undefined);
@@ -98,6 +98,21 @@ export const PracticePanel: React.FC = () => {
           })}
         </div>
       </div>
+
+      {mode === "subject" && !isSubjectInputActive && subjectTargets.length > 0 && (
+        <div style={{
+          position: "absolute",
+          top: "1rem",
+          right: "1rem",
+          fontSize: "0.875rem",
+          color: "var(--text-secondary, #8d929b)",
+          backgroundColor: "rgba(255, 255, 255, 0.05)",
+          padding: "4px 12px",
+          borderRadius: "9999px",
+        }}>
+          준비된 텍스트: {subjectTargets.length - subjectTargetIndex}
+        </div>
+      )}
 
       <div
         id="typing-text-container"

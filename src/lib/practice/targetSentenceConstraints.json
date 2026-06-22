@@ -1,0 +1,10 @@
+{
+  "batch": {
+    "minPureHangul": 50,
+    "maxPureHangul": 110
+  },
+  "subjectGenerate": {
+    "minPureHangul": 60,
+    "maxPureHangul": 100
+  }
+}

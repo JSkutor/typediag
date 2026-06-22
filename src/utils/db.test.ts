@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeEach } from "vitest";
+import { sql, and, inArray, isNull } from "drizzle-orm";
 import { drizzleDb } from "@/db";
 import { targetTexts } from "@/db/schema";
 import { db, RunRow, PageRow } from "./db";
+import crypto from "crypto";
 
 describe("db", () => {
   let testUserId: string;
@@ -283,5 +285,74 @@ describe("db", () => {
 
     const fetchedEvents = await db.getKeyEventsForPage(page.id);
     expect(fetchedEvents).toHaveLength(numEvents);
+  });
+
+  it("should insert subject-generated targets without embedding", async () => {
+    const id = `target_gen_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`;
+    const content = `subject-gen-${crypto.randomUUID()}`;
+
+    await db.insertSubjectGeneratedTargets([
+      { id, content, language: "ko", subject: "테스트 주제" },
+    ]);
+
+    const found = await db.findTargetText({ id });
+    expect(found?.content).toBe(content);
+    expect(found?.source).toBe("subject");
+    expect(found?.generatorModel).toBe("gemini-2.5-flash-lite");
+    expect(found?.subject).toBe("테스트 주제");
+    expect(found?.embedding).toBeNull();
+  });
+
+  it("should skip duplicate content when inserting subject-generated targets", async () => {
+    const content = `subject-dup-${crypto.randomUUID()}`;
+    const firstId = `target_gen_${Date.now()}_aaaa1111`;
+    const secondId = `target_gen_${Date.now()}_bbbb2222`;
+
+    await db.insertSubjectGeneratedTargets([
+      { id: firstId, content, language: "ko", subject: "주제A" },
+    ]);
+    await db.insertSubjectGeneratedTargets([
+      { id: secondId, content, language: "ko", subject: "주제B" },
+    ]);
+
+    expect(await db.findTargetText({ id: secondId })).toBeNull();
+    expect((await db.findTargetText({ content }))?.id).toBe(firstId);
+  });
+
+  it("should select only target texts with null embedding for batch embed", async () => {
+    const suffix = crypto.randomUUID().slice(0, 8);
+    const noEmbedId = `test-no-embed-${suffix}`;
+    const withEmbedId = `test-with-embed-${suffix}`;
+    const zeroVector = `[${new Array(4096).fill(0).join(",")}]`;
+
+    await drizzleDb.insert(targetTexts).values([
+      {
+        id: noEmbedId,
+        content: `no-embed-${suffix}`,
+        language: "ko",
+        source: "default",
+      },
+      {
+        id: withEmbedId,
+        content: `with-embed-${suffix}`,
+        language: "ko",
+        source: "default",
+      },
+    ]);
+
+    await drizzleDb.execute(
+      sql.raw(
+        `UPDATE target_texts SET embedding = '${zeroVector}'::vector WHERE id = '${withEmbedId}'`,
+      ),
+    );
+
+    const pending = await drizzleDb
+      .select({ id: targetTexts.id })
+      .from(targetTexts)
+      .where(
+        and(inArray(targetTexts.id, [noEmbedId, withEmbedId]), isNull(targetTexts.embedding)),
+      );
+
+    expect(pending.map((row) => row.id)).toEqual([noEmbedId]);
   });
 });

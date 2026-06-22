@@ -65,9 +65,8 @@ export async function POST(req: Request) {
         similarity: sql<number>`1 - (${targetTexts.embedding} <=> ${vectorStr}::vector)`,
       })
       .from(targetTexts)
-      .where(sql`${targetTexts.embedding} IS NOT NULL`)
-      .orderBy(sql`${targetTexts.embedding} <=> ${vectorStr}::vector`)
-      .limit(3);
+      .where(sql`${targetTexts.embedding} IS NOT NULL AND (1 - (${targetTexts.embedding} <=> ${vectorStr}::vector)) > 0.5`)
+      .orderBy(sql`${targetTexts.embedding} <=> ${vectorStr}::vector`);
 
     if (!results || results.length === 0) {
       return NextResponse.json({ error: "No matching targets found" }, { status: 404 });

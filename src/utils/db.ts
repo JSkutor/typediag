@@ -155,6 +155,30 @@ export const db = {
   },
 
   /**
+   * Persist LLM-generated subject sentences without embedding.
+   * Skips duplicates by content (unique constraint).
+   */
+  async insertSubjectGeneratedTargets(
+    items: Array<{ id: string; content: string; language: string; subject: string }>,
+  ): Promise<void> {
+    if (items.length === 0) return;
+
+    await drizzleDb
+      .insert(targetTexts)
+      .values(
+        items.map((item) => ({
+          id: item.id,
+          content: item.content,
+          language: item.language,
+          source: "subject",
+          generatorModel: "gemini-2.5-flash-lite",
+          subject: item.subject,
+        })),
+      )
+      .onConflictDoNothing({ target: targetTexts.content });
+  },
+
+  /**
    * Create a new practice run (session).
    */
   async createRun(runData: {

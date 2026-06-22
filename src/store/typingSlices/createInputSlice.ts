@@ -41,11 +41,20 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
 
     set({ isSubjectLoading: true });
     try {
-      const res = await fetch("/api/practice/subject", {
+      let res = await fetch("/api/practice/subject", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subject }),
       });
+
+      if (res.status === 404) {
+        res = await fetch("/api/practice/subject/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ subject }),
+        });
+      }
+
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         throw new Error(errorData.error || "올바른 한글 입력이 아닙니다.");
@@ -233,8 +242,8 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
         set({ subjectTargetIndex: nextIndex });
         get().setTarget(subjectTargets[nextIndex]);
 
-        // 3번째 문장(index 2)으로 넘어가는 순간, LLM으로 다음 문장 미리 생성
-        if (nextIndex === 2 && currentSubject && !get().isSubjectGenerating) {
+        // 남은 문장이 3개 이하일 때, LLM으로 다음 문장 20개 미리 생성
+        if (subjectTargets.length - nextIndex <= 3 && currentSubject && !get().isSubjectGenerating) {
           set({ isSubjectGenerating: true });
           fetch("/api/practice/subject/generate", {
             method: "POST",
@@ -260,9 +269,9 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
                 return;
               }
               const { data } = await res.json();
-              if (data?.content) {
+              if (Array.isArray(data) && data.length > 0) {
                 set((s) => ({
-                  subjectTargets: [...s.subjectTargets, data],
+                  subjectTargets: [...s.subjectTargets, ...data],
                   isSubjectGenerating: false,
                 }));
               } else {
