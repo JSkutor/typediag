@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AuthControls } from "@/components/auth/AuthControls";
 import styles from "./Header.module.css";
 
 export function Header() {
@@ -22,6 +23,7 @@ export function Header() {
           <Link href="/ko" className={styles.cta}>
             시작하기
           </Link>
+          <AuthControls />
         </nav>
       </div>
     </header>

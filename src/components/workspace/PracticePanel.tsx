@@ -4,12 +4,7 @@ import React from "react";
 import { useTypingStore, TypingMode } from "@/store/useTypingStore";
 
 export const PracticePanel: React.FC = () => {
-  const {
-    qwertyBuffer,
-    alignments: diffResult,
-    mode,
-    setMode,
-  } = useTypingStore();
+  const { qwertyBuffer, alignments: diffResult, mode, setMode } = useTypingStore();
 
   const lastInputIndex = React.useMemo(() => {
     return diffResult.findLastIndex((d) => d.inputIndex !== undefined);
@@ -71,7 +66,9 @@ export const PracticePanel: React.FC = () => {
                   borderRadius: "9999px",
                   border: "none",
                   backgroundColor: isActive ? "var(--accent, #3861fb)" : "transparent",
-                  color: isActive ? "var(--text-inverse, #f0f2f5)" : "var(--text-secondary, #8d929b)",
+                  color: isActive
+                    ? "var(--text-inverse, #f0f2f5)"
+                    : "var(--text-secondary, #8d929b)",
                   cursor: "pointer",
                   outline: "none",
                   fontFamily: "var(--font-sans)",
@@ -110,8 +107,16 @@ export const PracticePanel: React.FC = () => {
         aria-atomic="true"
       >
         {mode === "subject" && useTypingStore.getState().isSubjectLoading ? (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem" }}>
-            <div style={{ color: "var(--text-secondary, #8d929b)", fontStyle: "italic", animation: "pulse 1.5s infinite" }}>
+          <div
+            style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem" }}
+          >
+            <div
+              style={{
+                color: "var(--text-secondary, #8d929b)",
+                fontStyle: "italic",
+                animation: "pulse 1.5s infinite",
+              }}
+            >
               주제에 맞는 문장을 찾는 중입니다...
             </div>
           </div>

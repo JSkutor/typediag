@@ -1,40 +1,44 @@
 import { describe, it, expect, beforeEach } from "vitest";
+import { drizzleDb } from "@/db";
+import { targetTexts } from "@/db/schema";
 import { db, RunRow, PageRow } from "./db";
 
 describe("db", () => {
-  beforeEach(() => {
+  let testUserId: string;
+
+  beforeEach(async () => {
     if (typeof window !== "undefined") {
       localStorage.clear();
     }
+    const user = await db.getOrCreateUserByClerkId("test_clerk_id");
+    testUserId = user.id;
   });
 
   it("should create and update a run correctly", async () => {
     const run = await db.createRun({
-      id: "run_1",
-      user_id: "user_001",
+      user_id: testUserId,
       status: "pending",
       started_at: "2026-06-15T00:00:00Z",
     });
 
     expect(run.status).toBe("pending");
-    expect(run.finished_at).toBeNull();
+    expect(run.finishedAt).toBeNull();
 
-    const updated = await db.updateRun("run_1", { status: "in_progress" });
+    const updated = await db.updateRun(run.id, { status: "in_progress" });
     expect(updated.status).toBe("in_progress");
 
-    const fetched = await db.getRun("run_1");
+    const fetched = await db.getRun(run.id);
     expect(fetched?.status).toBe("in_progress");
   });
 
   it("should finalize a run correctly with no pages", async () => {
-    await db.createRun({
-      id: "run_2",
-      user_id: "user_001",
+    const run = await db.createRun({
+      user_id: testUserId,
       status: "in_progress",
       started_at: "2026-06-15T00:00:00Z",
     });
 
-    const finalized = await db.finalizeRun("run_2");
+    const finalized = await db.finalizeRun(run.id);
     expect(finalized?.status).toBe("completed");
     expect(finalized?.cpm).toBe(0);
     expect(finalized?.wpm).toBe(0);
@@ -42,17 +46,16 @@ describe("db", () => {
   });
 
   it("should finalize a run correctly with pages", async () => {
-    await db.createRun({
-      id: "run_3",
-      user_id: "user_001",
+    const run = await db.createRun({
+      user_id: testUserId,
       status: "in_progress",
       started_at: "2026-06-15T00:00:00Z",
     });
 
     await db.createPage({
-      id: "page_1",
-      run_id: "run_3",
-      target_text_id: "target_1",
+      id: "00000000-0000-0000-0000-000000000021",
+      run_id: run.id,
+      target_text_id: null,
       order_index: 0,
       language: "ko",
       typed_text: "test",
@@ -66,9 +69,9 @@ describe("db", () => {
     });
 
     await db.createPage({
-      id: "page_2",
-      run_id: "run_3",
-      target_text_id: "target_2",
+      id: "00000000-0000-0000-0000-000000000022",
+      run_id: run.id,
+      target_text_id: null,
       order_index: 1,
       language: "ko",
       typed_text: "test2",
@@ -81,7 +84,7 @@ describe("db", () => {
       key_events: [],
     });
 
-    const finalized = await db.finalizeRun("run_3");
+    const finalized = await db.finalizeRun(run.id);
     expect(finalized?.status).toBe("completed");
     expect(finalized?.wpm).toBe(90); // (100 + 80) / 2
     expect(finalized?.cpm).toBe(450); // (500 + 400) / 2
@@ -89,18 +92,17 @@ describe("db", () => {
   });
 
   it("should finalize a run correctly using weighted averages for pages with different lengths and durations", async () => {
-    await db.createRun({
-      id: "run_weighted",
-      user_id: "user_001",
+    const run = await db.createRun({
+      user_id: testUserId,
       status: "in_progress",
       started_at: "2026-06-15T00:00:00Z",
     });
 
     // Page 1: 1000ms (1s), 600 CPM, 120 WPM, 100% accuracy, 10 key events
     await db.createPage({
-      id: "page_w1",
-      run_id: "run_weighted",
-      target_text_id: "target_1",
+      id: "00000000-0000-0000-0000-000000000023",
+      run_id: run.id,
+      target_text_id: null,
       order_index: 0,
       language: "ko",
       typed_text: "short",
@@ -123,9 +125,9 @@ describe("db", () => {
 
     // Page 2: 9000ms (9s), 400 CPM, 80 WPM, 90% accuracy, 90 key events
     await db.createPage({
-      id: "page_w2",
-      run_id: "run_weighted",
-      target_text_id: "target_2",
+      id: "00000000-0000-0000-0000-000000000024",
+      run_id: run.id,
+      target_text_id: null,
       order_index: 1,
       language: "ko",
       typed_text: "longer",
@@ -146,7 +148,7 @@ describe("db", () => {
       })),
     });
 
-    const finalized = await db.finalizeRun("run_weighted");
+    const finalized = await db.finalizeRun(run.id);
     expect(finalized?.status).toBe("completed");
 
     // Total time = 10000ms
@@ -164,13 +166,12 @@ describe("db", () => {
 
   it("syncSessionOnMount should delete a pending run", async () => {
     const run = await db.createRun({
-      id: "run_4",
-      user_id: "user_001",
+      user_id: testUserId,
       status: "pending",
       started_at: new Date(Date.now() - 10 * 60 * 1000).toISOString(), // 10 mins ago
     });
 
-    await db.syncSessionOnMount();
+    await db.syncSessionOnMount(testUserId);
 
     const fetched = await db.getRun(run.id);
     expect(fetched).toBeNull();
@@ -178,13 +179,12 @@ describe("db", () => {
 
   it("syncSessionOnMount should finalize an in_progress run if idle for > 3 mins", async () => {
     const run = await db.createRun({
-      id: "run_5",
-      user_id: "user_001",
+      user_id: testUserId,
       status: "in_progress",
       started_at: new Date(Date.now() - 4 * 60 * 1000).toISOString(), // 4 mins ago
     });
 
-    await db.syncSessionOnMount();
+    await db.syncSessionOnMount(testUserId);
 
     const fetched = await db.getRun(run.id);
     expect(fetched?.status).toBe("completed");
@@ -192,15 +192,96 @@ describe("db", () => {
 
   it("syncSessionOnMount should not finalize an in_progress run if active within 3 mins", async () => {
     const run = await db.createRun({
-      id: "run_6",
-      user_id: "user_001",
+      user_id: testUserId,
       status: "in_progress",
       started_at: new Date(Date.now() - 2 * 60 * 1000).toISOString(), // 2 mins ago
     });
 
-    await db.syncSessionOnMount();
+    await db.syncSessionOnMount(testUserId);
 
     const fetched = await db.getRun(run.id);
     expect(fetched?.status).toBe("in_progress");
+  });
+
+  it("should return target texts and find specific ones", async () => {
+    const targetTextId = `test-tgt-${crypto.randomUUID().slice(0, 8)}`;
+    const content = `test-content-${crypto.randomUUID()}`;
+
+    await drizzleDb.insert(targetTexts).values({
+      id: targetTextId,
+      content,
+      language: "ko",
+      source: "default",
+      userId: testUserId,
+    });
+
+    const all = await db.getTargetTexts();
+    expect(all.some((t) => t.id === targetTextId)).toBe(true);
+
+    const foundById = await db.findTargetText({ id: targetTextId });
+    expect(foundById?.content).toBe(content);
+
+    const foundByContent = await db.findTargetText({ content });
+    expect(foundByContent?.id).toBe(targetTextId);
+  });
+
+  it("should default target_text_id to null if it does not exist in DB when creating a page", async () => {
+    const run = await db.createRun({
+      user_id: testUserId,
+      status: "in_progress",
+      started_at: "2026-06-15T00:00:00Z",
+    });
+
+    const page = await db.createPage({
+      run_id: run.id,
+      target_text_id: "non-existent-id",
+      order_index: 0,
+      language: "ko",
+      typed_text: "test",
+      wpm: 100,
+      cpm: 500,
+      accuracy: 95,
+      started_at: "2026-06-15T00:00:10Z",
+      finished_at: "2026-06-15T00:00:20Z",
+      elapsed_time_ms: 10000,
+      key_events: [],
+    });
+
+    expect(page.targetTextId).toBeNull();
+  });
+
+  it("should successfully bulk insert pages with > 500 key events", async () => {
+    const run = await db.createRun({
+      user_id: testUserId,
+      status: "in_progress",
+      started_at: "2026-06-15T00:00:00Z",
+    });
+
+    const numEvents = 550;
+    const page = await db.createPage({
+      run_id: run.id,
+      target_text_id: null,
+      order_index: 0,
+      language: "ko",
+      typed_text: "test",
+      wpm: 100,
+      cpm: 500,
+      accuracy: 95,
+      started_at: "2026-06-15T00:00:10Z",
+      finished_at: "2026-06-15T00:00:20Z",
+      elapsed_time_ms: 10000,
+      key_events: Array.from({ length: numEvents }, (_, i) => ({
+        from_key: "a",
+        to_key: "b",
+        key_char: "b",
+        latency: 10,
+        hold_duration_ms: null,
+        is_correct: true,
+        expected_char: "b",
+      })),
+    });
+
+    const fetchedEvents = await db.getKeyEventsForPage(page.id);
+    expect(fetchedEvents).toHaveLength(numEvents);
   });
 });

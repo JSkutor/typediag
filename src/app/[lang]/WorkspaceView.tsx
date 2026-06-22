@@ -5,8 +5,9 @@ import { useTypingStore } from "@/store/useTypingStore";
 import { useWorkspaceKeybindings } from "@/hooks/useWorkspaceKeybindings";
 import { useResponsiveScale } from "@/hooks/useResponsiveScale";
 import { useDiagnosticsTransition } from "@/hooks/useDiagnosticsTransition";
-import { db } from "@/utils/db";
+import { sessionServiceClient } from "@/services/sessionServiceClient";
 
+import { AuthControls } from "@/components/auth/AuthControls";
 import { WorkspaceControls } from "@/components/workspace/WorkspaceControls";
 import { PracticeLayer } from "@/components/workspace/PracticeLayer";
 import { DiagnosticsLayer } from "@/components/workspace/DiagnosticsLayer";
@@ -21,7 +22,7 @@ export default function WorkspaceView({ lang, tab }: { lang: string; tab: string
 
   // Initialize practice text and sync session
   useEffect(() => {
-    db.syncSessionOnMount().catch((error) => {
+    sessionServiceClient.syncSessionOnMount().catch((error) => {
       console.error("Failed to sync session on mount:", error);
     });
     if (targets.length > 0) {
@@ -38,7 +39,8 @@ export default function WorkspaceView({ lang, tab }: { lang: string; tab: string
       className="workspace-container"
       style={{ position: "relative", width: "100vw", height: "100vh", overflow: "hidden" }}
     >
-      <WorkspaceControls onStartDiagnostics={startDiagnosticsTransition} />
+      <AuthControls variant="compact" />
+      <WorkspaceControls />
 
       <PracticeLayer />
 

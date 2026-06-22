@@ -56,7 +56,6 @@ export interface SessionSlice {
   finish: (timestamp?: number) => void;
   saveCurrentPage: () => Promise<void>;
   reset: () => void;
-  loadLocalDbData: () => Promise<void>;
   startNewRun: () => void;
   startPage: (now: Date) => Promise<string>;
 }

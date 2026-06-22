@@ -1,7 +1,6 @@
 import { db } from "@/utils/db";
 import { calculateMetrics, calculateLatencyAfterGap } from "@/lib/practice/metrics";
 import type { KeyEvent } from "@/lib/skdm";
-import targets from "@/data/targets_client.json";
 
 export class SessionService {
   private static instance: SessionService;
@@ -20,8 +19,8 @@ export class SessionService {
    * If the last active run is older than 3 minutes, it finalizes it and creates a new one.
    * Otherwise, it resumes the existing run.
    */
-  public async startPage(now: Date): Promise<string> {
-    const latestRun = await db.getLatestRun();
+  public async startPage(dbUserId: string, now: Date): Promise<string> {
+    const latestRun = await db.getLatestRun(dbUserId);
     let runId = "";
 
     if (latestRun && latestRun.status === "pending") {
@@ -31,29 +30,30 @@ export class SessionService {
       });
       runId = latestRun.id;
     } else if (latestRun && latestRun.status === "in_progress") {
-      const pages = await db.getPagesForRun(latestRun.id);
+      const runPages = await db.getPagesForRun(latestRun.id);
       const lastActiveStr =
-        pages.length > 0 ? pages[pages.length - 1].finished_at : latestRun.started_at;
+        runPages.length > 0
+          ? runPages[runPages.length - 1].finishedAt.toISOString()
+          : latestRun.startedAt.toISOString();
       const lastActiveAt = new Date(lastActiveStr).getTime();
 
       if (now.getTime() - lastActiveAt > 3 * 60 * 1000) {
         // 3분 이상 지나면 이전 세션을 마감하고 새 세션을 엽니다.
         await db.finalizeRun(latestRun.id, lastActiveStr);
-        runId = await this.createNewRun(now);
+        runId = await this.createNewRun(dbUserId, now);
       } else {
         runId = latestRun.id;
       }
     } else {
-      runId = await this.createNewRun(now);
+      runId = await this.createNewRun(dbUserId, now);
     }
 
     return runId;
   }
 
-  private async createNewRun(now: Date): Promise<string> {
+  private async createNewRun(dbUserId: string, now: Date): Promise<string> {
     const newRun = await db.createRun({
-      id: `run_${Math.random().toString(36).substring(2, 11)}_${Date.now()}`,
-      user_id: "user_001",
+      user_id: dbUserId,
       status: "pending",
       started_at: now.toISOString(),
     });
@@ -69,6 +69,7 @@ export class SessionService {
    * Splits the run if there's been a long gap during the page itself.
    */
   public async finishPage(
+    dbUserId: string,
     runId: string,
     targetText: string,
     typedText: string,
@@ -83,19 +84,19 @@ export class SessionService {
     // Determine language and targetTextId using provided arguments or fallback lookups
     const finalLanguage =
       language ||
-      (() => {
-        const targetTextObj = targets.find((t) => t.content === targetText);
+      (await (async () => {
+        const targetTextObj = await db.findTargetText({ content: targetText });
         if (targetTextObj) return targetTextObj.language;
         const isKorean = /[가-힣]/.test(targetText);
         return isKorean ? "ko" : "en";
-      })();
+      })());
 
     const finalTargetTextId =
       targetId ||
-      (() => {
-        const targetTextObj = targets.find((t) => t.content === targetText);
+      (await (async () => {
+        const targetTextObj = await db.findTargetText({ content: targetText });
         return targetTextObj ? targetTextObj.id : "unknown";
-      })();
+      })());
 
     const getPerfNow = () => {
       if (typeof performance !== "undefined" && typeof performance.now === "function") {
@@ -126,9 +127,9 @@ export class SessionService {
       const lastPage = existingPages[existingPages.length - 1];
       const prevRun = await db.getRun(currentRunId);
       const finalizeTimeStr = lastPage
-        ? lastPage.finished_at
+        ? lastPage.finishedAt.toISOString()
         : prevRun
-          ? prevRun.started_at
+          ? prevRun.startedAt.toISOString()
           : new Date().toISOString();
       await db.finalizeRun(currentRunId, finalizeTimeStr);
 
@@ -137,7 +138,7 @@ export class SessionService {
       const correctedStartTimestamp = absoluteFinishedAt - activeTimeAfterGap;
       pageStartedAtStr = new Date(correctedStartTimestamp).toISOString();
 
-      currentRunId = await this.createNewRun(new Date(correctedStartTimestamp));
+      currentRunId = await this.createNewRun(dbUserId, new Date(correctedStartTimestamp));
     }
 
     const metrics = calculateMetrics(events, 3000);
@@ -155,7 +156,6 @@ export class SessionService {
     }));
 
     await db.createPage({
-      id: `page_${Math.random().toString(36).substring(2, 11)}_${Date.now()}`,
       run_id: currentRunId,
       target_text_id: finalTargetTextId,
       order_index,

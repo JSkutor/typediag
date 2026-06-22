@@ -37,7 +37,7 @@ async function generateSentenceWithGemini(subject: string): Promise<string> {
 특수 기호는 마침표(.), 쉼표(,), 물음표(?) 만 허용.`;
 
   const geminiRes = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite-preview-06-17:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -57,7 +57,7 @@ async function generateSentenceWithGemini(subject: string): Promise<string> {
           stopSequences: ["\n"],
         },
       }),
-    }
+    },
   );
 
   if (!geminiRes.ok) {
@@ -66,8 +66,7 @@ async function generateSentenceWithGemini(subject: string): Promise<string> {
   }
 
   const geminiData = await geminiRes.json();
-  const rawText: string =
-    geminiData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? "";
+  const rawText: string = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? "";
 
   return rawText;
 }
@@ -135,7 +134,7 @@ export async function POST(req: Request) {
     if (!validation.isValid) {
       return NextResponse.json(
         { error: validation.reason || "올바르지 않은 주제입니다." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -146,7 +145,7 @@ export async function POST(req: Request) {
     if (!generatedText) {
       return NextResponse.json(
         { error: "부적절한 주제이거나 문장 생성에 실패했습니다." },
-        { status: 422 }
+        { status: 422 },
       );
     }
 
@@ -171,7 +170,7 @@ export async function POST(req: Request) {
     console.error("[generate/route] Error:", error);
     return NextResponse.json(
       { error: "부적절한 주제이거나 문장 생성에 실패했습니다.", details: message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
