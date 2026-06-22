@@ -46,4 +46,20 @@ describe("mergeGuestData", () => {
       .limit(1);
     expect(deletedGuest).toHaveLength(0);
   });
+
+  it("should skip merging if guestUserId and memberUserId are identical", async () => {
+    const clerkId = `guest_${crypto.randomUUID()}`;
+    const user = await db.getOrCreateUserByClerkId(clerkId);
+
+    // Call merge with identical IDs
+    await db.mergeGuestData(user.id, user.id);
+
+    // Ensure user still exists
+    const existing = await drizzleDb
+      .select()
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1);
+    expect(existing).toHaveLength(1);
+  });
 });

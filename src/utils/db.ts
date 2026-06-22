@@ -9,7 +9,7 @@
  * minimal changes.
  */
 
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, inArray } from "drizzle-orm";
 import { drizzleDb } from "@/db";
 import {
   users,
@@ -361,15 +361,22 @@ export const db = {
     const totalTimeMs = pagesToAggregate.reduce((sum, p) => sum + p.elapsedTimeMs, 0);
 
     // Count key events per page for weighted accuracy calculation
-    const pageKeyEventCounts = await Promise.all(
-      pagesToAggregate.map(async (p) => {
-        const [result] = await drizzleDb
-          .select({ count: sql<number>`count(*)::int` })
-          .from(keyEvents)
-          .where(eq(keyEvents.pageId, p.id));
-        return result.count;
-      }),
-    );
+    const pageIds = pagesToAggregate.map((p) => p.id);
+    const countMap = new Map<string, number>();
+
+    if (pageIds.length > 0) {
+      const keyEventCountsResult = await drizzleDb
+        .select({ pageId: keyEvents.pageId, count: sql<number>`count(*)::int` })
+        .from(keyEvents)
+        .where(inArray(keyEvents.pageId, pageIds))
+        .groupBy(keyEvents.pageId);
+
+      for (const r of keyEventCountsResult) {
+        countMap.set(r.pageId, r.count);
+      }
+    }
+
+    const pageKeyEventCounts = pagesToAggregate.map((p) => countMap.get(p.id) ?? 0);
 
     const avgCpm =
       totalTimeMs > 0

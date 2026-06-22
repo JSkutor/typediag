@@ -1,4 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
+import { drizzleDb } from "@/db";
+import { targetTexts } from "@/db/schema";
 import { db, RunRow, PageRow } from "./db";
 
 describe("db", () => {
@@ -199,5 +201,87 @@ describe("db", () => {
 
     const fetched = await db.getRun(run.id);
     expect(fetched?.status).toBe("in_progress");
+  });
+
+  it("should return target texts and find specific ones", async () => {
+    const targetTextId = `test-tgt-${crypto.randomUUID().slice(0, 8)}`;
+    const content = `test-content-${crypto.randomUUID()}`;
+
+    await drizzleDb.insert(targetTexts).values({
+      id: targetTextId,
+      content,
+      language: "ko",
+      source: "default",
+      userId: testUserId,
+    });
+
+    const all = await db.getTargetTexts();
+    expect(all.some((t) => t.id === targetTextId)).toBe(true);
+
+    const foundById = await db.findTargetText({ id: targetTextId });
+    expect(foundById?.content).toBe(content);
+
+    const foundByContent = await db.findTargetText({ content });
+    expect(foundByContent?.id).toBe(targetTextId);
+  });
+
+  it("should default target_text_id to null if it does not exist in DB when creating a page", async () => {
+    const run = await db.createRun({
+      user_id: testUserId,
+      status: "in_progress",
+      started_at: "2026-06-15T00:00:00Z",
+    });
+
+    const page = await db.createPage({
+      run_id: run.id,
+      target_text_id: "non-existent-id",
+      order_index: 0,
+      language: "ko",
+      typed_text: "test",
+      wpm: 100,
+      cpm: 500,
+      accuracy: 95,
+      started_at: "2026-06-15T00:00:10Z",
+      finished_at: "2026-06-15T00:00:20Z",
+      elapsed_time_ms: 10000,
+      key_events: [],
+    });
+
+    expect(page.targetTextId).toBeNull();
+  });
+
+  it("should successfully bulk insert pages with > 500 key events", async () => {
+    const run = await db.createRun({
+      user_id: testUserId,
+      status: "in_progress",
+      started_at: "2026-06-15T00:00:00Z",
+    });
+
+    const numEvents = 550;
+    const page = await db.createPage({
+      run_id: run.id,
+      target_text_id: null,
+      order_index: 0,
+      language: "ko",
+      typed_text: "test",
+      wpm: 100,
+      cpm: 500,
+      accuracy: 95,
+      started_at: "2026-06-15T00:00:10Z",
+      finished_at: "2026-06-15T00:00:20Z",
+      elapsed_time_ms: 10000,
+      key_events: Array.from({ length: numEvents }, (_, i) => ({
+        from_key: "a",
+        to_key: "b",
+        key_char: "b",
+        latency: 10,
+        hold_duration_ms: null,
+        is_correct: true,
+        expected_char: "b",
+      })),
+    });
+
+    const fetchedEvents = await db.getKeyEventsForPage(page.id);
+    expect(fetchedEvents).toHaveLength(numEvents);
   });
 });
