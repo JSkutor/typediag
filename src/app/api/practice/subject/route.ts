@@ -1,43 +1,15 @@
 import { NextResponse } from "next/server";
-import { findNearestNeighbors } from "@/utils/vectorSearchMock";
-import fs from "fs";
-import path from "path";
 import { validateSubject } from "@/utils/validation";
-
-interface VectorTarget {
-  id: string;
-  content: string;
-  language: string;
-  source: "default" | "subject" | "custom";
-  generator_model: string | null;
-  subject: string | null;
-  user_id: string | null;
-  usage_count: number;
-  last_used_at: string | null;
-  created_at: string;
-  embedding: number[];
-}
-
-// 캐싱을 위한 전역 변수
-let cachedVectorTargets: VectorTarget[] | null = null;
-
-function getVectorTargets() {
-  if (cachedVectorTargets) return cachedVectorTargets;
-  const filePath = path.join(process.cwd(), "src", "data", "targets_vector.json");
-  const data = fs.readFileSync(filePath, "utf-8");
-  cachedVectorTargets = JSON.parse(data);
-  return cachedVectorTargets;
-}
+import { drizzleDb } from "@/db";
+import { targetTexts } from "@/db/schema";
+import { sql } from "drizzle-orm";
 
 export async function POST(req: Request) {
   try {
     const { subject } = await req.json();
 
     if (!subject || typeof subject !== "string") {
-      return NextResponse.json(
-        { error: "Invalid subject provided" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Invalid subject provided" }, { status: 400 });
     }
 
     // 1단계: 유효성 검사 실행
@@ -45,7 +17,7 @@ export async function POST(req: Request) {
     if (!validation.isValid) {
       return NextResponse.json(
         { error: validation.reason || "올바르지 않은 주제입니다." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -69,40 +41,48 @@ export async function POST(req: Request) {
 
     if (!embeddingRes.ok) {
       const errorText = await embeddingRes.text();
-      throw new Error(`OpenAI API Error: ${errorText}`);
+      throw new Error(`Upstage API Error: ${errorText}`);
     }
 
     const embeddingData = await embeddingRes.json();
-    const queryEmbedding = embeddingData.data[0].embedding;
+    const queryEmbedding = embeddingData.data[0].embedding as number[];
 
-    // 2. 벡터 유사도 검색
-    const targets = getVectorTargets() || [];
-    const results = findNearestNeighbors(queryEmbedding, targets, 3);
+    // 2. pgvector 코사인 유사도 검색 (기존 JS 벡터 검색 모킹 대체)
+    const vectorStr = `[${queryEmbedding.join(",")}]`;
+
+    const results = await drizzleDb
+      .select({
+        id: targetTexts.id,
+        content: targetTexts.content,
+        language: targetTexts.language,
+        source: targetTexts.source,
+        generatorModel: targetTexts.generatorModel,
+        subject: targetTexts.subject,
+        userId: targetTexts.userId,
+        usageCount: targetTexts.usageCount,
+        lastUsedAt: targetTexts.lastUsedAt,
+        createdAt: targetTexts.createdAt,
+        similarity: sql<number>`1 - (${targetTexts.embedding} <=> ${vectorStr}::vector)`,
+      })
+      .from(targetTexts)
+      .where(sql`${targetTexts.embedding} IS NOT NULL`)
+      .orderBy(sql`${targetTexts.embedding} <=> ${vectorStr}::vector`)
+      .limit(3);
 
     if (!results || results.length === 0) {
-      return NextResponse.json(
-        { error: "No matching targets found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "No matching targets found" }, { status: 404 });
     }
-
-    // 3. 결과 반환 (프론트엔드로는 큰 embedding 배열을 보낼 필요가 없음)
-    const matchesWithoutEmbedding = results.map((r) => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { embedding, ...matchWithoutEmbedding } = r;
-      return matchWithoutEmbedding;
-    });
 
     return NextResponse.json({
       success: true,
-      data: matchesWithoutEmbedding,
+      data: results,
     });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     console.error("Subject Mode Search Error:", error);
     return NextResponse.json(
       { error: "Internal server error", details: errorMessage },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

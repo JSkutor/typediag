@@ -1,7 +1,6 @@
 import { db } from "@/utils/db";
 import { calculateMetrics, calculateLatencyAfterGap } from "@/lib/practice/metrics";
 import type { KeyEvent } from "@/lib/skdm";
-import targets from "@/data/targets_client.json";
 
 export class SessionService {
   private static instance: SessionService;
@@ -31,9 +30,11 @@ export class SessionService {
       });
       runId = latestRun.id;
     } else if (latestRun && latestRun.status === "in_progress") {
-      const pages = await db.getPagesForRun(latestRun.id);
+      const runPages = await db.getPagesForRun(latestRun.id);
       const lastActiveStr =
-        pages.length > 0 ? pages[pages.length - 1].finished_at : latestRun.started_at;
+        runPages.length > 0
+          ? runPages[runPages.length - 1].finishedAt.toISOString()
+          : latestRun.startedAt.toISOString();
       const lastActiveAt = new Date(lastActiveStr).getTime();
 
       if (now.getTime() - lastActiveAt > 3 * 60 * 1000) {
@@ -52,8 +53,6 @@ export class SessionService {
 
   private async createNewRun(now: Date): Promise<string> {
     const newRun = await db.createRun({
-      id: `run_${Math.random().toString(36).substring(2, 11)}_${Date.now()}`,
-      user_id: "user_001",
       status: "pending",
       started_at: now.toISOString(),
     });
@@ -83,19 +82,19 @@ export class SessionService {
     // Determine language and targetTextId using provided arguments or fallback lookups
     const finalLanguage =
       language ||
-      (() => {
-        const targetTextObj = targets.find((t) => t.content === targetText);
+      (await (async () => {
+        const targetTextObj = await db.findTargetText({ content: targetText });
         if (targetTextObj) return targetTextObj.language;
         const isKorean = /[가-힣]/.test(targetText);
         return isKorean ? "ko" : "en";
-      })();
+      })());
 
     const finalTargetTextId =
       targetId ||
-      (() => {
-        const targetTextObj = targets.find((t) => t.content === targetText);
+      (await (async () => {
+        const targetTextObj = await db.findTargetText({ content: targetText });
         return targetTextObj ? targetTextObj.id : "unknown";
-      })();
+      })());
 
     const getPerfNow = () => {
       if (typeof performance !== "undefined" && typeof performance.now === "function") {
@@ -126,9 +125,9 @@ export class SessionService {
       const lastPage = existingPages[existingPages.length - 1];
       const prevRun = await db.getRun(currentRunId);
       const finalizeTimeStr = lastPage
-        ? lastPage.finished_at
+        ? lastPage.finishedAt.toISOString()
         : prevRun
-          ? prevRun.started_at
+          ? prevRun.startedAt.toISOString()
           : new Date().toISOString();
       await db.finalizeRun(currentRunId, finalizeTimeStr);
 
@@ -155,7 +154,6 @@ export class SessionService {
     }));
 
     await db.createPage({
-      id: `page_${Math.random().toString(36).substring(2, 11)}_${Date.now()}`,
       run_id: currentRunId,
       target_text_id: finalTargetTextId,
       order_index,

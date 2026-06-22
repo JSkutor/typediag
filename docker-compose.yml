@@ -1,0 +1,20 @@
+services:
+  timescaledb:
+    image: timescale/timescaledb-ha:pg16
+    container_name: typediag-db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: typediag
+      POSTGRES_PASSWORD: typediag
+      POSTGRES_DB: typediag
+    volumes:
+      - typediag-pgdata:/home/postgres/pgdata/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U typediag -d typediag"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  typediag-pgdata:

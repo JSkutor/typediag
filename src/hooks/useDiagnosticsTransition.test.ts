@@ -22,7 +22,7 @@ describe("useDiagnosticsTransition", () => {
     useWorkspaceStore.setState({ uiState: "practice", diagnosticMode: "surface" });
     useTypingStore.setState({
       events: [{ fromKey: "a", toKey: "b", latencyMs: 100 } as any],
-      currentRunId: "test_run_1",
+      currentRunId: "00000000-0000-0000-0000-000000000001",
     });
 
     if (typeof window !== "undefined") {
@@ -31,11 +31,19 @@ describe("useDiagnosticsTransition", () => {
   });
 
   it("should trigger transition and aggregate db events", async () => {
-    // Mock a run and page in the DB
-    await db.createRun({ id: "test_run_1", user_id: "u1", status: "in_progress", started_at: "" });
+    const mockPageId = "00000000-0000-0000-0000-000000000002";
+    const nowStr = new Date().toISOString();
+
+    // Mock a run in the DB and get the actual generated run ID
+    const run = await db.createRun({ user_id: null, status: "in_progress", started_at: nowStr });
+
+    useTypingStore.setState({
+      currentRunId: run.id,
+    });
+
     await db.createPage({
-      id: "p1",
-      run_id: "test_run_1",
+      id: mockPageId,
+      run_id: run.id,
       target_text_id: "t1",
       order_index: 0,
       language: "en",
@@ -43,8 +51,8 @@ describe("useDiagnosticsTransition", () => {
       wpm: 1,
       cpm: 1,
       accuracy: 100,
-      started_at: "",
-      finished_at: "",
+      started_at: nowStr,
+      finished_at: nowStr,
       elapsed_time_ms: 1,
       key_events: [
         {
@@ -91,7 +99,7 @@ describe("useDiagnosticsTransition", () => {
     useTypingStore.setState({
       status: "done",
       saveCurrentPage: saveSpy,
-      currentRunId: "test_run_1",
+      currentRunId: "00000000-0000-0000-0000-000000000001",
     });
 
     const { result } = renderHook(() => useDiagnosticsTransition());

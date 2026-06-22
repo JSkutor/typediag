@@ -10,31 +10,29 @@ describe("db", () => {
 
   it("should create and update a run correctly", async () => {
     const run = await db.createRun({
-      id: "run_1",
-      user_id: "user_001",
+      user_id: null,
       status: "pending",
       started_at: "2026-06-15T00:00:00Z",
     });
 
     expect(run.status).toBe("pending");
-    expect(run.finished_at).toBeNull();
+    expect(run.finishedAt).toBeNull();
 
-    const updated = await db.updateRun("run_1", { status: "in_progress" });
+    const updated = await db.updateRun(run.id, { status: "in_progress" });
     expect(updated.status).toBe("in_progress");
 
-    const fetched = await db.getRun("run_1");
+    const fetched = await db.getRun(run.id);
     expect(fetched?.status).toBe("in_progress");
   });
 
   it("should finalize a run correctly with no pages", async () => {
-    await db.createRun({
-      id: "run_2",
-      user_id: "user_001",
+    const run = await db.createRun({
+      user_id: null,
       status: "in_progress",
       started_at: "2026-06-15T00:00:00Z",
     });
 
-    const finalized = await db.finalizeRun("run_2");
+    const finalized = await db.finalizeRun(run.id);
     expect(finalized?.status).toBe("completed");
     expect(finalized?.cpm).toBe(0);
     expect(finalized?.wpm).toBe(0);
@@ -42,17 +40,16 @@ describe("db", () => {
   });
 
   it("should finalize a run correctly with pages", async () => {
-    await db.createRun({
-      id: "run_3",
-      user_id: "user_001",
+    const run = await db.createRun({
+      user_id: null,
       status: "in_progress",
       started_at: "2026-06-15T00:00:00Z",
     });
 
     await db.createPage({
-      id: "page_1",
-      run_id: "run_3",
-      target_text_id: "target_1",
+      id: "00000000-0000-0000-0000-000000000021",
+      run_id: run.id,
+      target_text_id: null,
       order_index: 0,
       language: "ko",
       typed_text: "test",
@@ -66,9 +63,9 @@ describe("db", () => {
     });
 
     await db.createPage({
-      id: "page_2",
-      run_id: "run_3",
-      target_text_id: "target_2",
+      id: "00000000-0000-0000-0000-000000000022",
+      run_id: run.id,
+      target_text_id: null,
       order_index: 1,
       language: "ko",
       typed_text: "test2",
@@ -81,7 +78,7 @@ describe("db", () => {
       key_events: [],
     });
 
-    const finalized = await db.finalizeRun("run_3");
+    const finalized = await db.finalizeRun(run.id);
     expect(finalized?.status).toBe("completed");
     expect(finalized?.wpm).toBe(90); // (100 + 80) / 2
     expect(finalized?.cpm).toBe(450); // (500 + 400) / 2
@@ -89,18 +86,17 @@ describe("db", () => {
   });
 
   it("should finalize a run correctly using weighted averages for pages with different lengths and durations", async () => {
-    await db.createRun({
-      id: "run_weighted",
-      user_id: "user_001",
+    const run = await db.createRun({
+      user_id: null,
       status: "in_progress",
       started_at: "2026-06-15T00:00:00Z",
     });
 
     // Page 1: 1000ms (1s), 600 CPM, 120 WPM, 100% accuracy, 10 key events
     await db.createPage({
-      id: "page_w1",
-      run_id: "run_weighted",
-      target_text_id: "target_1",
+      id: "00000000-0000-0000-0000-000000000023",
+      run_id: run.id,
+      target_text_id: null,
       order_index: 0,
       language: "ko",
       typed_text: "short",
@@ -123,9 +119,9 @@ describe("db", () => {
 
     // Page 2: 9000ms (9s), 400 CPM, 80 WPM, 90% accuracy, 90 key events
     await db.createPage({
-      id: "page_w2",
-      run_id: "run_weighted",
-      target_text_id: "target_2",
+      id: "00000000-0000-0000-0000-000000000024",
+      run_id: run.id,
+      target_text_id: null,
       order_index: 1,
       language: "ko",
       typed_text: "longer",
@@ -146,7 +142,7 @@ describe("db", () => {
       })),
     });
 
-    const finalized = await db.finalizeRun("run_weighted");
+    const finalized = await db.finalizeRun(run.id);
     expect(finalized?.status).toBe("completed");
 
     // Total time = 10000ms
@@ -164,8 +160,7 @@ describe("db", () => {
 
   it("syncSessionOnMount should delete a pending run", async () => {
     const run = await db.createRun({
-      id: "run_4",
-      user_id: "user_001",
+      user_id: null,
       status: "pending",
       started_at: new Date(Date.now() - 10 * 60 * 1000).toISOString(), // 10 mins ago
     });
@@ -178,8 +173,7 @@ describe("db", () => {
 
   it("syncSessionOnMount should finalize an in_progress run if idle for > 3 mins", async () => {
     const run = await db.createRun({
-      id: "run_5",
-      user_id: "user_001",
+      user_id: null,
       status: "in_progress",
       started_at: new Date(Date.now() - 4 * 60 * 1000).toISOString(), // 4 mins ago
     });
@@ -192,8 +186,7 @@ describe("db", () => {
 
   it("syncSessionOnMount should not finalize an in_progress run if active within 3 mins", async () => {
     const run = await db.createRun({
-      id: "run_6",
-      user_id: "user_001",
+      user_id: null,
       status: "in_progress",
       started_at: new Date(Date.now() - 2 * 60 * 1000).toISOString(), // 2 mins ago
     });

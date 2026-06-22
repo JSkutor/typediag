@@ -19,7 +19,7 @@ describe("loadLocalDbData Integration Test", () => {
       finishedAt: null,
       lastKey: null,
       lastKeyAt: null,
-      currentRunId: "active_run_id", // simulated active typing session run ID
+      currentRunId: "00000000-0000-0000-0000-000000000009", // simulated active typing session run ID
     });
   });
 
@@ -31,8 +31,8 @@ describe("loadLocalDbData Integration Test", () => {
     const mockDbData = {
       runs: [
         {
-          id: "run_1",
-          user_id: "user_001",
+          id: "00000000-0000-0000-0000-000000000001",
+          user_id: "00000000-0000-0000-0000-000000000003",
           status: "completed",
           started_at: "2026-06-16T11:45:36.997Z",
           finished_at: "2026-06-16T11:46:36.997Z",
@@ -44,9 +44,9 @@ describe("loadLocalDbData Integration Test", () => {
       ],
       pages: [
         {
-          id: "page_1",
-          run_id: "run_1",
-          target_text_id: "target_001",
+          id: "00000000-0000-0000-0000-000000000002",
+          run_id: "00000000-0000-0000-0000-000000000001",
+          target_text_id: null,
           order_index: 0,
           language: "ko",
           typed_text: "태양",

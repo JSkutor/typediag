@@ -12,7 +12,6 @@ vi.mock("@/data/targets_client.json", () => ({
 
 describe("SessionService", () => {
   beforeEach(() => {
-    vi.useFakeTimers();
     // Reset localstorage (db)
     if (typeof window !== "undefined") {
       localStorage.clear();
@@ -20,8 +19,6 @@ describe("SessionService", () => {
   });
 
   afterEach(() => {
-    vi.clearAllTimers();
-    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -33,14 +30,14 @@ describe("SessionService", () => {
       const run = await db.getRun(runId);
       expect(run).toBeDefined();
       expect(run?.status).toBe("in_progress");
-      expect(run?.started_at).toBe(now.toISOString());
+      expect(run?.startedAt?.toISOString()).toBe(now.toISOString());
     });
 
     it("should resume an existing pending run", async () => {
       const pendingTime = new Date("2026-06-16T10:00:00Z");
       const pendingRun = await db.createRun({
         id: "pending_run",
-        user_id: "user_001",
+        user_id: null,
         status: "pending",
         started_at: pendingTime.toISOString(),
       });
@@ -51,14 +48,14 @@ describe("SessionService", () => {
       expect(runId).toBe(pendingRun.id);
       const run = await db.getRun(runId);
       expect(run?.status).toBe("in_progress");
-      expect(run?.started_at).toBe(now.toISOString()); // updated started_at
+      expect(run?.startedAt?.toISOString()).toBe(now.toISOString()); // updated started_at
     });
 
     it("should finalize an in_progress run and create new if older than 3 minutes", async () => {
       const pastTime = new Date("2026-06-16T10:00:00Z");
       const oldRun = await db.createRun({
         id: "old_run",
-        user_id: "user_001",
+        user_id: null,
         status: "in_progress",
         started_at: pastTime.toISOString(),
       });

@@ -37,7 +37,7 @@ async function generateSentenceWithGemini(subject: string): Promise<string> {
 특수 기호는 마침표(.), 쉼표(,), 물음표(?) 만 허용.`;
 
   const geminiRes = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite-preview-06-17:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },

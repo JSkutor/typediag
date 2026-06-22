@@ -25,16 +25,21 @@ export function useDiagnosticsTransition() {
         const pages = await db.getPagesForRun(currentRunId);
 
         if (pages.length > 0) {
+          // Fetch all key events for these pages
+          const keyEventsByPage = await Promise.all(
+            pages.map((p) => db.getKeyEventsForPage(p.id)),
+          );
+
           // Merge all key events from pages in the current run
-          eventsToAnalyze = pages.flatMap((page) =>
-            page.key_events.map((ev) => ({
-              fromKey: ev.from_key,
-              toKey: ev.to_key,
+          eventsToAnalyze = keyEventsByPage.flatMap((pageEvents) =>
+            pageEvents.map((ev) => ({
+              fromKey: ev.fromKey,
+              toKey: ev.toKey,
               latencyMs: ev.latency,
-              keyChar: ev.key_char,
-              holdDurationMs: ev.hold_duration_ms,
-              isCorrect: ev.is_correct,
-              expectedChar: ev.expected_char,
+              keyChar: ev.keyChar || undefined,
+              holdDurationMs: ev.holdDurationMs,
+              isCorrect: ev.isCorrect,
+              expectedChar: ev.expectedChar,
             })),
           );
         }

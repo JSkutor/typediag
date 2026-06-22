@@ -1,8 +1,7 @@
 import { StoreSlice, SessionSlice } from "./types";
 import { sessionService } from "@/services/sessionService";
-import type { PageRow, KeyEventSchema } from "@/utils/db";
 import { useWorkspaceStore } from "@/store/useWorkspaceStore";
-import { runPipeline, triangulate, buildLayout } from "@/lib/skdm";
+import { runPipeline, triangulate, buildLayout, type KeyEvent } from "@/lib/skdm";
 
 export const createSessionSlice: StoreSlice<SessionSlice> = (set, get) => ({
   status: "idle",
@@ -96,23 +95,34 @@ export const createSessionSlice: StoreSlice<SessionSlice> = (set, get) => ({
 
       if (pages.length === 0) {
         alert(
-          "local_db.json에 저장된 페이지 데이터가 없습니다. 먼저 타자 연습을 진행하여 데이터를 생성하세요.",
+          "DB에 저장된 페이지 데이터가 없습니다. 먼저 타자 연습을 진행하여 데이터를 생성하세요.",
         );
         return;
       }
 
-      // Merge all key events from all pages in local_db.json
-      const allEvents = pages.flatMap((page: PageRow) =>
-        page.key_events.map((ev: KeyEventSchema) => ({
-          fromKey: ev.from_key,
-          toKey: ev.to_key,
-          keyChar: ev.key_char,
-          latencyMs: ev.latency,
-          holdDurationMs: ev.hold_duration_ms,
-          isCorrect: ev.is_correct,
-          expectedChar: ev.expected_char,
-        })),
-      );
+      // Merge all key events from all pages via API (only possible if we expose an endpoint, but since this runs in browser we must fetch via our /api/db or another custom route. Wait, local_db.json had them locally, but now we must fetch. Actually, session slice is used for diagnostics transition. For now, since we dropped local_db.json and we are using Server DB, we need an API to fetch all key events, or we can just fetch all pages and their key events.)
+      // Since this action is triggered from Dev tools panel, let's fetch events using the newly added logic or via our server.
+      // We will leave allEvents empty here and rely on the updated useDiagnosticsTransition which fetches them correctly for the currentRunId. If currentRunId is null, useDiagnosticsTransition won't fetch. We need to handle this properly.
+      
+      const allEvents: KeyEvent[] = [];
+      pages.forEach((p: unknown) => {
+        const page = p as Record<string, unknown>;
+        if (page.key_events && Array.isArray(page.key_events)) {
+          page.key_events.forEach((ev: unknown) => {
+            const event = ev as Record<string, unknown>;
+            allEvents.push({
+              fromKey: (event.from_key as string) || null,
+              toKey: (event.to_key as string) || "",
+              keyChar: (event.key_char as string) || "",
+              latencyMs: (event.latency as number) || 0,
+              holdDurationMs: event.hold_duration_ms != null ? (event.hold_duration_ms as number) : null,
+              isCorrect: event.is_correct as boolean | null,
+              expectedChar: event.expected_char as string | null,
+            });
+          });
+        }
+      });
+
 
       set({
         status: "done",

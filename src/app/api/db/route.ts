@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { localDbService } from "@/utils/localDbService";
+import { db } from "@/utils/db";
 import { DbApiPayloadSchema } from "@/lib/api/dbSchemas";
 
 export async function GET() {
@@ -11,8 +11,8 @@ export async function GET() {
   }
 
   try {
-    const data = await localDbService.getData();
-    return NextResponse.json(data);
+    const allRuns = await db.getAllRuns();
+    return NextResponse.json({ runs: allRuns });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: message }, { status: 500 });
@@ -42,29 +42,25 @@ export async function POST(request: Request) {
 
     switch (payload.action) {
       case "createRun": {
-        const result = await localDbService.createRun({
+        const result = await db.createRun({
           ...payload.runData,
-          finished_at: null,
-          cpm: null,
-          wpm: null,
-          accuracy: null,
         });
         return NextResponse.json(result);
       }
       case "updateRun": {
-        const result = await localDbService.updateRun(payload.runId, payload.updates);
+        const result = await db.updateRun(payload.runId, payload.updates);
         return NextResponse.json(result);
       }
       case "deleteRun": {
-        await localDbService.deleteRun(payload.runId);
+        await db.deleteRun(payload.runId);
         return NextResponse.json({ success: true });
       }
       case "createPage": {
-        const result = await localDbService.createPage(payload.pageData);
+        const result = await db.createPage(payload.pageData);
         return NextResponse.json(result);
       }
       case "finalizeRun": {
-        const result = await localDbService.finalizeRun(payload.runId, payload.finishedAtStr);
+        const result = await db.finalizeRun(payload.runId, payload.finishedAtStr);
         return NextResponse.json(result);
       }
       default:

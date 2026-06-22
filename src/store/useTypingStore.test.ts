@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { useTypingStore } from "./useTypingStore";
 import targets from "@/data/targets_client.json";
 
@@ -21,6 +21,14 @@ describe("useTypingStore", () => {
     });
     if (typeof window !== "undefined") {
       localStorage.clear();
+    }
+  });
+
+  afterEach(async () => {
+    await Promise.resolve();
+    const { runInitPromise } = useTypingStore.getState();
+    if (runInitPromise) {
+      await runInitPromise.catch(() => {});
     }
   });
 
@@ -358,7 +366,11 @@ describe("useTypingStore", () => {
     store.handlePhysicalKeyPress("KeyH", false, 1000);
 
     // Await run creation in background microtasks
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await Promise.resolve();
+    const runInitPromise = useTypingStore.getState().runInitPromise;
+    if (runInitPromise) {
+      await runInitPromise;
+    }
 
     const runId = useTypingStore.getState().currentRunId;
     expect(runId).not.toBeNull();
@@ -372,20 +384,20 @@ describe("useTypingStore", () => {
     expect(useTypingStore.getState().status).toBe("done");
 
     // Wait and verify it is NOT saved yet
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await new Promise((resolve) => setTimeout(resolve, 150));
     let pages = await db.getPagesForRun(runId!);
     expect(pages).toHaveLength(0);
 
-    // Call nextTarget to trigger save
-    store.nextTarget();
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    // Trigger save directly and wait for it to complete in DB
+    await store.saveCurrentPage();
 
     pages = await db.getPagesForRun(runId!);
     expect(pages).toHaveLength(1);
-    expect(pages[0].typed_text).toBe("he");
+    expect(pages[0].typedText).toBe("he");
     expect(pages[0].cpm).toBeGreaterThan(0);
     expect(pages[0].accuracy).toBe(100);
-    expect(pages[0].key_events).toHaveLength(2); // Null from_key event + transition event
+    const keyEvents = await db.getKeyEventsForPage(pages[0].id);
+    expect(keyEvents).toHaveLength(2); // Null from_key event + transition event
   });
 
   it("should not finish in hardcore mode if there are excess characters (INSERT)", () => {
@@ -457,15 +469,13 @@ describe("useTypingStore", () => {
 
     // 1. First session
     store.handlePhysicalKeyPress("KeyH", false, 1000);
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await new Promise((resolve) => setTimeout(resolve, 150));
 
     const runId1 = useTypingStore.getState().currentRunId!;
     store.handlePhysicalKeyPress("KeyE", false, 1100);
 
-    // Trigger save by calling nextTarget()
-    store.nextTarget();
-
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    // Trigger save directly and wait for it to complete in DB
+    await store.saveCurrentPage();
     const pages1 = await db.getPagesForRun(runId1);
     expect(pages1).toHaveLength(1);
 
@@ -479,7 +489,7 @@ describe("useTypingStore", () => {
     store.handlePhysicalKeyPress("KeyH", false, 250000);
 
     // Wait for async init run
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await new Promise((resolve) => setTimeout(resolve, 150));
 
     const runId2 = useTypingStore.getState().currentRunId;
     expect(runId2).not.toBeNull();
@@ -496,17 +506,15 @@ describe("useTypingStore", () => {
 
     // Press 'h' at 1,000ms
     store.handlePhysicalKeyPress("KeyH", false, 1000);
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await new Promise((resolve) => setTimeout(resolve, 150));
 
     const runId1 = useTypingStore.getState().currentRunId!;
 
     // Press 'e' at 1,000ms + 5 minutes (301,000ms)
     store.handlePhysicalKeyPress("KeyE", false, 302000);
 
-    // Trigger save by calling nextTarget()
-    store.nextTarget();
-
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    // Trigger save directly and wait for it to complete in DB
+    await store.saveCurrentPage();
 
     const finalRunId = useTypingStore.getState().currentRunId!;
     expect(finalRunId).not.toBe(runId1);
@@ -519,7 +527,7 @@ describe("useTypingStore", () => {
 
     const pages = await db.getPagesForRun(finalRunId);
     expect(pages).toHaveLength(1);
-    expect(pages[0].run_id).toBe(finalRunId);
+    expect(pages[0].runId).toBe(finalRunId);
   });
 
   it("should allow backspace in done status to revert to running status and delete the last character", () => {
