@@ -39,9 +39,7 @@ describe("useDiagnosticsTransition", () => {
         const pages = await db.getPagesForRun(runId);
         let events: any[] = [];
         if (pages.length > 0) {
-          const keyEventsByPage = await Promise.all(
-            pages.map((p) => db.getKeyEventsForPage(p.id))
-          );
+          const keyEventsByPage = await Promise.all(pages.map((p) => db.getKeyEventsForPage(p.id)));
           events = keyEventsByPage.flatMap((pageEvents) =>
             pageEvents.map((ev) => ({
               fromKey: ev.fromKey,
@@ -51,7 +49,7 @@ describe("useDiagnosticsTransition", () => {
               holdDurationMs: ev.holdDurationMs,
               isCorrect: ev.isCorrect,
               expectedChar: ev.expectedChar,
-            }))
+            })),
           );
         }
         return {

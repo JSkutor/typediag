@@ -244,8 +244,7 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
             .then(async (res) => {
               if (!res.ok) {
                 const errData = await res.json().catch(() => ({}));
-                const errMsg =
-                  errData.error || "부적절한 주제이거나 문장 생성에 실패했습니다.";
+                const errMsg = errData.error || "부적절한 주제이거나 문장 생성에 실패했습니다.";
                 // 에러 문구도 하나의 "연습 문장"으로 추가하여 흐름 유지
                 set((s) => ({
                   subjectTargets: [
@@ -349,10 +348,12 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
         if (state.qwertyBuffer.length > 0) {
           const nextBuffer = state.qwertyBuffer.slice(0, -1);
           const nextTyped = isKorean ? assembleHangulWithPunctuation(nextBuffer) : nextBuffer;
-          const nextTargetText = nextBuffer.length === 0 ? "원하는 주제를 입력하세요..." : nextTyped;
-          const nextAlignments = nextBuffer.length === 0
-            ? runMvsa(nextTargetText, "", isKorean, state.mvsaCache)
-            : runMvsa(nextTargetText, nextBuffer, isKorean, state.mvsaCache);
+          const nextTargetText =
+            nextBuffer.length === 0 ? "원하는 주제를 입력하세요..." : nextTyped;
+          const nextAlignments =
+            nextBuffer.length === 0
+              ? runMvsa(nextTargetText, "", isKorean, state.mvsaCache)
+              : runMvsa(nextTargetText, nextBuffer, isKorean, state.mvsaCache);
 
           set({
             targetText: nextTargetText,

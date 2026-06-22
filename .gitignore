@@ -20,9 +20,6 @@
 # production
 /build
 
-# dev-only local JSON DB (auto-created by localDbService)
-src/data/local_db.json
-
 # misc
 .DS_Store
 *.pem

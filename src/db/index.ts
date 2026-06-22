@@ -17,7 +17,6 @@ if (!connectionString) {
   throw new Error("DATABASE_URL is not set in environment variables.");
 }
 
-
 // postgres.js client — connection pool
 const client = postgres(connectionString, {
   max: 10,

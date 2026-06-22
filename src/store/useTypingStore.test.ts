@@ -26,23 +26,27 @@ describe("useTypingStore", () => {
     // Mock global fetch for session API routes
     global.fetch = vi.fn().mockImplementation(async (url: string, options: any = {}) => {
       const urlObj = new URL(url, "http://localhost");
-      
+
       if (urlObj.pathname === "/api/session") {
         const { sessionService } = await import("@/services/sessionService");
         const { db } = await import("@/utils/db");
-        
+
+        const testUser = await db.getOrCreateUserByClerkId("test_mock_clerk_id");
+        const dbUserId = testUser.id;
+
         if (options.method === "POST") {
           const body = JSON.parse(options.body);
           const { action } = body;
-          
+
           if (action === "start") {
-            const runId = await sessionService.startPage(new Date(body.now));
+            const runId = await sessionService.startPage(dbUserId, new Date(body.now));
             return {
               ok: true,
               json: async () => ({ runId }),
             };
           } else if (action === "finish") {
             const runId = await sessionService.finishPage(
+              dbUserId,
               body.runId,
               body.targetText,
               body.typedText,
@@ -50,14 +54,14 @@ describe("useTypingStore", () => {
               body.startedAt,
               body.finishedAt,
               body.targetId,
-              body.language
+              body.language,
             );
             return {
               ok: true,
               json: async () => ({ runId }),
             };
           } else if (action === "sync") {
-            await db.syncSessionOnMount();
+            await db.syncSessionOnMount(dbUserId);
             return {
               ok: true,
               json: async () => ({ success: true }),

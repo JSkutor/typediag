@@ -2,15 +2,19 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { db, RunRow, PageRow } from "./db";
 
 describe("db", () => {
-  beforeEach(() => {
+  let testUserId: string;
+
+  beforeEach(async () => {
     if (typeof window !== "undefined") {
       localStorage.clear();
     }
+    const user = await db.getOrCreateUserByClerkId("test_clerk_id");
+    testUserId = user.id;
   });
 
   it("should create and update a run correctly", async () => {
     const run = await db.createRun({
-      user_id: null,
+      user_id: testUserId,
       status: "pending",
       started_at: "2026-06-15T00:00:00Z",
     });
@@ -27,7 +31,7 @@ describe("db", () => {
 
   it("should finalize a run correctly with no pages", async () => {
     const run = await db.createRun({
-      user_id: null,
+      user_id: testUserId,
       status: "in_progress",
       started_at: "2026-06-15T00:00:00Z",
     });
@@ -41,7 +45,7 @@ describe("db", () => {
 
   it("should finalize a run correctly with pages", async () => {
     const run = await db.createRun({
-      user_id: null,
+      user_id: testUserId,
       status: "in_progress",
       started_at: "2026-06-15T00:00:00Z",
     });
@@ -87,7 +91,7 @@ describe("db", () => {
 
   it("should finalize a run correctly using weighted averages for pages with different lengths and durations", async () => {
     const run = await db.createRun({
-      user_id: null,
+      user_id: testUserId,
       status: "in_progress",
       started_at: "2026-06-15T00:00:00Z",
     });
@@ -160,12 +164,12 @@ describe("db", () => {
 
   it("syncSessionOnMount should delete a pending run", async () => {
     const run = await db.createRun({
-      user_id: null,
+      user_id: testUserId,
       status: "pending",
       started_at: new Date(Date.now() - 10 * 60 * 1000).toISOString(), // 10 mins ago
     });
 
-    await db.syncSessionOnMount();
+    await db.syncSessionOnMount(testUserId);
 
     const fetched = await db.getRun(run.id);
     expect(fetched).toBeNull();
@@ -173,12 +177,12 @@ describe("db", () => {
 
   it("syncSessionOnMount should finalize an in_progress run if idle for > 3 mins", async () => {
     const run = await db.createRun({
-      user_id: null,
+      user_id: testUserId,
       status: "in_progress",
       started_at: new Date(Date.now() - 4 * 60 * 1000).toISOString(), // 4 mins ago
     });
 
-    await db.syncSessionOnMount();
+    await db.syncSessionOnMount(testUserId);
 
     const fetched = await db.getRun(run.id);
     expect(fetched?.status).toBe("completed");
@@ -186,12 +190,12 @@ describe("db", () => {
 
   it("syncSessionOnMount should not finalize an in_progress run if active within 3 mins", async () => {
     const run = await db.createRun({
-      user_id: null,
+      user_id: testUserId,
       status: "in_progress",
       started_at: new Date(Date.now() - 2 * 60 * 1000).toISOString(), // 2 mins ago
     });
 
-    await db.syncSessionOnMount();
+    await db.syncSessionOnMount(testUserId);
 
     const fetched = await db.getRun(run.id);
     expect(fetched?.status).toBe("in_progress");

@@ -11,11 +11,15 @@ vi.mock("@/data/targets_client.json", () => ({
 }));
 
 describe("SessionService", () => {
-  beforeEach(() => {
+  let testUserId: string;
+
+  beforeEach(async () => {
     // Reset localstorage (db)
     if (typeof window !== "undefined") {
       localStorage.clear();
     }
+    const user = await db.getOrCreateUserByClerkId("test_clerk_id");
+    testUserId = user.id;
   });
 
   afterEach(() => {
@@ -25,7 +29,7 @@ describe("SessionService", () => {
   describe("startPage", () => {
     it("should create a new run if there is no previous run", async () => {
       const now = new Date("2026-06-16T10:00:00Z");
-      const runId = await sessionService.startPage(now);
+      const runId = await sessionService.startPage(testUserId, now);
 
       const run = await db.getRun(runId);
       expect(run).toBeDefined();
@@ -37,13 +41,13 @@ describe("SessionService", () => {
       const pendingTime = new Date("2026-06-16T10:00:00Z");
       const pendingRun = await db.createRun({
         id: "pending_run",
-        user_id: null,
+        user_id: testUserId,
         status: "pending",
         started_at: pendingTime.toISOString(),
       });
 
       const now = new Date("2026-06-16T10:01:00Z");
-      const runId = await sessionService.startPage(now);
+      const runId = await sessionService.startPage(testUserId, now);
 
       expect(runId).toBe(pendingRun.id);
       const run = await db.getRun(runId);
@@ -55,13 +59,13 @@ describe("SessionService", () => {
       const pastTime = new Date("2026-06-16T10:00:00Z");
       const oldRun = await db.createRun({
         id: "old_run",
-        user_id: null,
+        user_id: testUserId,
         status: "in_progress",
         started_at: pastTime.toISOString(),
       });
 
       const now = new Date("2026-06-16T10:04:00Z"); // 4 minutes later
-      const runId = await sessionService.startPage(now);
+      const runId = await sessionService.startPage(testUserId, now);
 
       expect(runId).not.toBe(oldRun.id);
 
@@ -75,10 +79,11 @@ describe("SessionService", () => {
       const startedAt = new Date("2026-06-16T10:00:00Z").getTime();
       const finishedAt = startedAt + 60000; // 1 minute later
 
-      const runId = await sessionService.startPage(new Date(startedAt));
+      const runId = await sessionService.startPage(testUserId, new Date(startedAt));
       const events = [{ fromKey: "a", toKey: "b", latencyMs: 200, isCorrect: true, keyChar: "b" }];
 
       const newRunId = await sessionService.finishPage(
+        testUserId,
         runId,
         "hello world",
         "hello world",
@@ -97,7 +102,7 @@ describe("SessionService", () => {
       // 6 minutes elapsed
       const finishedAt = startedAt + 6 * 60 * 1000;
 
-      const runId = await sessionService.startPage(new Date(startedAt));
+      const runId = await sessionService.startPage(testUserId, new Date(startedAt));
       const events = [
         { fromKey: null, toKey: "a", latencyMs: 0 },
         // 6 minute gap
@@ -106,6 +111,7 @@ describe("SessionService", () => {
       ];
 
       const newRunId = await sessionService.finishPage(
+        testUserId,
         runId,
         "hello world",
         "hello world",

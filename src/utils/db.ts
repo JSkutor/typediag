@@ -38,9 +38,72 @@ export interface KeyEventSchema {
   expected_char: string | null;
 }
 
+function buildUserNickname(clerkId: string): string {
+  const isGuest = clerkId.startsWith("guest_");
+  const randomSuffix = Math.floor(100000 + Math.random() * 900000);
+  return isGuest
+    ? `Guest_${clerkId.slice(6, 12)}_${randomSuffix}`
+    : `User_${clerkId.slice(-8)}_${randomSuffix}`;
+}
+
+function isPostgresUniqueViolation(error: unknown): boolean {
+  const candidates = [error, (error as { cause?: unknown })?.cause];
+  return candidates.some((candidate) => (candidate as { code?: string })?.code === "23505");
+}
+
 // --- Asynchronous DB API (Drizzle ORM) ---
 
 export const db = {
+  /**
+   * Get an existing user by their Clerk ID or create a new user (guest or normal).
+   */
+  async getOrCreateUserByClerkId(clerkId: string) {
+    const existing = await drizzleDb.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
+    if (existing[0]) {
+      return existing[0];
+    }
+
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        const [newUser] = await drizzleDb
+          .insert(users)
+          .values({
+            clerkId,
+            nickname: buildUserNickname(clerkId),
+          })
+          .onConflictDoNothing({ target: users.clerkId })
+          .returning();
+
+        if (newUser) {
+          return newUser;
+        }
+
+        const concurrentUser = await drizzleDb
+          .select()
+          .from(users)
+          .where(eq(users.clerkId, clerkId))
+          .limit(1);
+        if (concurrentUser[0]) {
+          return concurrentUser[0];
+        }
+      } catch (error: unknown) {
+        if (!isPostgresUniqueViolation(error)) {
+          throw error;
+        }
+
+        const concurrentUser = await drizzleDb
+          .select()
+          .from(users)
+          .where(eq(users.clerkId, clerkId))
+          .limit(1);
+        if (concurrentUser[0]) {
+          return concurrentUser[0];
+        }
+      }
+    }
+
+    throw new Error(`Failed to create user for clerkId: ${clerkId}`);
+  },
   /**
    * Get list of all target texts.
    */
@@ -162,10 +225,15 @@ export const db = {
   },
 
   /**
-   * Get the latest run (session).
+   * Get the latest run (session) for a specific user.
    */
-  async getLatestRun(): Promise<Run | null> {
-    const result = await drizzleDb.select().from(runs).orderBy(desc(runs.createdAt)).limit(1);
+  async getLatestRun(userId: string): Promise<Run | null> {
+    const result = await drizzleDb
+      .select()
+      .from(runs)
+      .where(eq(runs.userId, userId))
+      .orderBy(desc(runs.createdAt))
+      .limit(1);
     return result[0] || null;
   },
 
@@ -248,11 +316,7 @@ export const db = {
    * Get all pages for a specific run.
    */
   async getPagesForRun(runId: string): Promise<Page[]> {
-    return drizzleDb
-      .select()
-      .from(pages)
-      .where(eq(pages.runId, runId))
-      .orderBy(pages.orderIndex);
+    return drizzleDb.select().from(pages).where(eq(pages.runId, runId)).orderBy(pages.orderIndex);
   },
 
   /**
@@ -340,8 +404,8 @@ export const db = {
    * Sync active session on app mount:
    * If there is an unfinished run, finalize it if idle for more than 3 minutes.
    */
-  async syncSessionOnMount(): Promise<void> {
-    const latestRun = await this.getLatestRun();
+  async syncSessionOnMount(userId: string): Promise<void> {
+    const latestRun = await this.getLatestRun(userId);
     if (!latestRun || latestRun.status === "completed") {
       return;
     }

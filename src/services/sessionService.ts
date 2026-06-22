@@ -19,8 +19,8 @@ export class SessionService {
    * If the last active run is older than 3 minutes, it finalizes it and creates a new one.
    * Otherwise, it resumes the existing run.
    */
-  public async startPage(now: Date): Promise<string> {
-    const latestRun = await db.getLatestRun();
+  public async startPage(dbUserId: string, now: Date): Promise<string> {
+    const latestRun = await db.getLatestRun(dbUserId);
     let runId = "";
 
     if (latestRun && latestRun.status === "pending") {
@@ -40,19 +40,20 @@ export class SessionService {
       if (now.getTime() - lastActiveAt > 3 * 60 * 1000) {
         // 3분 이상 지나면 이전 세션을 마감하고 새 세션을 엽니다.
         await db.finalizeRun(latestRun.id, lastActiveStr);
-        runId = await this.createNewRun(now);
+        runId = await this.createNewRun(dbUserId, now);
       } else {
         runId = latestRun.id;
       }
     } else {
-      runId = await this.createNewRun(now);
+      runId = await this.createNewRun(dbUserId, now);
     }
 
     return runId;
   }
 
-  private async createNewRun(now: Date): Promise<string> {
+  private async createNewRun(dbUserId: string, now: Date): Promise<string> {
     const newRun = await db.createRun({
+      user_id: dbUserId,
       status: "pending",
       started_at: now.toISOString(),
     });
@@ -68,6 +69,7 @@ export class SessionService {
    * Splits the run if there's been a long gap during the page itself.
    */
   public async finishPage(
+    dbUserId: string,
     runId: string,
     targetText: string,
     typedText: string,
@@ -136,7 +138,7 @@ export class SessionService {
       const correctedStartTimestamp = absoluteFinishedAt - activeTimeAfterGap;
       pageStartedAtStr = new Date(correctedStartTimestamp).toISOString();
 
-      currentRunId = await this.createNewRun(new Date(correctedStartTimestamp));
+      currentRunId = await this.createNewRun(dbUserId, new Date(correctedStartTimestamp));
     }
 
     const metrics = calculateMetrics(events, 3000);

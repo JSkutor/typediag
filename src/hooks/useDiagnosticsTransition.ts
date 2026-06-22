@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { useTypingStore } from "@/store/useTypingStore";
 import { useWorkspaceStore } from "@/store/useWorkspaceStore";
 import { runPipeline, buildLayout, triangulate, type KeyEvent } from "@/lib/skdm";
-
+import { getOrCreateGuestId } from "@/utils/guestUser";
 
 export function useDiagnosticsTransition() {
   const setUiState = useWorkspaceStore((state) => state.setUiState);
@@ -22,7 +22,11 @@ export function useDiagnosticsTransition() {
 
     if (currentRunId) {
       try {
-        const res = await fetch(`/api/session?action=analysis&runId=${currentRunId}`);
+        const res = await fetch(`/api/session?action=analysis&runId=${currentRunId}`, {
+          headers: {
+            "X-Guest-User-Id": getOrCreateGuestId(),
+          },
+        });
         if (!res.ok) {
           throw new Error("Failed to fetch session analysis events");
         }

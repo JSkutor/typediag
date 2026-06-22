@@ -101,23 +101,25 @@ export const pages = pgTable("pages", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const keyEvents = pgTable("key_events", {
-  id: bigserial("id", { mode: "bigint" }),
-  pageId: uuid("page_id")
-    .references(() => pages.id, { onDelete: "cascade" })
-    .notNull(),
-  seq: smallint("seq").notNull(),
-  fromKey: varchar("from_key", { length: 20 }),
-  toKey: varchar("to_key", { length: 20 }).notNull(),
-  keyChar: varchar("key_char", { length: 10 }).default(""),
-  latency: integer("latency").notNull(),
-  holdDurationMs: smallint("hold_duration_ms"),
-  isCorrect: boolean("is_correct"),
-  expectedChar: varchar("expected_char", { length: 10 }),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-}, (table) => [
-  primaryKey({ name: "key_events_pk", columns: [table.id, table.createdAt] })
-]);
+export const keyEvents = pgTable(
+  "key_events",
+  {
+    id: bigserial("id", { mode: "bigint" }),
+    pageId: uuid("page_id")
+      .references(() => pages.id, { onDelete: "cascade" })
+      .notNull(),
+    seq: smallint("seq").notNull(),
+    fromKey: varchar("from_key", { length: 20 }),
+    toKey: varchar("to_key", { length: 20 }).notNull(),
+    keyChar: varchar("key_char", { length: 10 }).default(""),
+    latency: integer("latency").notNull(),
+    holdDurationMs: smallint("hold_duration_ms"),
+    isCorrect: boolean("is_correct"),
+    expectedChar: varchar("expected_char", { length: 10 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [primaryKey({ name: "key_events_pk", columns: [table.id, table.createdAt] })],
+);
 
 // --- Type exports ---
 export type User = typeof users.$inferSelect;

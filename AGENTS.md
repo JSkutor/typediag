@@ -18,7 +18,11 @@
 - **상태 관리**: Zustand (Slice 패턴 활용 - `src/store/typingSlices/`)
 - **3D 시각화**: Three.js / React Three Fiber (R3F)
 - **테스트**: Vitest (단위 및 패리티 검증)
-- **DB**: Local JSON DB (`src/data/local_db.json`, dev-only API) + localStorage (Production)
+- **DB**: PostgreSQL (TimescaleDB) + Drizzle ORM (`src/utils/db.ts`, `src/db/`)
+- **인증**: Clerk (`@clerk/nextjs`) — 로그인 사용자는 Clerk `userId`로 DB `users.clerk_id`와 매핑
+- **게스트 사용자**: 비로그인 시 `src/utils/guestUser.ts`가 `localStorage`에 `guest_<uuid>`를 발급·유지하고, 클라이언트 API 호출 시 `X-Guest-User-Id` 헤더로 전달. 서버는 Clerk ID와 동일 경로로 `db.getOrCreateUserByClerkId()` 처리
+- **세션 저장 경로**: 클라이언트 `sessionServiceClient` → `POST /api/session` → 서버 `sessionService` → `db` (localStorage/JSON DB에 세션을 직접 쓰지 않음)
+- **DB 스크립트**: `npm run db:generate`, `db:push`, `db:seed`, `db:studio`
 - **에이전트 행동 제약**:
   - 새로운 외부 패키지를 임의로 추가하지 말 것. 설치가 꼭 필요한 경우 먼저 유저에게 질문할 것.
   - 스타일링은 Vanilla CSS를 사용하며, 기존 디자인 시스템 (`docs/DESIGN_SYSTEM.md`) 팔레트를 엄격히 준수할 것.
@@ -42,7 +46,11 @@ graphify-ts mcp 명령을 사용해 구조를 파악하라.
 | **SKDM 설정 상수**      | `src/lib/skdm/config.ts`         | 계산 임계값, 가중치 등은 이 파일에서 집중 관리.                               |
 | **키보드 레이아웃**     | `src/lib/skdm/layout.ts`         | 물리 키보드 좌표 매핑 정보.                                                   |
 | **데이터베이스 스키마** | `docs/DB_SCHEMA.md`              | API와 DB 저장 객체는 **snake_case** 사용 (TypeScript 런타임은 **camelCase**). |
-| **세션 생명주기**       | `src/services/sessionService.ts` | 타자 연습 세션 저장 및 저장 주기(idle 3분, gap 5분) 비즈니스 로직.            |
+| **DB 접근 레이어**      | `src/utils/db.ts`, `src/db/`     | Drizzle ORM 쿼리 SSOT. 세션·키 이벤트 영속화는 여기서만 수행.                 |
+| **세션 생명주기 (서버)** | `src/services/sessionService.ts` | 타자 연습 세션 저장 및 저장 주기(idle 3분, gap 5분) 비즈니스 로직.          |
+| **세션 API (클라이언트)** | `src/services/sessionServiceClient.ts` | 브라우저에서 `/api/session` 호출 래퍼. Zustand `createSessionSlice`가 사용. |
+| **세션 API (라우트)**   | `src/app/api/session/route.ts`   | Clerk 또는 `X-Guest-User-Id`로 사용자 식별 후 `sessionService` 위임.          |
+| **게스트 사용자 ID**    | `src/utils/guestUser.ts`         | 비로그인 `guest_<uuid>` 발급·`localStorage` 유지.                             |
 | **MVSA 알고리즘**       | `src/utils/mvsa.ts`              | 실시간 한글 자소 대조 및 오타 판별 정렬 엔진. `docs/MVSA_ALGORITHM.md` 명세와 싱크 필요. |
 
 ---
@@ -93,9 +101,10 @@ graphify-ts mcp 명령을 사용해 구조를 파악하라.
 
 1. **타입 체크 & 린트 체크 & 단위 테스트 (병렬 실행)**: `npm run validate` (또는 포맷 체크 포함 시 `npm run check`) 실행 후 에러가 없어야 함. (단 개별 실행도 가능: `npm run typecheck`, `npm run lint`, `npm run test`)
    * 수학 모델 변경 시 parity test가 필수적으로 통과해야 함.
-4. **빌드 검증**: 대규모 UI 또는 Next.js App Router 구조 변경 시 `npm run build`를 수행하여 빌드 오류가 없는지 사전 검증.
-5. **문서 동기화**: 코드 변경으로 인해 아키텍처, 상태 관리 방식, DB 스키마 등이 수정되었다면 `docs/` 하위의 관련 마크다운 문서 및 `README.md`를 함께 최신화할 것.
-6. **완료 보고(Walkthrough)**: 복잡하거나 많은 수정 사항이 발생했을 때 에이전트는 `walkthrough.md` 또는 최종 메시지로 작업한 세부 결과(영향받은 파일 목록, 수행한 테스트 결과)를 일목요연하게 보고할 것.
+2. **DB 스키마 변경 검증**: `src/db/schema.ts` 수정 시 `npm run db:generate` 후 마이그레이션·시드·관련 테스트를 함께 확인할 것.
+3. **빌드 검증**: 대규모 UI 또는 Next.js App Router 구조 변경 시 `npm run build`를 수행하여 빌드 오류가 없는지 사전 검증.
+4. **문서 동기화**: 코드 변경으로 인해 아키텍처, 상태 관리 방식, DB 스키마 등이 수정되었다면 `docs/` 하위의 관련 마크다운 문서, `AGENTS.md`, `README.md`를 함께 최신화할 것.
+5. **완료 보고(Walkthrough)**: 복잡하거나 많은 수정 사항이 발생했을 때 에이전트는 `walkthrough.md` 또는 최종 메시지로 작업한 세부 결과(영향받은 파일 목록, 수행한 테스트 결과)를 일목요연하게 보고할 것.
 
 ---
 
@@ -115,7 +124,10 @@ graphify-ts mcp 명령을 사용해 구조를 파악하라.
 - 기존에 정상 동작하던 UX 요소(예: 키바인딩 단축키 UX 계약)를 유저 동의 없이 수정하거나 무력화하지 마십시오.
 - 검증되지 않은 코드나 플레이스홀더(`// TODO: 구현 예정`) 상태로 커밋을 제안하거나 방치하지 마십시오.
 - 사용자가 설명하라고만 했는데, 바로 코드 수정을 하지 마라. 설명을 하고 허락을 구해라.
-- TODO.md 는 사용자의 메모장이므로 사용자의 직접적인 명령이 없을 때 임의로 수정하지 마라. 커밋은 해라.
+- TODO.md 는 사용자의 메모장이므로 사용자의 직접적인 명령이 없을 때 임의로 수정하지 마라. 사용자가 커밋을 요청했을 때 `TODO.md`에 변경분이 있으면 함께 스테이징·커밋에 포함할 것.
+- 사용자가 커밋을 요청하지 않았는데 임의로 `git commit`을 만들지 마라.
+- 세션·키 이벤트 영속화를 localStorage나 JSON 파일 DB로 되돌리지 마라. 정본은 PostgreSQL + `src/utils/db.ts`이다.
+
 ---
 
 ## 8. Learn by yourself.

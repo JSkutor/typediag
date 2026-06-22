@@ -1,4 +1,5 @@
 import { KeyEvent } from "@/lib/skdm";
+import { getOrCreateGuestId } from "@/utils/guestUser";
 
 export const sessionServiceClient = {
   /**
@@ -9,6 +10,7 @@ export const sessionServiceClient = {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "X-Guest-User-Id": getOrCreateGuestId(),
       },
       body: JSON.stringify({
         action: "start",
@@ -42,6 +44,7 @@ export const sessionServiceClient = {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "X-Guest-User-Id": getOrCreateGuestId(),
       },
       body: JSON.stringify({
         action: "finish",
@@ -74,6 +77,7 @@ export const sessionServiceClient = {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "X-Guest-User-Id": getOrCreateGuestId(),
       },
       body: JSON.stringify({
         action: "sync",
