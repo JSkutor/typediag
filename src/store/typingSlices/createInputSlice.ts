@@ -14,7 +14,40 @@ const generateHardcoreText = (): string => {
   return generateHardcorePracticeText(randomLength);
 };
 
-export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
+export const createInputSlice: StoreSlice<InputSlice> = (set, get) => {
+  const requestMoreSubjectTargets = (subject: string) => {
+    if (!subject || get().isSubjectGenerating || get().subjectTargets.length >= 100) {
+      return;
+    }
+
+    set({ isSubjectGenerating: true });
+    void (async () => {
+      try {
+        const res = await fetch("/api/practice/subject/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ subject }),
+        });
+        if (!res?.ok) {
+          const errData = await res.json().catch(() => ({}));
+          console.warn("[createInputSlice] Subject generate failed:", errData?.error || "Unknown error");
+          return;
+        }
+        const { data } = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          set((s) => ({
+            subjectTargets: [...s.subjectTargets, ...data].slice(0, 100),
+          }));
+        }
+      } catch (error) {
+        console.warn("[createInputSlice] Subject generate failed:", error);
+      } finally {
+        set({ isSubjectGenerating: false });
+      }
+    })();
+  };
+
+  return {
   isSubjectInputActive: false,
   isSubjectLoading: false,
   isSubjectGenerating: false,
@@ -57,7 +90,7 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || "올바른 한글 입력이 아닙니다.");
+        throw new Error(errorData?.error || "올바른 한글 입력이 아닙니다.");
       }
       const { data } = await res.json();
       if (!Array.isArray(data) || data.length === 0) {
@@ -74,9 +107,12 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
         language: data[0].language,
       });
       set({ isSubjectInputActive: false });
+      if (data.length < 3) {
+        requestMoreSubjectTargets(subject.trim());
+      }
     } catch (error) {
-      console.error(error);
       const errorMessage = error instanceof Error ? error.message : "올바른 한글 입력이 아닙니다.";
+      console.warn("[fetchSubjectTarget]", errorMessage);
       set({
         targetText: errorMessage,
         typedText: "",
@@ -238,50 +274,21 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
     } else if (mode === "subject") {
       const { subjectTargets, subjectTargetIndex, currentSubject } = get();
       if (subjectTargets.length > 0) {
+        // 프리페치 조건 판단: 현재 치고 완료한 'subjectTargetIndex' 기준 남은 문장 수 계산
+        const remainingCount = subjectTargets.length - 1 - subjectTargetIndex;
+
+        // 남은 문장이 3개 이하일 때, LLM으로 다음 문장 20개 미리 생성 (최대 100개까지만)
+        if (remainingCount <= 3 && currentSubject) {
+          requestMoreSubjectTargets(currentSubject);
+        }
+
+        if (remainingCount === 0 && get().isSubjectGenerating) {
+          return;
+        }
+
         const nextIndex = (subjectTargetIndex + 1) % subjectTargets.length;
         set({ subjectTargetIndex: nextIndex });
         get().setTarget(subjectTargets[nextIndex]);
-
-        // 남은 문장이 3개 이하일 때, LLM으로 다음 문장 20개 미리 생성 (최대 100개까지만)
-        if (subjectTargets.length - nextIndex <= 3 && currentSubject && !get().isSubjectGenerating && subjectTargets.length < 100) {
-          set({ isSubjectGenerating: true });
-          fetch("/api/practice/subject/generate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ subject: currentSubject }),
-          })
-            .then(async (res) => {
-              if (!res.ok) {
-                const errData = await res.json().catch(() => ({}));
-                const errMsg = errData.error || "부적절한 주제이거나 문장 생성에 실패했습니다.";
-                // 에러 문구도 하나의 "연습 문장"으로 추가하여 흐름 유지 (단, 최대 100개 제한)
-                set((s) => ({
-                  subjectTargets: [
-                    ...s.subjectTargets,
-                    {
-                      id: `target_error_${Date.now()}`,
-                      content: errMsg,
-                      language: "ko",
-                    },
-                  ].slice(0, 100),
-                  isSubjectGenerating: false,
-                }));
-                return;
-              }
-              const { data } = await res.json();
-              if (Array.isArray(data) && data.length > 0) {
-                set((s) => ({
-                  subjectTargets: [...s.subjectTargets, ...data].slice(0, 100),
-                  isSubjectGenerating: false,
-                }));
-              } else {
-                set({ isSubjectGenerating: false });
-              }
-            })
-            .catch(() => {
-              set({ isSubjectGenerating: false });
-            });
-        }
       } else {
         const guideText = "원하는 주제를 입력하세요...";
         set({
@@ -406,8 +413,8 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
       } else if (state.mode === "subject") {
         const { subjectTargets, subjectTargetIndex } = get();
         if (subjectTargets.length > 0) {
-          const prevIndex =
-            (subjectTargetIndex - 1 + subjectTargets.length) % subjectTargets.length;
+          let prevIndex = (subjectTargetIndex - 1) % subjectTargets.length;
+          if (prevIndex < 0) prevIndex += subjectTargets.length;
           set({ subjectTargetIndex: prevIndex });
           get().setTarget(subjectTargets[prevIndex]);
         } else {
@@ -566,4 +573,5 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
       }
     }
   },
-});
+};
+};

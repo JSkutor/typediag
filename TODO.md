@@ -1,113 +1,5 @@
 
 
-### DB 및 저장 방식 관련 검토 사항
-
-- 데이터 구조 (Run > TargetText > KeyEvent)
-  - 한 Run(연습 한 세트) 내에 여러 TargetText가 들어가고, 각 문장 안에 개별 KeyEvent(키 입력 이벤트)가 속하는 계층형 JSON 구조 설계 가능.
-- DB 옵션 및 아키텍처 비교
-  1. Supabase (JSONB 형태 저장 - 1 Run = 1 Row)
-     - 장점: 로그인(Auth), DB, 스토리지 원클릭 제공 및 간편한 연동 SDK.
-     - 단점: Supabase 무료 티어의 50,000행(Row) 제한 우회를 위해 전체 키 이벤트를 하나의 JSONB 컬럼에 통째로 묶어서 저장해야 함. (SQL 기반 상세 집계 및 통계 쿼리가 다소 복잡해짐)
-  2. Neon DB (Row 단위 저장 - 1 KeyEvent = 1 Row)
-     - 장점: 무료 티어 행(Row) 제한이 없어 정석적인 관계형 설계 가능. SQL을 사용해 특정 키들의 평균 지연시간 등 고차원 통계 쿼리를 매우 쉽고 빠르게 수행 가능.
-     - 단점: 순수 DB만 제공하므로 Clerk(인증/무료 1만 MAU) 같은 로그인 서비스를 별도로 연동해 주어야 함.
-
-
-
-
-
-
-
-
-### tokey statistics
-- 모래시계
-  4가지 경우로 분류: good -> good, bad -> bad, g->b, b->g
-  g가 위, b가 아래 라고 하면 시간의 흐름에 따라 직선을 그으면 모래시계 모양임.
-  개선되고 있는 정도를 나타냄.
-  여기에는 좀 복잡한 로직 넣어도 될듯.
-  선형회귀 넣으면 좋을거 같음.
-  간단함. 기울기 구하는거임.
-
-  일단 선형회귀는 그냥 raw 데이터 이용해서 하면 됨. 기울기 구하고.
-  데이터 개수가 적을 때는 막아야됨.
-  finalUpperBound (50개 미만일 때 저장 x)
-  
-  분절회귀. 이러면 모래시계 모양은 아니긴 한데 상관없음. 이게 더 좋을듯.
-  함수랑 같이 실제 데이들도 도트로 보여주는 게 좋을거 같음. 다는 아니고 좀만.
-  
-  방정식을 반환하는 독립적인 모듈 만들어야됨.
-  그리드 서치를 통해 c 초깃값을 설정하고,
-  무제오 알고리즘(Muggeo's Method)을 통해 최종적으로 c값을 도출.
-  그리고 최소제곱법을 통해 방정식 도출 후 반환.
-
-    입력:
-    interface KeyEvent {
-    fromKey: string | null;
-    toKey: string;
-    latencyMs: number;
-    keyChar?: string;
-    holdDurationMs?: number | null;
-    isCorrect?: boolean | null;
-    expectedChar?: string | null;
-    }
-    이 배열에서 toKey 랑 isCorrect 만족하는 데이터 필터.
-
-    import pwlf
-    import numpy as np
-    x = np.arange(len(data))
-    y = np.array([2,4,6,8,10,11,12,13])
-    my_pwlf = pwlf.PiecewiseLinFit(x, y)
-    c0 = my_pwlf.fit(2)
-
-    시간순 그대로 X,Y 각각 2차원 행렬로 변환.
-    X = [[x1, max(0, x1 - c0), I(x1 > c0)], [], ...]
-    Y = [[y1], [y2], ...]
-    (duration은 여기선 안쓰지만 활용도 좋을거 같음.)
-
-    c0, X, Y 를 입력으로 무제오 알고리즘 -> c 도출
-    
-    c로 최소제곱법(OLS) -> 방정식 도출
-    
-    
-
-  그리고 좀 대강 분석해서 텍스트로 설명도 넣어주고.
-  
-
-
-- 오타 유발율:
-  tokey랑 isCorrect false 값으로 필터링 해서, 그 이전 쌍이 correct 인지 탐지.
-- db 탐색 잘 되면 늦게 눌러서 키 순서가 바뀌어서 오타를 낸 경우 카운트
-  incorrect 두 쌍이 있고, 뒤에 쌍이 이거임.
-  앞의 쌍의 target이 이 tokey임.
-  이러면 이 키를 늦게 눌러서 앞키가 먼저 눌린것.
-
-- optional
-  - 가장 많이 치는 순서쌍 top5: tokey 쪽에 통계로. (#3)
-  - 무의식적으로 치는 키 top3: target과 무관하게 incorrect
-  - 시프트를 생략하고 원래 연속적인 정답 상의 키 순서와 비교해서 시프트 때문에 얼마나 느려졌는지
-
-
-
-- latency 중간값 ms, 평균 cpm/wpm
-  그 키의 latency만으로 계산
-- duration: 얼마나 길게 누르고 있는지.
-  이 서비스 타겟 층이 기계식 키보드 메니아일 확률이 놓음.
-  기계식 축들은 트레블이 길어서 구름타법 아니면 타자가 빠르기 힘듦.
-  따라서 duration 은 latency 와 비례. 지표로 사용 가능.
-
-  피어슨 상관계수.
-  상관계수 임곗값: r > 0.4
-  p value 검증: p < 0.05
-
-- 머뭇거림
-  iqr 기반. 이상치 기준선인 q3 + 1.5 IQR.
-  이 기준선을 넘어가는 비율이 5% 이상인지. 비율 보여주기.
-
-- 어느 손가락에서 넘어오는지 비율:
-  왼손 검지라고 했을 때, 왼 소지, 왼 약지, 왼 중지, 오른손
-- 같은 손 다른 손가락들이랑 비교해서 빠른지 느린지
- 
-
 
 ### target text source
 일단 방대한 양의 기본 소스가 있어야 함.
@@ -427,6 +319,7 @@ mode 기능 이후에 기능 추가 없다.
 바로 다듬고 MVP다.
 개같은거
 
+TODO: subject 프롬프트 다양화
 TODO: target 중에 ' 있는거 있음. api 결과에서 거르는 거 확인 필요.
 TODO: hardcore 모드 사용자 데이터 연동 로직 구현 아직 안함. 
 TODO: 그 duration이랑 latency랑 상관관계 보는거, 바로 다음 쌍의 latency도 참조하게 해.
@@ -500,3 +393,94 @@ in progree 라면:
 접속했을 때, 로컬 스토리지를 정리하자. 이전에 안끝난 page는 없애고, run도 마무리.
 이러면 page 입력이 글의 중간부터 시작되는 경우는 사라짐.
 3분보다 이전인 경우만 run 마무리. 최근이면 page는 지우되, run은 유지.
+
+
+
+### tokey statistics
+- 모래시계
+  4가지 경우로 분류: good -> good, bad -> bad, g->b, b->g
+  g가 위, b가 아래 라고 하면 시간의 흐름에 따라 직선을 그으면 모래시계 모양임.
+  개선되고 있는 정도를 나타냄.
+  여기에는 좀 복잡한 로직 넣어도 될듯.
+  선형회귀 넣으면 좋을거 같음.
+  간단함. 기울기 구하는거임.
+
+  일단 선형회귀는 그냥 raw 데이터 이용해서 하면 됨. 기울기 구하고.
+  데이터 개수가 적을 때는 막아야됨.
+  finalUpperBound (50개 미만일 때 저장 x)
+  
+  분절회귀. 이러면 모래시계 모양은 아니긴 한데 상관없음. 이게 더 좋을듯.
+  함수랑 같이 실제 데이들도 도트로 보여주는 게 좋을거 같음. 다는 아니고 좀만.
+  
+  방정식을 반환하는 독립적인 모듈 만들어야됨.
+  그리드 서치를 통해 c 초깃값을 설정하고,
+  무제오 알고리즘(Muggeo's Method)을 통해 최종적으로 c값을 도출.
+  그리고 최소제곱법을 통해 방정식 도출 후 반환.
+
+    입력:
+    interface KeyEvent {
+    fromKey: string | null;
+    toKey: string;
+    latencyMs: number;
+    keyChar?: string;
+    holdDurationMs?: number | null;
+    isCorrect?: boolean | null;
+    expectedChar?: string | null;
+    }
+    이 배열에서 toKey 랑 isCorrect 만족하는 데이터 필터.
+
+    import pwlf
+    import numpy as np
+    x = np.arange(len(data))
+    y = np.array([2,4,6,8,10,11,12,13])
+    my_pwlf = pwlf.PiecewiseLinFit(x, y)
+    c0 = my_pwlf.fit(2)
+
+    시간순 그대로 X,Y 각각 2차원 행렬로 변환.
+    X = [[x1, max(0, x1 - c0), I(x1 > c0)], [], ...]
+    Y = [[y1], [y2], ...]
+    (duration은 여기선 안쓰지만 활용도 좋을거 같음.)
+
+    c0, X, Y 를 입력으로 무제오 알고리즘 -> c 도출
+    
+    c로 최소제곱법(OLS) -> 방정식 도출
+    
+    
+
+  그리고 좀 대강 분석해서 텍스트로 설명도 넣어주고.
+  
+
+
+- 오타 유발율:
+  tokey랑 isCorrect false 값으로 필터링 해서, 그 이전 쌍이 correct 인지 탐지.
+- db 탐색 잘 되면 늦게 눌러서 키 순서가 바뀌어서 오타를 낸 경우 카운트
+  incorrect 두 쌍이 있고, 뒤에 쌍이 이거임.
+  앞의 쌍의 target이 이 tokey임.
+  이러면 이 키를 늦게 눌러서 앞키가 먼저 눌린것.
+
+- optional
+  - 가장 많이 치는 순서쌍 top5: tokey 쪽에 통계로. (#3)
+  - 무의식적으로 치는 키 top3: target과 무관하게 incorrect
+  - 시프트를 생략하고 원래 연속적인 정답 상의 키 순서와 비교해서 시프트 때문에 얼마나 느려졌는지
+
+
+
+- latency 중간값 ms, 평균 cpm/wpm
+  그 키의 latency만으로 계산
+- duration: 얼마나 길게 누르고 있는지.
+  이 서비스 타겟 층이 기계식 키보드 메니아일 확률이 놓음.
+  기계식 축들은 트레블이 길어서 구름타법 아니면 타자가 빠르기 힘듦.
+  따라서 duration 은 latency 와 비례. 지표로 사용 가능.
+
+  피어슨 상관계수.
+  상관계수 임곗값: r > 0.4
+  p value 검증: p < 0.05
+
+- 머뭇거림
+  iqr 기반. 이상치 기준선인 q3 + 1.5 IQR.
+  이 기준선을 넘어가는 비율이 5% 이상인지. 비율 보여주기.
+
+- 어느 손가락에서 넘어오는지 비율:
+  왼손 검지라고 했을 때, 왼 소지, 왼 약지, 왼 중지, 오른손
+- 같은 손 다른 손가락들이랑 비교해서 빠른지 느린지
+ 

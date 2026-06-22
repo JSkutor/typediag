@@ -20,7 +20,7 @@ export const sessionServiceClient = {
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.error || "Failed to start page session");
+      throw new Error(errData?.error || "Failed to start page session");
     }
 
     const data = await res.json();
@@ -61,7 +61,7 @@ export const sessionServiceClient = {
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.error || "Failed to finish page session");
+      throw new Error(errData?.error || "Failed to finish page session");
     }
 
     const data = await res.json();
@@ -86,7 +86,7 @@ export const sessionServiceClient = {
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.error || "Failed to sync session on mount");
+      throw new Error(errData?.error || "Failed to sync session on mount");
     }
   },
 };

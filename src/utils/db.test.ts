@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { sql, and, inArray, isNull } from "drizzle-orm";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { sql, and, inArray, isNull, or, like, eq } from "drizzle-orm";
 import { drizzleDb } from "@/db";
-import { targetTexts } from "@/db/schema";
-import { db, RunRow, PageRow } from "./db";
+import { targetTexts, runs } from "@/db/schema";
+import { db } from "./db";
 import crypto from "crypto";
 
 describe("db", () => {
@@ -14,6 +14,27 @@ describe("db", () => {
     }
     const user = await db.getOrCreateUserByClerkId("test_clerk_id");
     testUserId = user.id;
+  });
+
+  afterEach(async () => {
+    // Clean up runs created during tests (cascades to pages and key_events)
+    if (testUserId) {
+      await drizzleDb.delete(runs).where(eq(runs.userId, testUserId));
+    }
+    // Clean up temporary target_texts created during tests
+    await drizzleDb
+      .delete(targetTexts)
+      .where(
+        or(
+          like(targetTexts.id, "test-%"),
+          like(targetTexts.id, "target_gen_%"),
+          like(targetTexts.content, "no-embed-%"),
+          like(targetTexts.content, "with-embed-%"),
+          like(targetTexts.content, "subject-gen-%"),
+          like(targetTexts.content, "subject-dup-%"),
+          like(targetTexts.content, "test-content-%")
+        )
+      );
   });
 
   it("should create and update a run correctly", async () => {
