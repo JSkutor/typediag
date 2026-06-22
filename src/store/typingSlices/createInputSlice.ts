@@ -242,8 +242,8 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
         set({ subjectTargetIndex: nextIndex });
         get().setTarget(subjectTargets[nextIndex]);
 
-        // 남은 문장이 3개 이하일 때, LLM으로 다음 문장 20개 미리 생성
-        if (subjectTargets.length - nextIndex <= 3 && currentSubject && !get().isSubjectGenerating) {
+        // 남은 문장이 3개 이하일 때, LLM으로 다음 문장 20개 미리 생성 (최대 100개까지만)
+        if (subjectTargets.length - nextIndex <= 3 && currentSubject && !get().isSubjectGenerating && subjectTargets.length < 100) {
           set({ isSubjectGenerating: true });
           fetch("/api/practice/subject/generate", {
             method: "POST",
@@ -254,7 +254,7 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
               if (!res.ok) {
                 const errData = await res.json().catch(() => ({}));
                 const errMsg = errData.error || "부적절한 주제이거나 문장 생성에 실패했습니다.";
-                // 에러 문구도 하나의 "연습 문장"으로 추가하여 흐름 유지
+                // 에러 문구도 하나의 "연습 문장"으로 추가하여 흐름 유지 (단, 최대 100개 제한)
                 set((s) => ({
                   subjectTargets: [
                     ...s.subjectTargets,
@@ -263,7 +263,7 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
                       content: errMsg,
                       language: "ko",
                     },
-                  ],
+                  ].slice(0, 100),
                   isSubjectGenerating: false,
                 }));
                 return;
@@ -271,7 +271,7 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => ({
               const { data } = await res.json();
               if (Array.isArray(data) && data.length > 0) {
                 set((s) => ({
-                  subjectTargets: [...s.subjectTargets, ...data],
+                  subjectTargets: [...s.subjectTargets, ...data].slice(0, 100),
                   isSubjectGenerating: false,
                 }));
               } else {

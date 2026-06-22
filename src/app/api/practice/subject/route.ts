@@ -69,7 +69,7 @@ export async function POST(req: Request) {
       .from(targetTexts)
       .where(sql`${targetTexts.embedding} IS NOT NULL AND (1 - (${targetTexts.embedding} <=> ${vectorLiteral})) > 0.5`)
       .orderBy(sql`${targetTexts.embedding} <=> ${vectorLiteral}`)
-      .limit(20);
+      .limit(100);
 
     if (!results || results.length === 0) {
       return NextResponse.json({ error: "No matching targets found" }, { status: 404 });
