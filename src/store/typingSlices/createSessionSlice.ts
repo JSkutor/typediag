@@ -1,5 +1,5 @@
 import { StoreSlice, SessionSlice } from "./types";
-import { sessionService } from "@/services/sessionService";
+import { sessionServiceClient as sessionService } from "@/services/sessionServiceClient";
 import { useWorkspaceStore } from "@/store/useWorkspaceStore";
 import { runPipeline, triangulate, buildLayout, type KeyEvent } from "@/lib/skdm";
 

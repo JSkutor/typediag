@@ -28,6 +28,42 @@ describe("useDiagnosticsTransition", () => {
     if (typeof window !== "undefined") {
       localStorage.clear();
     }
+
+    // Mock global fetch for API calls in hooks
+    global.fetch = vi.fn().mockImplementation(async (url: string) => {
+      const urlObj = new URL(url, "http://localhost");
+      const action = urlObj.searchParams.get("action");
+      const runId = urlObj.searchParams.get("runId");
+
+      if (action === "analysis" && runId) {
+        const pages = await db.getPagesForRun(runId);
+        let events: any[] = [];
+        if (pages.length > 0) {
+          const keyEventsByPage = await Promise.all(
+            pages.map((p) => db.getKeyEventsForPage(p.id))
+          );
+          events = keyEventsByPage.flatMap((pageEvents) =>
+            pageEvents.map((ev) => ({
+              fromKey: ev.fromKey,
+              toKey: ev.toKey,
+              latencyMs: ev.latency,
+              keyChar: ev.keyChar || undefined,
+              holdDurationMs: ev.holdDurationMs,
+              isCorrect: ev.isCorrect,
+              expectedChar: ev.expectedChar,
+            }))
+          );
+        }
+        return {
+          ok: true,
+          json: async () => ({ events }),
+        };
+      }
+      return {
+        ok: false,
+        json: async () => ({ error: "Not found" }),
+      };
+    });
   });
 
   it("should trigger transition and aggregate db events", async () => {

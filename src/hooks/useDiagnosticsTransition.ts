@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { useTypingStore } from "@/store/useTypingStore";
 import { useWorkspaceStore } from "@/store/useWorkspaceStore";
 import { runPipeline, buildLayout, triangulate, type KeyEvent } from "@/lib/skdm";
-import { db } from "@/utils/db";
+
 
 export function useDiagnosticsTransition() {
   const setUiState = useWorkspaceStore((state) => state.setUiState);
@@ -22,27 +22,12 @@ export function useDiagnosticsTransition() {
 
     if (currentRunId) {
       try {
-        const pages = await db.getPagesForRun(currentRunId);
-
-        if (pages.length > 0) {
-          // Fetch all key events for these pages
-          const keyEventsByPage = await Promise.all(
-            pages.map((p) => db.getKeyEventsForPage(p.id)),
-          );
-
-          // Merge all key events from pages in the current run
-          eventsToAnalyze = keyEventsByPage.flatMap((pageEvents) =>
-            pageEvents.map((ev) => ({
-              fromKey: ev.fromKey,
-              toKey: ev.toKey,
-              latencyMs: ev.latency,
-              keyChar: ev.keyChar || undefined,
-              holdDurationMs: ev.holdDurationMs,
-              isCorrect: ev.isCorrect,
-              expectedChar: ev.expectedChar,
-            })),
-          );
+        const res = await fetch(`/api/session?action=analysis&runId=${currentRunId}`);
+        if (!res.ok) {
+          throw new Error("Failed to fetch session analysis events");
         }
+        const data = await res.json();
+        eventsToAnalyze = data.events || [];
       } catch (err) {
         console.error("Failed to compile run stats:", err);
       }

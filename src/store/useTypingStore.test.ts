@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { useTypingStore } from "./useTypingStore";
 import targets from "@/data/targets_client.json";
 
@@ -22,6 +22,54 @@ describe("useTypingStore", () => {
     if (typeof window !== "undefined") {
       localStorage.clear();
     }
+
+    // Mock global fetch for session API routes
+    global.fetch = vi.fn().mockImplementation(async (url: string, options: any = {}) => {
+      const urlObj = new URL(url, "http://localhost");
+      
+      if (urlObj.pathname === "/api/session") {
+        const { sessionService } = await import("@/services/sessionService");
+        const { db } = await import("@/utils/db");
+        
+        if (options.method === "POST") {
+          const body = JSON.parse(options.body);
+          const { action } = body;
+          
+          if (action === "start") {
+            const runId = await sessionService.startPage(new Date(body.now));
+            return {
+              ok: true,
+              json: async () => ({ runId }),
+            };
+          } else if (action === "finish") {
+            const runId = await sessionService.finishPage(
+              body.runId,
+              body.targetText,
+              body.typedText,
+              body.events,
+              body.startedAt,
+              body.finishedAt,
+              body.targetId,
+              body.language
+            );
+            return {
+              ok: true,
+              json: async () => ({ runId }),
+            };
+          } else if (action === "sync") {
+            await db.syncSessionOnMount();
+            return {
+              ok: true,
+              json: async () => ({ success: true }),
+            };
+          }
+        }
+      }
+      return {
+        ok: false,
+        json: async () => ({ error: "Not found" }),
+      };
+    });
   });
 
   afterEach(async () => {
