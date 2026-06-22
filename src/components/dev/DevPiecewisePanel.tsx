@@ -61,8 +61,7 @@ export function DevPiecewisePanel() {
       <section className={styles.panel}>
         <h2 className={styles.panelTitle}>데이터 없음</h2>
         <p className={styles.emptyState}>
-          워크스페이스의 <code>analysisEvents</code>가 비어 있습니다. 상단{" "}
-          <strong>local_db.json 데이터 적용</strong> 버튼을 누르거나, 메인 화면에서 연습 후 Tab
+          워크스페이스의 <code>analysisEvents</code>가 비어 있습니다. 메인 화면에서 연습 후 Tab
           진단으로 데이터를 채우세요.
         </p>
       </section>
