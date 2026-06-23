@@ -1,25 +1,16 @@
 import { NextResponse } from "next/server";
-import { validateTopic } from "@/utils/validation";
+import { parseTopicRequest } from "@/lib/api/parseTopicRequest";
 import { drizzleDb } from "@/db";
 import { targetTexts } from "@/db/schema";
 import { sql } from "drizzle-orm";
 
 export async function POST(req: Request) {
   try {
-    const { topic } = await req.json();
-
-    if (!topic || typeof topic !== "string") {
-      return NextResponse.json({ error: "Invalid topic provided" }, { status: 400 });
+    const parsed = await parseTopicRequest(req);
+    if (!parsed.ok) {
+      return parsed.response;
     }
-
-    // 1단계: 유효성 검사 실행
-    const validation = validateTopic(topic);
-    if (!validation.isValid) {
-      return NextResponse.json(
-        { error: validation.reason || "올바르지 않은 주제입니다." },
-        { status: 400 },
-      );
-    }
+    const { topic } = parsed;
 
     // 1. Upstage 임베딩 API 호출
     const upstageApiKey = process.env.UPSTAGE_API_KEY;
@@ -80,11 +71,7 @@ export async function POST(req: Request) {
       data: results,
     });
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     console.error("Topic Mode Search Error:", error);
-    return NextResponse.json(
-      { error: "Internal server error", details: errorMessage },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

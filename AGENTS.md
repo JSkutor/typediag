@@ -20,7 +20,7 @@
 - **테스트**: Vitest (단위 및 패리티 검증)
 - **DB**: PostgreSQL (TimescaleDB) + Drizzle ORM (`src/utils/db.ts`, `src/db/`)
 - **인증**: Clerk (`@clerk/nextjs`) — 로그인 사용자는 Clerk `userId`가 DB `users.id`와 동일
-- **게스트 사용자**: 비로그인 시 `src/utils/guestUser.ts`가 `localStorage`에 `guest_<uuid>`를 발급·유지하고, 클라이언트 API 호출 시 `X-Guest-User-Id` 헤더로 전달. 서버는 Clerk ID와 동일 경로로 `db.getOrCreateUserByClerkId()` 처리
+- **게스트 사용자**: 비로그인 시 `src/utils/guestUser.ts`가 `localStorage`에 `guest_<uuid>`와 HMAC 토큰을 발급·유지하고, 클라이언트 API 호출 시 `X-Guest-User-Id` + `X-Guest-Token` 헤더로 전달. 서버는 `src/utils/guestAuth.ts`로 토큰을 검증하며, 최초 세션 API 응답의 `guestToken`으로 클라이언트가 토큰을 bootstrap. 로그인 머지(`/api/user/sync`)는 유효한 게스트 토큰이 있을 때만 수행. Clerk ID와 동일 경로로 `db.getOrCreateUserByClerkId()` 처리
 - **세션 저장 경로**: 클라이언트 `sessionServiceClient` → `POST /api/session` → 서버 `sessionService` → `db` (localStorage/JSON DB에 세션을 직접 쓰지 않음)
 - **DB 스크립트**: `npm run db:generate`, `db:push`, `db:seed`, `db:studio`
 - **에이전트 행동 제약**:
@@ -50,7 +50,8 @@ graphify-ts mcp 명령을 사용해 구조를 파악하라.
 | **세션 생명주기 (서버)** | `src/services/sessionService.ts` | 타자 연습 세션 저장 및 저장 주기(idle 3분, gap 5분) 비즈니스 로직.          |
 | **세션 API (클라이언트)** | `src/services/sessionServiceClient.ts` | 브라우저에서 `/api/session` 호출 래퍼. Zustand `createSessionSlice`가 사용. |
 | **세션 API (라우트)**   | `src/app/api/session/route.ts`   | Clerk 또는 `X-Guest-User-Id`로 사용자 식별 후 `sessionService` 위임.          |
-| **게스트 사용자 ID**    | `src/utils/guestUser.ts`         | 비로그인 `guest_<uuid>` 발급·`localStorage` 유지.                             |
+| **게스트 사용자 ID**    | `src/utils/guestUser.ts`         | 비로그인 `guest_<uuid>` 발급·`localStorage` 유지, API 헤더 헬퍼.              |
+| **게스트 인증 (HMAC)**  | `src/utils/guestAuth.ts`, `src/lib/api/resolveApiUser.ts` | 서버 토큰 서명·검증, API 사용자 식별 SSOT. |
 | **MVSA 알고리즘**       | `src/utils/mvsa.ts`              | 실시간 한글 자소 대조 및 오타 판별 정렬 엔진. `docs/MVSA_ALGORITHM.md` 명세와 싱크 필요. |
 | **Topic API**           | `src/app/api/practice/topic/`    | 토픽 모드 벡터 검색(`route.ts`) 및 LLM 생성(`generate/route.ts`) 라우트 SSOT. |
 

@@ -5,6 +5,7 @@ import { drizzleDb } from "@/db";
 import { users } from "@/db/schema";
 import { db } from "@/utils/db";
 import { formatDbErrorForClient, logDbError } from "@/utils/dbErrors";
+import { GuestAuthError, isValidGuestId, verifyGuestToken, GUEST_ID_HEADER, GUEST_TOKEN_HEADER } from "@/utils/guestAuth";
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,8 +16,21 @@ export async function POST(request: NextRequest) {
 
     const user = await db.getOrCreateUserByClerkId(clerkUserId);
 
-    const guestClerkId = request.headers.get("x-guest-user-id");
+    const guestClerkId = request.headers.get(GUEST_ID_HEADER);
+    const guestToken = request.headers.get(GUEST_TOKEN_HEADER);
+
     if (guestClerkId?.startsWith("guest_") && guestClerkId !== clerkUserId) {
+      if (!isValidGuestId(guestClerkId)) {
+        return NextResponse.json({ error: "Invalid guest identification" }, { status: 400 });
+      }
+
+      if (!verifyGuestToken(guestClerkId, guestToken)) {
+        return NextResponse.json(
+          { error: "Guest token required for account merge" },
+          { status: 401 },
+        );
+      }
+
       const guestRows = await drizzleDb
         .select()
         .from(users)
@@ -31,6 +45,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, userId: user.id });
   } catch (err: unknown) {
+    if (err instanceof GuestAuthError) {
+      return NextResponse.json({ error: err.message }, { status: err.status });
+    }
     logDbError("/api/user/sync", err);
     const { message, status, code } = formatDbErrorForClient(err);
     return NextResponse.json({ error: message, code }, { status });

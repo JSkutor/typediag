@@ -9,6 +9,11 @@ mode 기능 이후에 기능 추가 없다.
 ## MVP
 
 
+TODO: Topic API 무인증 + 비용 남용 가능
+
+
+
+
 TODO: surface 더 부드럽게, 키로 수직선.
 
 TODO: 그 duration이랑 latency랑 상관관계 보는거, 바로 다음 쌍의 latency도 참조하게 해.

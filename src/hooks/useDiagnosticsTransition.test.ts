@@ -144,4 +144,32 @@ describe("useDiagnosticsTransition", () => {
 
     expect(saveSpy).toHaveBeenCalledTimes(1);
   });
+
+  it("should load mock diagnostics in development", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+
+    (global.fetch as any).mockImplementation(async (url: string) => {
+      const urlObj = new URL(url, "http://localhost");
+      if (urlObj.searchParams.get("action") === "mock") {
+        return {
+          ok: true,
+          json: async () => ({
+            events: [{ fromKey: "m", toKey: "o", latencyMs: 42 }],
+          }),
+        };
+      }
+      return { ok: false, json: async () => ({ error: "Not found" }) };
+    });
+
+    const { result } = renderHook(() => useDiagnosticsTransition());
+
+    await act(async () => {
+      await result.current.startMockDiagnostics();
+    });
+
+    const workspaceState = useWorkspaceStore.getState();
+    expect(workspaceState.uiState).toBe("diagnostics");
+    expect(workspaceState.analysisEvents).toHaveLength(1);
+    expect(workspaceState.analysisEvents[0].fromKey).toBe("m");
+  });
 });

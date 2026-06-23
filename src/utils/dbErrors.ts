@@ -34,6 +34,8 @@ export interface ClientDbError {
 const DB_UNAVAILABLE_MESSAGE =
   "Database is unavailable. Start PostgreSQL with: docker compose up -d";
 
+const DB_GENERIC_MESSAGE = "An internal database error occurred.";
+
 /** Map DB errors to safe API responses (no raw SQL in client payloads). */
 export function formatDbErrorForClient(error: unknown): ClientDbError {
   if (isDbConnectionError(error)) {
@@ -44,9 +46,8 @@ export function formatDbErrorForClient(error: unknown): ClientDbError {
     };
   }
 
-  const message = error instanceof Error ? error.message : String(error);
   return {
-    message,
+    message: DB_GENERIC_MESSAGE,
     status: 500,
     code: "DB_ERROR",
   };

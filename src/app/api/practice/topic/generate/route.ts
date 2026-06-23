@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { validateTopic } from "@/utils/validation";
+import { parseTopicRequest } from "@/lib/api/parseTopicRequest";
 import { filterTopicGeneratedSentences } from "@/lib/practice/targetSentence";
 import { db } from "@/utils/db";
 import crypto from "crypto";
@@ -20,6 +20,7 @@ const TOPIC_SENTENCE_RESPONSE_SCHEMA = {
 
 const GEMINI_MODELS = ["gemini-2.5-flash-lite", "gemini-2.0-flash-lite"] as const;
 const GEMINI_RETRY_DELAYS_MS = [1000, 2000] as const;
+const TOPIC_CACHE_RETRY_DELAYS_MS = [500, 1500] as const;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -166,21 +167,31 @@ async function generateSentencesWithGemini(
   throw lastError ?? new Error("Gemini API request failed.");
 }
 
+async function cacheTopicTargetsWithRetry(
+  items: Array<{ id: string; content: string; language: string; topic: string }>,
+): Promise<void> {
+  for (let attempt = 0; attempt <= TOPIC_CACHE_RETRY_DELAYS_MS.length; attempt += 1) {
+    try {
+      await db.insertTopicGeneratedTargets(items);
+      return;
+    } catch (err) {
+      const isLastAttempt = attempt >= TOPIC_CACHE_RETRY_DELAYS_MS.length;
+      if (isLastAttempt) {
+        console.error("[generate/route] insertTopicGeneratedTargets failed after retries:", err);
+        return;
+      }
+      await sleep(TOPIC_CACHE_RETRY_DELAYS_MS[attempt]);
+    }
+  }
+}
+
 export async function POST(req: Request) {
   try {
-    const { topic } = await req.json();
-
-    if (!topic || typeof topic !== "string") {
-      return NextResponse.json({ error: "Invalid topic" }, { status: 400 });
+    const parsed = await parseTopicRequest(req);
+    if (!parsed.ok) {
+      return parsed.response;
     }
-
-    const validation = validateTopic(topic);
-    if (!validation.isValid) {
-      return NextResponse.json(
-        { error: validation.reason || "올바르지 않은 주제입니다." },
-        { status: 400 },
-      );
-    }
+    const { topic } = parsed;
 
     const sentences = await generateSentencesWithGemini(topic);
 
@@ -198,29 +209,18 @@ export async function POST(req: Request) {
       language: "ko",
     }));
 
-    void db
-      .insertTopicGeneratedTargets(responseData.map((item) => ({ ...item, topic })))
-      .catch((err) => {
-        console.error("[generate/route] insertTopicGeneratedTargets failed:", err);
-      });
+    void cacheTopicTargetsWithRetry(responseData.map((item) => ({ ...item, topic })));
 
     return NextResponse.json({ success: true, data: responseData });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Unknown error";
     console.error("[generate/route] Error:", error);
 
     if (error instanceof GeminiApiError && error.retryable) {
-      return NextResponse.json(
-        {
-          error: geminiUserError(error.statusCode),
-          details: message,
-        },
-        { status: 503 },
-      );
+      return NextResponse.json({ error: geminiUserError(error.statusCode) }, { status: 503 });
     }
 
     return NextResponse.json(
-      { error: "부적절한 주제이거나 문장 생성에 실패했습니다.", details: message },
+      { error: "부적절한 주제이거나 문장 생성에 실패했습니다." },
       { status: 500 },
     );
   }

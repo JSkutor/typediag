@@ -2,7 +2,10 @@ import { useCallback, useState } from "react";
 import { useTypingStore } from "@/store/useTypingStore";
 import { useWorkspaceStore } from "@/store/useWorkspaceStore";
 import { runPipeline, buildLayout, triangulate, type KeyEvent } from "@/lib/skdm";
-import { getOrCreateGuestId } from "@/utils/guestUser";
+import {
+  applyGuestTokenFromResponse,
+  getGuestAuthHeaders,
+} from "@/utils/guestUser";
 
 export function useDiagnosticsTransition() {
   const setUiState = useWorkspaceStore((state) => state.setUiState);
@@ -24,14 +27,13 @@ export function useDiagnosticsTransition() {
     if (currentRunId) {
       try {
         const res = await fetch(`/api/session?action=analysis&runId=${currentRunId}`, {
-          headers: {
-            "X-Guest-User-Id": getOrCreateGuestId(),
-          },
+          headers: getGuestAuthHeaders(),
         });
         if (!res.ok) {
           throw new Error("Failed to fetch session analysis events");
         }
         const data = await res.json();
+        applyGuestTokenFromResponse(data);
         eventsToAnalyze = data.events || [];
       } catch (err) {
         console.error("Failed to compile run stats:", err);

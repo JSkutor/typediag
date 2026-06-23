@@ -1,25 +1,29 @@
 import React from "react";
 import { useWorkspaceStore } from "@/store/useWorkspaceStore";
 import { useDiagnosticsTransition } from "@/hooks/useDiagnosticsTransition";
+import { isDevOnlyEnabled } from "@/lib/api/isDevOnlyRoute";
 
 export const WorkspaceControls: React.FC = () => {
   const uiState = useWorkspaceStore((state) => state.uiState);
   const setUiState = useWorkspaceStore((state) => state.setUiState);
   const { startMockDiagnostics, isMockLoading } = useDiagnosticsTransition();
+  const showMockControls = isDevOnlyEnabled();
 
   return (
     <div className="workspace-controls-container">
-      <button
-        onClick={() => {
-          if (!isMockLoading) {
-            startMockDiagnostics();
-          }
-        }}
-        className="mock-apply-btn"
-        disabled={isMockLoading}
-      >
-        {isMockLoading ? "Loading Mock DB..." : "Apply Mock DB (local_db)"}
-      </button>
+      {showMockControls ? (
+        <button
+          onClick={() => {
+            if (!isMockLoading) {
+              startMockDiagnostics();
+            }
+          }}
+          className="mock-apply-btn"
+          disabled={isMockLoading}
+        >
+          {isMockLoading ? "Loading Mock DB..." : "Apply Mock DB (local_db)"}
+        </button>
+      ) : null}
 
       <button
         onClick={() => {

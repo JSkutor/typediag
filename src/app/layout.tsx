@@ -4,6 +4,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 import { ConditionalFooter } from "@/components/layout/ConditionalFooter";
 import { LangHtmlSync } from "@/components/layout/LangHtmlSync";
+import { ClerkErrorHandler } from "@/components/auth/ClerkErrorHandler";
 import { UserSyncEffect } from "@/components/auth/UserSyncEffect";
 
 import { clerkAppearance } from "@/lib/clerkAppearance";
@@ -35,6 +36,7 @@ export default function RootLayout({
     <ClerkProvider appearance={clerkAppearance} afterSignOutUrl="/ko">
       <html lang="en" suppressHydrationWarning className={`${outfit.variable} ${firaCode.variable}`}>
         <body>
+          <ClerkErrorHandler />
           <LangHtmlSync />
           <UserSyncEffect />
           <main>{children}</main>

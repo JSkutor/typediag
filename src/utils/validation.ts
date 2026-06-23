@@ -7,11 +7,11 @@ export interface ValidationResult {
  * Validates the input topic for Topic Mode practice.
  *
  * Rules:
- * 1. Only Korean characters (syllables, consonants, vowels) and whitespace are allowed.
+ * 1. Korean syllables, English letters, digits, spaces, and common punctuation are allowed.
  * 2. The trimmed length must be between 2 and 15 characters (inclusive).
- * 3. Cannot contain single consonants or vowels anywhere (e.g., "ㄴㄴ나무", "가나다ㄹㄹ", "ㅋㅋㅋ").
- * 4. Cannot contain a single character repeated 4 or more times consecutively (e.g., "가가가가").
- * 5. Cannot contain a 2-4 character pattern repeated 3 or more times (e.g., "안녕안녕안녕").
+ * 3. Cannot contain single consonants or vowels (jamo) anywhere in the string.
+ * 4. Cannot contain a single character repeated 4 or more times consecutively.
+ * 5. Cannot contain a 2-4 character pattern repeated 3 or more times.
  */
 export function validateTopic(topic: string): ValidationResult {
   const trimmed = topic.trim();

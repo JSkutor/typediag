@@ -2,7 +2,7 @@
 
 import { useAuth } from "@clerk/nextjs";
 import { useEffect, useRef } from "react";
-import { clearStoredGuestId, getStoredGuestId } from "@/utils/guestUser";
+import { clearStoredGuestId, getStoredGuestAuthHeaders } from "@/utils/guestUser";
 
 export function UserSyncEffect() {
   const { isSignedIn, isLoaded } = useAuth();
@@ -15,14 +15,10 @@ export function UserSyncEffect() {
 
     syncedRef.current = true;
 
-    const guestId = getStoredGuestId();
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
+      ...getStoredGuestAuthHeaders(),
     };
-
-    if (guestId) {
-      headers["X-Guest-User-Id"] = guestId;
-    }
 
     fetch("/api/user/sync", {
       method: "POST",

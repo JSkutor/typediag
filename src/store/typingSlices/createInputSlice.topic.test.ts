@@ -43,6 +43,36 @@ describe("createInputSlice - Topic Mode", () => {
     expect(state.targetText).toBe("문장 1");
   });
 
+  it("should fall back to Gemini generate when vector search returns 404", async () => {
+    const generatedData = [
+      { id: "gen-1", content: "생성 문장 1", language: "ko" },
+      { id: "gen-2", content: "생성 문장 2", language: "ko" },
+      { id: "gen-3", content: "생성 문장 3", language: "ko" },
+    ];
+
+    (global.fetch as any)
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        json: async () => ({ error: "No matching targets found" }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ success: true, data: generatedData }),
+      });
+
+    await act(async () => {
+      await useTypingStore.getState().fetchTopicTarget("새 주제");
+    });
+
+    const state = useTypingStore.getState();
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    expect(state.topicTargets).toHaveLength(3);
+    expect(state.targetText).toBe("생성 문장 1");
+    expect(state.isTopicInputActive).toBe(false);
+  });
+
   it("should handle fetchTopicTarget failure", async () => {
     (global.fetch as any).mockResolvedValueOnce({
       ok: false,

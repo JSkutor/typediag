@@ -10,14 +10,15 @@ import { useEffect } from "react";
 export function ClerkErrorHandler() {
   useEffect(() => {
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      const msg = event.reason?.message || "";
+      const reason = event.reason;
+      const msg: string =
+        reason instanceof Error ? reason.message : typeof reason === "string" ? reason : "";
       const isClerkNetworkError =
         msg.includes("ClerkJS: Network error") &&
-        msg.includes("touch") &&
+        msg.includes("/touch") &&
         msg.includes("Failed to fetch");
 
       if (isClerkNetworkError) {
-        console.warn("Ignored ClerkJS network error during navigation:", msg);
         event.preventDefault();
         event.stopImmediatePropagation();
       }

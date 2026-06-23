@@ -22,10 +22,11 @@ describe("dbErrors", () => {
     expect(formatted.message).not.toContain("Failed query");
   });
 
-  it("passes through other errors as 500", () => {
-    const formatted = formatDbErrorForClient(new Error("constraint violation"));
+  it("returns a generic 500 message for other database failures", () => {
+    const formatted = formatDbErrorForClient(new Error("constraint violation on users_pkey"));
     expect(formatted.status).toBe(500);
     expect(formatted.code).toBe("DB_ERROR");
-    expect(formatted.message).toBe("constraint violation");
+    expect(formatted.message).toBe("An internal database error occurred.");
+    expect(formatted.message).not.toContain("users_pkey");
   });
 });

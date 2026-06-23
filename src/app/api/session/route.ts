@@ -1,36 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import type { KeyEvent } from "@/lib/skdm";
 import { sessionService } from "@/services/sessionService";
 import { db } from "@/utils/db";
 import { formatDbErrorForClient, logDbError } from "@/utils/dbErrors";
+import { GuestAuthError } from "@/utils/guestAuth";
+import { isDevOnlyEnabled } from "@/lib/api/isDevOnlyRoute";
+import { resolveApiUser, withGuestToken } from "@/lib/api/resolveApiUser";
 import fs from "fs";
 import path from "path";
-
-async function getDbUserId(request: NextRequest): Promise<string> {
-  const { userId: clerkUserId } = await auth();
-  const guestUserId = request.headers.get("x-guest-user-id");
-
-  const externalId = clerkUserId || guestUserId;
-  if (!externalId) {
-    throw new Error("Unauthorized: Missing user identification");
-  }
-
-  const user = await db.getOrCreateUserByClerkId(externalId);
-  return user.id;
-}
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { action } = body;
-    const dbUserId = await getDbUserId(request);
+    const { userId: dbUserId, issueGuestToken } = await resolveApiUser(request);
 
     switch (action) {
       case "start": {
         const { now } = body;
         const runId = await sessionService.startPage(dbUserId, new Date(now));
-        return NextResponse.json({ runId });
+        return NextResponse.json(withGuestToken({ runId }, issueGuestToken));
       }
       case "finish": {
         const { runId, targetText, typedText, events, startedAt, finishedAt, targetId, language } =
@@ -46,16 +35,19 @@ export async function POST(request: NextRequest) {
           targetId,
           language,
         );
-        return NextResponse.json({ runId: newRunId });
+        return NextResponse.json(withGuestToken({ runId: newRunId }, issueGuestToken));
       }
       case "sync": {
         await db.syncSessionOnMount(dbUserId);
-        return NextResponse.json({ success: true });
+        return NextResponse.json(withGuestToken({ success: true }, issueGuestToken));
       }
       default:
         return NextResponse.json({ error: `Invalid action: ${action}` }, { status: 400 });
     }
   } catch (err: unknown) {
+    if (err instanceof GuestAuthError) {
+      return NextResponse.json({ error: err.message }, { status: err.status });
+    }
     logDbError("[/api/session]", err);
     const { message, status, code } = formatDbErrorForClient(err);
     return NextResponse.json({ error: message, code }, { status });
@@ -68,6 +60,13 @@ export async function GET(request: NextRequest) {
     const action = searchParams.get("action");
 
     if (action === "mock") {
+      if (!isDevOnlyEnabled()) {
+        return NextResponse.json(
+          { error: "Forbidden (mock session only available in development mode)" },
+          { status: 403 },
+        );
+      }
+
       const filePath = path.join(process.cwd(), "src/data/local_db.json");
       if (!fs.existsSync(filePath)) {
         return NextResponse.json({ error: "local_db.json not found on server" }, { status: 404 });
@@ -97,7 +96,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ events });
     }
 
-    const dbUserId = await getDbUserId(request);
+    const { userId: dbUserId, issueGuestToken } = await resolveApiUser(request, {
+      requireGuestToken: true,
+    });
 
     if (action === "analysis") {
       const runId = searchParams.get("runId");
@@ -105,7 +106,6 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: "Missing runId" }, { status: 400 });
       }
 
-      // Ownership verification
       const run = await db.getRun(runId);
       if (!run || run.userId !== dbUserId) {
         return NextResponse.json({ error: "Unauthorized or Run not found" }, { status: 403 });
@@ -130,11 +130,14 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      return NextResponse.json({ events: eventsToAnalyze });
+      return NextResponse.json(withGuestToken({ events: eventsToAnalyze }, issueGuestToken));
     }
 
     return NextResponse.json({ error: `Invalid action: ${action}` }, { status: 400 });
   } catch (err: unknown) {
+    if (err instanceof GuestAuthError) {
+      return NextResponse.json({ error: err.message }, { status: err.status });
+    }
     logDbError("[/api/session GET]", err);
     const { message, status, code } = formatDbErrorForClient(err);
     return NextResponse.json({ error: message, code }, { status });

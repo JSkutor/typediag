@@ -308,6 +308,52 @@ describe("db", () => {
     expect(fetchedEvents).toHaveLength(numEvents);
   });
 
+  it("should truncate oversized key event fields before insert", async () => {
+    const run = await db.createRun({
+      user_id: testUserId,
+      status: "in_progress",
+      started_at: "2026-06-15T00:00:00Z",
+    });
+
+    const longFromKey = "a".repeat(30);
+    const longToKey = "b".repeat(30);
+    const longKeyChar = "c".repeat(15);
+    const longExpected = "d".repeat(15);
+
+    const page = await db.createPage({
+      run_id: run.id,
+      target_text_id: null,
+      order_index: 0,
+      language: "ko",
+      typed_text: "test",
+      wpm: 100,
+      cpm: 500,
+      accuracy: 95,
+      started_at: "2026-06-15T00:00:10Z",
+      finished_at: "2026-06-15T00:00:20Z",
+      elapsed_time_ms: 10000,
+      key_events: [
+        {
+          from_key: longFromKey,
+          to_key: longToKey,
+          key_char: longKeyChar,
+          latency: 123.7,
+          hold_duration_ms: 45.8,
+          is_correct: true,
+          expected_char: longExpected,
+        },
+      ],
+    });
+
+    const [event] = await db.getKeyEventsForPage(page.id);
+    expect(event.fromKey).toHaveLength(20);
+    expect(event.toKey).toHaveLength(20);
+    expect(event.keyChar).toHaveLength(10);
+    expect(event.expectedChar).toHaveLength(10);
+    expect(event.latency).toBe(124);
+    expect(event.holdDurationMs).toBe(46);
+  });
+
   it("should insert topic-generated targets without embedding", async () => {
     const id = `target_gen_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`;
     const content = `topic-gen-${crypto.randomUUID()}`;

@@ -1,5 +1,14 @@
 import { KeyEvent } from "@/lib/skdm";
-import { getOrCreateGuestId } from "@/utils/guestUser";
+import {
+  applyGuestTokenFromResponse,
+  getGuestAuthHeaders,
+} from "@/utils/guestUser";
+
+async function parseSessionJson(res: Response): Promise<Record<string, unknown>> {
+  const data = (await res.json()) as Record<string, unknown>;
+  applyGuestTokenFromResponse(data);
+  return data;
+}
 
 export const sessionServiceClient = {
   /**
@@ -10,7 +19,7 @@ export const sessionServiceClient = {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-Guest-User-Id": getOrCreateGuestId(),
+        ...getGuestAuthHeaders(),
       },
       body: JSON.stringify({
         action: "start",
@@ -23,8 +32,8 @@ export const sessionServiceClient = {
       throw new Error(errData?.error || "Failed to start page session");
     }
 
-    const data = await res.json();
-    return data.runId;
+    const data = await parseSessionJson(res);
+    return data.runId as string;
   },
 
   /**
@@ -44,7 +53,7 @@ export const sessionServiceClient = {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-Guest-User-Id": getOrCreateGuestId(),
+        ...getGuestAuthHeaders(),
       },
       body: JSON.stringify({
         action: "finish",
@@ -64,8 +73,8 @@ export const sessionServiceClient = {
       throw new Error(errData?.error || "Failed to finish page session");
     }
 
-    const data = await res.json();
-    return data.runId;
+    const data = await parseSessionJson(res);
+    return data.runId as string;
   },
 
   /**
@@ -77,7 +86,7 @@ export const sessionServiceClient = {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-Guest-User-Id": getOrCreateGuestId(),
+        ...getGuestAuthHeaders(),
       },
       body: JSON.stringify({
         action: "sync",
@@ -88,6 +97,8 @@ export const sessionServiceClient = {
       const errData = await res.json().catch(() => ({}));
       throw new Error(errData?.error || "Failed to sync session on mount");
     }
+
+    await parseSessionJson(res);
   },
 };
 export type SessionServiceClient = typeof sessionServiceClient;
