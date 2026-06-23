@@ -26,19 +26,19 @@ interface CylindricalVector3DProps {
   hidePanel?: boolean;
 }
 
-export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
+interface CylindricalVector3DInnerProps extends Omit<CylindricalVector3DProps, "mockEvents"> {
+  events: KeyEvent[];
+}
+
+function CylindricalVector3DInner({
   isActivated,
   initialCenterKey,
-  mockEvents,
+  events,
   disableControls = false,
   hidePanel = false,
-}) => {
+}: CylindricalVector3DInnerProps) {
   const mountRef = useRef<HTMLDivElement>(null);
 
-  const storeEvents = useWorkspaceStore((state) => state.analysisEvents);
-  const events = mockEvents ?? storeEvents;
-
-  // --- Local state ---
   const [selectedTo, setSelectedTo] = useState(initialCenterKey ?? "");
   const [selectedFrom, setSelectedFrom] = useState("");
   const [managerReady, setManagerReady] = useState(false);
@@ -51,7 +51,6 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
     autoRotate: false,
   });
 
-  // --- Derived data ---
   const globalMax = useMemo(() => getGlobalCylindricalMax(events), [events]);
   const defaultSelection = useMemo(
     () => getDefaultCylindricalSelection(events, initialCenterKey),
@@ -62,7 +61,6 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
     [events, selectedTo, globalMax],
   );
 
-  // Initial view: richest To key and its richest From transition
   useEffect(() => {
     if (!defaultSelection) return;
     const timer = setTimeout(() => {
@@ -72,36 +70,35 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
     return () => clearTimeout(timer);
   }, [defaultSelection]);
 
-  // --- Manager lifecycle ---
-  const handleInit = useCallback((mgr: Cylindrical3DManager) => {
-    if (disableControls) mgr.lockControls();
-    mgr.onLabelsUpdate = (proj: LabelProjection) => {
-      if (proj.vectorCoords) {
-        proj.vectorCoords.forEach((item) => {
-          const el = labelRefs.current[item.fromKey];
-          if (el) {
-            if (item.visible) {
-              el.style.display = "block";
-              el.style.transform = `translate3d(-50%, -50%, 0) translate3d(${item.x}px, ${item.y}px, 0)`;
-            } else {
-              el.style.display = "none";
+  const handleInit = useCallback(
+    (mgr: Cylindrical3DManager) => {
+      if (disableControls) mgr.lockControls();
+      mgr.onLabelsUpdate = (proj: LabelProjection) => {
+        if (proj.vectorCoords) {
+          proj.vectorCoords.forEach((item) => {
+            const el = labelRefs.current[item.fromKey];
+            if (el) {
+              if (item.visible) {
+                el.style.display = "block";
+                el.style.transform = `translate3d(-50%, -50%, 0) translate3d(${item.x}px, ${item.y}px, 0)`;
+              } else {
+                el.style.display = "none";
+              }
             }
-          }
-        });
-      }
-    };
-    // Signal that the manager is ready so the updateScene effect re-runs
-    setManagerReady(true);
-  }, []);
+          });
+        }
+      };
+      setManagerReady(true);
+    },
+    [disableControls],
+  );
 
   const managerRef = useThreeManager(Cylindrical3DManager, mountRef, isActivated, handleInit);
 
-  // Update scene when data or selection changes (also re-runs after manager init)
   useEffect(() => {
     managerRef.current?.updateScene(vectors, selectedFrom);
   }, [vectors, selectedFrom, managerReady]);
 
-  // Update toggles
   useEffect(() => {
     managerRef.current?.setToggles(toggles);
   }, [toggles]);
@@ -118,7 +115,6 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
         />
       )}
 
-      {/* Three.js mount point */}
       <div ref={mountRef} className="cyl-canvas" />
 
       <div
@@ -187,4 +183,19 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
       </div>
     </div>
   );
+}
+
+function CylindricalVector3DWithStore(props: Omit<CylindricalVector3DProps, "mockEvents">) {
+  const storeEvents = useWorkspaceStore((state) => state.analysisEvents);
+  return <CylindricalVector3DInner {...props} events={storeEvents} />;
+}
+
+export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
+  mockEvents,
+  ...props
+}) => {
+  if (mockEvents) {
+    return <CylindricalVector3DInner {...props} events={mockEvents} />;
+  }
+  return <CylindricalVector3DWithStore {...props} />;
 };

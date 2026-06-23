@@ -1,74 +1,43 @@
 "use client";
 
-import React from "react";
-import { motion } from "framer-motion";
+import { getLandingCopy, type LandingLang } from "@/lib/i18n/landing";
+import { RevealOnScroll } from "./RevealOnScroll";
+import { DiagnosisBarFill } from "./DiagnosisBarFill";
 
 interface DiagnosisPreviewProps {
-  isEn?: boolean;
+  lang: LandingLang;
 }
 
-const diagnosticDimensions = {
-  labelEn: "6 diagnostic views",
-  labelKo: "6가지 진단 관점",
-  itemsEn: ["Hold", "Flight", "Shift", "Hesitation", "Errors", "Finger load"],
-  itemsKo: ["누름", "이동", "Shift", "머뭇거림", "오타", "손가락 부하"],
-};
+export function DiagnosisPreview({ lang }: DiagnosisPreviewProps) {
+  const t = getLandingCopy(lang).diagnosis;
 
-const slowTransitions = [
-  { pair: "R → T", ms: 340, bar: 92 },
-  { pair: "ㅅ → ㅎ", ms: 285, bar: 78 },
-  { pair: "Shift → P", ms: 241, bar: 66 },
-  { pair: "L → ;", ms: 198, bar: 54 },
-  { pair: "Space → A", ms: 176, bar: 48 },
-];
-
-export const DiagnosisPreview: React.FC<DiagnosisPreviewProps> = ({ isEn = false }) => {
   return (
     <section className="diagnosis-preview-section">
       <div className="diagnosis-preview-inner">
-        <motion.div
-          className="section-header"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-        >
-          <p className="section-eyebrow">{isEn ? "Your Report" : "진단 리포트"}</p>
-          <h2 className="section-title">
-            {isEn ? "One session. Actionable insight." : "연습 한 번이면, 이런 리포트가 나옵니다"}
-          </h2>
-          <p className="section-subtitle">
-            {isEn
-              ? "Not just a score — see exactly which key transitions are holding you back."
-              : "점수만이 아닙니다. 어떤 키 전환이 당신을 막고 있는지 정확히 보여줍니다."}
-          </p>
+        <RevealOnScroll className="section-header" initialY={20} duration={0.6}>
+          <p className="section-eyebrow">{t.eyebrow}</p>
+          <h2 className="section-title">{t.title}</h2>
+          <p className="section-subtitle">{t.subtitle}</p>
 
           <div className="diagnosis-dimensions">
-            <span className="diagnosis-dimensions-label">
-              {isEn ? diagnosticDimensions.labelEn : diagnosticDimensions.labelKo}
-            </span>
+            <span className="diagnosis-dimensions-label">{t.dimensionsLabel}</span>
             <div className="diagnosis-dimensions-pills">
-              {(isEn ? diagnosticDimensions.itemsEn : diagnosticDimensions.itemsKo).map((item) => (
+              {t.dimensions.map((item) => (
                 <span key={item} className="landing-pill">
                   {item}
                 </span>
               ))}
             </div>
           </div>
-        </motion.div>
+        </RevealOnScroll>
 
         <div className="diagnosis-compare-grid">
-          {/* Before — generic typing test */}
-          <motion.div
+          <RevealOnScroll
             className="diagnosis-card diagnosis-card--before"
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.55 }}
+            initialX={-20}
+            initialY={0}
           >
-            <span className="diagnosis-card-label">
-              {isEn ? "Typical typing test" : "일반 타자 테스트"}
-            </span>
+            <span className="diagnosis-card-label">{t.beforeLabel}</span>
             <div className="diagnosis-stat-row">
               <div className="diagnosis-stat">
                 <span className="diagnosis-stat-value">87</span>
@@ -79,60 +48,40 @@ export const DiagnosisPreview: React.FC<DiagnosisPreviewProps> = ({ isEn = false
                 <span className="diagnosis-stat-unit">%</span>
               </div>
             </div>
-            <p className="diagnosis-card-note">
-              {isEn
-                ? "Fast overall — but where are you actually slow?"
-                : "전체적으로 빠르다고요? 그럼 어디가 느린 건가요?"}
-            </p>
-          </motion.div>
+            <p className="diagnosis-card-note">{t.beforeNote}</p>
+          </RevealOnScroll>
 
-          {/* After — TypeDiag report */}
-          <motion.div
+          <RevealOnScroll
             className="diagnosis-card diagnosis-card--after"
-            initial={{ opacity: 0, x: 20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.55, delay: 0.1 }}
+            initialX={20}
+            initialY={0}
+            delay={0.1}
           >
-            <span className="diagnosis-card-label diagnosis-card-label--accent">TypeDiag</span>
+            <span className="diagnosis-card-label diagnosis-card-label--accent">{t.afterLabel}</span>
 
             <div className="diagnosis-highlight">
               <span className="diagnosis-highlight-key">R → T</span>
               <span className="diagnosis-highlight-ms">340ms</span>
-              <span className="diagnosis-highlight-tag">
-                {isEn ? "Bottleneck" : "병목"}
-              </span>
+              <span className="diagnosis-highlight-tag">{t.bottleneck}</span>
             </div>
 
-            <p className="diagnosis-insight">
-              {isEn
-                ? "Left pinky zone shows elevated latency. Focus practice recommended."
-                : "왼손 새끼손가락 구간에서 지연이 집중됩니다. 집중 연습을 권장합니다."}
-            </p>
+            <p className="diagnosis-insight">{t.insight}</p>
 
             <div className="diagnosis-bars">
-              <p className="diagnosis-bars-title">
-                {isEn ? "Slowest transitions" : "가장 느린 키 전환"}
-              </p>
-              {slowTransitions.map((t, i) => (
-                <div key={t.pair} className="diagnosis-bar-row">
-                  <span className="diagnosis-bar-pair">{t.pair}</span>
+              <p className="diagnosis-bars-title">{t.barsTitle}</p>
+              {t.slowTransitions.map((row, i) => (
+                <div key={row.pair} className="diagnosis-bar-row">
+                  <span className="diagnosis-bar-pair">{row.pair}</span>
                   <div className="diagnosis-bar-track">
-                    <motion.div
-                      className="diagnosis-bar-fill"
-                      initial={{ width: 0 }}
-                      whileInView={{ width: `${t.bar}%` }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 0.7, delay: 0.2 + i * 0.08 }}
-                    />
+                    <DiagnosisBarFill widthPercent={row.bar} delay={0.2 + i * 0.08} />
                   </div>
-                  <span className="diagnosis-bar-ms">{t.ms}ms</span>
+                  <span className="diagnosis-bar-ms">{row.ms}ms</span>
                 </div>
               ))}
             </div>
-          </motion.div>
+          </RevealOnScroll>
         </div>
       </div>
     </section>
   );
-};
+}

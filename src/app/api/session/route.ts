@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import type { KeyEvent } from "@/lib/skdm";
 import { sessionService } from "@/services/sessionService";
 import { db } from "@/utils/db";
+import { formatDbErrorForClient, logDbError } from "@/utils/dbErrors";
 import fs from "fs";
 import path from "path";
 
@@ -55,10 +56,9 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: `Invalid action: ${action}` }, { status: 400 });
     }
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    const stack = err instanceof Error ? err.stack : "";
-    console.error("[/api/session] Error:", message, "\nStack:", stack);
-    return NextResponse.json({ error: message }, { status: 500 });
+    logDbError("[/api/session]", err);
+    const { message, status, code } = formatDbErrorForClient(err);
+    return NextResponse.json({ error: message, code }, { status });
   }
 }
 
@@ -135,7 +135,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ error: `Invalid action: ${action}` }, { status: 400 });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ error: message }, { status: 500 });
+    logDbError("[/api/session GET]", err);
+    const { message, status, code } = formatDbErrorForClient(err);
+    return NextResponse.json({ error: message, code }, { status });
   }
 }

@@ -155,11 +155,15 @@ export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
               }}
               id={`hud-label-${k.key}`}
               className="hud-label-btn"
-              onClick={() => {
-                const { setDiagnosticMode, setFocusedKey } = useWorkspaceStore.getState();
-                setDiagnosticMode("cylindrical");
-                setFocusedKey(k.key);
-              }}
+              onClick={
+                isLanding
+                  ? undefined
+                  : () => {
+                      const { setDiagnosticMode, setFocusedKey } = useWorkspaceStore.getState();
+                      setDiagnosticMode("cylindrical");
+                      setFocusedKey(k.key);
+                    }
+              }
               style={{
                 position: "absolute",
                 top: 0,
@@ -171,8 +175,8 @@ export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
                 textShadow: "0 2px 4px rgba(0,0,0,0.5)",
                 willChange: "transform, opacity",
                 opacity: 0,
-                cursor: "pointer",
-                pointerEvents: "auto",
+                cursor: isLanding ? "default" : "pointer",
+                pointerEvents: isLanding ? "none" : "auto",
                 background: "rgba(30, 41, 59, 0.4)",
                 border: "1px solid rgba(99, 102, 241, 0.3)",
                 padding: "2px 6px",

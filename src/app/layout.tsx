@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { Outfit, Fira_Code } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
-import { Footer } from "@/components/layout/Footer";
+import { ConditionalFooter } from "@/components/layout/ConditionalFooter";
+import { LangHtmlSync } from "@/components/layout/LangHtmlSync";
 import { UserSyncEffect } from "@/components/auth/UserSyncEffect";
 
 import { clerkAppearance } from "@/lib/clerkAppearance";
@@ -32,11 +33,12 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider appearance={clerkAppearance} afterSignOutUrl="/ko">
-      <html lang="ko" className={`${outfit.variable} ${firaCode.variable}`}>
+      <html lang="en" suppressHydrationWarning className={`${outfit.variable} ${firaCode.variable}`}>
         <body>
+          <LangHtmlSync />
           <UserSyncEffect />
           <main>{children}</main>
-          <Footer />
+          <ConditionalFooter />
         </body>
       </html>
     </ClerkProvider>
