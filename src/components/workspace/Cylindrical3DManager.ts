@@ -58,6 +58,7 @@ export class Cylindrical3DManager {
   private camera: THREE.PerspectiveCamera;
   private renderer: THREE.WebGLRenderer;
   private controls: OrbitControls;
+  private isDisposed = false;
 
   private visualGroup = new THREE.Group();
   private gridHelper: THREE.GridHelper;
@@ -65,7 +66,7 @@ export class Cylindrical3DManager {
 
   // Toggle-controlled mesh references
   private cylinderGuide: THREE.Object3D | null = null;
-  private cylinderTopRing: THREE.Mesh | null = null;
+  private cylinderTopRing: THREE.LineSegments | THREE.Mesh | null = null;
   private cylinderBottomRing: THREE.Mesh | null = null;
   private projectionGroup: THREE.Group | null = null;
   private petalMesh: THREE.Mesh | null = null;
@@ -122,6 +123,7 @@ export class Cylindrical3DManager {
     this.controls.dampingFactor = 0.05;
     this.controls.rotateSpeed = 1.2;
     this.controls.zoomSpeed = 1.2;
+    this.controls.enablePan = false;
     this.controls.panSpeed = 1.2;
     this.controls.maxPolarAngle = Math.PI / 2 + 0.05;
     this.controls.minDistance = 3;
@@ -159,9 +161,9 @@ export class Cylindrical3DManager {
   // Public API
   // -----------------------------------------------------------------------
 
-  /** Disable all user interactions (rotation, zoom, pan). Used on landing page. */
+  /** Disable zoom and pan, but keep rotation enabled. Used on landing page. */
   public lockControls(): void {
-    this.controls.enableRotate = false;
+    this.controls.enableRotate = true;
     this.controls.enableZoom = false;
     this.controls.enablePan = false;
   }
@@ -210,6 +212,7 @@ export class Cylindrical3DManager {
 
   /** Tear down everything. */
   public dispose(): void {
+    this.isDisposed = true;
     cancelAnimationFrame(this.reqId);
     this.controls.dispose();
     if (this.container.contains(this.renderer.domElement)) {
@@ -259,56 +262,83 @@ export class Cylindrical3DManager {
     this.targetMesh.position.set(vx, vy, vz);
     this.visualGroup.add(this.targetMesh);
 
-    // [4] Cylinder guide hologram (Subtle solid + wireframe)
+    // [4] Cylinder guide hologram (Alpha Gradient + Floating Dashed Rings)
     if (cylRadius > 0.05 && vy > 0.05) {
       const cylGroup = new THREE.Group();
 
-      // Translucent solid shell
+      // 1. Alpha Gradient Light Pillar
       const cylSolidGeom = new THREE.CylinderGeometry(cylRadius, cylRadius, vy, 32, 1, true);
-      const cylSolidMat = new THREE.MeshBasicMaterial({
-        color: C.cylinder,
+      const colorObj = new THREE.Color(C.cylinder);
+      const cylSolidMat = new THREE.ShaderMaterial({
+        uniforms: {
+          uColor: { value: colorObj },
+          uHeight: { value: vy },
+        },
+        vertexShader: `
+          varying float vY;
+          void main() {
+            vY = position.y;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: `
+          uniform vec3 uColor;
+          uniform float uHeight;
+          varying float vY;
+          void main() {
+            float normalizedY = (vY + uHeight * 0.5) / uHeight;
+            float alpha = smoothstep(1.0, 0.0, normalizedY) * 0.25;
+            gl_FragColor = vec4(uColor, alpha);
+          }
+        `,
         transparent: true,
-        opacity: 0.035, // Very subtle hologram shell
         side: THREE.DoubleSide,
         depthWrite: false,
+        blending: THREE.AdditiveBlending,
       });
       const cylSolid = new THREE.Mesh(cylSolidGeom, cylSolidMat);
       cylGroup.add(cylSolid);
 
-      // Faint wireframe overlay
-      const cylWireGeom = new THREE.CylinderGeometry(cylRadius, cylRadius, vy, 16, 4, true);
-      const cylWireMat = new THREE.MeshBasicMaterial({
-        color: C.cylinder,
-        wireframe: true,
-        transparent: true,
-        opacity: 0.06, // Very subtle wireframe lines
-        side: THREE.DoubleSide,
-        depthWrite: false,
-      });
-      const cylWire = new THREE.Mesh(cylWireGeom, cylWireMat);
-      cylGroup.add(cylWire);
-
-      this.cylinderGuide = cylGroup;
-      this.cylinderGuide.position.set(0, vy / 2, 0);
-      this.visualGroup.add(this.cylinderGuide);
-
-      // Bottom ring
+      // 2. Glowing Bottom Ring (Solid)
       const ringGeom = new THREE.RingGeometry(cylRadius - 0.015, cylRadius + 0.015, 64);
       const ringMat = new THREE.MeshBasicMaterial({
         color: C.cylinder,
         transparent: true,
-        opacity: 0.12, // Subtle ring glow
+        opacity: 0.4,
         side: THREE.DoubleSide,
         depthWrite: false,
+        blending: THREE.AdditiveBlending,
       });
       this.cylinderBottomRing = new THREE.Mesh(ringGeom, ringMat);
       this.cylinderBottomRing.rotation.x = Math.PI / 2;
-      this.visualGroup.add(this.cylinderBottomRing);
+      this.cylinderBottomRing.position.y = -vy / 2;
+      cylGroup.add(this.cylinderBottomRing);
 
-      // Top ring
-      this.cylinderTopRing = this.cylinderBottomRing.clone() as THREE.Mesh;
-      this.cylinderTopRing.position.y = vy;
-      this.visualGroup.add(this.cylinderTopRing);
+      // 3. Middle Floating Dashed Ring
+      const edgeGeom = new THREE.EdgesGeometry(new THREE.CircleGeometry(cylRadius, 64));
+      const dashMat = new THREE.LineDashedMaterial({
+        color: C.cylinder,
+        transparent: true,
+        opacity: 0.35,
+        dashSize: 0.15,
+        gapSize: 0.1,
+        blending: THREE.AdditiveBlending,
+      });
+      const middleRing = new THREE.LineSegments(edgeGeom, dashMat);
+      middleRing.computeLineDistances();
+      middleRing.rotation.x = Math.PI / 2;
+      middleRing.position.y = 0;
+      cylGroup.add(middleRing);
+
+      // 4. Top Floating Dashed Ring
+      const topRing = middleRing.clone();
+      topRing.position.y = vy / 2;
+      cylGroup.add(topRing);
+      this.cylinderTopRing = topRing;
+
+      this.cylinderGuide = cylGroup;
+      this.cylinderGuide.position.set(0, vy / 2, 0);
+      this.visualGroup.add(this.cylinderGuide);
     }
 
     // [5] Projections group
@@ -505,6 +535,7 @@ export class Cylindrical3DManager {
   // -----------------------------------------------------------------------
 
   private animate(): void {
+    if (this.isDisposed) return;
     this.reqId = requestAnimationFrame(this.animate);
 
     // Auto-rotate

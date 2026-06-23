@@ -156,11 +156,11 @@ function pickMaxCountKey(counts: Map<string, number>): string | null {
   return bestKey;
 }
 
-/** Count incoming alphabetic transitions per toKey (same filters as buildCylindricalVectors). */
+/** Count unique incoming alphabetic fromKeys per toKey (same filters as buildCylindricalVectors). */
 function countIncomingTransitions(events: KeyEvent[]): Map<string, number> {
   const cleaned = filterInterruptedTransitions(events);
   const [validEvents] = filterOutliers(cleaned);
-  const counts = new Map<string, number>();
+  const uniqueFromKeys = new Map<string, Set<string>>();
 
   for (const ev of validEvents) {
     if (ev.fromKey === null) continue;
@@ -169,7 +169,17 @@ function countIncomingTransitions(events: KeyEvent[]): Map<string, number> {
     if (from === to) continue;
     if (!/^[a-z]$/.test(from) || !/^[a-z]$/.test(to)) continue;
 
-    counts.set(to, (counts.get(to) ?? 0) + 1);
+    let set = uniqueFromKeys.get(to);
+    if (!set) {
+      set = new Set<string>();
+      uniqueFromKeys.set(to, set);
+    }
+    set.add(from);
+  }
+
+  const counts = new Map<string, number>();
+  for (const [to, set] of uniqueFromKeys.entries()) {
+    counts.set(to, set.size);
   }
 
   return counts;

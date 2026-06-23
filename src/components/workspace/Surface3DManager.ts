@@ -70,6 +70,7 @@ export class Surface3DManager {
 
   private timeline: gsap.core.Timeline | null = null;
   private isActivated: boolean = false;
+  private isDisposed: boolean = false;
 
   // Callback for updating HUD labels
   public onUpdateHUD?: (
@@ -561,6 +562,7 @@ export class Surface3DManager {
   }
 
   private renderLoop() {
+    if (this.isDisposed) return;
     this.reqId = requestAnimationFrame(this.renderLoop);
 
     // Only update orbit controls if entrance is done
@@ -591,6 +593,7 @@ export class Surface3DManager {
   }
 
   public dispose() {
+    this.isDisposed = true;
     cancelAnimationFrame(this.reqId);
     if (this.timeline) this.timeline.kill();
     this.controls.dispose();

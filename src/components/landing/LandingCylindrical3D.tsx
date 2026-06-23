@@ -11,7 +11,7 @@ export const LandingCylindrical3D: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Trigger animation when the component enters the viewport
-  const isInView = useInView(containerRef, { once: false, amount: 0.3 });
+  const isInView = useInView(containerRef, { once: true, amount: 0.3 });
 
   useEffect(() => {
     let mounted = true;
@@ -37,7 +37,6 @@ export const LandingCylindrical3D: React.FC = () => {
         <CylindricalVector3D
           isActivated={isInView}
           mockEvents={mockEvents}
-          initialCenterKey="o"
           disableControls
           hidePanel
         />
