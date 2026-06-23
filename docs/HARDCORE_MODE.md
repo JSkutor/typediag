@@ -69,3 +69,38 @@
 
 ### 4.6. Softmax & Sampling (샘플링)
 최종 로짓 배열을 필터 파라미터(`Temperature = 2.0`, `Top-K = 40`, `Top-P = 0.9`)에 통과시켜 Softmax 확률로 환산한 후, 누적 랜덤 샘플링을 실시해 최종 자모를 선정합니다.
+
+---
+
+## 5. 오프라인 학습 파이프라인 (Offline Training Pipeline)
+
+하드코어 모드에서 사용하는 사전 학습 가중치(`hardcore_weights.json`)는 오프라인 환경에서 대용량 한국어 말뭉치 데이터를 기반으로 사전에 학습하여 생성됩니다. 이 과정은 [train_hardcore.py](file:///Users/kutor/Documents/Projects_Kutor/typediag/scripts/train_hardcore.py) 스크립트에 의해 수행됩니다.
+
+### 5.1. 학습 데이터 전처리
+1. **QWERTY 자모 변환**: 
+   - `src/data/targets.json`에 저장된 한글 문장을 영문 물리 자판 좌표 형태로 매핑합니다.
+   - 초성, 중성, 종성 맵 및 단일 자모 맵을 이용하여 한글 글자를 개별 QWERTY 입력 문자열(예: `ㄱ` $\rightarrow$ `r`, `ㅏ` $\rightarrow$ `k`, `ㄵ` $\rightarrow$ `sw` 등)로 분해합니다.
+2. **슬라이딩 윈도우 데이터셋 구축**:
+   - 변환된 QWERTY 문자열을 `hardcore_vocab_helper`의 어휘 사전 ID 리스트로 변환합니다.
+   - `context_size = 6` 설정을 사용하여 직전 6개의 자모 ID 배열을 입력($X$)으로, 그 바로 다음 자모 ID를 타겟($y$)으로 하는 데이터셋을 생성합니다.
+
+### 5.2. 신경망 모델 구조 및 역전파
+- **Pure NumPy MLP**: 외부 딥러닝 프레임워크(PyTorch, TensorFlow 등) 없이 오직 **NumPy**만을 사용하여 다층 퍼셉트론을 구현했습니다.
+  - **Embedding Layer**: 입력된 6글자 ID 각각을 16차원 벡터로 조회 후, Flat하여 96차원 입력 벡터를 형성합니다.
+  - **Hidden Layer**: He 초기화를 적용한 64차원 가중치와 bias를 사용하며, 활성화 함수로 ReLU를 적용합니다.
+  - **Output Layer**: Xavier 초기화를 적용하여 어휘 사전 크기(V-차원)의 Logits을 구합니다.
+- **Adam Optimizer**: NumPy로 직접 구현한 Adam Optimizer 상태(m, v 배열 및 시간 스텝 $t$)를 사용하여 가중치를 조절합니다.
+- **학습 하이퍼파라미터**:
+  - Epochs: `10`
+  - Batch Size: `64`
+  - Learning Rate: `0.001`
+
+### 5.3. 가중치 내보내기 (Export)
+학습이 끝난 후 모델의 파라미터(`emb_matrix`, `w1`, `b1`, `w2`, `b2`)를 JSON 직렬화가 가능한 리스트 포맷으로 가공하여 [hardcore_weights.json](file:///Users/kutor/Documents/Projects_Kutor/typediag/src/lib/practice/hardcore_weights.json)에 저장합니다. 브라우저는 이 JSON 파일을 로드하여 런타임에 정방향 추론(Inference)을 수행합니다.
+
+### 5.4. 학습 실행 방법
+로컬 개발 환경에서 모델을 재학습하고 가중치를 업데이트하려면 프로젝트 루트 디렉터리에서 다음 명령을 실행합니다:
+```bash
+python scripts/train_hardcore.py
+```
+

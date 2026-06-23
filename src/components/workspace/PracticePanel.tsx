@@ -4,7 +4,20 @@ import React from "react";
 import { useTypingStore, TypingMode } from "@/store/useTypingStore";
 
 export const PracticePanel: React.FC = () => {
-  const { qwertyBuffer, alignments: diffResult, mode, setMode, subjectTargets, subjectTargetIndex, isSubjectInputActive, isSubjectLoading } = useTypingStore();
+  const {
+    qwertyBuffer,
+    alignments: diffResult,
+    mode,
+    setMode,
+    subjectTargets,
+    subjectTargetIndex,
+    isSubjectInputActive,
+    isSubjectLoading,
+    targetLanguage,
+    setTargetLanguage,
+  } = useTypingStore();
+
+  const isEn = targetLanguage === "en";
 
   const lastInputIndex = React.useMemo(() => {
     return diffResult.findLastIndex((d) => d.inputIndex !== undefined);
@@ -73,18 +86,21 @@ export const PracticePanel: React.FC = () => {
         minHeight: "360px",
       }}
     >
-      {/* Mode selector segmented controls (Pill) */}
+      {/* Mode & Language selector segmented controls */}
       <div
         className="mode-selector-container"
         style={{
           display: "flex",
           justifyContent: "center",
+          alignItems: "center",
+          gap: "16px",
           width: "100%",
           maxWidth: "1024px",
           margin: "0 auto 2.5rem auto",
           padding: "0 1rem",
         }}
       >
+        {/* Typing Mode Pill */}
         <div
           style={{
             display: "flex",
@@ -143,6 +159,62 @@ export const PracticePanel: React.FC = () => {
             );
           })}
         </div>
+
+        {/* Language Pill (KO / EN) */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "4px",
+            backgroundColor: "rgba(255, 255, 255, 0.02)",
+            border: "1px solid var(--border-subtle, rgba(228, 230, 235, 0.08))",
+            borderRadius: "9999px",
+            padding: "4px",
+            boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.2)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+          }}
+        >
+          {["ko", "en"].map((lang) => {
+            const isSelected = targetLanguage === lang;
+            return (
+              <button
+                key={lang}
+                onClick={() => setTargetLanguage(lang)}
+                style={{
+                  fontSize: "0.8125rem",
+                  fontWeight: isSelected ? 600 : 500,
+                  padding: "6px 14px",
+                  borderRadius: "9999px",
+                  border: "none",
+                  backgroundColor: isSelected ? "var(--accent, #3861fb)" : "transparent",
+                  color: isSelected
+                    ? "var(--text-inverse, #f0f2f5)"
+                    : "var(--text-secondary, #8d929b)",
+                  cursor: "pointer",
+                  outline: "none",
+                  fontFamily: "var(--font-sans)",
+                  transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+                  textTransform: "uppercase",
+                }}
+                onMouseEnter={(e) => {
+                  if (!isSelected) {
+                    e.currentTarget.style.color = "var(--text-primary, #e4e6eb)";
+                    e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.04)";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isSelected) {
+                    e.currentTarget.style.color = "var(--text-secondary, #8d929b)";
+                    e.currentTarget.style.backgroundColor = "transparent";
+                  }
+                }}
+              >
+                {lang}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {mode === "subject" && !isSubjectInputActive && subjectTargets.length > 0 && (
@@ -156,7 +228,9 @@ export const PracticePanel: React.FC = () => {
           padding: "4px 12px",
           borderRadius: "9999px",
         }}>
-          준비된 텍스트: {subjectTargets.length - subjectTargetIndex}
+          {isEn
+            ? `Remaining: ${subjectTargets.length - subjectTargetIndex}`
+            : `준비된 텍스트: ${subjectTargets.length - subjectTargetIndex}`}
         </div>
       )}
 
@@ -167,7 +241,41 @@ export const PracticePanel: React.FC = () => {
         aria-live="polite"
         aria-atomic="true"
       >
-        {mode === "subject" && isSubjectLoading ? (
+        {mode === "hardcore" && isEn ? (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "4rem 2rem",
+              textAlign: "center",
+              width: "100%",
+              backgroundColor: "rgba(255, 255, 255, 0.01)",
+              border: "1px dashed var(--border-subtle, rgba(228, 230, 235, 0.08))",
+              borderRadius: "var(--radius-lg, 16px)",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "1.5rem",
+                color: "var(--text-secondary, #8d929b)",
+                marginBottom: "0.75rem",
+              }}
+            >
+              ⚡ Hardcore Mode (English)
+            </div>
+            <div
+              style={{
+                fontSize: "1.0625rem",
+                color: "var(--text-muted, #5c6068)",
+                fontStyle: "italic",
+              }}
+            >
+              English Hardcore mode is coming soon! Please use Korean for now.
+            </div>
+          </div>
+        ) : mode === "subject" && isSubjectLoading ? (
           <div
             style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem" }}
           >
@@ -178,7 +286,7 @@ export const PracticePanel: React.FC = () => {
                 animation: "pulse 1.5s infinite",
               }}
             >
-              주제에 맞는 문장을 찾는 중입니다...
+              {isEn ? "Generating sentences for the topic..." : "주제에 맞는 문장을 찾는 중입니다..."}
             </div>
           </div>
         ) : (
@@ -193,7 +301,7 @@ export const PracticePanel: React.FC = () => {
                   marginRight: "8px",
                 }}
               >
-                여기에 자유롭게 입력하세요...
+                {isEn ? "Type freely here..." : "여기에 자유롭게 입력하세요..."}
               </span>
             )}
             {diffResult.length === 0 && <span className="typing-cursor left" />}

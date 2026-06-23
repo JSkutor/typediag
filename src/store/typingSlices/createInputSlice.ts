@@ -129,7 +129,7 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => {
   },
 
   targetText: "",
-  targetLanguage: "en",
+  targetLanguage: "ko",
   targetId: "",
   typedText: "",
   maxTypedTextLength: 0,
@@ -144,7 +144,13 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => {
     }
     set({ mode });
     if (mode === "normal") {
-      get().setTarget(targets[0]);
+      const lang = get().targetLanguage;
+      const filtered = targets.filter((t) => t.language === lang);
+      if (filtered.length > 0) {
+        get().setTarget(filtered[0]);
+      } else {
+        get().setTarget(targets[0]);
+      }
     } else if (mode === "subject") {
       const guideText = "원하는 주제를 입력하세요...";
       set({
@@ -206,10 +212,23 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => {
       const nextTyped = isKorean
         ? assembleHangulWithPunctuation(state.qwertyBuffer)
         : state.qwertyBuffer;
-      const nextTargetText = state.mode === "plain" ? nextTyped : state.targetText;
+      let nextTargetText = state.targetText;
+      let nextTargetId = state.targetId;
+
+      if (state.mode === "normal") {
+        const filtered = targets.filter((t) => t.language === language);
+        if (filtered.length > 0) {
+          nextTargetText = filtered[0].content;
+          nextTargetId = filtered[0].id;
+        }
+      } else if (state.mode === "plain") {
+        nextTargetText = nextTyped;
+      }
+
       return {
         targetLanguage: language,
         targetText: nextTargetText,
+        targetId: nextTargetId,
         typedText: nextTyped,
         alignments: runMvsa(nextTargetText, state.qwertyBuffer, isKorean, state.mvsaCache),
       };
@@ -268,9 +287,12 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => {
     }
     const { mode } = get();
     if (mode === "normal") {
-      const currentIndex = targets.findIndex((t) => t.content === get().targetText);
-      const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % targets.length;
-      get().setTarget(targets[nextIndex]);
+      const filtered = targets.filter((t) => t.language === get().targetLanguage);
+      if (filtered.length > 0) {
+        const currentIndex = filtered.findIndex((t) => t.content === get().targetText);
+        const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % filtered.length;
+        get().setTarget(filtered[nextIndex]);
+      }
     } else if (mode === "subject") {
       const { subjectTargets, subjectTargetIndex, currentSubject } = get();
       if (subjectTargets.length > 0) {
@@ -406,10 +428,13 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => {
 
     if (code === "ArrowLeft") {
       if (state.mode === "normal") {
-        const currentIndex = targets.findIndex((t) => t.content === get().targetText);
-        const prevIndex =
-          currentIndex === -1 ? 0 : (currentIndex - 1 + targets.length) % targets.length;
-        get().setTarget(targets[prevIndex]);
+        const filtered = targets.filter((t) => t.language === get().targetLanguage);
+        if (filtered.length > 0) {
+          const currentIndex = filtered.findIndex((t) => t.content === get().targetText);
+          const prevIndex =
+            currentIndex === -1 ? 0 : (currentIndex - 1 + filtered.length) % filtered.length;
+          get().setTarget(filtered[prevIndex]);
+        }
       } else if (state.mode === "subject") {
         const { subjectTargets, subjectTargetIndex } = get();
         if (subjectTargets.length > 0) {

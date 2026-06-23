@@ -347,52 +347,56 @@ describe("useTypingStore", () => {
   });
 
   it("should cycle through targets using nextTarget", () => {
+    const enTargets = targets.filter((t) => t.language === "en");
     // If targetText is not in targets, should go to index 0
     useTypingStore.setState({ targetText: "not-in-targets" });
     useTypingStore.getState().nextTarget();
-    expect(useTypingStore.getState().targetText).toBe(targets[0].content);
+    expect(useTypingStore.getState().targetText).toBe(enTargets[0].content);
 
     // If targetText is first target, should go to index 1
     useTypingStore.getState().nextTarget();
-    expect(useTypingStore.getState().targetText).toBe(targets[1].content);
+    expect(useTypingStore.getState().targetText).toBe(enTargets[1].content);
 
     // If targetText is last target, should cycle back to index 0
-    useTypingStore.setState({ targetText: targets[targets.length - 1].content });
+    useTypingStore.setState({ targetText: enTargets[enTargets.length - 1].content });
     useTypingStore.getState().nextTarget();
-    expect(useTypingStore.getState().targetText).toBe(targets[0].content);
+    expect(useTypingStore.getState().targetText).toBe(enTargets[0].content);
   });
 
   it("should transition to next target when ArrowRight is pressed", () => {
+    const enTargets = targets.filter((t) => t.language === "en");
     const store = useTypingStore.getState();
-    useTypingStore.setState({ targetText: targets[0].content });
+    useTypingStore.setState({ targetText: enTargets[0].content });
 
     store.handlePhysicalKeyPress("ArrowRight", false, 1000);
-    expect(useTypingStore.getState().targetText).toBe(targets[1].content);
+    expect(useTypingStore.getState().targetText).toBe(enTargets[1].content);
   });
 
   it("should transition to previous target when ArrowLeft is pressed", () => {
+    const enTargets = targets.filter((t) => t.language === "en");
     const store = useTypingStore.getState();
-    useTypingStore.setState({ targetText: targets[1].content });
+    useTypingStore.setState({ targetText: enTargets[1].content });
 
     store.handlePhysicalKeyPress("ArrowLeft", false, 1000);
-    expect(useTypingStore.getState().targetText).toBe(targets[0].content);
+    expect(useTypingStore.getState().targetText).toBe(enTargets[0].content);
 
     // Test cycling backwards
-    useTypingStore.setState({ targetText: targets[0].content });
+    useTypingStore.setState({ targetText: enTargets[0].content });
     store.handlePhysicalKeyPress("ArrowLeft", false, 1000);
-    expect(useTypingStore.getState().targetText).toBe(targets[targets.length - 1].content);
+    expect(useTypingStore.getState().targetText).toBe(enTargets[enTargets.length - 1].content);
   });
 
   it("should transition to next target when Space or Enter is pressed when done", () => {
+    const enTargets = targets.filter((t) => t.language === "en");
     const store = useTypingStore.getState();
     useTypingStore.setState({ targetText: "he", status: "done" });
 
     store.handlePhysicalKeyPress("Space", false, 1000);
-    expect(useTypingStore.getState().targetText).toBe(targets[0].content);
+    expect(useTypingStore.getState().targetText).toBe(enTargets[0].content);
 
     useTypingStore.setState({ targetText: "he", status: "done" });
     store.handlePhysicalKeyPress("Enter", false, 1000);
-    expect(useTypingStore.getState().targetText).toBe(targets[0].content);
+    expect(useTypingStore.getState().targetText).toBe(enTargets[0].content);
   });
 
   it("should NOT transition to next target when Space or Enter is pressed when not done", () => {
