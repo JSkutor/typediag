@@ -48,13 +48,6 @@ export async function POST(req: Request) {
         id: targetTexts.id,
         content: targetTexts.content,
         language: targetTexts.language,
-        source: targetTexts.source,
-        generatorModel: targetTexts.generatorModel,
-        topic: targetTexts.topic,
-        userId: targetTexts.userId,
-        usageCount: targetTexts.usageCount,
-        lastUsedAt: targetTexts.lastUsedAt,
-        createdAt: targetTexts.createdAt,
         similarity: sql<number>`1 - (${targetTexts.embedding} <=> ${vectorLiteral})`,
       })
       .from(targetTexts)

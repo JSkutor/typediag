@@ -1,5 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { drizzleDb } from "@/db";
 import { POST } from "./route";
+
+vi.mock("@/db", () => ({
+  drizzleDb: {
+    select: vi.fn(),
+  },
+}));
 
 function makeTopicRequest(topic: unknown): Request {
   return new Request("http://localhost/api/practice/topic", {
@@ -51,5 +58,46 @@ describe("/api/practice/topic route", () => {
 
     expect(response.status).toBe(500);
     expect(payload.error).toBe("Internal server error");
+  });
+
+  it("returns only public target fields on cache hit", async () => {
+    process.env.UPSTAGE_API_KEY = "test-upstage-key";
+
+    vi.spyOn(global, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({ data: [{ embedding: [0.1, 0.2, 0.3] }] }),
+        { status: 200 },
+      ),
+    );
+
+    const mockLimit = vi.fn().mockResolvedValue([
+      {
+        id: "target_1",
+        content: "타자 연습 문장입니다.",
+        language: "ko",
+        similarity: 0.82,
+      },
+    ]);
+    const mockOrderBy = vi.fn().mockReturnValue({ limit: mockLimit });
+    const mockWhere = vi.fn().mockReturnValue({ orderBy: mockOrderBy });
+    const mockFrom = vi.fn().mockReturnValue({ where: mockWhere });
+    vi.mocked(drizzleDb.select).mockReturnValue({ from: mockFrom } as never);
+
+    const response = await POST(makeTopicRequest("타자 연습"));
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.success).toBe(true);
+    expect(payload.data).toEqual([
+      {
+        id: "target_1",
+        content: "타자 연습 문장입니다.",
+        language: "ko",
+        similarity: 0.82,
+      },
+    ]);
+    expect(payload.data[0]).not.toHaveProperty("userId");
+    expect(payload.data[0]).not.toHaveProperty("usageCount");
+    expect(payload.data[0]).not.toHaveProperty("generatorModel");
   });
 });

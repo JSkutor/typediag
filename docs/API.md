@@ -115,7 +115,7 @@ Clerk 로그인 사용자의 게스트 데이터 머지.
 {
   "success": true,
   "data": [
-    { "id": "...", "content": "...", "language": "ko", "similarity": 0.82, ... }
+    { "id": "...", "content": "...", "language": "ko", "similarity": 0.82 }
   ]
 }
 ```
