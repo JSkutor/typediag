@@ -159,6 +159,13 @@ export class Cylindrical3DManager {
   // Public API
   // -----------------------------------------------------------------------
 
+  /** Disable all user interactions (rotation, zoom, pan). Used on landing page. */
+  public lockControls(): void {
+    this.controls.enableRotate = false;
+    this.controls.enableZoom = false;
+    this.controls.enablePan = false;
+  }
+
   /** Rebuild the entire 3D scene for a new set of vectors / selection. */
   public updateScene(vectors: CylindricalVector[], selectedFrom: string): void {
     this.vectors = vectors;

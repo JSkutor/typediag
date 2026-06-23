@@ -15,11 +15,14 @@ interface LatencySurface3DProps {
   height?: number;
 
   isActivated?: boolean;
+  /** Lock OrbitControls — use on landing page where the surface should be static */
+  disableControls?: boolean;
 }
 
 export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
   keyStats,
   isActivated = false,
+  disableControls = false,
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const labelsContainerRef = useRef<HTMLDivElement>(null);
@@ -49,6 +52,7 @@ export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
 
   // Initialize and dispose manager
   const handleInit = useCallback((manager: Surface3DManager) => {
+    if (disableControls) manager.lockControls();
     manager.onUpdateHUD = (
       surfaceKeys,
       elevationScale,

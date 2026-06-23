@@ -1,5 +1,8 @@
 import { KeyResult, KeyEvent } from "./types";
 import { KEYBOARD_META } from "./keyboardMeta";
+import { buildLayout } from "./layout";
+
+const _layout = buildLayout();
 
 /**
  * Generates realistic mock KeyResult data for the LatencySurface3D on the landing page.
@@ -10,14 +13,14 @@ export function getMockKeyStats(): Record<string, KeyResult> {
   const stats: Record<string, KeyResult> = {};
   const keys = Object.keys(KEYBOARD_META);
 
-  // Assign basic coordinates based on standard QWERTY layout stagger
   keys.forEach((key) => {
     const meta = KEYBOARD_META[key];
-    
+    const pos = _layout[key];
+
     // Simulate typical latencies.
     // Let's make 'o', 'p', 'z', 'x', 'c' have higher latency (z-value)
     let zValue = 0.3; // base latency ~ 0.3
-    
+
     if (["o", "p"].includes(key)) {
       zValue = 0.85; // high peak
     } else if (["z", "x", "c"].includes(key)) {
@@ -33,8 +36,8 @@ export function getMockKeyStats(): Record<string, KeyResult> {
     stats[key] = {
       key,
       row: meta.row,
-      x: 0, 
-      y: 0, 
+      x: pos?.x ?? 0,
+      y: pos?.y ?? 0,
       z: zValue,
       confidence: 100 + Math.random() * 50,
       stdev: 20 + Math.random() * 10,
@@ -55,22 +58,22 @@ export function getMockCylindricalEvents(): KeyEvent[] {
 
   // Let's create vectors ending at 'o' (often a bottleneck)
   const targetKey = "o";
-  
+
   // High volume from adjacent/common keys
   const fromKeys = ["p", "i", "l", "k", "n", "m", "j", "a", "s", "e"];
-  
+
   fromKeys.forEach((fromKey) => {
     // Determine how many events to generate based on fromKey
     const count = fromKey === "p" || fromKey === "i" ? 40 : 15;
-    
+
     for (let i = 0; i < count; i++) {
       // Latency ranges
       let baseLatency = 200;
       if (fromKey === "p") baseLatency = 450; // slow transition
       if (fromKey === "a") baseLatency = 120; // fast transition
-      
+
       const latencyMs = baseLatency + (Math.random() * 100 - 50);
-      
+
       events.push({
         fromKey,
         toKey: targetKey,

@@ -127,6 +127,13 @@ export class Surface3DManager {
     this.reqId = requestAnimationFrame(this.renderLoop);
   }
 
+  /** Disable all user interactions (rotation, zoom, pan). Used on landing page. */
+  public lockControls(): void {
+    this.controls.enableRotate = false;
+    this.controls.enableZoom = false;
+    this.controls.enablePan = false;
+  }
+
   public updateData(keyStats: Record<string, KeyResult>) {
     const keyArray = Object.values(keyStats);
     this.surfaceKeys = keyArray.filter((k) => IS_SURFACE_KEY(k.key));

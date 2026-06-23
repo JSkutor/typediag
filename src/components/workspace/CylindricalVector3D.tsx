@@ -20,12 +20,15 @@ interface CylindricalVector3DProps {
   onClose?: () => void;
   /** Override store events for testing or landing page mock data */
   mockEvents?: KeyEvent[];
+  /** Lock OrbitControls — use on landing page where the view should be static */
+  disableControls?: boolean;
 }
 
 export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
   isActivated,
   initialCenterKey,
   mockEvents,
+  disableControls = false,
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
 
@@ -68,6 +71,7 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
 
   // --- Manager lifecycle ---
   const handleInit = useCallback((mgr: Cylindrical3DManager) => {
+    if (disableControls) mgr.lockControls();
     mgr.onLabelsUpdate = (proj: LabelProjection) => {
       if (proj.vectorCoords) {
         proj.vectorCoords.forEach((item) => {
