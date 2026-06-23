@@ -126,6 +126,14 @@ Clerk 인증과 연동되는 사용자 정보를 저장합니다.
 
 ## 연습 세션(Run) 생명주기 관리 로직
 
-- **공백 및 유휴시간**: 타이핑 중 긴 유휴시간(Idle, 5분 초과) 발생 시, 이전 Run을 `completed`로 닫고 새로운 Run을 분리 생성합니다. WPM/CPM 산출 시 비정상 latency는 보정하여 계산됩니다.
+정본: `src/services/sessionService.ts`, `src/utils/db.ts` (`syncSessionOnMount`). 상세 규칙은 [STATE_MANAGEMENT.md](STATE_MANAGEMENT.md) §2 참고.
+
+| 규칙 | 임계값 | 트리거 시점 | 동작 |
+| :--- | :--- | :--- | :--- |
+| **페이지 간 유휴** | 3분 | 새 문장 `startPage` | 이전 run `completed` 후 새 run 생성 |
+| **문장 내 장시간 경과** | 5분 | `finishPage` (`finishedAt - startedAt`) | run 분리, page 시작 시각 보정 후 새 run에 저장 |
+| **마운트 정리** | 3분 | `syncSessionOnMount` | 방치된 `in_progress` run 완료 처리 |
+
+- **지표 보정**: 개별 키 latency 3초 초과는 outlier로 대체 평균을 사용합니다 (`calculateMetrics`, outlierMs=3000). 5분 gap split 시 `calculateLatencyAfterGap`으로 시작 시각을 보정합니다.
 - **방향키/스킵**: 문장 중간 포기(오른쪽 방향키) 시 해당 page 이벤트를 DB에 저장하지 않고 버립니다. 재시도(왼쪽 방향키) 시 동일 문장에 대해 새로운 page를 누적 생성합니다.
-- **OnMount 동기화**: 프론트엔드 진입 시 `syncSessionOnMount` 호출을 통해 브라우저 종료 등으로 방치된 `in_progress` 세션들의 완료 여부(최종 입력 후 3분 경과 검사)를 정리합니다.
+- **OnMount 동기화**: `WorkspaceView` 마운트 시 `sessionServiceClient.syncSessionOnMount()` → `POST /api/session` `action: "sync"` → `db.syncSessionOnMount(userId)`.

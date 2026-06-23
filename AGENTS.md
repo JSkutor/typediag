@@ -26,6 +26,7 @@
 - **에이전트 행동 제약**:
   - 새로운 외부 패키지를 임의로 추가하지 말 것. 설치가 꼭 필요한 경우 먼저 유저에게 질문할 것.
   - 스타일링은 Vanilla CSS를 사용하며, 기존 디자인 시스템 (`docs/DESIGN_SYSTEM.md`) 팔레트를 엄격히 준수할 것.
+  - 사용자·기여자용 문서는 `README.md`, `docs/` 하위. 본 `AGENTS.md`는 AI 에이전트 전용이며 README Docs 목록에 넣지 말 것.
 
 ---
 
@@ -51,9 +52,11 @@ graphify-ts mcp 명령을 사용해 구조를 파악하라.
 | **세션 API (클라이언트)** | `src/services/sessionServiceClient.ts` | 브라우저에서 `/api/session` 호출 래퍼. Zustand `createSessionSlice`가 사용. |
 | **세션 API (라우트)**   | `src/app/api/session/route.ts`   | Clerk 또는 `X-Guest-User-Id`로 사용자 식별 후 `sessionService` 위임.          |
 | **게스트 사용자 ID**    | `src/utils/guestUser.ts`         | 비로그인 `guest_<uuid>` 발급·`localStorage` 유지, API 헤더 헬퍼.              |
-| **게스트 인증 (HMAC)**  | `src/utils/guestAuth.ts`, `src/lib/api/resolveApiUser.ts` | 서버 토큰 서명·검증, API 사용자 식별 SSOT. |
+| **게스트 인증 (HMAC)**  | `src/utils/guestAuth.ts`, `src/lib/api/resolveApiUser.ts` | 서버 토큰 서명·검증, API 사용자 식별 SSOT. 명세: `docs/AUTH.md`. |
+| **HTTP API 명세**       | `docs/API.md`                    | 라우트 계약·상태 코드. 코드 SSOT는 `src/app/api/`.                           |
 | **MVSA 알고리즘**       | `src/utils/mvsa.ts`              | 실시간 한글 자소 대조 및 오타 판별 정렬 엔진. `docs/MVSA_ALGORITHM.md` 명세와 싱크 필요. |
-| **Topic API**           | `src/app/api/practice/topic/`    | 토픽 모드 벡터 검색(`route.ts`) 및 LLM 생성(`generate/route.ts`) 라우트 SSOT. |
+| **Topic API**           | `src/app/api/practice/topic/`    | 토픽 모드 벡터 검색(`route.ts`) 및 LLM 생성(`generate/route.ts`) 라우트 SSOT. Gemini 호출·재시도·응답 파싱은 `src/lib/api/topicGenerateGemini.ts`. |
+| **Topic 클라이언트 상태** | `src/store/typingSlices/createTopicSlice.ts` | Topic 모드 Zustand slice. `docs/TOPIC_MODE.md`와 싱크 필요. |
 
 ---
 

@@ -79,7 +79,7 @@
 
 ## 5. 오프라인 학습 파이프라인 (Offline Training Pipeline)
 
-하드코어 모드에서 사용하는 사전 학습 가중치(`hardcore_weights.json`)는 오프라인 환경에서 대용량 한국어 말뭉치 데이터를 기반으로 사전에 학습하여 생성됩니다. 이 과정은 [train_hardcore.py](file:///Users/kutor/Documents/Projects_Kutor/typediag/scripts/train_hardcore.py) 스크립트에 의해 수행됩니다.
+하드코어 모드에서 사용하는 사전 학습 가중치(`hardcore_weights.json`)는 오프라인 환경에서 대용량 한국어 말뭉치 데이터를 기반으로 사전에 학습하여 생성됩니다. 이 과정은 [`scripts/train_hardcore.py`](../scripts/train_hardcore.py) 스크립트에 의해 수행됩니다.
 
 ### 5.1. 학습 데이터 전처리
 1. **QWERTY 자모 변환**: 
@@ -101,7 +101,7 @@
   - Learning Rate: `0.001`
 
 ### 5.3. 가중치 내보내기 (Export)
-학습이 끝난 후 모델의 파라미터(`emb_matrix`, `w1`, `b1`, `w2`, `b2`)를 JSON 직렬화가 가능한 리스트 포맷으로 가공하여 [hardcore_weights.json](file:///Users/kutor/Documents/Projects_Kutor/typediag/src/lib/practice/hardcore_weights.json)에 저장합니다. 브라우저는 이 JSON 파일을 로드하여 런타임에 정방향 추론(Inference)을 수행합니다.
+학습이 끝난 후 모델의 파라미터(`emb_matrix`, `w1`, `b1`, `w2`, `b2`)를 JSON 직렬화가 가능한 리스트 포맷으로 가공하여 [`src/lib/practice/hardcore_weights.json`](../src/lib/practice/hardcore_weights.json)에 저장합니다. 브라우저는 이 JSON 파일을 로드하여 런타임에 정방향 추론(Inference)을 수행합니다.
 
 ### 5.4. 학습 실행 방법
 로컬 개발 환경에서 모델을 재학습하고 가중치를 업데이트하려면 프로젝트 루트 디렉터리에서 다음 명령을 실행합니다:
