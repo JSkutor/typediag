@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   isValidGuestId,
+  parseGuestHeaders,
   signGuestToken,
   verifyGuestToken,
 } from "@/utils/guestAuth";
@@ -20,5 +21,21 @@ describe("guestAuth", () => {
     expect(verifyGuestToken(validGuestId, token)).toBe(true);
     expect(verifyGuestToken(validGuestId, "invalid-token")).toBe(false);
     expect(verifyGuestToken("guest_00000000-0000-0000-0000-000000000099", token)).toBe(false);
+  });
+
+  it("parses guest headers from request Headers", () => {
+    const headers = new Headers({
+      "x-guest-user-id": validGuestId,
+      "x-guest-token": "token-value",
+    });
+
+    expect(parseGuestHeaders(headers)).toEqual({
+      guestId: validGuestId,
+      guestToken: "token-value",
+    });
+    expect(parseGuestHeaders(new Headers())).toEqual({
+      guestId: null,
+      guestToken: null,
+    });
   });
 });
