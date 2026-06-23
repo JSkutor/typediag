@@ -142,8 +142,8 @@ export class SessionService {
       from_key: e.fromKey,
       to_key: e.toKey,
       key_char: e.keyChar || "",
-      latency: e.latencyMs,
-      hold_duration_ms: e.holdDurationMs ?? 50,
+      latency: Math.round(e.latencyMs),
+      hold_duration_ms: e.holdDurationMs != null ? Math.round(e.holdDurationMs) : null,
       is_correct: e.isCorrect ?? true,
       expected_char: e.expectedChar ?? null,
     }));

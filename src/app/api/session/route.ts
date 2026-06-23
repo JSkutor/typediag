@@ -54,6 +54,8 @@ export async function POST(request: NextRequest) {
     }
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
+    const stack = err instanceof Error ? err.stack : "";
+    console.error("[/api/session] Error:", message, "\nStack:", stack);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
