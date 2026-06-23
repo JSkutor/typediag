@@ -197,6 +197,11 @@
   transform: scale(0.97) translateY(10px);
 }
 
+.word-wrapper {
+  display: inline-block;
+  white-space: nowrap;
+}
+
 .text-char-container {
   position: relative;
   display: inline-grid;

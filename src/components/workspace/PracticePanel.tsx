@@ -10,6 +10,52 @@ export const PracticePanel: React.FC = () => {
     return diffResult.findLastIndex((d) => d.inputIndex !== undefined);
   }, [diffResult]);
 
+  const [cursorJumpIndex, setCursorJumpIndex] = React.useState<number | null>(null);
+
+  const checkCursorJump = React.useCallback(() => {
+    if (lastInputIndex === -1) {
+      setCursorJumpIndex(null);
+      return;
+    }
+
+    const activeChar = diffResult[lastInputIndex];
+    if (!activeChar) {
+      setCursorJumpIndex(null);
+      return;
+    }
+
+    const isSpace = activeChar.targetChar === " " || (activeChar.targetChar === undefined && activeChar.char === " ");
+    if (isSpace && lastInputIndex < diffResult.length - 1) {
+      const activeEl = document.getElementById(`text-char-${lastInputIndex}`);
+      const nextEl = document.getElementById(`text-char-${lastInputIndex + 1}`);
+
+      if (activeEl && nextEl) {
+        if (nextEl.offsetTop > activeEl.offsetTop + 5) {
+          setCursorJumpIndex(lastInputIndex + 1);
+          return;
+        }
+      }
+    }
+    setCursorJumpIndex(null);
+  }, [diffResult, lastInputIndex]);
+
+  React.useLayoutEffect(() => {
+    const handle = requestAnimationFrame(() => {
+      checkCursorJump();
+    });
+    return () => cancelAnimationFrame(handle);
+  }, [checkCursorJump]);
+
+  React.useEffect(() => {
+    const handleResize = () => {
+      requestAnimationFrame(() => {
+        checkCursorJump();
+      });
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [checkCursorJump]);
+
   return (
     <div
       className="typing-area"
@@ -117,7 +163,7 @@ export const PracticePanel: React.FC = () => {
       <div
         id="typing-text-container"
         className="typing-text-container inline-block text-left"
-        style={{ maxWidth: "1024px", width: "100%", textAlign: "center" }}
+        style={{ maxWidth: "1024px", width: "100%", textAlign: "left" }}
         aria-live="polite"
         aria-atomic="true"
       >
@@ -151,47 +197,89 @@ export const PracticePanel: React.FC = () => {
               </span>
             )}
             {diffResult.length === 0 && <span className="typing-cursor left" />}
-            {diffResult.map((d, i) => {
-              const isOmitted = d.op === "OMIT";
+            {(() => {
+              // Group diffResult into words (non-spaces) and spaces to implement word wrapping.
+              const groups: { type: "word" | "space"; items: { item: typeof diffResult[number]; index: number }[] }[] = [];
+              let currentGroup: { type: "word" | "space"; items: { item: typeof diffResult[number]; index: number }[] } | null = null;
 
-              let highlightClass = "";
-              if (d.op === "EQUAL" || d.op === "PARTIAL") highlightClass = "text-char-primary";
-              else if (d.op === "INSERT" || d.op === "REPLACE")
-                highlightClass = "text-char-error opacity-80";
+              diffResult.forEach((d, i) => {
+                const isSpace = d.targetChar === " " || (d.targetChar === undefined && d.char === " ");
 
-              if (d.op === "INSERT" && d.char === " ") {
-                highlightClass += " border-b-4 border-red-500/70";
-              }
+                if (isSpace) {
+                  if (currentGroup && currentGroup.type === "space") {
+                    currentGroup.items.push({ item: d, index: i });
+                  } else {
+                    currentGroup = { type: "space", items: [{ item: d, index: i }] };
+                    groups.push(currentGroup);
+                  }
+                } else {
+                  if (currentGroup && currentGroup.type === "word") {
+                    currentGroup.items.push({ item: d, index: i });
+                  } else {
+                    currentGroup = { type: "word", items: [{ item: d, index: i }] };
+                    groups.push(currentGroup);
+                  }
+                }
+              });
 
-              const showCursorRight = qwertyBuffer.length > 0 && i === lastInputIndex;
-              const showCursorLeft = qwertyBuffer.length === 0 && i === 0;
+              return groups.map((group, groupIdx) => {
+                const content = group.items.map(({ item: d, index: i }) => {
+                  const isOmitted = d.op === "OMIT";
 
-              return (
-                <span key={i} id={`text-char-${i}`} className="text-char-container relative">
-                  {d.op !== "INSERT" && (
-                    <span
-                      className={`text-char-muted ${isOmitted ? "border-b-4 border-red-500/30" : ""}`}
-                    >
-                      {d.targetChar === " " ? "\u00A0" : d.targetChar}
+                  let highlightClass = "";
+                  if (d.op === "EQUAL" || d.op === "PARTIAL") highlightClass = "text-char-primary";
+                  else if (d.op === "INSERT" || d.op === "REPLACE")
+                    highlightClass = "text-char-error opacity-80";
+
+                  if (d.op === "INSERT" && d.char === " ") {
+                    highlightClass += " border-b-4 border-red-500/70";
+                  }
+
+                  const showCursorRight = qwertyBuffer.length > 0 && i === lastInputIndex && cursorJumpIndex === null;
+                  const showCursorLeft = (qwertyBuffer.length === 0 && i === 0) || (cursorJumpIndex !== null && i === cursorJumpIndex);
+
+                  return (
+                    <span key={i} id={`text-char-${i}`} className="text-char-container relative">
+                      {d.op !== "INSERT" && (
+                        <span
+                          className={`text-char-muted ${isOmitted ? "border-b-4 border-red-500/30" : ""}`}
+                        >
+                          {d.targetChar === " " ? "\u00A0" : d.targetChar}
+                        </span>
+                      )}
+
+                      {(d.op === "EQUAL" ||
+                        d.op === "PARTIAL" ||
+                        d.op === "REPLACE" ||
+                        d.op === "INSERT") && (
+                        <span
+                          className={`${d.op !== "INSERT" ? "text-char-overlay" : ""} ${highlightClass}`}
+                        >
+                          {d.char === " " ? "\u00A0" : d.char}
+                        </span>
+                      )}
+
+                      {showCursorLeft && <span className="typing-cursor left" />}
+                      {showCursorRight && <span className="typing-cursor right" />}
                     </span>
-                  )}
+                  );
+                });
 
-                  {(d.op === "EQUAL" ||
-                    d.op === "PARTIAL" ||
-                    d.op === "REPLACE" ||
-                    d.op === "INSERT") && (
+                if (group.type === "word") {
+                  return (
                     <span
-                      className={`${d.op !== "INSERT" ? "text-char-overlay" : ""} ${highlightClass}`}
+                      key={`word-${groupIdx}`}
+                      className="word-wrapper"
+                      style={{ display: "inline-block", whiteSpace: "nowrap" }}
                     >
-                      {d.char === " " ? "\u00A0" : d.char}
+                      {content}
                     </span>
-                  )}
-
-                  {showCursorLeft && <span className="typing-cursor left" />}
-                  {showCursorRight && <span className="typing-cursor right" />}
-                </span>
-              );
-            })}
+                  );
+                } else {
+                  return <React.Fragment key={`space-${groupIdx}`}>{content}</React.Fragment>;
+                }
+              });
+            })()}
           </>
         )}
       </div>
