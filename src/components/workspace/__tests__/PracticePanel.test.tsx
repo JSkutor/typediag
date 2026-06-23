@@ -109,10 +109,9 @@ describe("PracticePanel", () => {
 
     // '나' should be omitted at index 1
     const char1 = container.querySelector("#text-char-1");
-    const mutedSpan = char1?.querySelector(".text-char-muted");
-    expect(mutedSpan).toBeTruthy();
-    expect(mutedSpan?.textContent).toBe("나");
-    expect(mutedSpan?.className).toContain("border-red-500/30");
+    const omittedSpan = char1?.querySelector(".text-char-omitted");
+    expect(omittedSpan).toBeTruthy();
+    expect(omittedSpan?.textContent).toBe("나");
   });
 
   it("should render inserted extra spaces with a red underline on the cursor block", () => {
@@ -129,7 +128,7 @@ describe("PracticePanel", () => {
     // ' ' is inserted at index 3 (0=ㄱ, 1=나(PENDING), 2=다(PENDING), 3= )
     // Actually the indices in `diffResult` map would be exactly their array index.
     // Let's find any error span that has the space insertion class.
-    const spaceInsertSpan = container.querySelector(".border-red-500\\/70");
+    const spaceInsertSpan = container.querySelector(".text-char-space-error");
     expect(spaceInsertSpan).toBeTruthy();
     expect(spaceInsertSpan?.textContent).toBe("\u00A0");
   });

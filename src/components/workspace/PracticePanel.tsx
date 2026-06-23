@@ -232,7 +232,7 @@ export const PracticePanel: React.FC = () => {
                     highlightClass = "text-char-error opacity-80";
 
                   if (d.op === "INSERT" && d.char === " ") {
-                    highlightClass += " border-b-4 border-red-500/70";
+                    highlightClass += " text-char-space-error";
                   }
 
                   const showCursorRight = qwertyBuffer.length > 0 && i === lastInputIndex && cursorJumpIndex === null;
@@ -242,7 +242,7 @@ export const PracticePanel: React.FC = () => {
                     <span key={i} id={`text-char-${i}`} className="text-char-container relative">
                       {d.op !== "INSERT" && (
                         <span
-                          className={`text-char-muted ${isOmitted ? "border-b-4 border-red-500/30" : ""}`}
+                          className={isOmitted ? "text-char-omitted" : "text-char-muted"}
                         >
                           {d.targetChar === " " ? "\u00A0" : d.targetChar}
                         </span>

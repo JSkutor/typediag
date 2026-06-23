@@ -160,13 +160,14 @@ export class MaximumValidSequenceAligner {
         }
         const wordQwerty = this.qwertyBuffer.slice(qPtr, endQPtr);
 
-        const cacheKey = `${word.start}:${qPtr}:${wordQwerty}`;
+        const isCompleted = endQPtr < this.qwertyBuffer.length;
+        const cacheKey = `${word.start}:${qPtr}:${wordQwerty}:${isCompleted}`;
         let wordResults: AlignResult[];
 
         if (this.cache && this.cache.has(cacheKey)) {
           wordResults = this.cache.get(cacheKey)!;
         } else {
-          wordResults = this.alignWord(word.text, wordQwerty, word.start, qPtr);
+          wordResults = this.alignWord(word.text, wordQwerty, word.start, qPtr, isCompleted);
           if (this.cache) {
             this.cache.set(cacheKey, wordResults);
           }
@@ -198,6 +199,7 @@ export class MaximumValidSequenceAligner {
     wordQwerty: string,
     targetOffset: number,
     qOffset: number,
+    isCompleted: boolean = false
   ): AlignResult[] {
     let tIdx = 0;
     let qIdx = 0;
@@ -220,6 +222,9 @@ export class MaximumValidSequenceAligner {
       );
 
       if (!isMismatch) {
+        if (isCompleted && partialResult!.op === "PARTIAL") {
+          partialResult!.op = "REPLACE";
+        }
         results.push(partialResult!);
         qIdx = newQIdx;
         tIdx++;
@@ -297,12 +302,12 @@ export class MaximumValidSequenceAligner {
           isMismatch: false,
           newQIdx: tempQIdx,
           partialResult: {
-            op: "EQUAL" as const,
+            op: "EQUAL",
             char: targetChar,
             targetChar,
             targetIndex: absoluteTargetIdx,
             inputIndex: qOffset + tempQIdx - 1,
-          },
+          } as AlignResult,
         };
       } else {
         const typedSub = wordQwerty.slice(qIdx, tempQIdx);
@@ -311,12 +316,12 @@ export class MaximumValidSequenceAligner {
           isMismatch: false,
           newQIdx: tempQIdx,
           partialResult: {
-            op: "PARTIAL" as const,
+            op: "PARTIAL",
             char: typedChar,
             targetChar,
             targetIndex: absoluteTargetIdx,
             inputIndex: qOffset + tempQIdx - 1,
-          },
+          } as AlignResult,
         };
       }
     }

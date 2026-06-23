@@ -226,6 +226,18 @@
   grid-area: 1 / 1;
 }
 
+.text-char-omitted {
+  grid-area: 1 / 1;
+  color: var(--text-muted);
+  text-decoration: underline var(--error) 2px;
+  text-underline-offset: 2px;
+}
+
+.text-char-space-error {
+  text-decoration: underline var(--error) 2px;
+  text-underline-offset: 2px;
+}
+
 @keyframes typing-cursor-blink {
   0%,
   100% {

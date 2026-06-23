@@ -147,7 +147,7 @@ describe("MVSA (Maximum Valid Sequence Aligner)", () => {
     const qwerty = "r ksek";
     const result = runMvsa("가나다", qwerty, true);
     expect(result).toEqual([
-      { op: "PARTIAL", char: "ㄱ", targetChar: "가", targetIndex: 0, inputIndex: 0 },
+      { op: "REPLACE", char: "ㄱ", targetChar: "가", targetIndex: 0, inputIndex: 0 },
       { op: "PENDING", char: "", targetChar: "나", targetIndex: 1 },
       { op: "PENDING", char: "", targetChar: "다", targetIndex: 2 },
       { op: "INSERT", char: " ", inputIndex: 1 },
