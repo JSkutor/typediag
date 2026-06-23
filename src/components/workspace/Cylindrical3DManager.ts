@@ -213,6 +213,7 @@ export class Cylindrical3DManager {
   /** Tear down everything. */
   public dispose(): void {
     this.isDisposed = true;
+    this.onLabelsUpdate = undefined;
     cancelAnimationFrame(this.reqId);
     this.controls.dispose();
     if (this.container.contains(this.renderer.domElement)) {

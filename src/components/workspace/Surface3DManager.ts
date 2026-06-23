@@ -455,7 +455,7 @@ export class Surface3DManager {
 
       // Defer transition by 1 frame to let Three.js load/render initial frames smoothly
       requestAnimationFrame(() => {
-        if (!this.isActivated) return;
+        if (this.isDisposed || !this.isActivated) return;
 
         if (this.timeline) {
           this.timeline.kill();
@@ -594,8 +594,12 @@ export class Surface3DManager {
 
   public dispose() {
     this.isDisposed = true;
+    this.onUpdateHUD = undefined;
     cancelAnimationFrame(this.reqId);
-    if (this.timeline) this.timeline.kill();
+    if (this.timeline) {
+      this.timeline.kill();
+      this.timeline = null;
+    }
     this.controls.dispose();
     if (this.container.contains(this.renderer.domElement)) {
       this.container.removeChild(this.renderer.domElement);

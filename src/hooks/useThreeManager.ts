@@ -38,8 +38,8 @@ export function useThreeManager<T extends ThreeManager>(
 
     return () => {
       window.removeEventListener("resize", handleResize);
-      mgr.dispose();
       managerRef.current = null;
+      mgr.dispose();
     };
   }, [ManagerClass, mountRef, isActivated, onInit]);
 

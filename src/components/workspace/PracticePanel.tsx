@@ -59,14 +59,24 @@ export const PracticePanel: React.FC = () => {
     return () => cancelAnimationFrame(handle);
   }, [checkCursorJump]);
 
+  const resizeRafRef = React.useRef<number | null>(null);
+
   React.useEffect(() => {
     const handleResize = () => {
-      requestAnimationFrame(() => {
+      if (resizeRafRef.current) {
+        cancelAnimationFrame(resizeRafRef.current);
+      }
+      resizeRafRef.current = requestAnimationFrame(() => {
         checkCursorJump();
       });
     };
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      if (resizeRafRef.current) {
+        cancelAnimationFrame(resizeRafRef.current);
+      }
+    };
   }, [checkCursorJump]);
 
   return (

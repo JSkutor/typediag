@@ -4,6 +4,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 import { Footer } from "@/components/layout/Footer";
 import { UserSyncEffect } from "@/components/auth/UserSyncEffect";
+
 import { clerkAppearance } from "@/lib/clerkAppearance";
 
 const outfit = Outfit({
