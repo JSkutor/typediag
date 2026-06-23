@@ -3,9 +3,9 @@ import Link from "next/link";
 import { Header } from "@/components/layout/Header";
 import { LandingSurface3D } from "@/components/landing/LandingSurface3D";
 import { LandingCylindrical3D } from "@/components/landing/LandingCylindrical3D";
-import { StatsCards } from "@/components/landing/StatsCards";
+import { ProblemSection } from "@/components/landing/ProblemSection";
 import { HowItWorks } from "@/components/landing/HowItWorks";
-import { MetricsSection } from "@/components/landing/MetricsSection";
+import { DiagnosisPreview } from "@/components/landing/DiagnosisPreview";
 import { FeatureGrid } from "@/components/landing/FeatureGrid";
 
 type Params = Promise<{ lang: string }>;
@@ -17,8 +17,8 @@ export default async function LangLandingPage({ params }: { params: Params }) {
   return (
     <div
       style={{
-        backgroundColor: "var(--bg-base, #2a2b2e)",
-        color: "var(--text-primary, #e4e6eb)",
+        backgroundColor: "var(--bg-base)",
+        color: "var(--text-primary)",
         minHeight: "100vh",
         display: "flex",
         flexDirection: "column",
@@ -39,7 +39,7 @@ export default async function LangLandingPage({ params }: { params: Params }) {
           alignItems: "center",
           justifyContent: "center",
           overflow: "hidden",
-          backgroundColor: "#1a1b1e",
+          backgroundColor: "var(--bg-inset)",
         }}
       >
         {/* 3D Surface Background — pointer-events:none so scroll wheel reaches the page */}
@@ -84,49 +84,20 @@ export default async function LangLandingPage({ params }: { params: Params }) {
           <div style={{ pointerEvents: "auto", display: "inline-block", marginBottom: "1.4rem" }}>
             <span className="hero-eyebrow">
               <span className="hero-eyebrow-dot" />
-              SKDM — Spatial Keystroke Dynamics Model
+              {isEn ? "Not WPM — typing habits" : "타자 속도가 아니라, 타자 습관"}
             </span>
           </div>
 
-          <h1
-            style={{
-              fontSize: "clamp(3rem, 8vw, 6rem)",
-              fontWeight: 800,
-              lineHeight: 1.04,
-              letterSpacing: "-0.04em",
-              marginBottom: "1.5rem",
-              background: "linear-gradient(170deg, #ffffff 0%, rgba(255,255,255,0.45) 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-            }}
-          >
+          <h1 className={`hero-headline ${isEn ? "hero-headline--en" : "hero-headline--ko"}`}>
             {isEn ? (
               <>
-                Type Smarter.
-                <br />
-                <span
-                  style={{
-                    background: "linear-gradient(135deg, #3861fb 0%, #8b5cf6 100%)",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                  }}
-                >
-                  Diagnose Deeper.
-                </span>
+                <span className="hero-headline-line hero-headline-line--primary">Type Smarter.</span>
+                <span className="hero-headline-line hero-headline-line--accent">Diagnose Deeper.</span>
               </>
             ) : (
               <>
-                더 똑똑하게 타이핑하고,
-                <br />
-                <span
-                  style={{
-                    background: "linear-gradient(135deg, #3861fb 0%, #8b5cf6 100%)",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                  }}
-                >
-                  더 깊이 진단하세요.
-                </span>
+                <span className="hero-headline-line hero-headline-line--primary">더 똑똑하게 타이핑하고,</span>
+                <span className="hero-headline-line hero-headline-line--accent">더 깊이 진단하세요.</span>
               </>
             )}
           </h1>
@@ -134,15 +105,15 @@ export default async function LangLandingPage({ params }: { params: Params }) {
           <p
             style={{
               fontSize: "clamp(1rem, 1.8vw, 1.2rem)",
-              color: "rgba(228, 230, 235, 0.7)",
+              color: "var(--text-secondary)",
               lineHeight: 1.75,
               maxWidth: "600px",
               margin: "0 auto 0 auto",
             }}
           >
             {isEn
-              ? "Not just another WPM test. TypeDiag maps your typing bottlenecks onto a 3D spatial landscape using the Spatial Keystroke Dynamics Model to diagnose the root cause of every typo."
-              : "단순한 타자 연습기가 아닙니다. 키보드 3D 공간 상에 지연 지형을 생성하여 SKDM 파이프라인으로 오타와 병목의 근본 원인을 진단합니다."}
+              ? "TypeDiag shows you where your fingers get stuck — not just how fast you type. See your weak spots on a 3D keyboard map."
+              : "TypeDiag는 얼마나 빠른지가 아니라, 어디서 막히는지 알려줍니다. 키보드 위 약점 지도로 병목을 한눈에 확인하세요."}
           </p>
 
           {/* CTA row */}
@@ -188,8 +159,7 @@ export default async function LangLandingPage({ params }: { params: Params }) {
             left: 0,
             width: "100%",
             height: "240px",
-            background:
-              "linear-gradient(to bottom, transparent 0%, var(--bg-base, #2a2b2e) 100%)",
+            background: "linear-gradient(to bottom, transparent 0%, var(--bg-base) 100%)",
             zIndex: 8,
             pointerEvents: "none",
           }}
@@ -216,7 +186,7 @@ export default async function LangLandingPage({ params }: { params: Params }) {
               fontSize: "0.65rem",
               letterSpacing: "0.14em",
               textTransform: "uppercase",
-              color: "rgba(228, 230, 235, 0.35)",
+              color: "var(--text-muted)",
             }}
           >
             scroll
@@ -227,7 +197,7 @@ export default async function LangLandingPage({ params }: { params: Params }) {
             height="20"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="rgba(228,230,235,0.35)"
+            stroke="var(--text-muted)"
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -237,15 +207,18 @@ export default async function LangLandingPage({ params }: { params: Params }) {
         </div>
       </section>
 
-      {/* ===== 2. How It Works ===== */}
+      {/* ===== 2. Problem Empathy ===== */}
+      <ProblemSection isEn={isEn} />
+
+      {/* ===== 3. How It Works ===== */}
       <div id="how-it-works">
         <HowItWorks isEn={isEn} />
       </div>
 
-      {/* ===== 3. Metrics ===== */}
-      <MetricsSection isEn={isEn} />
+      {/* ===== 4. Diagnosis Report Preview ===== */}
+      <DiagnosisPreview isEn={isEn} />
 
-      {/* ===== 4. Cylindrical Vector Section ===== */}
+      {/* ===== 5. Weakness Map (3D) ===== */}
       <section
         style={{
           position: "relative",
@@ -266,11 +239,11 @@ export default async function LangLandingPage({ params }: { params: Params }) {
               fontWeight: 700,
               letterSpacing: "0.16em",
               textTransform: "uppercase",
-              color: "var(--accent, #3861fb)",
+              color: "var(--accent)",
               marginBottom: "0.85rem",
             }}
           >
-            {isEn ? "Micro Analysis" : "마이크로 분석"}
+            {isEn ? "Weakness Map" : "약점 지도"}
           </p>
           <h2
             style={{
@@ -282,7 +255,7 @@ export default async function LangLandingPage({ params }: { params: Params }) {
               letterSpacing: "-0.025em",
             }}
           >
-            {isEn ? "Cylindrical Vector Analysis" : "원통형 벡터 분석"}
+            {isEn ? "See where your fingers stall" : "손가락이 막히는 곳이 보입니다"}
           </h2>
           <p
             style={{
@@ -293,11 +266,10 @@ export default async function LangLandingPage({ params }: { params: Params }) {
             }}
           >
             {isEn
-              ? "Every keystroke transition is mapped onto a cylindrical (r, θ, z) coordinate system. The angle encodes which finger is coming from, the radius shows frequency, and the height represents latency. Instantly see which transitions are bottlenecking your flow."
-              : "모든 키 전환을 원통형 (r, θ, z) 좌표계에 매핑합니다. 각도는 어느 손가락이 오는지, 반지름은 빈도, 높이는 지연 시간을 나타냅니다. 어떤 전환이 당신의 흐름을 방해하는지 즉시 파악하세요."}
+              ? "Peaks on the 3D landscape mean slow transitions. The higher the peak, the more that key pair is holding you back — no formulas needed."
+              : "3D 지형에서 봉우리가 높을수록 느린 구간입니다. 어떤 키 전환이 흐름을 막는지 직관적으로 파악하세요."}
           </p>
 
-          {/* Feature pills */}
           <div
             style={{
               display: "flex",
@@ -306,34 +278,10 @@ export default async function LangLandingPage({ params }: { params: Params }) {
             }}
           >
             {(isEn
-              ? [
-                  "θ = directional angle",
-                  "r = transition frequency",
-                  "z = average latency",
-                  "Bottleneck highlighting",
-                ]
-              : [
-                  "θ = 방향 각도",
-                  "r = 전환 빈도",
-                  "z = 평균 지연",
-                  "병목 하이라이팅",
-                ]
+              ? ["Slow transition highlight", "Per-finger load view", "Live updates as you type"]
+              : ["느린 키 전환 하이라이트", "손가락별 부하 보기", "타이핑 중 실시간 업데이트"]
             ).map((item) => (
-              <span
-                key={item}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "0.4rem",
-                  fontSize: "0.8rem",
-                  color: "var(--text-secondary)",
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  borderRadius: "9999px",
-                  padding: "0.35rem 0.85rem",
-                  fontFamily: "var(--font-mono, monospace)",
-                }}
-              >
+              <span key={item} className="landing-pill">
                 {item}
               </span>
             ))}
@@ -348,8 +296,8 @@ export default async function LangLandingPage({ params }: { params: Params }) {
             position: "relative",
             borderRadius: "20px",
             overflow: "hidden",
-            border: "1px solid rgba(255,255,255,0.07)",
-            background: "rgba(15,16,20,0.7)",
+            border: "1px solid var(--border-subtle)",
+            background: "var(--bg-inset)",
           }}
         >
           {/* Faded edges vignette */}
@@ -370,44 +318,7 @@ export default async function LangLandingPage({ params }: { params: Params }) {
         </div>
       </section>
 
-      {/* ===== 5. Algorithm Stats Cards ===== */}
-      <section
-        className="stats-section-wrapper"
-        style={{
-          position: "relative",
-          width: "100%",
-          padding: "7rem 0 8rem",
-        }}
-      >
-        <div
-          style={{
-            textAlign: "center",
-            marginBottom: "4rem",
-            padding: "0 2rem",
-          }}
-        >
-          <p
-            className="section-eyebrow"
-            style={{ display: "block" }}
-          >
-            {isEn ? "Algorithm Deep-Dive" : "알고리즘 심층 분석"}
-          </p>
-          <h2 className="section-title" style={{ margin: "0 auto 1rem auto" }}>
-            {isEn ? "The Math Behind the Diagnosis" : "진단의 수학적 기반"}
-          </h2>
-          <p
-            className="section-subtitle"
-            style={{ margin: "0 auto", maxWidth: "560px" }}
-          >
-            {isEn
-              ? "Beyond WPM: Segmented regression, Delaunay smoothing, and Muggeo's method find exactly where you hesitate."
-              : "WPM을 넘어서: 분절 회귀, Delaunay 스무딩, Muggeo 알고리즘으로 당신이 주저하는 지점을 정확히 찾아냅니다."}
-          </p>
-        </div>
-        <StatsCards isEn={isEn} />
-      </section>
-
-      {/* ===== 6. Feature Grid ===== */}
+      {/* ===== 6. Practice Modes ===== */}
       <FeatureGrid isEn={isEn} />
 
       {/* ===== 7. CTA Section ===== */}
@@ -431,8 +342,8 @@ export default async function LangLandingPage({ params }: { params: Params }) {
           </h2>
           <p className="cta-subtitle">
             {isEn
-              ? "Start typing. TypeDiag will do the rest — mapping your spatial keystroke dynamics in real time."
-              : "타이핑을 시작하세요. TypeDiag가 공간 타건 다이내믹스를 실시간으로 매핑합니다."}
+              ? "Start typing. TypeDiag will show you exactly where to improve."
+              : "타이핑을 시작하세요. TypeDiag가 어디를 고쳐야 할지 정확히 알려드립니다."}
           </p>
 
           <Link href={`/${lang}/practice`} className="hero-start-button" id="cta-final-button">

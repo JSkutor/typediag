@@ -10,49 +10,50 @@ interface HowItWorksProps {
 const steps = [
   {
     num: "01",
-    titleEn: "Capture Every Keystroke",
-    titleKo: "모든 타건 캡처",
+    titleEn: "Type as usual",
+    titleKo: "평소처럼 타이핑",
     descEn:
-      "As you type, we record each key transition: from-key, to-key, latency in milliseconds, hold duration, and correctness via our MVSA alignment engine.",
+      "Every keystroke is captured — which keys you press, how long you hold them, and how long it takes to reach the next key.",
     descKo:
-      "타이핑하는 동안 모든 키 전환을 기록합니다. 이전 키, 다음 키, 지연 시간(ms), 누름 지속 시간, 그리고 MVSA 정렬 엔진을 통한 정오 여부까지 정밀하게 수집합니다.",
+      "평소처럼 타이핑하세요. 어떤 키를 눌렀는지, 얼마나 누르고 있었는지, 다음 키까지 얼마나 걸렸는지 모두 기록됩니다.",
     icon: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <rect x="2" y="6" width="20" height="12" rx="2" />
         <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M6 14h12" />
       </svg>
     ),
-    accentColor: "#3861fb",
+    accentColor: "var(--accent)",
   },
   {
     num: "02",
-    titleEn: "SKDM Pipeline",
-    titleKo: "SKDM 파이프라인",
+    titleEn: "Find your weak spots",
+    titleKo: "약점 패턴 분석",
     descEn:
-      "Raw events flow through outlier filtering, sigmoid normalization, and Delaunay-Laplacian smoothing to produce a spatial latency map across the keyboard geometry.",
+      "We analyze where your fingers hesitate — not your average speed, but the specific key pairs that slow you down.",
     descKo:
-      "원시 이벤트가 이상치 필터링, 시그모이드 정규화, Delaunay-Laplacian 스무딩 파이프라인을 거쳐 키보드 물리 좌표 위 공간 지연 지형으로 변환됩니다.",
+      "평균 속도가 아니라, 손가락이 막히는 지점을 분석합니다. 어떤 키 조합에서 멈추는지 패턴으로 찾아냅니다.",
     icon: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+        <circle cx="11" cy="11" r="8" />
+        <path d="m21 21-4.35-4.35" />
       </svg>
     ),
-    accentColor: "#8b5cf6",
+    accentColor: "var(--accent-secondary)",
   },
   {
     num: "03",
-    titleEn: "3D Spatial Diagnosis",
-    titleKo: "3D 공간 진단",
+    titleEn: "See it on a weakness map",
+    titleKo: "약점 지도로 시각화",
     descEn:
-      "Your weaknesses are rendered as a 3D latency surface and cylindrical vector field — so you can instantly see which key transitions are bottlenecking your speed.",
+      "Your bottlenecks appear as peaks on a 3D keyboard landscape. High spots mean slow transitions — instantly obvious, no math required.",
     descKo:
-      "당신의 약점이 3D 지연 지형과 원통형 벡터 필드로 시각화됩니다. 어떤 키 전환이 속도를 저하시키는지 직관적으로 파악할 수 있습니다.",
+      "병목 구간이 키보드 위 3D 지형의 봉우리로 나타납니다. 높을수록 느린 구간 — 수식 없이 한눈에 파악할 수 있습니다.",
     icon: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 22V12M12 12L5 7M12 12L19 7M5 7L12 2L19 7M5 7V17L12 22L19 17V7" />
       </svg>
     ),
-    accentColor: "#f43f5e",
+    accentColor: "var(--error)",
   },
 ];
 
@@ -68,15 +69,15 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ isEn = false }) => {
           transition={{ duration: 0.6 }}
         >
           <p className="section-eyebrow">
-            {isEn ? "Under The Hood" : "작동 원리"}
+            {isEn ? "How It Works" : "작동 방식"}
           </p>
           <h2 className="section-title">
-            {isEn ? "How TypeDiag Works" : "TypeDiag 동작 방식"}
+            {isEn ? "Three steps to know your habits" : "타이핑 습관을 아는 세 단계"}
           </h2>
           <p className="section-subtitle">
             {isEn
-              ? "Three stages transform your raw keystrokes into actionable spatial insight."
-              : "세 단계로 원시 타건 데이터를 공간적 진단 인사이트로 변환합니다."}
+              ? "No setup, no jargon. Just type and see where you're stuck."
+              : "설정도, 전문 용어도 필요 없습니다. 타이핑하고 어디가 막히는지 확인하세요."}
           </p>
         </motion.div>
 
@@ -90,25 +91,23 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ isEn = false }) => {
               viewport={{ once: true, margin: "-40px" }}
               transition={{ duration: 0.55, delay: i * 0.12 }}
             >
-              {/* Step number + connector line */}
               <div className="hiw-step-left">
                 <div
                   className="hiw-step-num"
-                  style={{ color: step.accentColor, borderColor: step.accentColor + "40" }}
+                  style={{ color: step.accentColor, borderColor: `color-mix(in srgb, ${step.accentColor} 25%, transparent)` }}
                 >
                   {step.num}
                 </div>
                 {i < steps.length - 1 && <div className="hiw-connector" />}
               </div>
 
-              {/* Content */}
               <div className="hiw-step-content">
                 <div
                   className="hiw-icon"
                   style={{
-                    background: step.accentColor + "18",
+                    background: `color-mix(in srgb, ${step.accentColor} 10%, transparent)`,
                     color: step.accentColor,
-                    border: `1px solid ${step.accentColor}30`,
+                    border: `1px solid color-mix(in srgb, ${step.accentColor} 20%, transparent)`,
                   }}
                 >
                   {step.icon}
