@@ -17,11 +17,16 @@
   perspective-origin: 50% 50%;
 }
 
-.mode-toggle-btn {
+.workspace-controls-container {
   position: absolute;
   top: 16px;
   right: 32px;
   z-index: 50;
+  display: flex;
+  gap: 12px;
+}
+
+.mode-toggle-btn {
   padding: 8px 20px;
   border: 1px solid var(--border-strong);
   border-radius: 9999px;
@@ -35,6 +40,31 @@
 
 .mode-toggle-btn:hover {
   background-color: var(--bg-overlay);
+}
+
+.mock-apply-btn {
+  padding: 8px 20px;
+  border: 1px solid var(--accent);
+  border-radius: 9999px;
+  background-color: rgba(56, 97, 251, 0.1);
+  color: var(--accent);
+  font-size: 0.875rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mock-apply-btn:hover {
+  background-color: var(--accent);
+  color: #ffffff;
+}
+
+.mock-apply-btn:disabled {
+  border-color: var(--border-strong);
+  background-color: var(--bg-raised);
+  color: var(--text-muted);
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .practice-panel {

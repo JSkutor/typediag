@@ -3,6 +3,8 @@ import { auth } from "@clerk/nextjs/server";
 import type { KeyEvent } from "@/lib/skdm";
 import { sessionService } from "@/services/sessionService";
 import { db } from "@/utils/db";
+import fs from "fs";
+import path from "path";
 
 async function getDbUserId(request: NextRequest): Promise<string> {
   const { userId: clerkUserId } = await auth();
@@ -64,6 +66,37 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const action = searchParams.get("action");
+
+    if (action === "mock") {
+      const filePath = path.join(process.cwd(), "src/data/local_db.json");
+      if (!fs.existsSync(filePath)) {
+        return NextResponse.json({ error: "local_db.json not found on server" }, { status: 404 });
+      }
+
+      const fileContent = await fs.promises.readFile(filePath, "utf-8");
+      const dbData = JSON.parse(fileContent);
+
+      const events: KeyEvent[] = [];
+      if (dbData.pages) {
+        for (const page of dbData.pages) {
+          if (!page.key_events) continue;
+          for (const ev of page.key_events) {
+            events.push({
+              fromKey: ev.from_key,
+              toKey: ev.to_key,
+              latencyMs: ev.latency ?? 0,
+              keyChar: ev.key_char,
+              holdDurationMs: ev.hold_duration_ms,
+              isCorrect: ev.is_correct,
+              expectedChar: ev.expected_char,
+            });
+          }
+        }
+      }
+
+      return NextResponse.json({ events });
+    }
+
     const dbUserId = await getDbUserId(request);
 
     if (action === "analysis") {
