@@ -58,7 +58,7 @@ export const targetTexts = pgTable("target_texts", {
   language: varchar("language", { length: 10 }).notNull(),
   source: varchar("source", { length: 20 }).notNull().default("default"),
   generatorModel: varchar("generator_model", { length: 50 }),
-  subject: text("subject"),
+  topic: text("topic"),
   userId: varchar("user_id", { length: 255 }).references(() => users.id, { onDelete: "set null" }),
   usageCount: integer("usage_count").notNull().default(0),
   lastUsedAt: timestamp("last_used_at", { withTimezone: true }),

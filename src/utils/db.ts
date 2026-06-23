@@ -122,7 +122,7 @@ export const db = {
         language: targetTexts.language,
         source: targetTexts.source,
         generatorModel: targetTexts.generatorModel,
-        subject: targetTexts.subject,
+        topic: targetTexts.topic,
         userId: targetTexts.userId,
         usageCount: targetTexts.usageCount,
         lastUsedAt: targetTexts.lastUsedAt,
@@ -155,11 +155,11 @@ export const db = {
   },
 
   /**
-   * Persist LLM-generated subject sentences without embedding.
+   * Persist LLM-generated topic sentences without embedding.
    * Skips duplicates by content (unique constraint).
    */
-  async insertSubjectGeneratedTargets(
-    items: Array<{ id: string; content: string; language: string; subject: string }>,
+  async insertTopicGeneratedTargets(
+    items: Array<{ id: string; content: string; language: string; topic: string }>,
   ): Promise<void> {
     if (items.length === 0) return;
 
@@ -170,9 +170,9 @@ export const db = {
           id: item.id,
           content: item.content,
           language: item.language,
-          source: "subject",
+          source: "topic",
           generatorModel: "gemini-2.5-flash-lite",
-          subject: item.subject,
+          topic: item.topic,
         })),
       )
       .onConflictDoNothing({ target: targetTexts.content });

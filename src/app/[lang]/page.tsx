@@ -1,55 +1,155 @@
-import React from "react";
 import Link from "next/link";
 import { Header } from "@/components/layout/Header";
+import { LandingSurface3D, LandingCylindrical3D } from "@/components/landing/Landing3DDynamic";
+import { ProblemSection } from "@/components/landing/ProblemSection";
+import { HowItWorks } from "@/components/landing/HowItWorks";
+import { DiagnosisPreview } from "@/components/landing/DiagnosisPreview";
+import { FeatureGrid } from "@/components/landing/FeatureGrid";
+import { LandingCtaButton } from "@/components/landing/LandingCtaButton";
+import { isValidLang, type LandingLang } from "@/lib/i18n/lang";
+import { getLandingCopy } from "@/lib/i18n/landing";
+import { notFound } from "next/navigation";
 
 type Params = Promise<{ lang: string }>;
 
 export default async function LangLandingPage({ params }: { params: Params }) {
-  const { lang } = await params;
-  const isEn = lang === "en";
+  const { lang: rawLang } = await params;
+  if (!isValidLang(rawLang)) {
+    notFound();
+  }
+  const lang: LandingLang = rawLang;
+  const t = getLandingCopy(lang);
 
   return (
-    <div
-      style={{
-        backgroundColor: "var(--bg-base, #2a2b2e)",
-        color: "var(--text-primary, #e4e6eb)",
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        fontFamily: "var(--font-sans, sans-serif)",
-      }}
-    >
+    <div className="landing-page">
       <Header />
-      <main
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          flex: 1,
-          padding: "2rem",
-          textAlign: "center",
-        }}
-      >
-        <h1 style={{ fontSize: "2.5rem", marginBottom: "1.5rem", fontWeight: 600 }}>
-          {isEn ? "Welcome to TypeDiag" : "TypeDiag에 오신 것을 환영합니다"}
-        </h1>
-        <Link
-          href={`/${lang}/practice`}
-          style={{
-            display: "inline-block",
-            padding: "0.875rem 2.25rem",
-            borderRadius: "var(--radius-lg, 16px)",
-            backgroundColor: "var(--accent, #3861fb)",
-            color: "var(--text-inverse, #f0f2f5)",
-            fontWeight: 600,
-            textDecoration: "none",
-            transition: "background-color 0.2s ease",
-          }}
-        >
-          {isEn ? "Start Practice" : "연습 시작하기"}
-        </Link>
-      </main>
+
+      <section className="hero-section">
+        <div className="hero-surface-bg">
+          <LandingSurface3D />
+        </div>
+
+        <div className="hero-vignette" />
+
+        <div className="hero-content">
+          <div className="hero-eyebrow-wrap">
+            <span className="hero-eyebrow">
+              <span className="hero-eyebrow-dot" />
+              {t.hero.eyebrow}
+            </span>
+          </div>
+
+          <h1 className={`hero-headline ${lang === "en" ? "hero-headline--en" : "hero-headline--ko"}`}>
+            <span className="hero-headline-line hero-headline-line--primary">{t.hero.headlinePrimary}</span>
+            <span className="hero-headline-line hero-headline-line--accent">{t.hero.headlineAccent}</span>
+          </h1>
+
+          <p className="hero-subtitle">{t.hero.subtitle}</p>
+
+          <div className="hero-cta-row hero-cta-row--interactive">
+            <LandingCtaButton lang={lang} id="hero-cta-button" />
+            <a href="#how-it-works" className="hero-secondary-link">
+              {t.hero.secondaryLink}
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </a>
+          </div>
+        </div>
+
+        <div className="hero-bottom-fade" />
+
+        <div className="scroll-indicator">
+          <span className="scroll-indicator-label">{t.hero.scroll}</span>
+          <svg
+            className="scroll-chevron"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="var(--text-muted)"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </div>
+      </section>
+
+      <ProblemSection lang={lang} />
+
+      <div id="how-it-works">
+        <HowItWorks lang={lang} />
+      </div>
+
+      <DiagnosisPreview lang={lang} />
+
+      <section className="landing-cylindrical-section">
+        <div className="landing-cylindrical-copy">
+          <p className="landing-cylindrical-eyebrow">{t.weaknessMap.eyebrow}</p>
+          <h2 className="landing-cylindrical-title">{t.weaknessMap.title}</h2>
+          <p className="landing-cylindrical-subtitle">{t.weaknessMap.subtitle}</p>
+
+          <div className="landing-cylindrical-pills">
+            {t.weaknessMap.pills.map((item) => (
+              <span key={item} className="landing-pill">
+                {item}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div className="landing-cylindrical-visual">
+          <div className="landing-cylindrical-visual__vignette" />
+          <div className="landing-cylindrical-visual__canvas">
+            <LandingCylindrical3D />
+          </div>
+        </div>
+      </section>
+
+      <FeatureGrid lang={lang} />
+
+      <section className="cta-section">
+        <div className="cta-inner">
+          <p className="section-eyebrow">{t.cta.eyebrow}</p>
+          <h2 className="cta-title">
+            {t.cta.titleLine1}
+            <br />
+            {t.cta.titleLine2}
+          </h2>
+          <p className="cta-subtitle">{t.cta.subtitle}</p>
+
+          <LandingCtaButton lang={lang} id="cta-final-button" />
+
+          <p className="cta-note">{t.cta.note}</p>
+        </div>
+      </section>
+
+      <footer className="landing-footer">
+        <div className="landing-footer-inner">
+          <Link href={`/${lang}`} className="landing-footer-logo">
+            Type<span>Diag</span>
+          </Link>
+          <span className="landing-footer-copy">
+            &copy; {new Date().getFullYear()} {t.footer.copyright}
+          </span>
+          <nav className="landing-footer-links">
+            <Link href={`/${lang}/practice`}>{t.footer.practice}</Link>
+          </nav>
+        </div>
+      </footer>
     </div>
   );
 }

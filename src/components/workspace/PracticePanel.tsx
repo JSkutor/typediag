@@ -9,10 +9,10 @@ export const PracticePanel: React.FC = () => {
     alignments: diffResult,
     mode,
     setMode,
-    subjectTargets,
-    subjectTargetIndex,
-    isSubjectInputActive,
-    isSubjectLoading,
+    topicTargets,
+    topicTargetIndex,
+    isTopicInputActive,
+    isTopicLoading,
     targetLanguage,
     setTargetLanguage,
   } = useTypingStore();
@@ -59,14 +59,24 @@ export const PracticePanel: React.FC = () => {
     return () => cancelAnimationFrame(handle);
   }, [checkCursorJump]);
 
+  const resizeRafRef = React.useRef<number | null>(null);
+
   React.useEffect(() => {
     const handleResize = () => {
-      requestAnimationFrame(() => {
+      if (resizeRafRef.current) {
+        cancelAnimationFrame(resizeRafRef.current);
+      }
+      resizeRafRef.current = requestAnimationFrame(() => {
         checkCursorJump();
       });
     };
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      if (resizeRafRef.current) {
+        cancelAnimationFrame(resizeRafRef.current);
+      }
+    };
   }, [checkCursorJump]);
 
   return (
@@ -115,7 +125,7 @@ export const PracticePanel: React.FC = () => {
             WebkitBackdropFilter: "blur(8px)",
           }}
         >
-          {(["normal", "subject", "hardcore", "plain"] as TypingMode[]).map((m) => {
+          {(["normal", "topic", "hardcore", "plain"] as TypingMode[]).map((m) => {
             const isActive = mode === m;
             return (
               <button
@@ -217,7 +227,7 @@ export const PracticePanel: React.FC = () => {
         </div>
       </div>
 
-      {mode === "subject" && !isSubjectInputActive && subjectTargets.length > 0 && (
+      {mode === "topic" && !isTopicInputActive && topicTargets.length > 0 && (
         <div style={{
           position: "absolute",
           top: "1rem",
@@ -229,8 +239,8 @@ export const PracticePanel: React.FC = () => {
           borderRadius: "9999px",
         }}>
           {isEn
-            ? `Remaining: ${subjectTargets.length - subjectTargetIndex}`
-            : `준비된 텍스트: ${subjectTargets.length - subjectTargetIndex}`}
+            ? `Remaining: ${topicTargets.length - topicTargetIndex}`
+            : `준비된 텍스트: ${topicTargets.length - topicTargetIndex}`}
         </div>
       )}
 
@@ -275,7 +285,7 @@ export const PracticePanel: React.FC = () => {
               English Hardcore mode is coming soon! Please use Korean for now.
             </div>
           </div>
-        ) : mode === "subject" && isSubjectLoading ? (
+        ) : mode === "topic" && isTopicLoading ? (
           <div
             style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem" }}
           >

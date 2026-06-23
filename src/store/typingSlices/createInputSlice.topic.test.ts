@@ -2,26 +2,26 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { useTypingStore } from "@/store/useTypingStore";
 import { act } from "@testing-library/react";
 
-// Mock fetch for subject generate API
+// Mock fetch for topic generate API
 global.fetch = vi.fn();
 
-describe("createInputSlice - Subject Mode", () => {
+describe("createInputSlice - Topic Mode", () => {
   beforeEach(() => {
     useTypingStore.getState().reset();
-    useTypingStore.getState().setMode("subject");
+    useTypingStore.getState().setMode("topic");
     vi.clearAllMocks();
   });
 
-  it("should initialize subject mode correctly", () => {
+  it("should initialize topic mode correctly", () => {
     const state = useTypingStore.getState();
-    expect(state.mode).toBe("subject");
-    expect(state.isSubjectInputActive).toBe(true);
-    expect(state.subjectTargets).toEqual([]);
-    expect(state.subjectTargetIndex).toBe(-1);
-    expect(state.currentSubject).toBe("");
+    expect(state.mode).toBe("topic");
+    expect(state.isTopicInputActive).toBe(true);
+    expect(state.topicTargets).toEqual([]);
+    expect(state.topicTargetIndex).toBe(-1);
+    expect(state.currentTopic).toBe("");
   });
 
-  it("should handle fetchSubjectTarget success", async () => {
+  it("should handle fetchTopicTarget success", async () => {
     const mockData = [
       { id: "1", content: "문장 1", language: "ko" },
       { id: "2", content: "문장 2", language: "ko" },
@@ -32,35 +32,35 @@ describe("createInputSlice - Subject Mode", () => {
     });
 
     await act(async () => {
-      await useTypingStore.getState().fetchSubjectTarget("테스트 주제");
+      await useTypingStore.getState().fetchTopicTarget("테스트 주제");
     });
 
     const state = useTypingStore.getState();
-    expect(state.currentSubject).toBe("테스트 주제");
-    expect(state.subjectTargets).toHaveLength(2);
-    expect(state.subjectTargetIndex).toBe(0);
-    expect(state.isSubjectInputActive).toBe(false);
+    expect(state.currentTopic).toBe("테스트 주제");
+    expect(state.topicTargets).toHaveLength(2);
+    expect(state.topicTargetIndex).toBe(0);
+    expect(state.isTopicInputActive).toBe(false);
     expect(state.targetText).toBe("문장 1");
   });
 
-  it("should handle fetchSubjectTarget failure", async () => {
+  it("should handle fetchTopicTarget failure", async () => {
     (global.fetch as any).mockResolvedValueOnce({
       ok: false,
       json: async () => ({ error: "에러 발생" }),
     });
 
     await act(async () => {
-      await useTypingStore.getState().fetchSubjectTarget("실패 주제");
+      await useTypingStore.getState().fetchTopicTarget("실패 주제");
     });
 
     const state = useTypingStore.getState();
-    expect(state.isSubjectInputActive).toBe(true);
+    expect(state.isTopicInputActive).toBe(true);
     // targetText should display the error message as intended for now (fallback)
     expect(state.targetText).toBe("에러 발생");
-    expect(state.subjectTargets).toHaveLength(0);
+    expect(state.topicTargets).toHaveLength(0);
   });
 
-  it("should cycle through subjectTargets and prefetch more when low on targets", async () => {
+  it("should cycle through topicTargets and prefetch more when low on targets", async () => {
     const initialData = [
       { id: "1", content: "문장 1", language: "ko" },
       { id: "2", content: "문장 2", language: "ko" },
@@ -75,7 +75,7 @@ describe("createInputSlice - Subject Mode", () => {
 
     // First fetch sets targets to length 4, index 0
     await act(async () => {
-      await useTypingStore.getState().fetchSubjectTarget("테스트 주제");
+      await useTypingStore.getState().fetchTopicTarget("테스트 주제");
     });
 
     // Mock response for prefetch
@@ -91,16 +91,16 @@ describe("createInputSlice - Subject Mode", () => {
     });
 
     const state = useTypingStore.getState();
-    expect(state.subjectTargetIndex).toBe(1);
+    expect(state.topicTargetIndex).toBe(1);
     expect(state.targetText).toBe("문장 2");
 
     // Wait for the async prefetch to resolve
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     const updatedState = useTypingStore.getState();
-    // After prefetch resolves, it appends to subjectTargets
-    expect(updatedState.subjectTargets).toHaveLength(5);
-    expect(updatedState.subjectTargets[4].content).toBe("문장 5");
+    // After prefetch resolves, it appends to topicTargets
+    expect(updatedState.topicTargets).toHaveLength(5);
+    expect(updatedState.topicTargets[4].content).toBe("문장 5");
   });
 
   it("should handle prefetch failure gracefully without appending error target", async () => {
@@ -117,7 +117,7 @@ describe("createInputSlice - Subject Mode", () => {
     });
 
     await act(async () => {
-      await useTypingStore.getState().fetchSubjectTarget("테스트 주제");
+      await useTypingStore.getState().fetchTopicTarget("테스트 주제");
     });
 
     // Mock failing prefetch
@@ -135,12 +135,12 @@ describe("createInputSlice - Subject Mode", () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     const state = useTypingStore.getState();
-    // It should NOT append the error message to subjectTargets
-    expect(state.subjectTargets).toHaveLength(4);
-    expect(state.isSubjectGenerating).toBe(false);
+    // It should NOT append the error message to topicTargets
+    expect(state.topicTargets).toHaveLength(4);
+    expect(state.isTopicGenerating).toBe(false);
   });
 
-  it("should cycle through subjectTargets and support full cyclic ArrowLeft history", async () => {
+  it("should cycle through topicTargets and support full cyclic ArrowLeft history", async () => {
     const initialData = [
       { id: "1", content: "문장 1", language: "ko" },
       { id: "2", content: "문장 2", language: "ko" },
@@ -154,7 +154,7 @@ describe("createInputSlice - Subject Mode", () => {
     });
 
     await act(async () => {
-      await useTypingStore.getState().fetchSubjectTarget("테스트 주제");
+      await useTypingStore.getState().fetchTopicTarget("테스트 주제");
     });
 
     // Mock response for prefetch triggered during 1st nextTarget
@@ -164,15 +164,15 @@ describe("createInputSlice - Subject Mode", () => {
     });
 
     // 1st nextTarget -> index 1.
-    // subjectTargets: [문장 1, 문장 2, 문장 3, 문장 4], index: 1
+    // topicTargets: [문장 1, 문장 2, 문장 3, 문장 4], index: 1
     await act(async () => {
       useTypingStore.getState().nextTarget();
     });
     
     let state = useTypingStore.getState();
-    expect(state.subjectTargetIndex).toBe(1);
+    expect(state.topicTargetIndex).toBe(1);
     expect(state.targetText).toBe("문장 2");
-    expect(state.subjectTargets).toHaveLength(4);
+    expect(state.topicTargets).toHaveLength(4);
 
     // Mock response for prefetch triggered during 2nd nextTarget
     (global.fetch as any).mockResolvedValueOnce({
@@ -186,9 +186,9 @@ describe("createInputSlice - Subject Mode", () => {
     });
 
     state = useTypingStore.getState();
-    expect(state.subjectTargetIndex).toBe(2);
+    expect(state.topicTargetIndex).toBe(2);
     expect(state.targetText).toBe("문장 3");
-    expect(state.subjectTargets).toHaveLength(4);
+    expect(state.topicTargets).toHaveLength(4);
 
     // Press ArrowLeft -> should go back to "문장 2" (index 1)
     await act(async () => {
@@ -196,7 +196,7 @@ describe("createInputSlice - Subject Mode", () => {
     });
 
     state = useTypingStore.getState();
-    expect(state.subjectTargetIndex).toBe(1);
+    expect(state.topicTargetIndex).toBe(1);
     expect(state.targetText).toBe("문장 2");
 
     // Press ArrowLeft again -> should go back to "문장 1" (index 0)
@@ -205,7 +205,7 @@ describe("createInputSlice - Subject Mode", () => {
     });
 
     state = useTypingStore.getState();
-    expect(state.subjectTargetIndex).toBe(0);
+    expect(state.topicTargetIndex).toBe(0);
     expect(state.targetText).toBe("문장 1");
 
     // Press ArrowLeft again -> should cycle around to "문장 4" (index 3)
@@ -214,7 +214,7 @@ describe("createInputSlice - Subject Mode", () => {
     });
 
     state = useTypingStore.getState();
-    expect(state.subjectTargetIndex).toBe(3);
+    expect(state.topicTargetIndex).toBe(3);
     expect(state.targetText).toBe("문장 4");
   });
 });

@@ -3,7 +3,7 @@
     "minPureHangul": 50,
     "maxPureHangul": 110
   },
-  "subjectGenerate": {
+  "topicGenerate": {
     "minPureHangul": 50,
     "maxPureHangul": 110
   }

@@ -4,6 +4,7 @@ import React, { useRef, useEffect, useState } from "react";
 import { KeyResult } from "@/lib/skdm";
 
 import { Surface3DManager, LATENCY_POWER } from "./Surface3DManager";
+import { SURFACE_Y_OFFSET } from "./geometryUtils";
 import { useWorkspaceStore } from "@/store/useWorkspaceStore";
 import { useThreeManager } from "@/hooks/useThreeManager";
 import { useCallback } from "react";
@@ -15,11 +16,16 @@ interface LatencySurface3DProps {
   height?: number;
 
   isActivated?: boolean;
+  /** Lock OrbitControls — use on landing page where the surface should be static */
+  disableControls?: boolean;
+  isLanding?: boolean;
 }
 
 export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
   keyStats,
   isActivated = false,
+  disableControls = false,
+  isLanding = false,
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const labelsContainerRef = useRef<HTMLDivElement>(null);
@@ -49,6 +55,8 @@ export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
 
   // Initialize and dispose manager
   const handleInit = useCallback((manager: Surface3DManager) => {
+    manager.isLanding = isLanding;
+    if (disableControls) manager.lockControls();
     manager.onUpdateHUD = (
       surfaceKeys,
       elevationScale,
@@ -65,7 +73,7 @@ export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
         const scaleRatio = elevationScale / TARGET_ELEVATION_SCALE;
         const amplifiedZ =
           k.key.toLowerCase() === "_dummy_comma" ? 0 : Math.pow(k.zSmoothed, LATENCY_POWER);
-        vec.y += (10 + amplifiedZ * 5) * scaleRatio;
+        vec.y += SURFACE_Y_OFFSET + (10 + amplifiedZ * 5) * scaleRatio;
 
         vec.project(camera);
 
@@ -84,7 +92,7 @@ export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
         }
       });
     };
-  }, []);
+  }, [disableControls, isLanding]);
 
   const managerRef = useThreeManager(Surface3DManager, mountRef, shouldRenderThree, handleInit);
 
@@ -147,11 +155,15 @@ export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
               }}
               id={`hud-label-${k.key}`}
               className="hud-label-btn"
-              onClick={() => {
-                const { setDiagnosticMode, setFocusedKey } = useWorkspaceStore.getState();
-                setDiagnosticMode("cylindrical");
-                setFocusedKey(k.key);
-              }}
+              onClick={
+                isLanding
+                  ? undefined
+                  : () => {
+                      const { setDiagnosticMode, setFocusedKey } = useWorkspaceStore.getState();
+                      setDiagnosticMode("cylindrical");
+                      setFocusedKey(k.key);
+                    }
+              }
               style={{
                 position: "absolute",
                 top: 0,
@@ -163,8 +175,8 @@ export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
                 textShadow: "0 2px 4px rgba(0,0,0,0.5)",
                 willChange: "transform, opacity",
                 opacity: 0,
-                cursor: "pointer",
-                pointerEvents: "auto",
+                cursor: isLanding ? "default" : "pointer",
+                pointerEvents: isLanding ? "none" : "auto",
                 background: "rgba(30, 41, 59, 0.4)",
                 border: "1px solid rgba(99, 102, 241, 0.3)",
                 padding: "2px 6px",

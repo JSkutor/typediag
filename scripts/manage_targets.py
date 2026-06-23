@@ -50,7 +50,7 @@ def init_db():
             language TEXT NOT NULL,
             source TEXT DEFAULT 'default',
             generator_model TEXT,
-            subject TEXT,
+            topic TEXT,
             user_id TEXT,
             usage_count INTEGER DEFAULT 0,
             last_used_at DATETIME,
@@ -160,7 +160,7 @@ def export_to_json():
     
     # DB에서 데이터 조회 (임베딩 정보 포함)
     cursor.execute("""
-        SELECT content, language, embedding, pure_hangul_count, source, generator_model, subject, user_id, usage_count, last_used_at, created_at
+        SELECT content, language, embedding, pure_hangul_count, source, generator_model, topic, user_id, usage_count, last_used_at, created_at
         FROM target_texts 
         ORDER BY id ASC
     """)
@@ -187,7 +187,7 @@ def export_to_json():
             "language": row[1],
             "source": row[4] or "default",
             "generator_model": row[5],
-            "subject": row[6],
+            "topic": row[6],
             "user_id": row[7],
             "usage_count": row[8] or 0,
             "last_used_at": row[9],

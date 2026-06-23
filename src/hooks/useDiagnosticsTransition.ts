@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useTypingStore } from "@/store/useTypingStore";
 import { useWorkspaceStore } from "@/store/useWorkspaceStore";
 import { runPipeline, buildLayout, triangulate, type KeyEvent } from "@/lib/skdm";
@@ -8,6 +8,7 @@ export function useDiagnosticsTransition() {
   const setUiState = useWorkspaceStore((state) => state.setUiState);
   const setDiagnosticMode = useWorkspaceStore((state) => state.setDiagnosticMode);
   const setAnalysisData = useWorkspaceStore((state) => state.setAnalysisData);
+  const [isMockLoading, setIsMockLoading] = useState(false);
 
   const startDiagnosticsTransition = useCallback(async () => {
     const typingStore = useTypingStore.getState();
@@ -51,5 +52,35 @@ export function useDiagnosticsTransition() {
     setDiagnosticMode("surface");
   }, [setAnalysisData, setUiState, setDiagnosticMode]);
 
-  return { startDiagnosticsTransition };
+  const startMockDiagnostics = useCallback(async () => {
+    setIsMockLoading(true);
+    try {
+      const res = await fetch("/api/session?action=mock");
+      if (!res.ok) {
+        throw new Error("Failed to fetch mock session events");
+      }
+      const data = await res.json();
+      const eventsToAnalyze: KeyEvent[] = data.events || [];
+
+      if (eventsToAnalyze.length === 0) {
+        console.warn("No mock events received.");
+        setIsMockLoading(false);
+        return;
+      }
+
+      const layout = buildLayout();
+      const results = runPipeline(eventsToAnalyze, layout);
+      const { triangles } = triangulate(results);
+
+      setAnalysisData(results, triangles, eventsToAnalyze);
+      setUiState("diagnostics");
+      setDiagnosticMode("surface");
+    } catch (err) {
+      console.error("Failed to compile mock stats:", err);
+    } finally {
+      setIsMockLoading(false);
+    }
+  }, [setAnalysisData, setUiState, setDiagnosticMode]);
+
+  return { startDiagnosticsTransition, startMockDiagnostics, isMockLoading };
 }

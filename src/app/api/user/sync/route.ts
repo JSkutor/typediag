@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { drizzleDb } from "@/db";
 import { users } from "@/db/schema";
 import { db } from "@/utils/db";
+import { formatDbErrorForClient, logDbError } from "@/utils/dbErrors";
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,7 +31,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, userId: user.id });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ error: message }, { status: 500 });
+    logDbError("/api/user/sync", err);
+    const { message, status, code } = formatDbErrorForClient(err);
+    return NextResponse.json({ error: message, code }, { status });
   }
 }

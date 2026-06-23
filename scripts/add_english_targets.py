@@ -62,7 +62,7 @@ def main():
             "language": "en",
             "source": "default",
             "generator_model": None,
-            "subject": None,
+            "topic": None,
             "user_id": None,
             "usage_count": 0,
             "last_used_at": None,

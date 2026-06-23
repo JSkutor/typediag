@@ -1,13 +1,19 @@
 import { clerkMiddleware } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { resolveLangFromAcceptLanguage } from "@/lib/i18n/lang";
 
-// Auth is optional — guests can practice without signing in.
-export default clerkMiddleware();
+export default clerkMiddleware((_auth, request: NextRequest) => {
+  if (request.nextUrl.pathname === "/") {
+    const acceptLanguage = request.headers.get("accept-language") ?? "";
+    const lang = resolveLangFromAcceptLanguage(acceptLanguage);
+    return NextResponse.redirect(new URL(`/${lang}`, request.url));
+  }
+});
 
 export const config = {
   matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
     "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
-    // Always run for API routes
     "/(api|trpc)(.*)",
   ],
 };

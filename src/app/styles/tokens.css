@@ -6,31 +6,32 @@
 
 :root {
   /* Surfaces */
-  --bg-base: #2a2b2e;
-  --bg-raised: #323336;
-  --bg-overlay: #3d3e42;
-  --bg-inset: #202123;
+  --bg-base: #1e2024;
+  --bg-raised: #262930;
+  --bg-overlay: #323640;
+  --bg-inset: #151619;
 
   /* Design-system aliases retained for docs and older component references. */
   --bg-color: var(--bg-base);
   --panel-bg: var(--bg-raised);
 
   /* Borders / dividers */
-  --border-subtle: rgba(228, 230, 235, 0.08);
-  --border-strong: rgba(228, 230, 235, 0.16);
-  --border-keycap: rgba(228, 230, 235, 0.08);
+  --border-subtle: rgba(140, 166, 181, 0.08);
+  --border-strong: rgba(140, 166, 181, 0.16);
+  --border-keycap: rgba(140, 166, 181, 0.08);
   --border-color: var(--border-subtle);
 
   /* Text */
-  --text-primary: #e4e6eb;
-  --text-secondary: #8d929b;
-  --text-muted: #5c6068;
-  --text-inverse: #f0f2f5;
+  --text-primary: #8ca6b5;
+  --text-secondary: #5e697a;
+  --text-muted: #4a5360;
+  --text-inverse: #1e2024;
 
   /* Accent */
-  --accent: #3861fb;
-  --accent-hover: #5377fc;
-  --accent-dim: rgba(56, 97, 251, 0.12);
+  --accent: #4dc6e8;
+  --accent-hover: #6dd4f0;
+  --accent-secondary: #a194b8;
+  --accent-dim: rgba(77, 198, 232, 0.12);
   --accent-cool: var(--accent);
   --accent-cool-dim: var(--accent-dim);
 
@@ -45,9 +46,9 @@
   --warning: #f2c94c;
 
   /* Keycap rendering */
-  --keycap-face: #36383c;
-  --keycap-face-hover: #3e4045;
-  --keycap-top: #3d4045;
+  --keycap-face: #323640;
+  --keycap-face-hover: #3b404b;
+  --keycap-top: #383c47;
   --keycap-shadow: rgba(12, 14, 16, 0.35);
 
   /* Design-system aliases retained for docs and older component references. */
@@ -56,8 +57,8 @@
   --shadow-color: var(--keycap-shadow);
 
   /* Custom keyboard modifiers */
-  --key-mod-bg: #2d2e31;
-  --key-mod-text: #8d929b;
+  --key-mod-bg: #262930;
+  --key-mod-text: var(--text-secondary);
 
   /* Typography */
   --font-sans: var(--font-outfit), system-ui, -apple-system, sans-serif;

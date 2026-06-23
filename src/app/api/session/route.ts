@@ -3,6 +3,9 @@ import { auth } from "@clerk/nextjs/server";
 import type { KeyEvent } from "@/lib/skdm";
 import { sessionService } from "@/services/sessionService";
 import { db } from "@/utils/db";
+import { formatDbErrorForClient, logDbError } from "@/utils/dbErrors";
+import fs from "fs";
+import path from "path";
 
 async function getDbUserId(request: NextRequest): Promise<string> {
   const { userId: clerkUserId } = await auth();
@@ -53,10 +56,9 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: `Invalid action: ${action}` }, { status: 400 });
     }
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    const stack = err instanceof Error ? err.stack : "";
-    console.error("[/api/session] Error:", message, "\nStack:", stack);
-    return NextResponse.json({ error: message }, { status: 500 });
+    logDbError("[/api/session]", err);
+    const { message, status, code } = formatDbErrorForClient(err);
+    return NextResponse.json({ error: message, code }, { status });
   }
 }
 
@@ -64,6 +66,37 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const action = searchParams.get("action");
+
+    if (action === "mock") {
+      const filePath = path.join(process.cwd(), "src/data/local_db.json");
+      if (!fs.existsSync(filePath)) {
+        return NextResponse.json({ error: "local_db.json not found on server" }, { status: 404 });
+      }
+
+      const fileContent = await fs.promises.readFile(filePath, "utf-8");
+      const dbData = JSON.parse(fileContent);
+
+      const events: KeyEvent[] = [];
+      if (dbData.pages) {
+        for (const page of dbData.pages) {
+          if (!page.key_events) continue;
+          for (const ev of page.key_events) {
+            events.push({
+              fromKey: ev.from_key,
+              toKey: ev.to_key,
+              latencyMs: ev.latency ?? 0,
+              keyChar: ev.key_char,
+              holdDurationMs: ev.hold_duration_ms,
+              isCorrect: ev.is_correct,
+              expectedChar: ev.expected_char,
+            });
+          }
+        }
+      }
+
+      return NextResponse.json({ events });
+    }
+
     const dbUserId = await getDbUserId(request);
 
     if (action === "analysis") {
@@ -102,7 +135,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ error: `Invalid action: ${action}` }, { status: 400 });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ error: message }, { status: 500 });
+    logDbError("[/api/session GET]", err);
+    const { message, status, code } = formatDbErrorForClient(err);
+    return NextResponse.json({ error: message, code }, { status });
   }
 }

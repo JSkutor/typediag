@@ -5,7 +5,9 @@ export function Footer() {
     <footer className={styles.footer}>
       <div className={styles.inner}>
         <span className={styles.copy}>TypeDiag — Spatial Keystroke Dynamics</span>
-        <span className={styles.meta}>100% client-side · {new Date().getFullYear()}</span>
+        <span className={styles.meta}>
+          Sessions saved to cloud · Guest &amp; signed-in · {new Date().getFullYear()}
+        </span>
       </div>
     </footer>
   );

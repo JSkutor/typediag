@@ -1,40 +1,41 @@
 # TypeDiag Design System
 
-본 문서는 TypeDiag 프로젝트의 핵심 비주얼 테마인 **"Space Grey & Cobalt"**의 구체적인 디자인 사양(Design Specifications)을 정의합니다. 실제 런타임 CSS 변수의 SSOT는 `src/app/styles/tokens.css`이며, 본 문서는 의도와 팔레트의 기준점으로 사용됩니다.
+본 문서는 TypeDiag 프로젝트의 핵심 비주얼 테마인 **"Space Grey & Ocean Cyan"**의 구체적인 디자인 사양(Design Specifications)을 정의합니다. 실제 런타임 CSS 변수의 SSOT는 `src/app/styles/tokens.css`이며, 본 문서는 의도와 팔레트의 기준점으로 사용됩니다.
 
-## 1. Theme Concept: Space Grey & Cobalt
+## 1. Theme Concept: Space Grey & Ocean Cyan
 
-애플 기기의 스페이스 그레이처럼 살짝 어두우면서도 정밀한 메탈 질감 베이스 위에, 차갑고 선명한 코발트 블루를 하이라이트 컬러로 사용하여 높은 집중도를 유도하는 도회적이고 정교한 소프트웨어 감성입니다.
+애플 기기의 스페이스 그레이처럼 살짝 어두우면서도 정밀한 메탈 질감 베이스 위에, 맑고 선명한 오션 사이언(Ocean Cyan)을 하이라이트 컬러로 사용하여 높은 집중도를 유도하는 도회적이고 정교한 소프트웨어 감성입니다.
 
 ## 2. Color Palette (CSS Variables)
 
 ### 2.1. Backgrounds & Surfaces
 
-- `--bg-base` / `--bg-color`: **`#2a2b2e`** (메인 배경 - 묵직한 스페이스 그레이)
-- `--bg-raised` / `--panel-bg`: **`#323336`** (컨테이너 및 패널 배경 - 약간 띄워진 그레이)
+- `--bg-base` / `--bg-color`: **`#1e2024`** (메인 배경 - 묵직하고 차분한 다크 차콜 회색)
+- `--bg-raised` / `--panel-bg`: **`#262930`** (컨테이너 및 패널 배경 - 대시보드, 네비게이션)
 
 ### 2.2. Typography
 
-- `--text-primary`: **`#e4e6eb`** (기본 텍스트 - 눈이 편안한 밝은 실버 화이트)
-- `--text-secondary`: **`#8d929b`** (보조 텍스트 - 슬레이트 그레이)
-- `--text-muted`: **`#5c6068`** (더 낮은 대비의 보조 텍스트)
+- `--text-primary`: **`#8ca6b5`** (기본 텍스트 - 눈이 편안한 실버 블루 그레이 톤)
+- `--text-secondary`: **`#5e697a`** (보조 텍스트 - 부연 설명, 메타 정보 등)
+- `--text-muted`: **`#4a5360`** (더 낮은 대비의 보조 텍스트)
 
 ### 2.3. Keycap (Virtual Keyboard)
 
-- `--keycap-face` / `--key-alpha-bg`: **`#36383c`** (일반 문자 키 배경)
-- `--key-alpha-text`: **`#e4e6eb`** (일반 문자 키 텍스트)
-- `--key-mod-bg`: **`#2d2e31`** (특수/기능 키 배경 - Alpha 키보다 한 톤 어두움)
-- `--key-mod-text`: **`#8d929b`** (특수/기능 키 텍스트)
+- `--keycap-face` / `--key-alpha-bg`: **`#323640`** (입력창 및 버튼/일반 문자 키 배경)
+- `--key-alpha-text`: **`#8ca6b5`** (일반 문자 키 텍스트)
+- `--key-mod-bg`: **`#262930`** (특수/기능 키 배경)
+- `--key-mod-text`: **`#5e697a`** (특수/기능 키 텍스트)
 
 ### 2.4. Accents & Highlights
 
-- `--accent` / `--key-accent-bg`: **`#3861fb`** (코발트 블루 - 망설임 구간 하이라이트 및 강조 요소)
-- `--key-accent-text`: **`#f0f2f5`** (코발트 블루 위 텍스트)
-- `--accent-glow` / `--accent-dim`: **`rgba(56, 97, 251, 0.12)`** (Delaunay 메쉬 등 엷은 코발트 워터마크)
+- `--accent` / `--key-accent-bg`: **`#4dc6e8`** (메인 하이라이트 - 망설임 구간 하이라이트 및 강조 요소)
+- `--key-accent-text`: **`#1e2024`** (메인 하이라이트 위 텍스트)
+- `--accent-secondary`: **`#a194b8`** (보조 하이라이트/배지 - 라벤더 퍼플)
+- `--accent-glow` / `--accent-dim`: **`rgba(77, 198, 232, 0.12)`** (Delaunay 메쉬 등 엷은 워터마크)
 
 ### 2.5. Borders & Shadows
 
-- `--border-subtle` / `--border-color`: **`rgba(228, 230, 235, 0.08)`** (아주 미세한 실버 경계선)
+- `--border-subtle` / `--border-color`: **`rgba(140, 166, 181, 0.08)`** (아주 미세한 실버 경계선)
 - `--keycap-shadow` / `--shadow-color`: **`rgba(12, 14, 16, 0.35)`** (묵직한 금속 느낌을 살려주는 다크 섀도우)
 
 ## 3. Typography Rules
@@ -56,8 +57,8 @@
 
 ### 4.2. Delaunay Triangulation Visual
 
-- 수학적 메쉬 선은 코발트 블루의 엷은 톤(`--accent-glow`)과 선 두께 `1px`을 사용하여, 데이터가 화면을 가리지 않는 은은한 **홀로그램 워터마크** 형태로 렌더링합니다.
+- 수학적 메쉬 선은 오션 사이언의 엷은 톤(`--accent-glow`)과 선 두께 `1px`을 사용하여, 데이터가 화면을 가리지 않는 은은한 **홀로그램 워터마크** 형태로 렌더링합니다.
 
 ### 4.3. Hesitation (망설임 시각화)
 
-- 망설임이 극대화된 타건(Outlier)은 강렬한 코발트 블루 배경(`--key-accent-bg`)으로 변화시켜 시각적 경각심을 주되, 기존 테마들의 붉은색보다 눈의 피로를 덜어줍니다.
+- 망설임이 극대화된 타건(Outlier)은 강렬한 오션 사이언 배경(`--key-accent-bg`)으로 변화시켜 시각적 경각심을 주되, 기존 테마들의 붉은색보다 눈의 피로를 덜어줍니다.

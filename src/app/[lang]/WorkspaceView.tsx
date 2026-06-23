@@ -23,7 +23,12 @@ export default function WorkspaceView({ lang }: { lang: string; tab: string }) {
 
   // Initialize practice text and sync session
   useEffect(() => {
-    sessionServiceClient.syncSessionOnMount().catch((error) => {
+    sessionServiceClient.syncSessionOnMount().catch((error: unknown) => {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message.includes("Database is unavailable")) {
+        console.warn("[TypeDiag] Session sync skipped — database is not running.");
+        return;
+      }
       console.error("Failed to sync session on mount:", error);
     });
 

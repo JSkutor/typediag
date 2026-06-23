@@ -59,7 +59,7 @@ Clerk 인증과 연동되는 사용자 정보를 저장합니다.
 - `language`: 문장의 언어 (VARCHAR(10), Not Null)
 - `source`: 생성 출처 (VARCHAR(20), Not Null, Default 'default')
 - `generator_model`: 생성 LLM 모델명 등 (VARCHAR(50), Nullable)
-- `subject`: 유저가 입력한 주제어 (TEXT, Nullable)
+- `topic`: 유저가 입력한 주제어 (TEXT, Nullable)
 - `user_id`: 등록한 사용자 식별값 (VARCHAR(255), FK, Nullable)
 - `usage_count`: 완주 횟수 (INT, Not Null, Default 0)
 - `last_used_at`: 최근 완주 일시 (TimestampTZ, Nullable)
@@ -120,7 +120,7 @@ Clerk 인증과 연동되는 사용자 정보를 저장합니다.
 
 1. **실시간 처리 분리**: 실시간 타수(WPM, CPM) 및 정확도 계산은 모두 프론트엔드에서 처리합니다. 타건 중에는 서버 통신이 발생하지 않으며, 페이지(문장) 타이핑 완료 직후 1회의 API 호출을 통해 `pages` 요약과 `key_events` 배열 전체를 Drizzle ORM의 Bulk Insert로 DB에 적재합니다.
 2. **시계열 최적화 (TimescaleDB)**: `key_events`는 매우 빠른 속도로 누적되므로, TimescaleDB의 Hypertable 구조를 통해 시간 단위(청크) 파티셔닝을 적용하여 쓰기 병목 및 스토리지 단편화를 방지합니다.
-3. **벡터 검색 (pgvector)**: Subject 모드 등의 주제어 검색 시, 로컬 JSON을 뒤지는 대신 pgvector의 코사인 거리 연산자(`<=>`)를 활용해 DB 레벨에서 고속 시맨틱 검색을 수행합니다.
+3. **벡터 검색 (pgvector)**: Topic 모드 등의 주제어 검색 시, 로컬 JSON을 뒤지는 대신 pgvector의 코사인 거리 연산자(`<=>`)를 활용해 DB 레벨에서 고속 시맨틱 검색을 수행합니다.
 
 ---
 
