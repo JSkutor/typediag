@@ -1,26 +1,26 @@
 /** Space Grey & Cobalt theme for Clerk auth UI */
 export const clerkAppearance = {
   variables: {
-    colorPrimary: "#3861fb",
-    colorBackground: "#2a2b2e",
-    colorInputBackground: "#323336",
-    colorInputText: "#e4e6eb",
-    colorText: "#e4e6eb",
-    colorTextSecondary: "#8d929b",
-    colorDanger: "#ef5b5b",
-    borderRadius: "8px",
-    fontFamily: "var(--font-sans), Outfit, sans-serif",
+    colorPrimary: "#4dc6e8",
+    colorBackground: "#1e2024",
+    colorInputBackground: "#323640",
+    colorInputText: "#8ca6b5",
+    colorText: "#8ca6b5",
+    colorTextOnPrimaryBackground: "#1e2024",
+    fontFamily: "var(--font-outfit), system-ui, sans-serif",
   },
   elements: {
     card: {
-      backgroundColor: "#323336",
-      border: "1px solid rgba(228, 230, 235, 0.08)",
-      boxShadow: "0 8px 24px rgba(12, 14, 16, 0.35)",
+      backgroundColor: "#262930",
+      border: "1px solid rgba(140, 166, 181, 0.08)",
+      boxShadow: "0 12px 40px rgba(12, 14, 16, 0.45)",
     },
+    headerTitle: { color: "#8ca6b5" },
+    headerSubtitle: { color: "#5e697a" },
     formButtonPrimary: {
-      backgroundColor: "#3861fb",
+      backgroundColor: "#4dc6e8",
       "&:hover": {
-        backgroundColor: "#5377fc",
+        backgroundColor: "#6dd4f0",
       },
     },
   },

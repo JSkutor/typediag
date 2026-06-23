@@ -9,19 +9,19 @@ export const CYLINDRICAL_MAX_HEIGHT = 6.0; // max Y height
 
 /** Functional colors for 3D data elements */
 export const CYL_COLORS = {
-  sceneBg: 0x202123,
+  sceneBg: 0x1e2024,
   originNode: 0xec4899,
-  targetNode: 0x06b6d4,
+  targetNode: 0x4dc6e8,
   vectorArrow: 0xf59e0b,
   inactive: 0x3b82f6,
-  inactiveNode: 0x06b6d4,
+  inactiveNode: 0x4dc6e8,
   cylinder: 0x8b5cf6,
   dropLine: 0x57d68d,
   radLine: 0x8d929b,
   angleArc: 0xfbbf24,
-  gridMain: 0x3d3e42,
-  gridSub: 0x323336,
-  petalBorder: 0x3861fb,
+  gridMain: 0x323640,
+  gridSub: 0x262930,
+  petalBorder: 0x4dc6e8,
 };
 
 /** Cylindrical → Three.js Cartesian (Y-up) */

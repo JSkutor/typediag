@@ -88,8 +88,8 @@ export class Surface3DManager {
     this.height = height;
 
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x1a1b1e);
-    this.scene.fog = new THREE.FogExp2(0x1a1b1e, 0.001);
+    this.scene.background = new THREE.Color(0x1e2024);
+    this.scene.fog = new THREE.FogExp2(0x1e2024, 0.001);
 
     this.camera = new THREE.PerspectiveCamera(45, width / height, 1, 3000);
 
@@ -113,7 +113,7 @@ export class Surface3DManager {
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     this.scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0x3861fb, 2.5);
+    const directionalLight = new THREE.DirectionalLight(0x4dc6e8, 2.5);
     directionalLight.position.set(100, 200, 50);
     this.scene.add(directionalLight);
 
@@ -121,7 +121,7 @@ export class Surface3DManager {
     directionalLight2.position.set(-100, 150, -50);
     this.scene.add(directionalLight2);
 
-    const gridHelper = new THREE.GridHelper(1000, 40, 0x3d3e42, 0x323336);
+    const gridHelper = new THREE.GridHelper(1000, 40, 0x323640, 0x262930);
     gridHelper.position.y = -10;
     this.scene.add(gridHelper);
 
@@ -311,7 +311,7 @@ export class Surface3DManager {
     this.surfaceGroup.add(mesh);
 
     const wireframeMaterial = new THREE.MeshBasicMaterial({
-      color: 0x5377fc,
+      color: 0x6dd4f0,
       wireframe: true,
       transparent: true,
       opacity: 0.4,
@@ -330,7 +330,7 @@ export class Surface3DManager {
     lineMaterial.userData = { baseOpacity: 0.5 };
 
     const keycapMaterial = new THREE.MeshStandardMaterial({
-      color: 0x2d3139,
+      color: 0x323640,
       roughness: 0.6,
       metalness: 0.2,
     });
