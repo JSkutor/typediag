@@ -1,0 +1,46 @@
+/* ==========================================================================
+   Landing Page Styles
+   ========================================================================== */
+
+.hero-start-button {
+  display: inline-block;
+  padding: 0.875rem 2.25rem;
+  border-radius: var(--radius-full, 9999px);
+  background-color: var(--accent, #3861fb);
+  color: var(--text-inverse, #ffffff);
+  font-size: 1.05rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease;
+  box-shadow: 0 8px 24px -4px rgba(56, 97, 251, 0.45);
+}
+
+.hero-start-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 32px -4px rgba(56, 97, 251, 0.6);
+  background-color: #4a71ff;
+}
+
+/* Scroll indicator bounce animation */
+.scroll-chevron {
+  animation: scroll-bounce 2s ease-in-out infinite;
+}
+
+@keyframes scroll-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateY(5px);
+    opacity: 1;
+  }
+}
+
+/* Cylindrical section responsive: stack on smaller screens */
+@media (max-width: 900px) {
+  .landing-cylindrical-section {
+    grid-template-columns: 1fr !important;
+  }
+}

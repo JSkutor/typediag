@@ -11,24 +11,31 @@ import {
 import { Cylindrical3DManager, LabelProjection, CylindricalToggles } from "./Cylindrical3DManager";
 import { CylindricalDiagnosticsPanel } from "./CylindricalDiagnosticsPanel";
 
+import { KeyEvent } from "@/lib/skdm";
+
 interface CylindricalVector3DProps {
   isActivated: boolean;
   /** Optionally pre-select a center key from the parent. */
   initialCenterKey?: string;
   onClose?: () => void;
+  /** Override store events for testing or landing page mock data */
+  mockEvents?: KeyEvent[];
 }
 
 export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
   isActivated,
   initialCenterKey,
+  mockEvents,
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
 
-  const events = useWorkspaceStore((state) => state.analysisEvents);
+  const storeEvents = useWorkspaceStore((state) => state.analysisEvents);
+  const events = mockEvents ?? storeEvents;
 
   // --- Local state ---
   const [selectedTo, setSelectedTo] = useState(initialCenterKey ?? "");
   const [selectedFrom, setSelectedFrom] = useState("");
+  const [managerReady, setManagerReady] = useState(false);
   const labelRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [toggles] = useState<CylindricalToggles>({
     cylinder: true,
@@ -76,14 +83,16 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
         });
       }
     };
+    // Signal that the manager is ready so the updateScene effect re-runs
+    setManagerReady(true);
   }, []);
 
   const managerRef = useThreeManager(Cylindrical3DManager, mountRef, isActivated, handleInit);
 
-  // Update scene when data or selection changes
+  // Update scene when data or selection changes (also re-runs after manager init)
   useEffect(() => {
     managerRef.current?.updateScene(vectors, selectedFrom);
-  }, [vectors, selectedFrom]);
+  }, [vectors, selectedFrom, managerReady]);
 
   // Update toggles
   useEffect(() => {
