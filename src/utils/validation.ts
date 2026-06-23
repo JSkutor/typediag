@@ -24,28 +24,28 @@ export function validateSubject(subject: string): ValidationResult {
     return { isValid: false, reason: "글자수가 많습니다." };
   }
 
-  // 2. Allow only Korean characters and spaces
-  const koreanAndSpaceRegex = /^[가-힣ㄱ-ㅎㅏ-ㅣ\s]+$/;
-  if (!koreanAndSpaceRegex.test(trimmed)) {
-    return { isValid: false, reason: "올바른 한글 입력이 아닙니다." };
+  // 2. Allow Korean, English, numbers, spaces, and common punctuation characters
+  const subjectRegex = /^[가-힣ㄱ-ㅎㅏ-ㅣa-zA-Z0-9\s.,\-_+/()]+$/;
+  if (!subjectRegex.test(trimmed)) {
+    return { isValid: false, reason: "올바른 주제 입력이 아닙니다." };
   }
 
   // 3. Cannot contain single consonants/vowels anywhere in the word (e.g. "ㄴㄴ나무", "ㅋㅋㅋ", "가나다ㄹ")
   const containsJamoRegex = /[ㄱ-ㅎㅏ-ㅣ]/;
   if (containsJamoRegex.test(trimmed)) {
-    return { isValid: false, reason: "올바른 한글 입력이 아닙니다." };
+    return { isValid: false, reason: "올바른 주제 입력이 아닙니다." };
   }
 
   // 4. Check for 4 or more consecutive identical characters (e.g., "가가가가")
   const consecutiveIdenticalRegex = /(.)\1{3,}/;
   if (consecutiveIdenticalRegex.test(trimmed)) {
-    return { isValid: false, reason: "올바른 한글 입력이 아닙니다." };
+    return { isValid: false, reason: "올바른 주제 입력이 아닙니다." };
   }
 
   // 5. Check for 2-4 character pattern repeated 3 or more times (e.g., "안녕안녕안녕")
   const repeatedPatternRegex = /(.{2,4})\1{2,}/;
   if (repeatedPatternRegex.test(trimmed)) {
-    return { isValid: false, reason: "올바른 한글 입력이 아닙니다." };
+    return { isValid: false, reason: "올바른 주제 입력이 아닙니다." };
   }
 
   return { isValid: true };

@@ -46,28 +46,6 @@ TOPICS = [
 ]
 
 
-# Tone/style templates tailored for typing practice sentences
-STYLES = [
-    "Expository",
-    "Emotional",
-    "Contemplative",
-    "Analytical",
-    "Humorous",
-    "Positive",
-    "Conversational",
-    "Narrative",
-    "Observational",
-    "Metaphorical",
-    "Reflective",
-    "Predictive",
-    "Intriguing",
-    "Interrogative",
-    "Imaginative",
-    "Aphoristic",
-    "Paradoxical",
-]
-
-
 def load_env_key():
     """
     로컬 환경변수 또는 프로젝트 루트의 .env / .env.local 파일에서
@@ -106,6 +84,12 @@ def generate_prompts(count=1500):
     Generates a specified number of diverse and high-quality typing practice prompts.
     Adjusts the distribution of character counts (excluding spaces and punctuation) to center around 80 characters.
     """
+    prompts_file_path = os.path.join(
+        PROJECT_ROOT, "src", "lib", "practice", "prompts.json"
+    )
+    with open(prompts_file_path, "r", encoding="utf-8") as f:
+        prompts_cfg = json.load(f)
+
     prompts = []
 
     # Calculate count for each target length
@@ -115,8 +99,9 @@ def generate_prompts(count=1500):
 
     length_configs = [(60, cnt_60), (80, cnt_80), (100, cnt_100)]
 
-    # Create a list of flags to ensure exactly 15% have numbers, and 85% do not.
-    num_with_numbers = int(count * 0.15)
+    # Create a list of flags to ensure exactly shared ratio of prompts have numbers.
+    inclusion_ratio = prompts_cfg["number_constraint"]["inclusion_ratio"]
+    num_with_numbers = int(count * inclusion_ratio)
     number_flags = [True] * num_with_numbers + [False] * (count - num_with_numbers)
     # Shuffle flags to distribute them randomly across different lengths
     random.shuffle(number_flags)
@@ -130,25 +115,24 @@ def generate_prompts(count=1500):
                 has_num = False
 
             topic = random.choice(TOPICS)
-            style = random.choice(STYLES)
+            style = random.choice(prompts_cfg["styles"])
 
             # Determine the number constraint text
             if has_num:
-                number_condition = "MUST naturally include Arabic numerals (0-9) representing years, counts, percentages, or measurements."
+                number_condition = prompts_cfg["number_constraint"]["with_numbers"]
             else:
-                number_condition = "Do NOT include any Arabic numerals (0-9). Spell out any numbers if absolutely necessary, or avoid them entirely."
+                number_condition = prompts_cfg["number_constraint"]["without_numbers"]
 
-            # Construct the English prompt targeting Korean sentence generation
-            # Removed trailing commas to fix the tuple bug
-            prompt_text = (
-                f"generate exactly one sentence for typing practice in Korean.\n"
-                f"- Topic: {topic}\n"
-                f"- Tone/Style: {style}\n"
-                f"- Number inclusion constraint: {number_condition}\n"
-                f"- Length constraint: Exactly around {target_len} Korean characters (excluding spaces and punctuation marks), with a tolerance of ±10 characters.\n"
-                f"- Requirement: Write a complex or compound sentence with two or more clauses naturally connected, rather than a simple sentence.\n"
-                f"- Warning: Do NOT include newline characters, tabs, backslashes, or other special control characters. Output strictly in a single line.\n"
-                f"- Warning: Do NOT use any special punctuation except periods (.), commas (,), exclamation marks (!), and question marks (?)."
+            # Construct the English prompt targeting Korean sentence generation using the template
+            prompt_template = prompts_cfg["batch"]["user_prompt_template"]
+            prompt_text = prompt_template.format(
+                topic=topic,
+                style=style,
+                number_condition=number_condition,
+                target_len=target_len,
+                complex_sentence=prompts_cfg["common_rules"]["complex_sentence"],
+                no_newlines=prompts_cfg["common_rules"]["no_newlines"],
+                allowed_punctuation=prompts_cfg["common_rules"]["allowed_punctuation"],
             )
 
             prompts.append(

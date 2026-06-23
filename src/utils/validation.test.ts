@@ -31,90 +31,90 @@ describe("validateSubject", () => {
     });
   });
 
-  it("should fail on non-Korean characters with '올바른 한글 입력이 아닙니다.'", () => {
-    expect(validateSubject("hello")).toEqual({
+  it("should fail on invalid characters (e.g. emoji, hanja) with '올바른 주제 입력이 아닙니다.'", () => {
+    expect(validateSubject("한글🤖")).toEqual({
       isValid: false,
-      reason: "올바른 한글 입력이 아닙니다.",
+      reason: "올바른 주제 입력이 아닙니다.",
     });
-    expect(validateSubject("한글123")).toEqual({
+    expect(validateSubject("한글漢字")).toEqual({
       isValid: false,
-      reason: "올바른 한글 입력이 아닙니다.",
-    });
-    expect(validateSubject("한글!!!")).toEqual({
-      isValid: false,
-      reason: "올바른 한글 입력이 아닙니다.",
-    });
-    expect(validateSubject("한글abc")).toEqual({
-      isValid: false,
-      reason: "올바른 한글 입력이 아닙니다.",
+      reason: "올바른 주제 입력이 아닙니다.",
     });
   });
 
-  it("should fail on inputs containing single consonants or vowels with '올바른 한글 입력이 아닙니다.'", () => {
+  it("should fail on inputs containing single consonants or vowels with '올바른 주제 입력이 아닙니다.'", () => {
     // Consonant/vowel-only inputs
     expect(validateSubject("ㄱㄱㄱ")).toEqual({
       isValid: false,
-      reason: "올바른 한글 입력이 아닙니다.",
+      reason: "올바른 주제 입력이 아닙니다.",
     });
     expect(validateSubject("ㅋㅋㅋ")).toEqual({
       isValid: false,
-      reason: "올바른 한글 입력이 아닙니다.",
+      reason: "올바른 주제 입력이 아닙니다.",
     });
     expect(validateSubject("ㅏㅏㅏ")).toEqual({
       isValid: false,
-      reason: "올바른 한글 입력이 아닙니다.",
+      reason: "올바른 주제 입력이 아닙니다.",
     });
 
     // Mixed jamo inputs (e.g. "ㄴㄴ나무")
     expect(validateSubject("ㄴㄴ나무")).toEqual({
       isValid: false,
-      reason: "올바른 한글 입력이 아닙니다.",
+      reason: "올바른 주제 입력이 아닙니다.",
     });
     expect(validateSubject("가나다ㄹㄹ")).toEqual({
       isValid: false,
-      reason: "올바른 한글 입력이 아닙니다.",
+      reason: "올바른 주제 입력이 아닙니다.",
     });
     expect(validateSubject("우주선ㅋ")).toEqual({
       isValid: false,
-      reason: "올바른 한글 입력이 아닙니다.",
+      reason: "올바른 주제 입력이 아닙니다.",
     });
     expect(validateSubject("가ㅁㄴㅇ라")).toEqual({
       isValid: false,
-      reason: "올바른 한글 입력이 아닙니다.",
+      reason: "올바른 주제 입력이 아닙니다.",
     });
   });
 
-  it("should fail on 4 or more consecutive identical characters with '올바른 한글 입력이 아닙니다.'", () => {
+  it("should fail on 4 or more consecutive identical characters with '올바른 주제 입력이 아닙니다.'", () => {
     expect(validateSubject("가가가가")).toEqual({
       isValid: false,
-      reason: "올바른 한글 입력이 아닙니다.",
+      reason: "올바른 주제 입력이 아닙니다.",
     });
     expect(validateSubject("하하하하")).toEqual({
       isValid: false,
-      reason: "올바른 한글 입력이 아닙니다.",
+      reason: "올바른 주제 입력이 아닙니다.",
     });
   });
 
-  it("should fail on 2-4 character patterns repeated 3 or more times with '올바른 한글 입력이 아닙니다.'", () => {
+  it("should fail on 2-4 character patterns repeated 3 or more times with '올바른 주제 입력이 아닙니다.'", () => {
     expect(validateSubject("안녕안녕안녕")).toEqual({
       isValid: false,
-      reason: "올바른 한글 입력이 아닙니다.",
+      reason: "올바른 주제 입력이 아닙니다.",
     });
     expect(validateSubject("개발개발개발")).toEqual({
       isValid: false,
-      reason: "올바른 한글 입력이 아닙니다.",
+      reason: "올바른 주제 입력이 아닙니다.",
     });
     expect(validateSubject("우주선우주선우주선")).toEqual({
       isValid: false,
-      reason: "올바른 한글 입력이 아닙니다.",
+      reason: "올바른 주제 입력이 아닙니다.",
     });
   });
 
-  it("should pass on valid Korean inputs within the constraints", () => {
+  it("should pass on valid inputs within the constraints", () => {
     expect(validateSubject("인공지능")).toEqual({ isValid: true });
     expect(validateSubject("우주 과학")).toEqual({ isValid: true });
     expect(validateSubject("웹 개발")).toEqual({ isValid: true });
     expect(validateSubject("리액트 타자")).toEqual({ isValid: true });
     expect(validateSubject("일이삼사오육칠팔구십일이삼사오")).toEqual({ isValid: true }); // Exactly 15 chars
+    
+    // New allowed inputs (English, numbers, common symbols)
+    expect(validateSubject("hello")).toEqual({ isValid: true });
+    expect(validateSubject("한글123")).toEqual({ isValid: true });
+    expect(validateSubject("한글abc")).toEqual({ isValid: true });
+    expect(validateSubject("웹 3.0")).toEqual({ isValid: true });
+    expect(validateSubject("코로나-19")).toEqual({ isValid: true });
+    expect(validateSubject("C++")).toEqual({ isValid: true });
   });
 });
