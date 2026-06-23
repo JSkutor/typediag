@@ -39,6 +39,7 @@ export const LandingCylindrical3D: React.FC = () => {
           mockEvents={mockEvents}
           initialCenterKey="o"
           disableControls
+          hidePanel
         />
       </div>
     </motion.div>

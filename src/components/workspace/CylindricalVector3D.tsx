@@ -22,6 +22,8 @@ interface CylindricalVector3DProps {
   mockEvents?: KeyEvent[];
   /** Lock OrbitControls — use on landing page where the view should be static */
   disableControls?: boolean;
+  /** Hide the diagnostics panel — use on landing page */
+  hidePanel?: boolean;
 }
 
 export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
@@ -29,6 +31,7 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
   initialCenterKey,
   mockEvents,
   disableControls = false,
+  hidePanel = false,
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
 
@@ -107,11 +110,13 @@ export const CylindricalVector3D: React.FC<CylindricalVector3DProps> = ({
 
   return (
     <div className="cyl-viewport">
-      <CylindricalDiagnosticsPanel
-        events={events}
-        selectedTo={selectedTo}
-        setSelectedTo={setSelectedTo}
-      />
+      {!hidePanel && (
+        <CylindricalDiagnosticsPanel
+          events={events}
+          selectedTo={selectedTo}
+          setSelectedTo={setSelectedTo}
+        />
+      )}
 
       {/* Three.js mount point */}
       <div ref={mountRef} className="cyl-canvas" />

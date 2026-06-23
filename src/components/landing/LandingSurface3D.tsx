@@ -30,7 +30,7 @@ export const LandingSurface3D: React.FC = () => {
 
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", pointerEvents: "none" }}>
-      <LatencySurface3D keyStats={mockStats} isActivated={isActivated} disableControls />
+      <LatencySurface3D keyStats={mockStats} isActivated={isActivated} disableControls isLanding />
     </div>
   );
 };

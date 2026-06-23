@@ -26,6 +26,7 @@ export class Surface3DManager {
   private renderer: THREE.WebGLRenderer;
   private controls: OrbitControls;
 
+  private surfaceGroup: THREE.Group = new THREE.Group();
   private geometry: THREE.BufferGeometry;
   private dropLineGeometries: THREE.BufferGeometry[] = [];
   private positions: Float32Array = new Float32Array();
@@ -46,11 +47,26 @@ export class Surface3DManager {
   // Animation state
   public animState = {
     elevationScale: 0,
+    camX: 0,
     camY: 0,
     camZ: 0.1,
     opacity: 0,
     fov: 45,
   };
+
+  private _isLanding: boolean = false;
+
+  public get isLanding(): boolean {
+    return this._isLanding;
+  }
+
+  public set isLanding(val: boolean) {
+    this._isLanding = val;
+    if (this.renderer) {
+      const maxRatio = val ? 1.5 : 2.0;
+      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxRatio));
+    }
+  }
 
   private timeline: gsap.core.Timeline | null = null;
   private isActivated: boolean = false;
@@ -80,6 +96,7 @@ export class Surface3DManager {
     this.dist = height / (2 * Math.tan(fovRad / 2));
     this.camera.position.set(0, this.dist, 0.1);
 
+    this.animState.camX = 0;
     this.animState.camY = this.dist;
 
     this.renderer = new THREE.WebGLRenderer({
@@ -123,6 +140,9 @@ export class Surface3DManager {
       this.needsRender = true;
     });
 
+    this.scene.add(this.surfaceGroup);
+    this.surfaceGroup.position.y = SURFACE_Y_OFFSET;
+
     this.renderLoop = this.renderLoop.bind(this);
     this.reqId = requestAnimationFrame(this.renderLoop);
   }
@@ -156,10 +176,12 @@ export class Surface3DManager {
     this.positions = new Float32Array(totalVertices * 3);
     const colors = new Float32Array(totalVertices * 3);
 
-    // Clear previous meshes
+    // Clear previous meshes inside the group
+    this.surfaceGroup.clear();
     this.scene.children = this.scene.children.filter(
-      (c) => c instanceof THREE.Light || c instanceof THREE.GridHelper,
+      (c) => c instanceof THREE.Light || c instanceof THREE.GridHelper || c === this.surfaceGroup,
     );
+
     this.dropLineGeometries = [];
 
     const tempColor = new THREE.Color();
@@ -169,10 +191,12 @@ export class Surface3DManager {
     // Define a neutral, slightly faded blue base for boundaries
     const boundaryColor = new THREE.Color().setHSL(227 / 360, 0.4, 0.3);
 
+    const TARGET_ELEVATION_SCALE = 180;
+
     // Recreate geometry and materials
-    // 1. Fill active key positions and colors
+    // 1. Fill active key positions and colors (build at full target elevation)
     this.surfaceKeys.forEach((k, i) => {
-      const pos = this.get3DPos(k, 0);
+      const pos = this.get3DPos(k, TARGET_ELEVATION_SCALE);
       this.positions[i * 3] = pos.x;
       this.positions[i * 3 + 1] = pos.y;
       this.positions[i * 3 + 2] = pos.z;
@@ -203,11 +227,11 @@ export class Surface3DManager {
       colors[i * 3 + 2] = tempColor.b;
     });
 
-    // 2. Fill inner boundary positions and colors (always y = SURFACE_Y_OFFSET, neutral color)
+    // 2. Fill inner boundary positions and colors (always y = 0, neutral color)
     this.innerBorderPoints.forEach((bp, i) => {
       const idx = (N + i) * 3;
       this.positions[idx] = bp[0];
-      this.positions[idx + 1] = SURFACE_Y_OFFSET;
+      this.positions[idx + 1] = 0;
       this.positions[idx + 2] = bp[1];
 
       colors[idx] = boundaryColor.r;
@@ -215,11 +239,11 @@ export class Surface3DManager {
       colors[idx + 2] = boundaryColor.b;
     });
 
-    // 3. Fill outer boundary positions and colors (always y = SURFACE_Y_OFFSET, neutral color)
+    // 3. Fill outer boundary positions and colors (always y = 0, neutral color)
     this.outerBorderPoints.forEach((bp, i) => {
       const idx = (N + M1 + i) * 3;
       this.positions[idx] = bp[0];
-      this.positions[idx + 1] = SURFACE_Y_OFFSET;
+      this.positions[idx + 1] = 0;
       this.positions[idx + 2] = bp[1];
 
       colors[idx] = boundaryColor.r;
@@ -258,21 +282,32 @@ export class Surface3DManager {
       this.geometry.computeVertexNormals();
     }
 
-    const glassMaterial = new THREE.MeshPhysicalMaterial({
-      vertexColors: true,
-      metalness: 0.1,
-      roughness: 0.2,
-      transmission: 0.6,
-      thickness: 1.5,
-      transparent: true,
-      opacity: 0.85,
-      side: THREE.DoubleSide,
-      clearcoat: 0.5,
-      clearcoatRoughness: 0.1,
-    });
+    // Material Selection: lightweight StandardMaterial for landing, PhysicalMaterial for workspace
+    const surfaceMaterial = this.isLanding
+      ? new THREE.MeshStandardMaterial({
+          vertexColors: true,
+          metalness: 0.2,
+          roughness: 0.4,
+          transparent: true,
+          opacity: 0.85,
+          side: THREE.DoubleSide,
+        })
+      : new THREE.MeshPhysicalMaterial({
+          vertexColors: true,
+          metalness: 0.1,
+          roughness: 0.2,
+          transmission: 0.6,
+          thickness: 1.5,
+          transparent: true,
+          opacity: 0.85,
+          side: THREE.DoubleSide,
+          clearcoat: 0.5,
+          clearcoatRoughness: 0.1,
+        });
+    surfaceMaterial.userData = { baseOpacity: 0.85 };
 
-    const mesh = new THREE.Mesh(this.geometry, glassMaterial);
-    this.scene.add(mesh);
+    const mesh = new THREE.Mesh(this.geometry, surfaceMaterial);
+    this.surfaceGroup.add(mesh);
 
     const wireframeMaterial = new THREE.MeshBasicMaterial({
       color: 0x5377fc,
@@ -280,15 +315,18 @@ export class Surface3DManager {
       transparent: true,
       opacity: 0.4,
     });
+    wireframeMaterial.userData = { baseOpacity: 0.4 };
+
     const wireframeMesh = new THREE.Mesh(this.geometry, wireframeMaterial);
     wireframeMesh.position.y += 0.1;
-    this.scene.add(wireframeMesh);
+    this.surfaceGroup.add(wireframeMesh);
 
     const lineMaterial = new THREE.LineBasicMaterial({
       vertexColors: true,
       transparent: true,
       opacity: 0.5,
     });
+    lineMaterial.userData = { baseOpacity: 0.5 };
 
     const keycapMaterial = new THREE.MeshStandardMaterial({
       color: 0x2d3139,
@@ -297,7 +335,7 @@ export class Surface3DManager {
     });
 
     this.surfaceKeys.forEach((k) => {
-      const pTop = this.get3DPos(k, 0);
+      const pTop = this.get3DPos(k, TARGET_ELEVATION_SCALE);
       const pBase = new THREE.Vector3(pTop.x, 0, pTop.z);
       const lineGeom = new THREE.BufferGeometry().setFromPoints([pTop, pBase]);
 
@@ -330,7 +368,7 @@ export class Surface3DManager {
 
       const line = new THREE.Line(lineGeom, lineMaterial);
       if (k.key !== "_dummy_comma") {
-        this.scene.add(line);
+        this.surfaceGroup.add(line);
       }
       this.dropLineGeometries.push(lineGeom);
     });
@@ -367,13 +405,13 @@ export class Surface3DManager {
     const keyElevation = isDummy ? 0 : (0.15 + amplifiedZ) * elevationScale;
 
     if (layout) {
-      return new THREE.Vector3(layout.x, SURFACE_Y_OFFSET + keyElevation, layout.z);
+      return new THREE.Vector3(layout.x, keyElevation, layout.z);
     }
 
     // Fallback: apply same transformation as KEY_LAYOUT
     const x = (k.x - centerX) * SURFACE_SCALE;
     const z = ((2.0 - k.y) * (1 + SURFACE_GAP) - centerZ) * SURFACE_SCALE;
-    return new THREE.Vector3(x, SURFACE_Y_OFFSET + keyElevation, z);
+    return new THREE.Vector3(x, keyElevation, z);
   }
 
   public resize(w: number, h: number): void {
@@ -396,10 +434,21 @@ export class Surface3DManager {
     if (activated) {
       // 1. Set warp close-up starting state
       this.animState.elevationScale = 0;
-      this.animState.camY = 250; // Raised from 80 to prevent clipping
-      this.animState.camZ = -500; // Pushed back from -350
-      this.animState.fov = 60; // Moderated from 75 for comfortable perspective
       this.animState.opacity = 0;
+
+      if (this.isLanding) {
+        // Option A: Dynamic cinematic angle - starting from side and back
+        this.animState.camX = 600;
+        this.animState.camY = 150;
+        this.animState.camZ = -600;
+        this.animState.fov = 60;
+      } else {
+        this.animState.camX = 0;
+        this.animState.camY = 250; // Raised from 80 to prevent clipping
+        this.animState.camZ = -500; // Pushed back from -350
+        this.animState.fov = 60; // Moderated from 75 for comfortable perspective
+      }
+      
       this.applyAnimState(true);
       this.controls.enabled = false;
 
@@ -414,23 +463,35 @@ export class Surface3DManager {
         this.timeline = gsap.timeline({
           onUpdate: () => this.applyAnimState(true),
           onComplete: () => {
-            this.controls.enabled = true;
+            this.controls.enabled = !this.isLanding;
             this.controls.update();
           },
         });
 
         const TARGET_ELEVATION_SCALE = 180;
-        const CAM_TARGET_Y = 480;
-        const CAM_TARGET_Z = 480;
+        
+        let targetCamX = 0;
+        let targetCamY = 480;
+        let targetCamZ = 480;
+        let duration = 0.8;
 
-        // 2. Cinematic dive transition (0.8s) - smooth power2.out
+        if (this.isLanding) {
+          // Option A Target: isometric perspective angle (x: 400, y: 350, z: 400), 1.2s smooth ease
+          targetCamX = 400;
+          targetCamY = 350;
+          targetCamZ = 400;
+          duration = 1.2;
+        }
+
+        // 2. Cinematic dive transition (0.8s or 1.2s) - smooth power2.out
         this.timeline.to(
           this.animState,
           {
-            camY: CAM_TARGET_Y,
-            camZ: CAM_TARGET_Z,
+            camX: targetCamX,
+            camY: targetCamY,
+            camZ: targetCamZ,
             fov: 45,
-            duration: 0.8,
+            duration: duration,
             ease: "power2.out",
           },
           0,
@@ -455,6 +516,7 @@ export class Surface3DManager {
     } else {
       // Reset immediately
       this.animState.elevationScale = 0;
+      this.animState.camX = 0;
       this.animState.camY = this.dist;
       this.animState.camZ = 0.1;
       this.animState.opacity = 0;
@@ -465,35 +527,34 @@ export class Surface3DManager {
 
   private applyAnimState(updateCamera = true) {
     if (updateCamera) {
-      this.camera.position.set(0, this.animState.camY, this.animState.camZ);
+      this.camera.position.set(this.animState.camX, this.animState.camY, this.animState.camZ);
       this.camera.fov = this.animState.fov;
       this.camera.updateProjectionMatrix();
       this.camera.lookAt(0, 0, 0);
     }
 
-    this.surfaceKeys.forEach((k, i) => {
-      const keyName = k.key.toLowerCase();
-      const isDummy = keyName === "_dummy_comma";
-      const relativeZ = isDummy
-        ? 0
-        : this.zRange > 0
-          ? (k.zSmoothed - this.minZ) / this.zRange
-          : 0.5;
-      const amplifiedZ = Math.pow(relativeZ, LATENCY_POWER);
-      const currentY =
-        SURFACE_Y_OFFSET + (isDummy ? 0 : (0.15 + amplifiedZ) * this.animState.elevationScale);
-      this.positions[i * 3 + 1] = currentY;
+    if (this.surfaceGroup) {
+      const TARGET_ELEVATION_SCALE = 180;
+      const scaleY = this.animState.elevationScale / TARGET_ELEVATION_SCALE;
+      this.surfaceGroup.scale.set(1, scaleY, 1);
 
-      if (this.dropLineGeometries[i]) {
-        const linePos = this.dropLineGeometries[i].attributes.position as THREE.BufferAttribute;
-        linePos.setY(0, currentY);
-        linePos.needsUpdate = true;
-      }
-    });
-
-    if (this.geometry.attributes.position) {
-      this.geometry.attributes.position.needsUpdate = true;
-      this.geometry.computeVertexNormals();
+      // Traversal for smooth opacity transition based on baseOpacity in userData
+      this.surfaceGroup.traverse((child) => {
+        if (child instanceof THREE.Mesh || child instanceof THREE.Line) {
+          const mat = child.material;
+          if (mat) {
+            if (Array.isArray(mat)) {
+              mat.forEach((m) => {
+                m.transparent = true;
+                m.opacity = this.animState.opacity * (m.userData.baseOpacity ?? 0.85);
+              });
+            } else {
+              mat.transparent = true;
+              mat.opacity = this.animState.opacity * (mat.userData.baseOpacity ?? 0.85);
+            }
+          }
+        }
+      });
     }
 
     this.needsRender = true;

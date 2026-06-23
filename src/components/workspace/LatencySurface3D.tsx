@@ -4,6 +4,7 @@ import React, { useRef, useEffect, useState } from "react";
 import { KeyResult } from "@/lib/skdm";
 
 import { Surface3DManager, LATENCY_POWER } from "./Surface3DManager";
+import { SURFACE_Y_OFFSET } from "./geometryUtils";
 import { useWorkspaceStore } from "@/store/useWorkspaceStore";
 import { useThreeManager } from "@/hooks/useThreeManager";
 import { useCallback } from "react";
@@ -17,12 +18,14 @@ interface LatencySurface3DProps {
   isActivated?: boolean;
   /** Lock OrbitControls — use on landing page where the surface should be static */
   disableControls?: boolean;
+  isLanding?: boolean;
 }
 
 export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
   keyStats,
   isActivated = false,
   disableControls = false,
+  isLanding = false,
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const labelsContainerRef = useRef<HTMLDivElement>(null);
@@ -52,6 +55,7 @@ export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
 
   // Initialize and dispose manager
   const handleInit = useCallback((manager: Surface3DManager) => {
+    manager.isLanding = isLanding;
     if (disableControls) manager.lockControls();
     manager.onUpdateHUD = (
       surfaceKeys,
@@ -69,7 +73,7 @@ export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
         const scaleRatio = elevationScale / TARGET_ELEVATION_SCALE;
         const amplifiedZ =
           k.key.toLowerCase() === "_dummy_comma" ? 0 : Math.pow(k.zSmoothed, LATENCY_POWER);
-        vec.y += (10 + amplifiedZ * 5) * scaleRatio;
+        vec.y += SURFACE_Y_OFFSET + (10 + amplifiedZ * 5) * scaleRatio;
 
         vec.project(camera);
 
@@ -88,7 +92,7 @@ export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
         }
       });
     };
-  }, []);
+  }, [disableControls, isLanding]);
 
   const managerRef = useThreeManager(Surface3DManager, mountRef, shouldRenderThree, handleInit);
 
