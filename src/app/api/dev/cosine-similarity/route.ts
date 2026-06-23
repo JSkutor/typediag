@@ -3,7 +3,7 @@ import { sql } from "drizzle-orm";
 
 import { drizzleDb } from "@/db";
 import { targetTexts } from "@/db/schema";
-import { validateSubject } from "@/utils/validation";
+import { validateTopic } from "@/utils/validation";
 
 function devOnly() {
   if (process.env.NODE_ENV !== "development") {
@@ -15,7 +15,7 @@ function devOnly() {
   return null;
 }
 
-async function embedQuery(subject: string): Promise<number[]> {
+async function embedQuery(topic: string): Promise<number[]> {
   const upstageApiKey = process.env.UPSTAGE_API_KEY;
   if (!upstageApiKey) {
     throw new Error("UPSTAGE_API_KEY is not set in environment variables.");
@@ -28,7 +28,7 @@ async function embedQuery(subject: string): Promise<number[]> {
       Authorization: `Bearer ${upstageApiKey}`,
     },
     body: JSON.stringify({
-      input: subject,
+      input: topic,
       model: "embedding-query",
     }),
   });
@@ -52,14 +52,14 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const subject = typeof body?.subject === "string" ? body.subject : "";
+    const topic = typeof body?.topic === "string" ? body.topic : "";
     const limitRaw = body?.limit;
     const limit =
       typeof limitRaw === "number" && Number.isFinite(limitRaw)
         ? Math.min(100, Math.max(1, Math.floor(limitRaw)))
         : 50;
 
-    const validation = validateSubject(subject);
+    const validation = validateTopic(topic);
     if (!validation.isValid) {
       return NextResponse.json(
         { error: validation.reason || "올바르지 않은 주제입니다." },
@@ -67,7 +67,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const queryEmbedding = await embedQuery(subject.trim());
+    const queryEmbedding = await embedQuery(topic.trim());
     const vectorStr = `[${queryEmbedding.join(",")}]`;
 
     const [countRow] = await drizzleDb
@@ -81,7 +81,7 @@ export async function POST(req: Request) {
         content: targetTexts.content,
         language: targetTexts.language,
         source: targetTexts.source,
-        subject: targetTexts.subject,
+        topic: targetTexts.topic,
         similarity: sql<number>`1 - (${targetTexts.embedding} <=> ${vectorStr}::vector)`,
       })
       .from(targetTexts)
@@ -90,7 +90,7 @@ export async function POST(req: Request) {
       .limit(limit);
 
     return NextResponse.json({
-      querySubject: subject.trim(),
+      queryTopic: topic.trim(),
       totalWithEmbedding: countRow?.count ?? 0,
       results,
     });

@@ -1,19 +1,19 @@
 import { NextResponse } from "next/server";
-import { validateSubject } from "@/utils/validation";
+import { validateTopic } from "@/utils/validation";
 import { drizzleDb } from "@/db";
 import { targetTexts } from "@/db/schema";
 import { sql } from "drizzle-orm";
 
 export async function POST(req: Request) {
   try {
-    const { subject } = await req.json();
+    const { topic } = await req.json();
 
-    if (!subject || typeof subject !== "string") {
-      return NextResponse.json({ error: "Invalid subject provided" }, { status: 400 });
+    if (!topic || typeof topic !== "string") {
+      return NextResponse.json({ error: "Invalid topic provided" }, { status: 400 });
     }
 
     // 1단계: 유효성 검사 실행
-    const validation = validateSubject(subject);
+    const validation = validateTopic(topic);
     if (!validation.isValid) {
       return NextResponse.json(
         { error: validation.reason || "올바르지 않은 주제입니다." },
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
         Authorization: `Bearer ${upstageApiKey}`,
       },
       body: JSON.stringify({
-        input: subject,
+        input: topic,
         model: "embedding-query",
       }),
     });
@@ -59,7 +59,7 @@ export async function POST(req: Request) {
         language: targetTexts.language,
         source: targetTexts.source,
         generatorModel: targetTexts.generatorModel,
-        subject: targetTexts.subject,
+        topic: targetTexts.topic,
         userId: targetTexts.userId,
         usageCount: targetTexts.usageCount,
         lastUsedAt: targetTexts.lastUsedAt,
@@ -81,7 +81,7 @@ export async function POST(req: Request) {
     });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    console.error("Subject Mode Search Error:", error);
+    console.error("Topic Mode Search Error:", error);
     return NextResponse.json(
       { error: "Internal server error", details: errorMessage },
       { status: 500 },

@@ -9,12 +9,12 @@ interface FeatureGridProps {
 
 const features = [
   {
-    titleEn: "Subject Mode",
-    titleKo: "주제 모드",
+    titleEn: "Topic Mode",
+    titleKo: "토픽 모드",
     descEn:
       "Type about anything — AI generates targeted sentences via semantic vector search + Gemini LLM fallback. Zero repeat sentences.",
     descKo:
-      "어떤 주제든 입력하면 AI가 벡터 유사도 검색 + Gemini LLM 폴백으로 맞춤 문장을 실시간 제공합니다. 문장 중복 없음.",
+      "어떤 주제(토픽)든 입력하면 AI가 벡터 유사도 검색 + Gemini LLM 폴백으로 맞춤 문장을 실시간 제공합니다. 문장 중복 없음.",
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="11" cy="11" r="8" />

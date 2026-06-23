@@ -4,7 +4,7 @@ export interface ValidationResult {
 }
 
 /**
- * Validates the input subject for Subject Mode practice.
+ * Validates the input topic for Topic Mode practice.
  *
  * Rules:
  * 1. Only Korean characters (syllables, consonants, vowels) and whitespace are allowed.
@@ -13,8 +13,8 @@ export interface ValidationResult {
  * 4. Cannot contain a single character repeated 4 or more times consecutively (e.g., "가가가가").
  * 5. Cannot contain a 2-4 character pattern repeated 3 or more times (e.g., "안녕안녕안녕").
  */
-export function validateSubject(subject: string): ValidationResult {
-  const trimmed = subject.trim();
+export function validateTopic(topic: string): ValidationResult {
+  const trimmed = topic.trim();
 
   // 1. Length check: between 2 and 15 characters (includes empty strings as shorter than 2)
   if (trimmed.length < 2) {
@@ -25,8 +25,8 @@ export function validateSubject(subject: string): ValidationResult {
   }
 
   // 2. Allow Korean, English, numbers, spaces, and common punctuation characters
-  const subjectRegex = /^[가-힣ㄱ-ㅎㅏ-ㅣa-zA-Z0-9\s.,\-_+/()]+$/;
-  if (!subjectRegex.test(trimmed)) {
+  const topicRegex = /^[가-힣ㄱ-ㅎㅏ-ㅣa-zA-Z0-9\s.,\-_+/()]+$/;
+  if (!topicRegex.test(trimmed)) {
     return { isValid: false, reason: "올바른 주제 입력이 아닙니다." };
   }
 

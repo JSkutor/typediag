@@ -1,0 +1,1 @@
+ALTER TABLE "target_texts" RENAME COLUMN "subject" TO "topic";

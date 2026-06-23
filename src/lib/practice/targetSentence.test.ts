@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   cleanSentence,
-  filterSubjectGeneratedSentences,
+  filterTopicGeneratedSentences,
   getPureHangulCount,
   validateTargetSentence,
   BATCH_HANGUL_RANGE,
@@ -44,7 +44,7 @@ describe("targetSentence", () => {
     expect(result.reason).toBe("invalid_char");
   });
 
-  it("accepts a sentence within subject generate range", () => {
+  it("accepts a sentence within topic generate range", () => {
     const sentence =
       "요즘 들어 날씨 변화가 심해져서 출근길에 우산을 챙길지 말지 고민하는 사람이 많고, 특히 장거리 이동이 예정된 날에는 미리 예보를 확인해 준비하는 습관이 도움이 됩니다.";
     const result = validateTargetSentence(sentence, 60, 100);
@@ -70,11 +70,11 @@ describe("targetSentence", () => {
   it("filters invalid entries from generated arrays", () => {
     const valid =
       "요즘 들어 날씨 변화가 심해져서 출근길에 우산을 챙길지 말지 고민하는 사람이 많고, 특히 장거리 이동이 예정된 날에는 미리 예보를 확인해 준비하는 습관이 도움이 됩니다.";
-    const filtered = filterSubjectGeneratedSentences([valid, "줍니다.", "", 123]);
+    const filtered = filterTopicGeneratedSentences([valid, "줍니다.", "", 123]);
     expect(filtered).toEqual([valid]);
   });
 
-  it("returns empty array for filterSubjectGeneratedSentences with empty input", () => {
-    expect(filterSubjectGeneratedSentences([])).toEqual([]);
+  it("returns empty array for filterTopicGeneratedSentences with empty input", () => {
+    expect(filterTopicGeneratedSentences([])).toEqual([]);
   });
 });

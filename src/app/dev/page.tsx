@@ -7,7 +7,7 @@ const DEV_TOOLS = [
   {
     href: "/dev/cosine",
     title: "Cosine Similarity",
-    description: "Subject Mode 시맨틱 검색. DB 유사도 상위 문장 조회.",
+    description: "Topic Mode 시맨틱 검색. DB 유사도 상위 문장 조회.",
   },
   {
     href: "/dev/piecewise",

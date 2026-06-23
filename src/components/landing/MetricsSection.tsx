@@ -38,8 +38,8 @@ const metrics: MetricItem[] = [
     suffix: "D",
     labelEn: "Embedding Dim",
     labelKo: "임베딩 차원",
-    descEn: "Upstage Solar for Subject Mode",
-    descKo: "주제 모드 벡터 검색 임베딩",
+    descEn: "Upstage Solar for Topic Mode",
+    descKo: "토픽 모드 벡터 검색 임베딩",
   },
   {
     value: 50,

@@ -52,7 +52,7 @@ graphify-ts mcp 명령을 사용해 구조를 파악하라.
 | **세션 API (라우트)**   | `src/app/api/session/route.ts`   | Clerk 또는 `X-Guest-User-Id`로 사용자 식별 후 `sessionService` 위임.          |
 | **게스트 사용자 ID**    | `src/utils/guestUser.ts`         | 비로그인 `guest_<uuid>` 발급·`localStorage` 유지.                             |
 | **MVSA 알고리즘**       | `src/utils/mvsa.ts`              | 실시간 한글 자소 대조 및 오타 판별 정렬 엔진. `docs/MVSA_ALGORITHM.md` 명세와 싱크 필요. |
-| **Subject API**         | `src/app/api/practice/subject/`  | 주제 모드 벡터 검색(`route.ts`) 및 LLM 생성(`generate/route.ts`) 라우트 SSOT. |
+| **Topic API**           | `src/app/api/practice/topic/`    | 토픽 모드 벡터 검색(`route.ts`) 및 LLM 생성(`generate/route.ts`) 라우트 SSOT. |
 
 ---
 
@@ -133,7 +133,7 @@ graphify-ts mcp 명령을 사용해 구조를 파악하라.
 - 테스트에서 DB의 UUID 타입 컬럼에 `"old_run"`, `"pending_run"` 같은 임의 문자열 ID를 사용하지 마라. 유효한 UUID 형식(`"00000000-0000-0000-0000-000000000001"` 또는 `crypto.randomUUID()`)을 사용할 것.
 - `createPage`처럼 상위 row와 하위 row를 동시에 insert할 때 트랜잭션으로 묶지 않으면 중간 실패 시 고아(orphan) 데이터가 발생한다. 반드시 `drizzleDb.transaction()`으로 묶을 것.
 - `cleanSentence`처럼 개행문자(`\r\n`)를 공백으로 치환하는 함수를 거치기 전에 multiline 체크를 수행해야 한다. 정제 후에는 개행 감지가 불가능하다.
-- Subject Mode 연동 시, pgvector의 코사인 유사도 연산(`1 - (A <=> B)`)이 0.5를 초과하는지 반드시 확인하고, 결과가 없거나 부족할 때 즉각적으로 Gemini LLM Fallback을 호출하는 흐름을 무시하지 마라.
+- Topic Mode 연동 시, pgvector의 코사인 유사도 연산(`1 - (A <=> B)`)이 0.5를 초과하는지 반드시 확인하고, 결과가 없거나 부족할 때 즉각적으로 Gemini LLM Fallback을 호출하는 흐름을 무시하지 마라.
 - LLM 프롬프트로 문장 생성 시(Gemini Flash-Lite), 반환 포맷 검증을 거치지 않은 raw text를 그대로 클라이언트에 전달하지 마라. Max Tokens 등에 의해 JSON이 잘릴 수 있음을 항상 예외 처리해라.
 
 

@@ -30,8 +30,8 @@ describe("db", () => {
           like(targetTexts.id, "target_gen_%"),
           like(targetTexts.content, "no-embed-%"),
           like(targetTexts.content, "with-embed-%"),
-          like(targetTexts.content, "subject-gen-%"),
-          like(targetTexts.content, "subject-dup-%"),
+           like(targetTexts.content, "topic-gen-%"),
+           like(targetTexts.content, "topic-dup-%"),
           like(targetTexts.content, "test-content-%")
         )
       );
@@ -308,32 +308,32 @@ describe("db", () => {
     expect(fetchedEvents).toHaveLength(numEvents);
   });
 
-  it("should insert subject-generated targets without embedding", async () => {
+  it("should insert topic-generated targets without embedding", async () => {
     const id = `target_gen_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`;
-    const content = `subject-gen-${crypto.randomUUID()}`;
+    const content = `topic-gen-${crypto.randomUUID()}`;
 
-    await db.insertSubjectGeneratedTargets([
-      { id, content, language: "ko", subject: "테스트 주제" },
+    await db.insertTopicGeneratedTargets([
+      { id, content, language: "ko", topic: "테스트 주제" },
     ]);
 
     const found = await db.findTargetText({ id });
     expect(found?.content).toBe(content);
-    expect(found?.source).toBe("subject");
+    expect(found?.source).toBe("topic");
     expect(found?.generatorModel).toBe("gemini-2.5-flash-lite");
-    expect(found?.subject).toBe("테스트 주제");
+    expect(found?.topic).toBe("테스트 주제");
     expect(found?.embedding).toBeNull();
   });
 
-  it("should skip duplicate content when inserting subject-generated targets", async () => {
-    const content = `subject-dup-${crypto.randomUUID()}`;
+  it("should skip duplicate content when inserting topic-generated targets", async () => {
+    const content = `topic-dup-${crypto.randomUUID()}`;
     const firstId = `target_gen_${Date.now()}_aaaa1111`;
     const secondId = `target_gen_${Date.now()}_bbbb2222`;
 
-    await db.insertSubjectGeneratedTargets([
-      { id: firstId, content, language: "ko", subject: "주제A" },
+    await db.insertTopicGeneratedTargets([
+      { id: firstId, content, language: "ko", topic: "주제A" },
     ]);
-    await db.insertSubjectGeneratedTargets([
-      { id: secondId, content, language: "ko", subject: "주제B" },
+    await db.insertTopicGeneratedTargets([
+      { id: secondId, content, language: "ko", topic: "주제B" },
     ]);
 
     expect(await db.findTargetText({ id: secondId })).toBeNull();

@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { validateSubject } from "@/utils/validation";
-import { filterSubjectGeneratedSentences } from "@/lib/practice/targetSentence";
+import { validateTopic } from "@/utils/validation";
+import { filterTopicGeneratedSentences } from "@/lib/practice/targetSentence";
 import { db } from "@/utils/db";
 import crypto from "crypto";
 import prompts from "@/lib/practice/prompts.json";
 
-const SUBJECT_SENTENCE_RESPONSE_SCHEMA = {
+const TOPIC_SENTENCE_RESPONSE_SCHEMA = {
   type: "OBJECT",
   properties: {
     sentences: {
@@ -61,18 +61,18 @@ function isRetryableGeminiStatus(status: number | null): boolean {
 
 async function callGeminiGenerateContent(
   apiKey: string,
-  subject: string,
+  topic: string,
   model: (typeof GEMINI_MODELS)[number],
 ): Promise<{ sentences: string[]; rawCount: number }> {
-  const systemInstruction = prompts.subject.system_instruction;
+  const systemInstruction = prompts.topic.system_instruction;
 
   const hasNum = Math.random() < prompts.number_constraint.inclusion_ratio;
   const numberCondition = hasNum
     ? prompts.number_constraint.with_numbers
     : prompts.number_constraint.without_numbers;
 
-  const userPrompt = prompts.subject.user_prompt_template
-    .replace("{subject}", subject)
+  const userPrompt = prompts.topic.user_prompt_template
+    .replace("{topic}", topic)
     .replace("{number_condition}", numberCondition)
     .replace("{complex_sentence}", prompts.common_rules.complex_sentence)
     .replace("{no_newlines}", prompts.common_rules.no_newlines)
@@ -90,7 +90,7 @@ async function callGeminiGenerateContent(
           temperature: 0.7,
           maxOutputTokens: 4000,
           responseMimeType: "application/json",
-          responseSchema: SUBJECT_SENTENCE_RESPONSE_SCHEMA,
+          responseSchema: TOPIC_SENTENCE_RESPONSE_SCHEMA,
         },
       }),
     },
@@ -118,7 +118,7 @@ async function callGeminiGenerateContent(
   try {
     const parsed = JSON.parse(rawText) as { sentences?: unknown };
     if (Array.isArray(parsed.sentences)) {
-      const filtered = filterSubjectGeneratedSentences(parsed.sentences);
+      const filtered = filterTopicGeneratedSentences(parsed.sentences);
       if (parsed.sentences.length > 0 && filtered.length === 0) {
         console.warn(
           `[generate/route] All ${parsed.sentences.length} Gemini sentences rejected by validation`,
@@ -133,7 +133,7 @@ async function callGeminiGenerateContent(
 }
 
 async function generateSentencesWithGemini(
-  subject: string,
+  topic: string,
 ): Promise<{ sentences: string[]; rawCount: number }> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
@@ -145,7 +145,7 @@ async function generateSentencesWithGemini(
   for (const model of GEMINI_MODELS) {
     for (let attempt = 0; attempt <= GEMINI_RETRY_DELAYS_MS.length; attempt += 1) {
       try {
-        return await callGeminiGenerateContent(apiKey, subject, model);
+        return await callGeminiGenerateContent(apiKey, topic, model);
       } catch (error) {
         if (!(error instanceof GeminiApiError)) {
           throw error;
@@ -168,13 +168,13 @@ async function generateSentencesWithGemini(
 
 export async function POST(req: Request) {
   try {
-    const { subject } = await req.json();
+    const { topic } = await req.json();
 
-    if (!subject || typeof subject !== "string") {
-      return NextResponse.json({ error: "Invalid subject" }, { status: 400 });
+    if (!topic || typeof topic !== "string") {
+      return NextResponse.json({ error: "Invalid topic" }, { status: 400 });
     }
 
-    const validation = validateSubject(subject);
+    const validation = validateTopic(topic);
     if (!validation.isValid) {
       return NextResponse.json(
         { error: validation.reason || "올바르지 않은 주제입니다." },
@@ -182,7 +182,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const sentences = await generateSentencesWithGemini(subject);
+    const sentences = await generateSentencesWithGemini(topic);
 
     if (!sentences.sentences || sentences.sentences.length === 0) {
       const error =
@@ -199,9 +199,9 @@ export async function POST(req: Request) {
     }));
 
     void db
-      .insertSubjectGeneratedTargets(responseData.map((item) => ({ ...item, subject })))
+      .insertTopicGeneratedTargets(responseData.map((item) => ({ ...item, topic })))
       .catch((err) => {
-        console.error("[generate/route] insertSubjectGeneratedTargets failed:", err);
+        console.error("[generate/route] insertTopicGeneratedTargets failed:", err);
       });
 
     return NextResponse.json({ success: true, data: responseData });

@@ -3,7 +3,7 @@ import constraints from "./targetSentenceConstraints.json";
 const ALLOWED_PUNCTUATION = /^[가-힣0-9\s.,!?]+$/;
 const CONTROL_CHAR_PATTERN = /[\x00-\x08\x0B\x0C\x0E-\x1F\\]/;
 
-export const SUBJECT_GENERATE_HANGUL_RANGE = constraints.subjectGenerate;
+export const TOPIC_GENERATE_HANGUL_RANGE = constraints.topicGenerate;
 export const BATCH_HANGUL_RANGE = constraints.batch;
 
 /** 공백·문장부호를 제외한 순수 한글 글자 수 (manage_targets.get_pure_hangul_count) */
@@ -63,8 +63,8 @@ export function validateTargetSentence(
   return { isValid: true, pureHangulCount, cleaned };
 }
 
-export function filterSubjectGeneratedSentences(rawSentences: unknown[]): string[] {
-  const { minPureHangul, maxPureHangul } = SUBJECT_GENERATE_HANGUL_RANGE;
+export function filterTopicGeneratedSentences(rawSentences: unknown[]): string[] {
+  const { minPureHangul, maxPureHangul } = TOPIC_GENERATE_HANGUL_RANGE;
 
   return rawSentences
     .filter((s): s is string => typeof s === "string")

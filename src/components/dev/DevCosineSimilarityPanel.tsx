@@ -13,15 +13,15 @@ export function DevCosineSimilarityPanel() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const runSearch = useCallback(async (subject: string) => {
-    if (!subject.trim()) return;
+  const runSearch = useCallback(async (topic: string) => {
+    if (!topic.trim()) return;
     setLoading(true);
     setError(null);
     try {
       const res = await fetch("/api/dev/cosine-similarity", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subject, limit: 20 }),
+        body: JSON.stringify({ topic, limit: 20 }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -103,7 +103,7 @@ export function DevCosineSimilarityPanel() {
                           {formatSimilarity(row.similarity)}
                         </span>
                       </td>
-                      <td>{row.subject ?? "—"}</td>
+                      <td>{row.topic ?? "—"}</td>
                       <td className={styles.contentCell}>{row.content}</td>
                     </tr>
                   ))}

@@ -1,6 +1,6 @@
 export interface CosineSearchResult {
   id: string;
-  subject: string | null;
+  topic: string | null;
   content: string;
   language: string;
   source: string;
@@ -8,7 +8,7 @@ export interface CosineSearchResult {
 }
 
 export interface CosineSearchResponse {
-  querySubject: string;
+  queryTopic: string;
   totalWithEmbedding: number;
   results: CosineSearchResult[];
 }

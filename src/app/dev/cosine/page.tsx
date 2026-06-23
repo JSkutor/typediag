@@ -15,7 +15,7 @@ export default function DevCosinePage() {
         <header className={styles.header}>
           <h1 className={styles.title}>Dev · Cosine Similarity</h1>
           <p className={styles.subtitle}>
-            Subject Mode 시맨틱 검색을 Upstage 임베딩 + pgvector 코사인 유사도로 확인합니다.
+            Topic Mode 시맨틱 검색을 Upstage 임베딩 + pgvector 코사인 유사도로 확인합니다.
             development 모드에서만 접근 가능합니다.
           </p>
         </header>

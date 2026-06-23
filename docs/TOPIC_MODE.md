@@ -1,25 +1,25 @@
-# TypeDiag: Subject Mode 아키텍처 및 벡터 캐싱 명세서
+# TypeDiag: Topic Mode 아키텍처 및 벡터 캐싱 명세서
 
-Subject Mode(주제 모드)는 사용자가 직접 입력한 주제어에 맞는 타자 연습 문장을 실시간으로 서빙하는 모드입니다. LLM API 호출로 인한 비용 부담을 낮추고 빠른 응답 속도를 확보하기 위해 **의미론적 캐싱(Semantic Caching)** 및 **벡터 유사도 검색** 기반의 하이브리드 아키텍처를 채택했습니다.
+Topic Mode(주제 모드)는 사용자가 직접 입력한 주제어에 맞는 타자 연습 문장을 실시간으로 서빙하는 모드입니다. LLM API 호출로 인한 비용 부담을 낮추고 빠른 응답 속도를 확보하기 위해 **의미론적 캐싱(Semantic Caching)** 및 **벡터 유사도 검색** 기반의 하이브리드 아키텍처를 채택했습니다.
 
 ---
 
 ## 1. 아키텍처 및 데이터 흐름 (Architecture & Data Flow)
 
-Subject 모드의 백엔드는 철저히 2단계로 분리되어 구동됩니다:
-1. `api/practice/subject/route.ts` : 벡터 캐싱 기반 고속 검색
-2. `api/practice/subject/generate/route.ts` : LLM 기반 실시간 문장 생성
+Topic 모드의 백엔드는 철저히 2단계로 분리되어 구동됩니다:
+1. `api/practice/topic/route.ts` : 벡터 캐싱 기반 고속 검색
+2. `api/practice/topic/generate/route.ts` : LLM 기반 실시간 문장 생성
 
 ```mermaid
 sequenceDiagram
     participant Client as Frontend (PracticePanel)
-    participant SearchAPI as Subject Route<br>(/api/practice/subject)
-    participant GenAPI as Generate Route<br>(.../subject/generate)
+    participant SearchAPI as Topic Route<br>(/api/practice/topic)
+    participant GenAPI as Generate Route<br>(.../topic/generate)
     participant Upstage as Upstage<br>Embedding API
     participant DB as pgvector DB<br>(target_texts)
     participant Gemini as Gemini 2.5<br>Flash-Lite API
 
-    Client->>SearchAPI: 1. 주제어(Subject) 검색 요청
+    Client->>SearchAPI: 1. 주제어(Topic) 검색 요청
     SearchAPI->>Upstage: 주제어 임베딩 변환 (4096차원)
     Upstage-->>SearchAPI: Embedding Vector 리턴
     SearchAPI->>DB: pgvector 코사인 유사도 검색<br>(유사도 > 0.5)
@@ -55,8 +55,8 @@ sequenceDiagram
 
 ### 2.3. 클라이언트 상태 관리 및 페이징 (Client Pagination)
 사용자가 연습을 진행하며 문장을 소모할 때, 끊김 없는 UX를 제공하기 위해 다음과 같은 로직이 구동됩니다.
-- Zustand `useSubjectTargets` 훅에서 초기 로딩된 문장 큐를 관리합니다.
-- 사용자가 문장 큐의 끝에 다가가면(예: 남은 문장 수가 N개 이하), 백그라운드에서 `fetchMoreSubjectTargets`를 호출하여 새로운 문장을 선제적으로 요청합니다.
+- Zustand `useTopicTargets` 훅에서 초기 로딩된 문장 큐를 관리합니다.
+- 사용자가 문장 큐의 끝에 다가가면(예: 남은 문장 수가 N개 이하), 백그라운드에서 `fetchMoreTopicTargets`를 호출하여 새로운 문장을 선제적으로 요청합니다.
 - 이때 기존 DB 캐시가 고갈되었을 경우 자연스럽게 LLM `generate` 라우트로 폴백(Fallback)되어 무한 스크롤 형태의 연습이 가능해집니다.
 
 ---
@@ -64,7 +64,7 @@ sequenceDiagram
 ## 3. 에러 핸들링 및 예외 처리 (Exception Handling)
 
 - **주제어 검증 필터 (Validation Filter)**: 
-  - 임베딩 생성 및 API 호출 전, 의미 없는 비정상 입력(예: "ㄱㄱㄱㄱㄱ", "asdfasdf") 혹은 과도하게 긴 주제어는 `validateSubject` 함수를 통해 차단하여 불필요한 API 비용 소모를 방지합니다.
+  - 임베딩 생성 및 API 호출 전, 의미 없는 비정상 입력(예: "ㄱㄱㄱㄱㄱ", "asdfasdf") 혹은 과도하게 긴 주제어는 `validateTopic` 함수를 통해 차단하여 불필요한 API 비용 소모를 방지합니다.
 - **로딩 피드백 (Interactive Loading)**: 
   - 캐시 미스로 인해 Gemini API를 호출하여 지연이 발생할 경우(약 1~2초 내외), 프론트엔드에서 인터랙티브 로딩 애니메이션을 즉시 표시하여 사용자 경험의 끊김을 방지합니다.
 - **Max Tokens 예외**: 

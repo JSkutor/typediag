@@ -10,6 +10,13 @@
       "when": 1782135728603,
       "tag": "0000_woozy_meteorite",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1782221992316,
+      "tag": "0001_rename_subject_to_topic",
+      "breakpoints": true
     }
   ]
 }

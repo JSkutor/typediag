@@ -26,7 +26,7 @@ interface SqliteTargetRow {
   language: string;
   source: string;
   generator_model: string | null;
-  subject: string | null;
+  topic: string | null;
   user_id: string | null;
   usage_count: number;
   last_used_at: string | null;
@@ -82,14 +82,14 @@ async function main() {
         }
 
         await tx`
-          INSERT INTO target_texts (id, content, language, source, generator_model, subject, usage_count, embedding, created_at)
+          INSERT INTO target_texts (id, content, language, source, generator_model, topic, usage_count, embedding, created_at)
           VALUES (
             ${textId},
             ${row.content},
             ${row.language},
             ${row.source || "default"},
             ${row.generator_model},
-            ${row.subject},
+            ${row.topic},
             ${row.usage_count || 0},
             ${embeddingValue ? sql`${embeddingValue}::vector` : null},
             ${row.created_at ? new Date(row.created_at) : new Date()}

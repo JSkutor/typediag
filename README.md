@@ -41,4 +41,4 @@ npm run build
 - `docs/DESIGN_SYSTEM.md` — UI theme (“Space Grey & Ocean Cyan”)
 - `docs/DIAGNOSTICS.md` — 3D diagnostics stats & mathematical ideation specifications (Korean)
 - `docs/HARDCORE_MODE.md` — Hardcore MLP Language Model specifications (Korean)
-- `docs/SUBJECT_MODE.md` — Subject Mode vector caching (pgvector) and LLM generation architecture (Korean)
+- `docs/TOPIC_MODE.md` — Topic Mode vector caching (pgvector) and LLM generation architecture (Korean)
