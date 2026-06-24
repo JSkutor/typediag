@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { useCylindricalDiagnostics } from "./useCylindricalDiagnostics";
 import { KeyEvent } from "@/lib/skdm";
+import { keyDistanceU } from "@/lib/skdm/geometry";
 
 describe("useCylindricalDiagnostics diagnostics", () => {
   it("should return zeros for empty events in error metrics", () => {
@@ -360,6 +361,24 @@ describe("useCylindricalDiagnostics diagnostics", () => {
       expect(consistency).not.toBeNull();
       expect(consistency!.level).toBe("erratic");
       expect(consistency!.relativeMad).toBeGreaterThan(0.35);
+    });
+  });
+
+  describe("spatialErrorDistance", () => {
+    it("is exposed via calculateKeystrokeDiagnostics", () => {
+      const events: KeyEvent[] = [
+        { fromKey: "a", toKey: "f", latencyMs: 100, isCorrect: true, expectedChar: null },
+        { fromKey: "a", toKey: "g", latencyMs: 100, isCorrect: false, expectedChar: "f" },
+      ];
+
+      const { result } = renderHook(() => useCylindricalDiagnostics(events, "f"));
+
+      expect(result.current.diagnostics.spatialErrorDistance).not.toBeNull();
+      expect(result.current.diagnostics.spatialErrorDistance!.sampleCount).toBe(1);
+      expect(result.current.diagnostics.spatialErrorDistance!.quartilesU.q2).toBeCloseTo(
+        keyDistanceU("f", "g")!,
+        5,
+      );
     });
   });
 });

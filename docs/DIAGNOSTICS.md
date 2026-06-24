@@ -126,7 +126,7 @@ UI SSOT: `src/components/workspace/CylindricalDiagnosticsPanel.tsx`
 
 | 지표 | 비고 |
 | :--- | :--- |
-| 공간적 오타 거리 | 키보드 물리 좌표상 정답↔오타 거리 — **미구현** |
+| 공간적 오타 거리 | `expectedChar === selectedTo && isCorrect === false` — 정답↔실제 `toKey` 거리 Q1·Q2·Q3 궤도 시각화 |
 | Dwell · Flight (구름타법) | 누름 시간 vs 이동 시간 분리 — **미구현** |
 | N단계 전이 오타 패턴 | optional — **미구현** |
 | 버스트 쌍 포함 여부 | optional — **미구현** |
@@ -210,7 +210,7 @@ fitPiecewiseFromLatencies(orderedLatencies, { targetToKey, upperBoundMs })
 | 지표 | 권장 방식 |
 | :--- | :--- |
 | Latency 분포 (MAD) | `computeLatencyConsistency` — selectedTo 정답 latency에 MAD/rMAD, 5건 미만 시 null |
-| 공간적 오타 거리 | 오타 이벤트만 스캔, 키 좌표 lookup (`layout.ts`) |
+| 공간적 오타 거리 | `getSpatialErrorDistance` — 오타 이벤트 스캔, `buildLayout` 좌표 lookup |
 | Dwell · Flight | holdDuration + latency 분리 — accumulator의 per-key 쌍 재사용 |
 | N단계 전이 패턴 | 최근 N건 또는 고정 윈도우 (예: 2,000건) |
 | 버스트 쌍 | latency 임계값 기반 연속 구간 탐지 — 윈도우 스캔 |

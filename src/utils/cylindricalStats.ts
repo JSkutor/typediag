@@ -1,5 +1,6 @@
 import { KeyEvent } from "@/lib/skdm";
 import { KEYBOARD_META, getHand, needsShift } from "@/lib/skdm/keyboardMeta";
+import { getSpatialErrorDistance } from "@/lib/skdm/diagnostics";
 import { getMAD, getMedian, getPercentile, getStudentTPValue } from "./stats";
 import { PiecewiseFitOutcome } from "@/utils/piecewiseRegression";
 
@@ -79,6 +80,11 @@ export interface KeystrokeDiagnostics {
     sampleCount: number;
     level: "steady" | "moderate" | "erratic";
     histogram: number[];
+  } | null;
+  spatialErrorDistance: {
+    sampleCount: number;
+    quartilesU: { q1: number; q2: number; q3: number };
+    typoCounts: Record<string, number>;
   } | null;
 }
 
@@ -163,6 +169,7 @@ export function calculateKeystrokeDiagnostics(
     },
     relativeSpeed: { speedDiffMs: 0, handMedianMs: 0 },
     latencyConsistency: null,
+    spatialErrorDistance: null,
   };
 
   if (!selectedTo || events.length === 0) {
@@ -213,6 +220,8 @@ export function calculateKeystrokeDiagnostics(
     totalErrorStartsCount > 0 ? (errorInducementCount / totalErrorStartsCount) * 100 : 0;
   const lateKeystrokeRate =
     totalErrorsCount > 0 ? (lateKeystrokeCount / totalErrorsCount) * 100 : 0;
+
+  const spatialErrorDistance = getSpatialErrorDistance(events, selectedTo);
 
   // 2) 선택적 진단 (optionalStats 대응)
   const EXCLUDE_KEYS = new Set(["shift_l", "shift_r", "backspace", "enter"]);
@@ -322,6 +331,7 @@ export function calculateKeystrokeDiagnostics(
       commonPair,
       unconsciousKey,
       shiftPenalty,
+      spatialErrorDistance,
     };
   }
 
@@ -494,6 +504,7 @@ export function calculateKeystrokeDiagnostics(
       handMedianMs: comparedToMedianMs,
     },
     latencyConsistency,
+    spatialErrorDistance,
   };
 }
 

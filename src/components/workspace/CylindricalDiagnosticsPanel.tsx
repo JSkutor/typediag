@@ -7,6 +7,7 @@ import { KEYBOARD_META } from "@/lib/skdm/keyboardMeta";
 import { type PiecewiseFitSuccess, type PiecewiseFitFailure } from "@/utils/piecewiseRegression";
 import { PIECEWISE_FAILURE_LABEL } from "@/lib/dev/piecewiseDev";
 import type { KeystrokeDiagnostics } from "@/utils/cylindricalStats";
+import { SpatialErrorOrbitViz } from "@/components/workspace/SpatialErrorOrbitViz";
 
 interface CylindricalDiagnosticsPanelProps {
   events: KeyEvent[];
@@ -48,7 +49,6 @@ function ComingSoonTag() {
 
 /** 미구현 항목 전용 — 실데이터 연동 전 UI 스켈레톤 */
 const PLACEHOLDER = {
-  spatialErrorDistance: { meanMm: 18.4, maxMm: 42.1, nearestKey: "j" },
   dwellFlight: { dwellMs: 68.2, flightMs: 74.4, cloudTypingScore: 0.72 },
   nStepTransition: [
     { step: 1, pattern: "g→b", prob: 0.18 },
@@ -527,32 +527,15 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
             {hasData ? (
               <div className="cyl-diag__detailed-content">
                 <div className="cyl-diag__detailed-card cyl-diag__detailed-card--optional">
-                  <span className="cyl-diag__stat-lbl">
-                    공간적 오타 거리 <ComingSoonTag />
-                  </span>
-                  <div className="cyl-diag__spatial-box">
-                    <div className="cyl-diag__spatial-metric">
-                      <span className="cyl-diag__stat-desc">평균 거리</span>
-                      <span className="cyl-diag__median-val">
-                        {PLACEHOLDER.spatialErrorDistance.meanMm} mm
-                      </span>
-                    </div>
-                    <div className="cyl-diag__spatial-metric">
-                      <span className="cyl-diag__stat-desc">최대 거리</span>
-                      <span className="cyl-diag__median-val">
-                        {PLACEHOLDER.spatialErrorDistance.maxMm} mm
-                      </span>
-                    </div>
-                    <div className="cyl-diag__spatial-metric">
-                      <span className="cyl-diag__stat-desc">최빈 오타 키</span>
-                      <span className="cyl-diag__key-text">
-                        {formatKey(PLACEHOLDER.spatialErrorDistance.nearestKey)}
-                      </span>
-                    </div>
-                  </div>
-                  <p className="cyl-diag__card-desc">
-                    키보드 물리 좌표상 정답 키와 실제 오타 키 간 거리 분포입니다.
-                  </p>
+                  <span className="cyl-diag__stat-lbl">공간적 오타 거리</span>
+                  {diagnostics.spatialErrorDistance ? (
+                    <SpatialErrorOrbitViz
+                      centerKey={selectedTo}
+                      data={diagnostics.spatialErrorDistance}
+                    />
+                  ) : (
+                    <p className="cyl-diag__empty">오타 샘플이 없습니다.</p>
+                  )}
                 </div>
 
                 <div className="cyl-diag__detailed-card">

@@ -4,7 +4,9 @@ import {
   getFirstErrorStats,
   getPhysicalVariance,
   getSlowestFromKeys,
+  getSpatialErrorDistance,
 } from "./diagnostics";
+import { keyDistanceU } from "./geometry";
 import type { KeyEvent } from "./types";
 import type { CylindricalVector } from "./cylindrical";
 
@@ -226,6 +228,50 @@ describe("Diagnostics module", () => {
       expect(result.sameHandAvgMs).toBe(125); // (100 + 150) / 2
       expect(result.altHandCount).toBe(1);
       expect(result.altHandAvgMs).toBe(200);
+    });
+  });
+
+  describe("getSpatialErrorDistance", () => {
+    it("uses expectedChar→typo toKey distance when expected was target", () => {
+      const events: KeyEvent[] = [
+        { fromKey: "a", toKey: "g", latencyMs: 100, isCorrect: false, expectedChar: "f" },
+        { fromKey: "s", toKey: "g", latencyMs: 120, isCorrect: false, expectedChar: "f" },
+        { fromKey: "d", toKey: "d", latencyMs: 110, isCorrect: false, expectedChar: "f" },
+        { fromKey: "a", toKey: "f", latencyMs: 90, isCorrect: true, expectedChar: null },
+        { fromKey: "a", toKey: "f", latencyMs: 90, isCorrect: false, expectedChar: "g" },
+      ];
+
+      const distG = keyDistanceU("f", "g")!;
+      const distD = keyDistanceU("f", "d")!;
+      const sorted = [distG, distG, distD].sort((a, b) => a - b);
+
+      const result = getSpatialErrorDistance(events, "f");
+
+      expect(result).not.toBeNull();
+      expect(result!.sampleCount).toBe(3);
+      expect(result!.quartilesU.q1).toBeCloseTo(sorted[0], 5);
+      expect(result!.quartilesU.q2).toBeCloseTo(sorted[1], 5);
+      expect(result!.typoCounts.g).toBe(2);
+      expect(result!.typoCounts.d).toBe(1);
+    });
+
+    it("matches Hangul jamo expectedChar to layout key", () => {
+      const events: KeyEvent[] = [
+        { fromKey: "a", toKey: "g", latencyMs: 100, isCorrect: false, expectedChar: "ㄹ" },
+      ];
+
+      const result = getSpatialErrorDistance(events, "f");
+
+      expect(result).not.toBeNull();
+      expect(result!.sampleCount).toBe(1);
+      expect(result!.quartilesU.q2).toBeCloseTo(keyDistanceU("f", "g")!, 5);
+    });
+
+    it("returns null when there are no matching typo events", () => {
+      const events: KeyEvent[] = [
+        { fromKey: "a", toKey: "f", latencyMs: 100, isCorrect: true, expectedChar: null },
+      ];
+      expect(getSpatialErrorDistance(events, "f")).toBeNull();
     });
   });
 

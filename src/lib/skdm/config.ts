@@ -17,6 +17,15 @@ export const KEY_UNIT = 1.0;
 /** Vertical spacing between rows. */
 export const ROW_HEIGHT_U = 1.0;
 
+/** Physical center-to-center key pitch (mm) for U → mm conversion. Standard MX spacing. */
+export const KEY_PITCH_MM = 19.05;
+
+/**
+ * Max center-to-center distance (layout U) for a typo to count as physically adjacent
+ * (orthogonal + diagonal neighbors on the staggered grid).
+ */
+export const SPATIAL_ADJACENT_MAX_DISTANCE_U = Math.SQRT2;
+
 // --- Outlier filtering ---
 export const OUTLIER_HARD_CUTOFF_MS = 2000.0;
 export const OUTLIER_IQR_MIN_UPPER_BOUND_MS = 500.0;

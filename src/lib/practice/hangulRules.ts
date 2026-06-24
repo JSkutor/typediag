@@ -131,6 +131,27 @@ export function toJamo(char: string): string {
   return QWERTY_TO_JAMO[char] || char;
 }
 
+/** Jamo → lowercase QWERTY layout key (Dubeolsik, unshifted preferred). */
+const JAMO_TO_QWERTY_KEY: Record<string, string> = {};
+for (const [qwerty, jamo] of Object.entries(QWERTY_TO_JAMO)) {
+  if (/^[a-z]$/.test(qwerty) && !(jamo in JAMO_TO_QWERTY_KEY)) {
+    JAMO_TO_QWERTY_KEY[jamo] = qwerty;
+  }
+}
+
+export function jamoToQwertyKey(jamo: string): string | null {
+  return JAMO_TO_QWERTY_KEY[jamo] ?? null;
+}
+
+/** Map expected character (Latin or Hangul jamo) to a layout key token. */
+export function charToLayoutKey(char: string | null | undefined): string | null {
+  if (!char || char.length === 0) return null;
+  const c = char[0];
+  if (/^[a-z]$/.test(c)) return c;
+  if (/^[A-Z]$/.test(c)) return c.toLowerCase();
+  return jamoToQwertyKey(c);
+}
+
 export function isConsonant(jamo: string): boolean {
   return CONSONANTS_SINGLE.includes(jamo) || CONSONANTS_DOUBLE.includes(jamo);
 }

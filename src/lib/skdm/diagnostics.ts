@@ -14,6 +14,10 @@ import type { KeyEvent } from "./types";
 import type { CylindricalVector } from "./cylindrical";
 import { KEYBOARD_META, getHand, getFinger, getMetaRow, isShiftCombinable } from "./keyboardMeta";
 import { filterInterruptedTransitions, filterOutliers } from "./model";
+import { buildLayout } from "./layout";
+import { keyDistanceU } from "./geometry";
+import { charToLayoutKey } from "@/lib/practice/hangulRules";
+import { getPercentile } from "@/utils/stats";
 
 // ---------------------------------------------------------------------------
 // 1. Shift Overhead
@@ -360,6 +364,69 @@ export function getPhysicalVariance(
   result.sameHandCount = sameHandLats.length;
 
   return result;
+}
+
+// ---------------------------------------------------------------------------
+// 5. Spatial Error Distance (expected → actual typo)
+// ---------------------------------------------------------------------------
+
+function normalizeAlphaLayoutKey(key: string | null | undefined): string | null {
+  if (!key) return null;
+  const lower = key.toLowerCase();
+  return /^[a-z]$/.test(lower) ? lower : null;
+}
+
+export interface SpatialErrorDistanceResult {
+  sampleCount: number;
+  /** Quartiles of expected→typo distances in layout U units. */
+  quartilesU: { q1: number; q2: number; q3: number };
+  /** Typo key press counts (toKey when expected was target). */
+  typoCounts: Record<string, number>;
+}
+
+/**
+ * Events where the user should have typed `targetKey` (`expectedChar`) but pressed
+ * a different key (`toKey`, `isCorrect === false`). Distance = center → typo key.
+ *
+ * Each incorrect event counts once. Quartiles (Q1/Q2/Q3) summarize the spread.
+ */
+export function getSpatialErrorDistance(
+  events: KeyEvent[],
+  targetKey: string,
+): SpatialErrorDistanceResult | null {
+  const target = targetKey.toLowerCase();
+  const layout = buildLayout();
+
+  const distancesU: number[] = [];
+  const typoCounts: Record<string, number> = {};
+
+  for (const ev of events) {
+    if (ev.isCorrect !== false) continue;
+    if (charToLayoutKey(ev.expectedChar) !== target) continue;
+
+    const typoKey = normalizeAlphaLayoutKey(ev.toKey);
+    if (!typoKey) continue;
+
+    const distU = keyDistanceU(target, typoKey, layout);
+    if (distU === null) continue;
+
+    distancesU.push(distU);
+    typoCounts[typoKey] = (typoCounts[typoKey] ?? 0) + 1;
+  }
+
+  if (distancesU.length === 0) return null;
+
+  const sorted = [...distancesU].sort((a, b) => a - b);
+
+  return {
+    sampleCount: distancesU.length,
+    quartilesU: {
+      q1: getPercentile(sorted, 0.25),
+      q2: getPercentile(sorted, 0.5),
+      q3: getPercentile(sorted, 0.75),
+    },
+    typoCounts,
+  };
 }
 
 // ---------------------------------------------------------------------------
