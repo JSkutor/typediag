@@ -1,6 +1,6 @@
 import { KeyEvent } from "@/lib/skdm";
 import { KEYBOARD_META, getHand, needsShift } from "@/lib/skdm/keyboardMeta";
-import { getMedian, getPercentile, getStudentTPValue } from "./stats";
+import { getMAD, getMedian, getPercentile, getStudentTPValue } from "./stats";
 import { PiecewiseFitOutcome } from "@/utils/piecewiseRegression";
 
 export interface KeystrokeDiagnostics {
@@ -71,6 +71,62 @@ export interface KeystrokeDiagnostics {
     speedDiffMs: number;
     handMedianMs: number;
   };
+  latencyConsistency: {
+    madMs: number;
+    medianMs: number;
+    /** MAD / median — robust analog of coefficient of variation */
+    relativeMad: number;
+    sampleCount: number;
+    level: "steady" | "moderate" | "erratic";
+    histogram: number[];
+  } | null;
+}
+
+const LATENCY_CONSISTENCY_MIN_SAMPLES = 5;
+const LATENCY_HISTOGRAM_BINS = 12;
+
+/** relativeMad = MAD/median 기준 일관성 등급 */
+function classifyLatencyConsistency(relativeMad: number): "steady" | "moderate" | "erratic" {
+  if (relativeMad < 0.2) return "steady";
+  if (relativeMad < 0.35) return "moderate";
+  return "erratic";
+}
+
+function buildLatencyHistogram(values: number[], binCount: number): number[] {
+  if (values.length === 0) return Array(binCount).fill(0);
+
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min;
+  const counts = Array(binCount).fill(0);
+
+  for (const value of values) {
+    const idx =
+      range === 0
+        ? Math.floor(binCount / 2)
+        : Math.min(binCount - 1, Math.floor(((value - min) / range) * binCount));
+    counts[idx]++;
+  }
+
+  const peak = Math.max(...counts, 1);
+  return counts.map((count) => Math.round((count / peak) * 100));
+}
+
+function computeLatencyConsistency(latencies: number[]) {
+  if (latencies.length < LATENCY_CONSISTENCY_MIN_SAMPLES) return null;
+
+  const medianMs = getMedian(latencies);
+  const madMs = getMAD(latencies);
+  const relativeMad = medianMs > 0 ? madMs / medianMs : 0;
+
+  return {
+    madMs,
+    medianMs,
+    relativeMad,
+    sampleCount: latencies.length,
+    level: classifyLatencyConsistency(relativeMad),
+    histogram: buildLatencyHistogram(latencies, LATENCY_HISTOGRAM_BINS),
+  };
 }
 
 export function calculateKeystrokeDiagnostics(
@@ -106,6 +162,7 @@ export function calculateKeystrokeDiagnostics(
       },
     },
     relativeSpeed: { speedDiffMs: 0, handMedianMs: 0 },
+    latencyConsistency: null,
   };
 
   if (!selectedTo || events.length === 0) {
@@ -272,6 +329,7 @@ export function calculateKeystrokeDiagnostics(
   const latencies = targetCorrectEvents.map((ev) => ev.latencyMs);
   const medianLatencyMs = getMedian(latencies);
   const equivalentCpm = medianLatencyMs > 0 ? Math.round(60000 / medianLatencyMs) : 0;
+  const latencyConsistency = computeLatencyConsistency(latencies);
 
   // Hold Duration 상관계수
   const validPairs = targetCorrectEvents
@@ -435,6 +493,7 @@ export function calculateKeystrokeDiagnostics(
       speedDiffMs: relativeSpeedMs,
       handMedianMs: comparedToMedianMs,
     },
+    latencyConsistency,
   };
 }
 

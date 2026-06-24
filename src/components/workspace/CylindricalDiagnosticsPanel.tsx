@@ -6,6 +6,7 @@ import { useCylindricalDiagnostics } from "@/hooks/useCylindricalDiagnostics";
 import { KEYBOARD_META } from "@/lib/skdm/keyboardMeta";
 import { type PiecewiseFitSuccess, type PiecewiseFitFailure } from "@/utils/piecewiseRegression";
 import { PIECEWISE_FAILURE_LABEL } from "@/lib/dev/piecewiseDev";
+import type { KeystrokeDiagnostics } from "@/utils/cylindricalStats";
 
 interface CylindricalDiagnosticsPanelProps {
   events: KeyEvent[];
@@ -14,6 +15,7 @@ interface CylindricalDiagnosticsPanelProps {
 }
 
 const KEY_LABEL: Record<string, string> = { space: "␣", ",": ",", ".": "." };
+
 function formatKey(key: string) {
   return KEY_LABEL[key] ?? key.toUpperCase();
 }
@@ -36,6 +38,120 @@ function scaleLinear(
   return rangeMin + t * (rangeMax - rangeMin);
 }
 
+function OptionalTag() {
+  return <span className="cyl-diag__optional-tag">optional</span>;
+}
+
+function ComingSoonTag() {
+  return <span className="cyl-diag__optional-tag">coming soon</span>;
+}
+
+/** 미구현 항목 전용 — 실데이터 연동 전 UI 스켈레톤 */
+const PLACEHOLDER = {
+  spatialErrorDistance: { meanMm: 18.4, maxMm: 42.1, nearestKey: "j" },
+  dwellFlight: { dwellMs: 68.2, flightMs: 74.4, cloudTypingScore: 0.72 },
+  nStepTransition: [
+    { step: 1, pattern: "g→b", prob: 0.18 },
+    { step: 2, pattern: "g→g→b", prob: 0.09 },
+    { step: 3, pattern: "b→g→b", prob: 0.05 },
+  ],
+  burstPair: { included: true, burstId: "#12", pairLabel: "s→k" },
+} as const;
+
+const LATENCY_LEVEL_LABEL: Record<
+  NonNullable<KeystrokeDiagnostics["latencyConsistency"]>["level"],
+  string
+> = {
+  steady: "일정",
+  moderate: "보통",
+  erratic: "오락가락",
+};
+
+const LATENCY_LEVEL_BADGE: Record<
+  NonNullable<KeystrokeDiagnostics["latencyConsistency"]>["level"],
+  string
+> = {
+  steady: "badge-success",
+  moderate: "badge-warning",
+  erratic: "badge-warning",
+};
+
+function buildFingerTransitionItems(selectedTo: string, diagnostics: KeystrokeDiagnostics) {
+  const targetMeta = KEYBOARD_META[selectedTo.toLowerCase()];
+  const isLeft = targetMeta ? targetMeta.hand === "L" : true;
+  const { ratios } = diagnostics.fingerTransitions;
+
+  return [
+    { label: isLeft ? "오른손 전체" : "왼손 전체", value: ratios.oppositeHand, color: "var(--accent)" },
+    { label: isLeft ? "왼 소지" : "오른 소지", value: ratios.sameHandPinky, color: "#a855f7" },
+    { label: isLeft ? "왼 약지" : "오른 약지", value: ratios.sameHandRing, color: "#3b82f6" },
+    { label: isLeft ? "왼 중지" : "오른 중지", value: ratios.sameHandMiddle, color: "#10b981" },
+    { label: isLeft ? "왼 검지" : "오른 검지", value: ratios.sameHandIndex, color: "#ec4899" },
+    { label: "기타 (스페이스 등)", value: ratios.other, color: "var(--text-muted)" },
+  ];
+}
+
+function TransitionBars({
+  items,
+}: {
+  items: ReadonlyArray<{ label: string; value: number; color: string }>;
+}) {
+  return (
+    <div className="cyl-diag__transition-list">
+      {items.map((item) => (
+        <div key={item.label} className="cyl-diag__transition-item">
+          <div className="cyl-diag__transition-meta">
+            <span className="cyl-diag__transition-lbl">{item.label}</span>
+            <span className="cyl-diag__transition-val">{item.value.toFixed(1)}%</span>
+          </div>
+          <div className="cyl-diag__transition-bar-bg">
+            <div
+              className="cyl-diag__transition-bar-fill"
+              style={{ width: `${item.value}%`, backgroundColor: item.color }}
+            />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function LatencyDistributionView({
+  consistency,
+}: {
+  consistency: KeystrokeDiagnostics["latencyConsistency"];
+}) {
+  if (!consistency) {
+    return (
+      <div className="cyl-diag__dist-preview">
+        <span className="cyl-diag__relative-val text-muted" style={{ fontSize: "0.82rem" }}>
+          정답 타건 5회 이상 필요
+        </span>
+      </div>
+    );
+  }
+
+  const max = Math.max(...consistency.histogram, 1);
+
+  return (
+    <div className="cyl-diag__dist-preview">
+      <div className="cyl-diag__dist-bars" aria-hidden="true">
+        {consistency.histogram.map((h, i) => (
+          <div key={i} className="cyl-diag__dist-bar" style={{ height: `${(h / max) * 100}%` }} />
+        ))}
+      </div>
+      <div className="cyl-diag__dist-meta">
+        <span className={`cyl-diag__dist-badge ${LATENCY_LEVEL_BADGE[consistency.level]}`}>
+          {LATENCY_LEVEL_LABEL[consistency.level]}
+        </span>
+        <span className="cyl-diag__dist-cv">
+          MAD = {consistency.madMs.toFixed(1)} ms · rMAD = {consistency.relativeMad.toFixed(2)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelProps> = ({
   events,
   selectedTo,
@@ -48,7 +164,8 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
     selectedTo,
   );
 
-  // Render minimal SVG chart if outcome is successful
+  const hasData = events.length > 0 && selectedTo;
+
   const renderChart = () => {
     if (!outcome) {
       return <p className="cyl-diag__empty">데이터가 로드되지 않았습니다.</p>;
@@ -73,9 +190,9 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
 
     const { points, regressionSamples, xMax, domainYMin, domainYMax, yTickValues } = chartData;
 
-    const WIDTH = 410;
-    const HEIGHT = 200;
-    const PAD = { top: 16, right: 16, bottom: 28, left: 36 };
+    const WIDTH = 320;
+    const HEIGHT = 180;
+    const PAD = { top: 16, right: 12, bottom: 24, left: 32 };
     const plotWidth = WIDTH - PAD.left - PAD.right;
     const plotHeight = HEIGHT - PAD.top - PAD.bottom;
 
@@ -96,9 +213,8 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
           viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
           className="cyl-diag__svg"
           role="img"
-          aria-label="Piecewise Regression 2D Chart"
+          aria-label="모래시계 분절회귀 차트"
         >
-          {/* Grid lines & Y Axis Labels */}
           {yTickValues.map((tick) => (
             <g key={tick}>
               <line
@@ -122,8 +238,6 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
               </text>
             </g>
           ))}
-
-          {/* Minimal Axes */}
           <line
             x1={PAD.left}
             x2={PAD.left + plotWidth}
@@ -142,8 +256,6 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
             opacity={0.3}
             strokeWidth={1}
           />
-
-          {/* Scatter points */}
           {points.map((point, index) => (
             <circle
               key={index}
@@ -154,8 +266,6 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
               opacity={0.45}
             />
           ))}
-
-          {/* Minimal Solid Regression Line */}
           <path
             d={regressionPath}
             fill="none"
@@ -185,36 +295,52 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
 
       <div id="cyl-drawer-panel" className="cyl-drawer__body" aria-hidden={!isOpen}>
         <div className="cyl-drawer__grid">
+          {/* Panel 1: 키 진입 Dynamics */}
           <section className="cyl-drawer__col cyl-drawer__col--controls">
             <header className="cyl-panel__header">
-              <span className="cyl-panel__subtitle">Spatial Keystroke Dynamics Model</span>
-              <h2 className="cyl-panel__title">Cylindrical Vector Diagnostics</h2>
+              <span className="cyl-panel__subtitle">Panel 1 · To-Key</span>
+              <h2 className="cyl-panel__title">키 진입 Dynamics</h2>
             </header>
 
-            <div className="cyl-drawer__controls-group">
-              <div className="cyl-drawer__select-row">
-                <span className="cyl-label-text">Target Key (To)</span>
-                <select
-                  className="cyl-select cyl-select--wide"
-                  value={selectedTo}
-                  onChange={(e) => setSelectedTo(e.target.value)}
-                >
-                  {toKeyOptions.map(([key, count]) => (
-                    <option key={key} value={key}>
-                      {formatKey(key)} ({count}회 입력)
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div className="cyl-drawer__select-row">
+              <span className="cyl-label-text">Target Key (To)</span>
+              <select
+                className="cyl-select cyl-select--wide"
+                value={selectedTo}
+                onChange={(e) => setSelectedTo(e.target.value)}
+              >
+                {toKeyOptions.map(([key, count]) => (
+                  <option key={key} value={key}>
+                    {formatKey(key)} ({count}회 입력)
+                  </option>
+                ))}
+              </select>
+            </div>
 
-              <div className="cyl-drawer__chart-section">
-                <span className="cyl-label-text">2D Piecewise Regression</span>
-                {renderChart()}
+            {hasData ? (
+              <div className="cyl-diag__detailed-content">
+                <div className="cyl-diag__detailed-card">
+                  <span className="cyl-diag__stat-lbl">모래시계 분절회귀</span>
+                  {renderChart()}
+                  <p className="cyl-diag__card-desc">
+                    정답(g)→정답 / 오타(b) 구간별 기울기. breakpoint 전후 개선·악화 추세를
+                    분절회귀로 추정합니다.
+                  </p>
+                </div>
 
-                <div className="cyl-diag__stats-grid">
-                  <div className="cyl-diag__stat-item">
-                    <span className="cyl-diag__stat-lbl">오타 유발율</span>
-                    <span className="cyl-diag__stat-val">
+                <div className="cyl-diag__detailed-card">
+                  <span className="cyl-diag__stat-lbl">Latency 분포 · 일관성</span>
+                  <LatencyDistributionView consistency={diagnostics.latencyConsistency} />
+                  <p className="cyl-diag__card-desc">
+                    정답 타건 latency의 MAD(중앙값 절대편차)로 일정함 vs 오락가락을 판별합니다.
+                    rMAD = MAD ÷ 중앙값.
+                  </p>
+                </div>
+
+                <div className="cyl-diag__detailed-card">
+                  <span className="cyl-diag__stat-lbl">오타 유발율</span>
+                  <div className="cyl-diag__median-box">
+                    <span className="cyl-diag__median-val">
                       {diagnostics.errorInducement.rate.toFixed(1)}%
                     </span>
                     <span className="cyl-diag__stat-desc">
@@ -222,305 +348,304 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
                       {diagnostics.errorInducement.totalErrorStartsCount} 오타 시작)
                     </span>
                   </div>
-                  <div className="cyl-diag__stat-item">
-                    <span className="cyl-diag__stat-lbl">순서 뒤바뀜 오타율</span>
-                    <span className="cyl-diag__stat-val">
+                  <p className="cyl-diag__card-desc">
+                    전체 키 중 이 toKey 직전 정답 쌍에서 처음 오타를 유발한 비율입니다.
+                  </p>
+                </div>
+
+                <div className="cyl-diag__detailed-card">
+                  <span className="cyl-diag__stat-lbl">동일 손 속도 비교</span>
+                  <div className="cyl-diag__relative-box">
+                    {diagnostics.relativeSpeed.handMedianMs > 0 ? (
+                      <>
+                        <span
+                          className={`cyl-diag__relative-val ${diagnostics.relativeSpeed.speedDiffMs <= 0 ? "text-success" : "text-warning"}`}
+                        >
+                          {diagnostics.relativeSpeed.speedDiffMs <= 0
+                            ? `${Math.abs(diagnostics.relativeSpeed.speedDiffMs).toFixed(1)} ms 빠름`
+                            : `${diagnostics.relativeSpeed.speedDiffMs.toFixed(1)} ms 느림`}
+                        </span>
+                        <span className="cyl-diag__relative-sub">
+                          같은 손 평균: {diagnostics.relativeSpeed.handMedianMs.toFixed(1)} ms
+                        </span>
+                      </>
+                    ) : (
+                      <span className="cyl-diag__relative-val text-muted" style={{ fontSize: "0.82rem" }}>
+                        비교 대상 없음
+                      </span>
+                    )}
+                  </div>
+                  <p className="cyl-diag__card-desc">
+                    같은 손의 다른 손가락 키들 중앙값과 반응 속도를 비교합니다.
+                  </p>
+                </div>
+
+                <div className="cyl-diag__detailed-card">
+                  <span className="cyl-diag__stat-lbl">어느 손가락에서 넘어오는지</span>
+                  <TransitionBars items={buildFingerTransitionItems(selectedTo, diagnostics)} />
+                </div>
+
+                {diagnostics.unconsciousKey !== null && (
+                  <div className="cyl-diag__detailed-card cyl-diag__detailed-card--optional">
+                    <span className="cyl-diag__stat-lbl">
+                      무의식적 incorrect 키 TopN <OptionalTag />
+                    </span>
+                    <div className="cyl-diag__optional-item" style={{ fontSize: "0.82rem", marginTop: "4px" }}>
+                      <span className="cyl-diag__rank-num" style={{ color: "var(--warning)" }}>
+                        #{diagnostics.unconsciousKey.rank}
+                      </span>
+                      <span className="cyl-diag__key-text">
+                        {formatKey(diagnostics.unconsciousKey.key)}
+                      </span>
+                      <span className="cyl-diag__error-rate text-warning">
+                        {diagnostics.unconsciousKey.errorRate.toFixed(1)}%
+                      </span>
+                    </div>
+                    <p className="cyl-diag__card-desc">
+                      오타율 상위 3개 키에 현재 toKey가 포함될 때 표시됩니다.
+                    </p>
+                  </div>
+                )}
+
+                {diagnostics.shiftPenalty !== null && (
+                  <div className="cyl-diag__detailed-card cyl-diag__detailed-card--optional">
+                    <span className="cyl-diag__stat-lbl">
+                      Shift 지연 패널티 <OptionalTag />
+                    </span>
+                    <div className="cyl-diag__penalty-content">
+                      <span className="cyl-diag__penalty-val">
+                        +{diagnostics.shiftPenalty.differenceMs.toFixed(1)} ms
+                      </span>
+                      <p className="cyl-diag__penalty-desc">
+                        Shift 혼용 자소 입력 반응 속도 중앙값이 일반 자소보다{" "}
+                        {diagnostics.shiftPenalty.differenceMs.toFixed(1)}ms 더 지연됩니다.
+                        (Shift 사용 횟수: {diagnostics.shiftPenalty.shiftCount}회)
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="cyl-diag__empty">진단할 타자 데이터가 존재하지 않습니다.</p>
+            )}
+          </section>
+
+          {/* Panel 2: 타이밍 & 오타 */}
+          <section className="cyl-drawer__col cyl-drawer__col--regression">
+            <header className="cyl-drawer__col-header">
+              <span className="cyl-label-text">Panel 2 · Timing</span>
+              <h2 className="cyl-panel__title cyl-panel__title--compact">타이밍 &amp; 오타</h2>
+            </header>
+
+            {hasData ? (
+              <div className="cyl-diag__detailed-content">
+                <div className="cyl-diag__detailed-card">
+                  <span className="cyl-diag__stat-lbl">Latency 중앙값 · CPM</span>
+                  <div className="cyl-diag__median-box">
+                    <span className="cyl-diag__median-val">
+                      {diagnostics.speedMetrics.medianLatencyMs.toFixed(1)} ms
+                    </span>
+                    <span className="cyl-diag__cpm-val">
+                      {diagnostics.speedMetrics.equivalentCpm} CPM
+                    </span>
+                  </div>
+                  <p className="cyl-diag__card-desc">
+                    해당 toKey 정타 latency만으로 산출한 중앙값과 분당 타수입니다.
+                  </p>
+                </div>
+
+                <div className="cyl-diag__detailed-card">
+                  <span className="cyl-diag__stat-lbl">IQR 기반 머뭇거림</span>
+                  <div className="cyl-diag__hesitation-box">
+                    <span
+                      className={`cyl-diag__hesitation-val ${diagnostics.hesitation.hasTendency ? "text-warning" : "text-success"}`}
+                    >
+                      {diagnostics.hesitation.ratio.toFixed(1)}%
+                    </span>
+                    <span
+                      className={`cyl-diag__hesitation-badge ${diagnostics.hesitation.hasTendency ? "badge-warning" : "badge-success"}`}
+                    >
+                      {diagnostics.hesitation.hasTendency ? "머뭇거림 의심" : "정상"}
+                    </span>
+                  </div>
+                  <div className="cyl-diag__hesitation-desc">
+                    기준선: {diagnostics.hesitation.thresholdMs.toFixed(1)} ms 초과 (Q3 + 1.5 IQR)
+                  </div>
+                  <p className="cyl-diag__card-desc">
+                    이상치 임계선을 넘는 타건 비율. 5% 이상이면 머뭇거림 경향.
+                  </p>
+                </div>
+
+                <div className="cyl-diag__detailed-card">
+                  <span className="cyl-diag__stat-lbl">순서 뒤바뀜 오타율</span>
+                  <div className="cyl-diag__median-box">
+                    <span className="cyl-diag__median-val">
                       {diagnostics.lateKeystroke.rate.toFixed(1)}%
                     </span>
                     <span className="cyl-diag__stat-desc">
-                      ({diagnostics.lateKeystroke.count}/
-                      {diagnostics.lateKeystroke.totalErrorsCount} 오타)
+                      ({diagnostics.lateKeystroke.count}/{diagnostics.lateKeystroke.totalErrorsCount}{" "}
+                      오타)
                     </span>
+                  </div>
+                  <p className="cyl-diag__card-desc">
+                    오타 쌍 중 이 키를 늦게 눌러 앞 키가 먼저 입력된 순서 바뀜 비율입니다.
+                  </p>
+                </div>
+
+                {diagnostics.commonPair !== null && (
+                  <div className="cyl-diag__detailed-card cyl-diag__detailed-card--optional">
+                    <span className="cyl-diag__stat-lbl">
+                      자주 쓰는 순서쌍 TopN <OptionalTag />
+                    </span>
+                    <div className="cyl-diag__optional-item" style={{ fontSize: "0.82rem", marginTop: "4px" }}>
+                      <span className="cyl-diag__rank-num" style={{ color: "var(--accent)" }}>
+                        #{diagnostics.commonPair.rank}
+                      </span>
+                      <span className="cyl-diag__pair-text" style={{ fontWeight: 600 }}>
+                        {formatKey(diagnostics.commonPair.from)} → {formatKey(diagnostics.commonPair.to)}
+                      </span>
+                      <span className="cyl-diag__count">({diagnostics.commonPair.count}회)</span>
+                    </div>
+                    <p className="cyl-diag__card-desc">
+                      전체 상위 5개 빈번한 입력 쌍에 현재 toKey 쌍이 포함될 때 표시됩니다.
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="cyl-diag__empty">진단할 타자 데이터가 존재하지 않습니다.</p>
+            )}
+          </section>
+
+          {/* Panel 3: 공간 & 패턴 */}
+          <section className="cyl-drawer__col cyl-drawer__col--diagnostics">
+            <header className="cyl-drawer__col-header">
+              <span className="cyl-label-text">Panel 3 · Spatial</span>
+              <h2 className="cyl-panel__title cyl-panel__title--compact">공간 &amp; 패턴</h2>
+            </header>
+
+            {hasData ? (
+              <div className="cyl-diag__detailed-content">
+                <div className="cyl-diag__detailed-card cyl-diag__detailed-card--optional">
+                  <span className="cyl-diag__stat-lbl">
+                    공간적 오타 거리 <ComingSoonTag />
+                  </span>
+                  <div className="cyl-diag__spatial-box">
+                    <div className="cyl-diag__spatial-metric">
+                      <span className="cyl-diag__stat-desc">평균 거리</span>
+                      <span className="cyl-diag__median-val">
+                        {PLACEHOLDER.spatialErrorDistance.meanMm} mm
+                      </span>
+                    </div>
+                    <div className="cyl-diag__spatial-metric">
+                      <span className="cyl-diag__stat-desc">최대 거리</span>
+                      <span className="cyl-diag__median-val">
+                        {PLACEHOLDER.spatialErrorDistance.maxMm} mm
+                      </span>
+                    </div>
+                    <div className="cyl-diag__spatial-metric">
+                      <span className="cyl-diag__stat-desc">최빈 오타 키</span>
+                      <span className="cyl-diag__key-text">
+                        {formatKey(PLACEHOLDER.spatialErrorDistance.nearestKey)}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="cyl-diag__card-desc">
+                    키보드 물리 좌표상 정답 키와 실제 오타 키 간 거리 분포입니다.
+                  </p>
+                </div>
+
+                <div className="cyl-diag__detailed-card">
+                  <span className="cyl-diag__stat-lbl">Hold Duration 상관계수</span>
+                  <div className="cyl-diag__correlation-box">
+                    <span className="cyl-diag__correlation-val">
+                      r = {diagnostics.holdCorrelation.pearsonR.toFixed(3)}
+                    </span>
+                    <span
+                      className={`cyl-diag__correlation-sig ${diagnostics.holdCorrelation.isSignificant ? "text-warning" : "text-muted"}`}
+                    >
+                      {diagnostics.holdCorrelation.isSignificant ? "상관성 유의미" : "상관성 무관"}
+                    </span>
+                  </div>
+                  <div className="cyl-diag__correlation-p">
+                    p-value:{" "}
+                    {diagnostics.holdCorrelation.pValue < 0.001
+                      ? "< 0.001"
+                      : diagnostics.holdCorrelation.pValue.toFixed(3)}
+                    {diagnostics.holdCorrelation.sampleCount > 0 &&
+                      ` (n=${diagnostics.holdCorrelation.sampleCount})`}
+                  </div>
+                  <p className="cyl-diag__card-desc">
+                    키 누름 지속 시간과 latency 간 피어슨 상관. 구름타법 여부 진단의 기초 지표입니다.
+                  </p>
+                </div>
+
+                <div className="cyl-diag__detailed-card cyl-diag__detailed-card--optional">
+                  <span className="cyl-diag__stat-lbl">
+                    Dwell · Flight 분리 <ComingSoonTag />
+                  </span>
+                  <div className="cyl-diag__dwell-flight">
+                    <div className="cyl-diag__dwell-flight-bar">
+                      <div
+                        className="cyl-diag__dwell-segment"
+                        style={{
+                          width: `${(PLACEHOLDER.dwellFlight.dwellMs / (PLACEHOLDER.dwellFlight.dwellMs + PLACEHOLDER.dwellFlight.flightMs)) * 100}%`,
+                        }}
+                      />
+                      <div
+                        className="cyl-diag__flight-segment"
+                        style={{
+                          width: `${(PLACEHOLDER.dwellFlight.flightMs / (PLACEHOLDER.dwellFlight.dwellMs + PLACEHOLDER.dwellFlight.flightMs)) * 100}%`,
+                        }}
+                      />
+                    </div>
+                    <div className="cyl-diag__dwell-flight-labels">
+                      <span>Dwell {PLACEHOLDER.dwellFlight.dwellMs} ms</span>
+                      <span>Flight {PLACEHOLDER.dwellFlight.flightMs} ms</span>
+                    </div>
+                  </div>
+                  <p className="cyl-diag__card-desc">
+                    누름 시간(Dwell)과 이동 시간(Flight)을 분리해 구름타법 패턴을 분석합니다.
+                  </p>
+                </div>
+
+                <div className="cyl-diag__detailed-card cyl-diag__detailed-card--optional">
+                  <span className="cyl-diag__stat-lbl">
+                    N단계 전이 오타 패턴 <OptionalTag /> <ComingSoonTag />
+                  </span>
+                  <div className="cyl-diag__nstep-list">
+                    {PLACEHOLDER.nStepTransition.map((row) => (
+                      <div key={row.step} className="cyl-diag__nstep-row">
+                        <span className="cyl-diag__rank-num">{row.step}-step</span>
+                        <span className="cyl-diag__pair-text">{row.pattern}</span>
+                        <span className="cyl-diag__transition-val">{(row.prob * 100).toFixed(1)}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="cyl-diag__detailed-card cyl-diag__detailed-card--optional">
+                  <span className="cyl-diag__stat-lbl">
+                    버스트 쌍 포함 여부 <OptionalTag /> <ComingSoonTag />
+                  </span>
+                  <div className="cyl-diag__burst-box">
+                    <span
+                      className={`cyl-diag__hesitation-badge ${PLACEHOLDER.burstPair.included ? "badge-success" : "badge-warning"}`}
+                    >
+                      {PLACEHOLDER.burstPair.included ? "포함됨" : "미포함"}
+                    </span>
+                    {PLACEHOLDER.burstPair.included && (
+                      <p className="cyl-diag__penalty-desc">
+                        Burst {PLACEHOLDER.burstPair.burstId} · {PLACEHOLDER.burstPair.pairLabel}{" "}
+                        쌍이 고속 연타 구간에 속합니다.
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
-
-              {/* 추가 진단 통계 (선택) */}
-              {(diagnostics.commonPair !== null ||
-                diagnostics.unconsciousKey !== null ||
-                diagnostics.shiftPenalty !== null) && (
-                <div className="cyl-drawer__optional-section">
-                  <span className="cyl-label-text">추가 진단 통계 (선택)</span>
-                  <div className="cyl-diag__optional-grid">
-                    {/* 1. 자주 치는 순서쌍 top5 중 해당 쌍 */}
-                    {diagnostics.commonPair !== null && (
-                      <div className="cyl-diag__optional-card">
-                        <span className="cyl-diag__stat-lbl">자주 치는 순서쌍 순위</span>
-                        <div
-                          className="cyl-diag__optional-item"
-                          style={{ fontSize: "0.82rem", marginTop: "4px" }}
-                        >
-                          <span
-                            className="cyl-diag__rank-num"
-                            style={{ fontSize: "0.85rem", color: "var(--accent)" }}
-                          >
-                            #{diagnostics.commonPair.rank}
-                          </span>
-                          <span className="cyl-diag__pair-text" style={{ fontWeight: 600 }}>
-                            {formatKey(diagnostics.commonPair.from)} →{" "}
-                            {formatKey(diagnostics.commonPair.to)}
-                          </span>
-                          <span className="cyl-diag__count" style={{ fontSize: "0.65rem" }}>
-                            ({diagnostics.commonPair.count}회)
-                          </span>
-                        </div>
-                        <p
-                          style={{
-                            fontSize: "0.62rem",
-                            color: "var(--text-muted)",
-                            margin: "4px 0 0 0",
-                            lineHeight: 1.3,
-                          }}
-                        >
-                          현재 선택된 키가 전체 상위 5개 빈번한 입력 쌍에 포함되어 있습니다.
-                        </p>
-                      </div>
-                    )}
-
-                    {/* 2. 무의식적으로 치는 키 top3 중 해당 키 */}
-                    {diagnostics.unconsciousKey !== null && (
-                      <div className="cyl-diag__optional-card">
-                        <span className="cyl-diag__stat-lbl">무의식적인 키 오타 순위</span>
-                        <div
-                          className="cyl-diag__optional-item"
-                          style={{ fontSize: "0.82rem", marginTop: "4px" }}
-                        >
-                          <span
-                            className="cyl-diag__rank-num"
-                            style={{ fontSize: "0.85rem", color: "var(--warning)" }}
-                          >
-                            #{diagnostics.unconsciousKey.rank}
-                          </span>
-                          <span className="cyl-diag__key-text">
-                            {formatKey(diagnostics.unconsciousKey.key)}
-                          </span>
-                          <span
-                            className="cyl-diag__error-rate text-warning"
-                            style={{ fontSize: "0.78rem" }}
-                          >
-                            {diagnostics.unconsciousKey.errorRate.toFixed(1)}%
-                          </span>
-                        </div>
-                        <p
-                          style={{
-                            fontSize: "0.62rem",
-                            color: "var(--text-muted)",
-                            margin: "4px 0 0 0",
-                            lineHeight: 1.3,
-                          }}
-                        >
-                          현재 선택된 키가 오타율이 높은 전체 상위 3개 키에 속합니다.
-                        </p>
-                      </div>
-                    )}
-
-                    {/* 3. 시프트 지연 패널티 */}
-                    {diagnostics.shiftPenalty !== null && (
-                      <div className="cyl-diag__optional-card cyl-diag__optional-card--full">
-                        <span className="cyl-diag__stat-lbl">Shift 입력 지연 패널티</span>
-                        <div className="cyl-diag__penalty-content">
-                          <span className="cyl-diag__penalty-val">
-                            +{diagnostics.shiftPenalty.differenceMs.toFixed(1)} ms
-                          </span>
-                          <p className="cyl-diag__penalty-desc">
-                            Shift 혼용 자소 입력 반응 속도 중앙값이 일반 자소보다{" "}
-                            {diagnostics.shiftPenalty.differenceMs.toFixed(1)}ms 더 지연됩니다.
-                            (Shift 사용 횟수: {diagnostics.shiftPenalty.shiftCount}회)
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </section>
-
-          <section className="cyl-drawer__col cyl-drawer__col--diagnostics">
-            {/* Detailed Spatial Analytics Section */}
-            <header className="cyl-drawer__col-header">
-              <span className="cyl-label-text">Detailed Spatial Analytics</span>
-            </header>
-
-            <div className="cyl-diag__detailed-container">
-              {events.length > 0 && selectedTo ? (
-                <div className="cyl-diag__detailed-content">
-                  {/* Row 1: Latency/CPM and Same Hand Speed Comparison */}
-                  <div className="cyl-diag__detailed-grid">
-                    <div className="cyl-diag__detailed-card">
-                      <span className="cyl-diag__stat-lbl">반응 속도 & CPM</span>
-                      <div className="cyl-diag__median-box">
-                        <span className="cyl-diag__median-val">
-                          {diagnostics.speedMetrics.medianLatencyMs.toFixed(1)} ms
-                        </span>
-                        <span className="cyl-diag__cpm-val">
-                          {diagnostics.speedMetrics.equivalentCpm} CPM
-                        </span>
-                      </div>
-                      <p className="cyl-diag__card-desc">
-                        해당 키 정타 입력의 대기 시간(latency) 중앙값 및 1분당 타수 환산 값입니다.
-                      </p>
-                    </div>
-
-                    <div className="cyl-diag__detailed-card">
-                      <span className="cyl-diag__stat-lbl">동일 손 속도 비교</span>
-                      <div className="cyl-diag__relative-box">
-                        {diagnostics.relativeSpeed.handMedianMs > 0 ? (
-                          <>
-                            <span
-                              className={`cyl-diag__relative-val ${diagnostics.relativeSpeed.speedDiffMs <= 0 ? "text-success" : "text-warning"}`}
-                            >
-                              {diagnostics.relativeSpeed.speedDiffMs <= 0
-                                ? `${Math.abs(diagnostics.relativeSpeed.speedDiffMs).toFixed(1)} ms 빠름`
-                                : `${diagnostics.relativeSpeed.speedDiffMs.toFixed(1)} ms 느림`}
-                            </span>
-                            <span className="cyl-diag__relative-sub">
-                              같은 손 평균: {diagnostics.relativeSpeed.handMedianMs.toFixed(1)} ms
-                            </span>
-                          </>
-                        ) : (
-                          <span
-                            className="cyl-diag__relative-val text-muted"
-                            style={{ fontSize: "0.82rem" }}
-                          >
-                            비교 대상 없음
-                          </span>
-                        )}
-                      </div>
-                      <p className="cyl-diag__card-desc">
-                        동일한 손을 사용하는 다른 키들의 중간값과 반응 속도를 비교합니다.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Row 2: Hold Duration Correlation & Hesitation Ratio */}
-                  <div className="cyl-diag__detailed-grid">
-                    <div className="cyl-diag__detailed-card">
-                      <span className="cyl-diag__stat-lbl">Hold Duration 상관계수</span>
-                      <div className="cyl-diag__correlation-box">
-                        <span className="cyl-diag__correlation-val">
-                          r = {diagnostics.holdCorrelation.pearsonR.toFixed(3)}
-                        </span>
-                        <span
-                          className={`cyl-diag__correlation-sig ${diagnostics.holdCorrelation.isSignificant ? "text-warning" : "text-muted"}`}
-                        >
-                          {diagnostics.holdCorrelation.isSignificant
-                            ? "상관성 유의미"
-                            : "상관성 무관"}
-                        </span>
-                      </div>
-                      <div className="cyl-diag__correlation-p">
-                        p-value:{" "}
-                        {diagnostics.holdCorrelation.pValue < 0.001
-                          ? "< 0.001"
-                          : diagnostics.holdCorrelation.pValue.toFixed(3)}
-                        {diagnostics.holdCorrelation.sampleCount > 0 &&
-                          ` (n=${diagnostics.holdCorrelation.sampleCount})`}
-                      </div>
-                      <p className="cyl-diag__card-desc">
-                        키를 누르는 지속 시간(Hold Duration)과 지연 반응속도 간의 피어슨
-                        상관계수입니다. (r &gt; 0.4, p &lt; 0.05 일 때 유의미한 상관성으로 판단)
-                      </p>
-                    </div>
-
-                    <div className="cyl-diag__detailed-card">
-                      <span className="cyl-diag__stat-lbl">머뭇거림 비율 (IQR)</span>
-                      <div className="cyl-diag__hesitation-box">
-                        <span
-                          className={`cyl-diag__hesitation-val ${diagnostics.hesitation.hasTendency ? "text-warning" : "text-success"}`}
-                        >
-                          {diagnostics.hesitation.ratio.toFixed(1)}%
-                        </span>
-                        <span
-                          className={`cyl-diag__hesitation-badge ${diagnostics.hesitation.hasTendency ? "badge-warning" : "badge-success"}`}
-                        >
-                          {diagnostics.hesitation.hasTendency ? "머뭇거림 의심" : "정상"}
-                        </span>
-                      </div>
-                      <div className="cyl-diag__hesitation-desc">
-                        기준선: {diagnostics.hesitation.thresholdMs.toFixed(1)} ms 초과 (Q3 + 1.5
-                        IQR)
-                      </div>
-                      <p className="cyl-diag__card-desc">
-                        사분위수 범위(IQR) 기반 이상치 임계선보다 느리게 입력된 타건 비율입니다.
-                        (임계선 초과 비율 5% 이상일 때 머뭇거림 경향으로 분석)
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Row 3: Finger Transition Percentages */}
-                  <div className="cyl-diag__detailed-card cyl-diag__detailed-card--full">
-                    <span className="cyl-diag__stat-lbl">어느 손가락에서 넘어오는지 비율</span>
-                    <div className="cyl-diag__transition-container">
-                      {(() => {
-                        const targetMeta = KEYBOARD_META[selectedTo.toLowerCase()];
-                        const isLeft = targetMeta ? targetMeta.hand === "L" : true;
-
-                        const items = [
-                          {
-                            label: isLeft ? "오른손 전체" : "왼손 전체",
-                            value: diagnostics.fingerTransitions.ratios.oppositeHand,
-                            color: "var(--accent)",
-                          },
-                          {
-                            label: isLeft ? "왼 소지" : "오른 소지",
-                            value: diagnostics.fingerTransitions.ratios.sameHandPinky,
-                            color: "#a855f7",
-                          },
-                          {
-                            label: isLeft ? "왼 약지" : "오른 약지",
-                            value: diagnostics.fingerTransitions.ratios.sameHandRing,
-                            color: "#3b82f6",
-                          },
-                          {
-                            label: isLeft ? "왼 중지" : "오른 중지",
-                            value: diagnostics.fingerTransitions.ratios.sameHandMiddle,
-                            color: "#10b981",
-                          },
-                          {
-                            label: isLeft ? "왼 검지" : "오른 검지",
-                            value: diagnostics.fingerTransitions.ratios.sameHandIndex,
-                            color: "#ec4899",
-                          },
-                          {
-                            label: "기타 (스페이스 등)",
-                            value: diagnostics.fingerTransitions.ratios.other,
-                            color: "var(--text-muted)",
-                          },
-                        ];
-
-                        return (
-                          <div className="cyl-diag__transition-list">
-                            {items.map((item) => (
-                              <div key={item.label} className="cyl-diag__transition-item">
-                                <div className="cyl-diag__transition-meta">
-                                  <span className="cyl-diag__transition-lbl">{item.label}</span>
-                                  <span className="cyl-diag__transition-val">
-                                    {item.value.toFixed(1)}%
-                                  </span>
-                                </div>
-                                <div className="cyl-diag__transition-bar-bg">
-                                  <div
-                                    className="cyl-diag__transition-bar-fill"
-                                    style={{ width: `${item.value}%`, backgroundColor: item.color }}
-                                  />
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        );
-                      })()}
-                    </div>
-                    <p className="cyl-diag__card-desc" style={{ marginTop: "4px" }}>
-                      현재 선택된 키 바로 직전에 입력한 키의 손가락 위치 분포입니다. 어떤 손가락
-                      연결 패턴에서 지연 병목이 생기는지 진단할 수 있습니다.
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <p className="cyl-diag__empty">진단할 타자 데이터가 존재하지 않습니다.</p>
-              )}
-            </div>
+            ) : (
+              <p className="cyl-diag__empty">진단할 타자 데이터가 존재하지 않습니다.</p>
+            )}
           </section>
         </div>
       </div>

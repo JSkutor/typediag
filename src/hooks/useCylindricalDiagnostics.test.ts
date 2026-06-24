@@ -312,4 +312,54 @@ describe("useCylindricalDiagnostics diagnostics", () => {
       expect(result.current.diagnostics.relativeSpeed.speedDiffMs).toBe(40);
     });
   });
+
+  describe("latencyConsistency (MAD)", () => {
+    it("returns null when fewer than 5 correct samples", () => {
+      const events: KeyEvent[] = [
+        { fromKey: "a", toKey: "f", latencyMs: 100, isCorrect: true },
+        { fromKey: "a", toKey: "f", latencyMs: 110, isCorrect: true },
+        { fromKey: "a", toKey: "f", latencyMs: 105, isCorrect: true },
+        { fromKey: "a", toKey: "f", latencyMs: 95, isCorrect: true },
+      ];
+
+      const { result } = renderHook(() => useCylindricalDiagnostics(events, "f"));
+      expect(result.current.diagnostics.latencyConsistency).toBeNull();
+    });
+
+    it("classifies steady typing with low relative MAD", () => {
+      const events: KeyEvent[] = Array.from({ length: 8 }, (_, i) => ({
+        fromKey: "a",
+        toKey: "f",
+        latencyMs: 100 + (i % 2 === 0 ? 5 : -5),
+        isCorrect: true as const,
+      }));
+
+      const { result } = renderHook(() => useCylindricalDiagnostics(events, "f"));
+      const consistency = result.current.diagnostics.latencyConsistency;
+
+      expect(consistency).not.toBeNull();
+      expect(consistency!.level).toBe("steady");
+      expect(consistency!.madMs).toBe(5);
+      expect(consistency!.relativeMad).toBeCloseTo(0.05, 2);
+      expect(consistency!.histogram).toHaveLength(12);
+    });
+
+    it("classifies erratic typing with high relative MAD", () => {
+      const events: KeyEvent[] = [
+        { fromKey: "a", toKey: "f", latencyMs: 20, isCorrect: true },
+        { fromKey: "a", toKey: "f", latencyMs: 50, isCorrect: true },
+        { fromKey: "a", toKey: "f", latencyMs: 80, isCorrect: true },
+        { fromKey: "a", toKey: "f", latencyMs: 110, isCorrect: true },
+        { fromKey: "a", toKey: "f", latencyMs: 140, isCorrect: true },
+        { fromKey: "a", toKey: "f", latencyMs: 200, isCorrect: true },
+      ];
+
+      const { result } = renderHook(() => useCylindricalDiagnostics(events, "f"));
+      const consistency = result.current.diagnostics.latencyConsistency;
+
+      expect(consistency).not.toBeNull();
+      expect(consistency!.level).toBe("erratic");
+      expect(consistency!.relativeMad).toBeGreaterThan(0.35);
+    });
+  });
 });

@@ -425,7 +425,7 @@
 }
 
 /* --------------------------------------------------------------------------
-   Collapsible left drawer (2-column diagnostics shell)
+   Collapsible left drawer (3-column diagnostics shell)
    -------------------------------------------------------------------------- */
 
 .cyl-drawer {
@@ -497,16 +497,16 @@
 }
 
 .cyl-drawer--open .cyl-drawer__body {
-  width: min(840px, calc(100vw - 56px));
+  width: min(1260px, calc(100vw - 56px));
   opacity: 1;
   pointer-events: auto;
 }
 
 .cyl-drawer__grid {
   display: grid;
-  grid-template-columns: 460px 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
-  width: min(840px, calc(100vw - 56px));
+  width: min(1260px, calc(100vw - 56px));
   height: 100%;
   overflow: hidden;
   padding-right: 4px;
@@ -551,6 +551,186 @@
   border: 1px dashed var(--border-subtle);
   border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.02);
+}
+
+.cyl-panel__title--compact {
+  margin-top: 2px;
+  font-size: 1rem;
+}
+
+.cyl-diag__optional-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 5px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-size: 0.55rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.cyl-diag__detailed-card--optional {
+  border-style: dashed;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.cyl-diag__mock-hint {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.62rem;
+  font-family: var(--font-mono);
+  line-height: 1.4;
+}
+
+.cyl-diag__dist-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.cyl-diag__dist-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 48px;
+  padding: 6px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-md);
+  background: rgba(20, 20, 22, 0.45);
+}
+
+.cyl-diag__dist-bar {
+  flex: 1;
+  min-width: 4px;
+  border-radius: 2px 2px 0 0;
+  background: linear-gradient(to top, var(--accent), rgba(99, 102, 241, 0.35));
+}
+
+.cyl-diag__dist-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cyl-diag__dist-badge {
+  font-size: 0.58rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.cyl-diag__dist-cv {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+}
+
+.cyl-diag__finger-speed-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.cyl-diag__finger-speed-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.72rem;
+}
+
+.cyl-diag__rank-list--numbered {
+  list-style: none;
+  padding: 0;
+  margin: 6px 0 0;
+}
+
+.cyl-diag__spatial-box {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.cyl-diag__spatial-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cyl-diag__spatial-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  margin-top: 10px;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-md);
+  background: rgba(20, 20, 22, 0.35);
+}
+
+.cyl-diag__spatial-cell {
+  aspect-ratio: 1;
+  border-radius: 3px;
+  background: var(--accent);
+}
+
+.cyl-diag__dwell-flight {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.cyl-diag__dwell-flight-bar {
+  display: flex;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--border-subtle);
+}
+
+.cyl-diag__dwell-segment {
+  background: #06b6d4;
+}
+
+.cyl-diag__flight-segment {
+  background: #ec4899;
+}
+
+.cyl-diag__dwell-flight-labels {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+}
+
+.cyl-diag__nstep-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.cyl-diag__nstep-row {
+  display: grid;
+  grid-template-columns: 52px 1fr 44px;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+}
+
+.cyl-diag__burst-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
 }
 
 /* ==========================================================================
@@ -602,7 +782,26 @@
   overflow: visible;
 }
 
-/* Grid layout for stats underneath the SVG chart */
+.cyl-diag__stats-grid--stacked {
+  grid-template-columns: 1fr;
+}
+
+.cyl-diag__optional-grid--stacked {
+  grid-template-columns: 1fr;
+}
+
+.cyl-diag__optional-grid--stacked .cyl-diag__optional-card--full {
+  grid-column: auto;
+}
+
+.cyl-diag__detailed-grid--stacked {
+  grid-template-columns: 1fr;
+}
+
+.cyl-diag__detailed-grid--stacked .cyl-diag__detailed-card--full {
+  grid-column: auto;
+}
+
 .cyl-diag__stats-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

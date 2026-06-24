@@ -92,3 +92,136 @@ flowchart TD
 | **Error Inducement** | 오타 스트릭이 시작된 최초 입력 시점들 중, 현재 키를 입력하려다가 스트릭이 깨진 오타 시작 기여도를 측정. |
 | **Shift Overhead** | Shift 조합 글자(ㅃ, ㅉ, ㄸ 등) 입력 시 단독 입력 대비 추가로 지연되는 평균 패널티 및 좌/우 Shift 편향 분석. |
 | **Finger Transitions** | 대상 키 바로 직전에 입력된 이전 키의 손가락 위치 분포를 분석하여 특정 이동 경로상의 병목 트래킹. |
+
+---
+
+## 3. Cylindrical Diagnostics 패널 구성 (3-Panel)
+
+Cylindrical Vector 진단 드로어는 동일 너비 3열 그리드로 구성합니다.  
+UI SSOT: `src/components/workspace/CylindricalDiagnosticsPanel.tsx`  
+스타일: `src/app/styles/cylindrical-visualizer.css`
+
+### Panel 1 · 키 진입 Dynamics
+
+| 지표 | 비고 |
+| :--- | :--- |
+| 모래시계 분절회귀 | §1 Piecewise Regression |
+| Latency 분포 · 일관성 (MAD) | 오락가락 vs 일정 — `latencyConsistency` (MAD, rMAD, 히스토그램) |
+| 오타 유발율 | 전체 키 중 처음 오타를 유발한 비율 |
+| 동일 손 손가락별 속도 비교 | 같은 손 다른 손가락 대비 빠름/느림 |
+| 어느 손가락에서 넘어오는지 | 직전 키 손가락 전환 비율 |
+| 무의식적 incorrect 키 TopN | optional |
+| Shift 지연 패널티 | optional — 시프트 때문에 느려지는 키 |
+
+### Panel 2 · 타이밍 & 오타
+
+| 지표 | 비고 |
+| :--- | :--- |
+| Latency 중앙값 · CPM | 해당 toKey 정타 기준 |
+| IQR 기반 머뭇거림 | Q3 + 1.5×IQR 초과 비율 |
+| 순서 뒤바뀜 오타율 | 오타 쌍 중 이 키를 늦게 눌러 순서가 바뀐 비율 |
+| 자주 쓰는 순서쌍 TopN | optional |
+
+### Panel 3 · 공간 & 패턴
+
+| 지표 | 비고 |
+| :--- | :--- |
+| 공간적 오타 거리 | 키보드 물리 좌표상 정답↔오타 거리 — **미구현** |
+| Dwell · Flight (구름타법) | 누름 시간 vs 이동 시간 분리 — **미구현** |
+| N단계 전이 오타 패턴 | optional — **미구현** |
+| 버스트 쌍 포함 여부 | optional — **미구현** |
+
+---
+
+## 4. 진단 통계 계산 리팩터링 (Planned)
+
+### 4.1. 배경 · 문제
+
+현재 `useCylindricalDiagnostics`는 `events` 배열에 대해 **독립적인 `useMemo` 블록**으로 계산합니다.
+
+| 블록 | SSOT | 스캔 범위 |
+| :--- | :--- | :--- |
+| `toKeyOptions` | `countCorrectEventsByToKey` | O(N) |
+| 분절회귀 | `fitPiecewiseLinearWithDiagnostics` | O(N) 필터 + 고정 20윈도우 회귀 |
+| Keystroke 통계 | `calculateKeystrokeDiagnostics` | O(N) 다중 패스 + `.filter()` 할당 |
+
+`calculateKeystrokeDiagnostics`(`src/utils/cylindricalStats.ts`)는 동일한 `events`를 **5~7회** 순회하며, `events.filter(...)`로 **중간 배열을 3개 이상** 생성합니다.  
+분절회귀도 `toKey === selectedTo && isCorrect` 조건으로 **별도 필터**를 수행합니다.
+
+Run 단위 `analysisEvents`(수천~수만 건)에서는 체감 지연이 없으나, 통계 항목이 늘거나 데이터 범위가 커지면 **O(통계수 × N)** 및 **GC 할당**이 누적됩니다.
+
+### 4.2. 원칙 — 스캔은 합치고, 알고리즘은 분리
+
+| 계층 | 합침 여부 | SSOT 유지 |
+| :--- | :--- | :--- |
+| **이벤트 1패스 수집 (Accumulator)** | ✅ 합침 | 신규 `buildDiagnosticsAccumulator` (예정) |
+| **분절회귀 연산** (Grid Search, Muggeo, OLS) | ❌ 분리 | `src/utils/piecewiseRegression.ts` |
+| **Keystroke 집계·비율·상관** | ❌ 분리 (입력만 공유) | `src/utils/cylindricalStats.ts` |
+| **SKDM upperBound** (`ensureFinalUpperBound`) | ❌ 분리 | `src/lib/dev/piecewiseDev.ts` — 진단 진입 시 1회 |
+
+분절회귀 **수학 모듈을 cylindricalStats에 합치지 않습니다.** 패리티 테스트(`piecewiseRegression.test.ts`)와 Muggeo/OLS SSOT를 보존합니다.
+
+### 4.3. 목표 아키텍처
+
+```mermaid
+flowchart TD
+    Events[analysisEvents N건]
+    --> Acc["buildDiagnosticsAccumulator(events)\n단일 패스 O(N)"]
+    Acc --> Global["전역 누적\n· toKey 옵션\n· 순서쌍 집계\n· 키별 오타율\n· 오타 유발/순서뒤바뀜"]
+    Acc --> PerKey["selectedTo별 누적\n· 시간순 targetCorrect[]\n· latency / holdDuration\n· 손가락 전환"]
+    PerKey --> PW["fitPiecewiseFromCollected(latencies)\npiecewiseRegression.ts"]
+    Global --> KS["finalizeKeystrokeDiagnostics(acc, selectedTo)\ncylindricalStats.ts"]
+    PerKey --> KS
+    PW --> Hook["useCylindricalDiagnostics"]
+    KS --> Hook
+```
+
+**1패스 Accumulator가 모으는 것 (예정)**
+
+- **전역**: `toKeyOptions`, 순서쌍 빈도, 키별 correct/incorrect, 오타 유발·순서 뒤바뀜 카운트
+- **selectedTo 전용** (순서 유지): 정답 이벤트, latency 시퀀스, holdDuration 쌍, 손가락 전환, 동일 손 타 키 latency
+
+**분절회귀 입력 경로 (예정)**
+
+```ts
+// 현재: events 전체를 다시 필터
+fitPiecewiseLinearWithDiagnostics(events, selectedTo)
+
+// 리팩터 후: 수집된 시퀀스만 전달 (내부 20윈도우·회귀 동일)
+fitPiecewiseFromLatencies(orderedLatencies, { targetToKey, upperBoundMs })
+```
+
+기존 `fitPiecewiseLinearWithDiagnostics(events, …)` 시그니처는 **얇은 래퍼**로 유지해 호출부 호환을 보장할 수 있습니다.
+
+### 4.4. 합쳐도 줄지 않는 비용
+
+단일 패스로 전환해도 아래는 그대로입니다.
+
+- 선택 키 정답 latency에 대한 **median / IQR 정렬** — O(k log k)
+- 분절회귀 **20윈도우 이후 회귀** — O(1)에 가까움
+- `ensureFinalUpperBound` → SKDM `runPipeline` — 진단 진입 시 별도 1회
+
+리팩터링의 실질 이득은 **CPU k배 가속**보다 **중복 filter·중간 배열 제거** 및 **신규 통계 추가 시 N 스캔 증가 방지**에 있습니다.
+
+### 4.5. 미구현 통계 구현 시 가이드
+
+§3 Panel 1~3의 **미구현** 항목은 구현 시 아래를 따릅니다.
+
+| 지표 | 권장 방식 |
+| :--- | :--- |
+| Latency 분포 (MAD) | `computeLatencyConsistency` — selectedTo 정답 latency에 MAD/rMAD, 5건 미만 시 null |
+| 공간적 오타 거리 | 오타 이벤트만 스캔, 키 좌표 lookup (`layout.ts`) |
+| Dwell · Flight | holdDuration + latency 분리 — accumulator의 per-key 쌍 재사용 |
+| N단계 전이 패턴 | 최근 N건 또는 고정 윈도우 (예: 2,000건) |
+| 버스트 쌍 | latency 임계값 기반 연속 구간 탐지 — 윈도우 스캔 |
+
+전체 히스토리(수십만 건 이상) 기준 진단이 필요해지면 **서버 pre-aggregate**(DB 집계) 또는 **Web Worker** 분리를 별도 검토합니다. Run 단위 MVP에서는 §4.3 accumulator 리팩터만으로 충분합니다.
+
+### 4.6. 작업 체크리스트 (예정)
+
+- [ ] `DiagnosticsAccumulator` 타입 및 `buildDiagnosticsAccumulator(events)` 구현
+- [ ] `calculateKeystrokeDiagnostics` → accumulator 소비형 `finalizeKeystrokeDiagnostics`로 전환
+- [ ] `fitPiecewiseFromLatencies` (또는 collected events 입력) 추가, 기존 API 래퍼 유지
+- [ ] `useCylindricalDiagnostics`에서 단일 accumulator 생성 후 분기
+- [ ] 기존 `useCylindricalDiagnostics.test.ts` · `cylindricalStats` · `piecewiseRegression` 테스트 통과
+- [ ] §3 미구현 통계를 accumulator 확장 포인트에 순차 추가
