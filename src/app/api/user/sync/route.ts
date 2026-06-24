@@ -5,7 +5,13 @@ import { drizzleDb } from "@/db";
 import { users } from "@/db/schema";
 import { db } from "@/utils/db";
 import { formatDbErrorForClient, logDbError } from "@/utils/dbErrors";
-import { GuestAuthError, isValidGuestId, verifyGuestToken, GUEST_ID_HEADER, GUEST_TOKEN_HEADER } from "@/utils/guestAuth";
+import {
+  GuestAuthError,
+  isValidGuestId,
+  verifyGuestToken,
+  GUEST_ID_HEADER,
+  GUEST_TOKEN_HEADER,
+} from "@/utils/guestAuth";
 
 export async function POST(request: NextRequest) {
   try {

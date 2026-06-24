@@ -64,10 +64,7 @@ describe("/api/practice/topic route", () => {
     process.env.UPSTAGE_API_KEY = "test-upstage-key";
 
     vi.spyOn(global, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({ data: [{ embedding: [0.1, 0.2, 0.3] }] }),
-        { status: 200 },
-      ),
+      new Response(JSON.stringify({ data: [{ embedding: [0.1, 0.2, 0.3] }] }), { status: 200 }),
     );
 
     const mockLimit = vi.fn().mockResolvedValue([

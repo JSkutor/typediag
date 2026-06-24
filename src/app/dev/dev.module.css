@@ -13,6 +13,10 @@
   gap: var(--space-5);
 }
 
+.innerWide {
+  max-width: min(100%, 1600px);
+}
+
 .header {
   display: flex;
   flex-direction: column;

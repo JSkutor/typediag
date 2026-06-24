@@ -64,9 +64,7 @@ describe("resolveApiUser", () => {
   });
 
   it("reissues token when guest token is invalid", async () => {
-    const result = await resolveApiUser(
-      makeGuestRequest({ "x-guest-token": "invalid-token" }),
-    );
+    const result = await resolveApiUser(makeGuestRequest({ "x-guest-token": "invalid-token" }));
 
     expect(result.userId).toBe(`db_${guestId}`);
     expect(result.issueGuestToken).toBe(signGuestToken(guestId));
@@ -82,9 +80,9 @@ describe("resolveApiUser", () => {
   });
 
   it("enforces guest token when requireGuestToken is true", async () => {
-    await expect(
-      resolveApiUser(makeGuestRequest(), { requireGuestToken: true }),
-    ).rejects.toThrow("Unauthorized: Guest token required or invalid");
+    await expect(resolveApiUser(makeGuestRequest(), { requireGuestToken: true })).rejects.toThrow(
+      "Unauthorized: Guest token required or invalid",
+    );
 
     await expect(
       resolveApiUser(makeGuestRequest({ "x-guest-token": "bad" }), {

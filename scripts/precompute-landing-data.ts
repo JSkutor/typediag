@@ -6,7 +6,7 @@ import {
   filterOutliers,
   aggregatePairs,
   summarizeKeys,
-  smooth
+  smooth,
 } from "../src/lib/skdm/model";
 import { KeyEvent } from "../src/lib/skdm/types";
 
@@ -59,7 +59,7 @@ function main() {
 
   // 1. Sort pages by created_at descending (latest first)
   const sortedPages = [...dbData.pages].sort(
-    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
   );
 
   // 2. Process all pages in local_db.json to use the entire dataset
@@ -78,7 +78,7 @@ function main() {
         keyChar: ev.key_char,
         holdDurationMs: ev.hold_duration_ms,
         isCorrect: ev.is_correct,
-        expectedChar: ev.expected_char
+        expectedChar: ev.expected_char,
       });
     }
   }
@@ -114,7 +114,7 @@ function main() {
   }
 
   // Normalize zSmoothed values to a healthy [0.18, 0.85] range so they render beautifully
-  const zs = Object.values(keyStats).map(s => s.zSmoothed);
+  const zs = Object.values(keyStats).map((s) => s.zSmoothed);
   const minZ = Math.min(...zs);
   const maxZ = Math.max(...zs);
   const range = maxZ - minZ;
@@ -128,13 +128,13 @@ function main() {
     }
   }
 
-
   // 5. Extract representative cylindrical transition events (limit density for smooth UI)
   const validTransitions = validEvents.filter(
-    e => e.fromKey !== null &&
-         /^[a-z]$/.test(e.fromKey.toLowerCase()) &&
-         /^[a-z]$/.test(e.toKey.toLowerCase()) &&
-         e.fromKey.toLowerCase() !== e.toKey.toLowerCase()
+    (e) =>
+      e.fromKey !== null &&
+      /^[a-z]$/.test(e.fromKey.toLowerCase()) &&
+      /^[a-z]$/.test(e.toKey.toLowerCase()) &&
+      e.fromKey.toLowerCase() !== e.toKey.toLowerCase(),
   );
 
   // Find the "best" toKey that has the most unique incoming fromKeys
@@ -159,7 +159,9 @@ function main() {
     }
   }
 
-  console.log(`Best toKey for cylindrical visualization is "${bestToKey}" with ${maxUniqueFrom} unique fromKeys.`);
+  console.log(
+    `Best toKey for cylindrical visualization is "${bestToKey}" with ${maxUniqueFrom} unique fromKeys.`,
+  );
 
   // Gather all transition events that land on this bestToKey (cap at 10 events per fromKey pair)
   const selectedCylindricalEvents: KeyEvent[] = [];
@@ -175,7 +177,7 @@ function main() {
         selectedCylindricalEvents.push({
           fromKey: ev.fromKey,
           toKey: ev.toKey,
-          latencyMs: ev.latencyMs
+          latencyMs: ev.latencyMs,
         });
       }
     }
@@ -185,24 +187,26 @@ function main() {
   const forcedFromKeys = ["b", "y", "z"];
   for (const from of forcedFromKeys) {
     const hasTransition = selectedCylindricalEvents.some(
-      e => e.fromKey?.toLowerCase() === from && e.toKey.toLowerCase() === bestToKey
+      (e) => e.fromKey?.toLowerCase() === from && e.toKey.toLowerCase() === bestToKey,
     );
     if (!hasTransition) {
       // Add a couple of mock transitions with realistic random latency
       selectedCylindricalEvents.push({
         fromKey: from,
         toKey: bestToKey,
-        latencyMs: 175 + Math.random() * 45
+        latencyMs: 175 + Math.random() * 45,
       });
       selectedCylindricalEvents.push({
         fromKey: from,
         toKey: bestToKey,
-        latencyMs: 190 + Math.random() * 35
+        latencyMs: 190 + Math.random() * 35,
       });
     }
   }
 
-  console.log(`Selected ${selectedCylindricalEvents.length} transition events for Cylindrical visualization.`);
+  console.log(
+    `Selected ${selectedCylindricalEvents.length} transition events for Cylindrical visualization.`,
+  );
 
   // 6. Write output TS file
   const tsContent = `/**

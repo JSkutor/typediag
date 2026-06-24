@@ -88,8 +88,8 @@ export class SessionService {
     }
 
     const isKorean = /[가-힣]/.test(targetText);
-    const finalLanguage = language ?? (targetTextObj?.language ?? (isKorean ? "ko" : "en"));
-    const finalTargetTextId = targetId ?? (targetTextObj?.id ?? "unknown");
+    const finalLanguage = language ?? targetTextObj?.language ?? (isKorean ? "ko" : "en");
+    const finalTargetTextId = targetId ?? targetTextObj?.id ?? "unknown";
 
     const getPerfNow = () => {
       if (typeof performance !== "undefined" && typeof performance.now === "function") {

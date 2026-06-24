@@ -54,45 +54,48 @@ export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
   }, [isActivated]);
 
   // Initialize and dispose manager
-  const handleInit = useCallback((manager: Surface3DManager) => {
-    manager.isLanding = isLanding;
-    if (disableControls) manager.lockControls();
-    manager.onUpdateHUD = (
-      surfaceKeys,
-      elevationScale,
-      camera,
-      opacity,
-      managerWidth,
-      managerHeight,
-    ) => {
-      if (!labelsContainerRef.current || !mountRef.current) return;
-      const TARGET_ELEVATION_SCALE = 180;
+  const handleInit = useCallback(
+    (manager: Surface3DManager) => {
+      manager.isLanding = isLanding;
+      if (disableControls) manager.lockControls();
+      manager.onUpdateHUD = (
+        surfaceKeys,
+        elevationScale,
+        camera,
+        opacity,
+        managerWidth,
+        managerHeight,
+      ) => {
+        if (!labelsContainerRef.current || !mountRef.current) return;
+        const TARGET_ELEVATION_SCALE = 180;
 
-      surfaceKeys.forEach((k) => {
-        const vec = manager.get3DPos(k, elevationScale);
-        const scaleRatio = elevationScale / TARGET_ELEVATION_SCALE;
-        const amplifiedZ =
-          k.key.toLowerCase() === "_dummy_comma" ? 0 : Math.pow(k.zSmoothed, LATENCY_POWER);
-        vec.y += SURFACE_Y_OFFSET + (10 + amplifiedZ * 5) * scaleRatio;
+        surfaceKeys.forEach((k) => {
+          const vec = manager.get3DPos(k, elevationScale);
+          const scaleRatio = elevationScale / TARGET_ELEVATION_SCALE;
+          const amplifiedZ =
+            k.key.toLowerCase() === "_dummy_comma" ? 0 : Math.pow(k.zSmoothed, LATENCY_POWER);
+          vec.y += SURFACE_Y_OFFSET + (10 + amplifiedZ * 5) * scaleRatio;
 
-        vec.project(camera);
+          vec.project(camera);
 
-        const x = (vec.x * 0.5 + 0.5) * managerWidth;
-        const y = (vec.y * -0.5 + 0.5) * managerHeight;
+          const x = (vec.x * 0.5 + 0.5) * managerWidth;
+          const y = (vec.y * -0.5 + 0.5) * managerHeight;
 
-        const el = labelRefs.current[k.key];
-        if (el) {
-          if (vec.z > 1) {
-            el.style.display = "none";
-          } else {
-            el.style.display = "block";
-            el.style.transform = `translate3d(-50%, -50%, 0) translate3d(${x}px, ${y}px, 0)`;
-            el.style.opacity = `${opacity}`;
+          const el = labelRefs.current[k.key];
+          if (el) {
+            if (vec.z > 1) {
+              el.style.display = "none";
+            } else {
+              el.style.display = "block";
+              el.style.transform = `translate3d(-50%, -50%, 0) translate3d(${x}px, ${y}px, 0)`;
+              el.style.opacity = `${opacity}`;
+            }
           }
-        }
-      });
-    };
-  }, [disableControls, isLanding]);
+        });
+      };
+    },
+    [disableControls, isLanding],
+  );
 
   const managerRef = useThreeManager(Surface3DManager, mountRef, shouldRenderThree, handleInit);
 

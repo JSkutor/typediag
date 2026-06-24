@@ -1,8 +1,5 @@
 import { KeyEvent } from "@/lib/skdm";
-import {
-  applyGuestTokenFromResponse,
-  getGuestAuthHeaders,
-} from "@/utils/guestUser";
+import { applyGuestTokenFromResponse, getGuestAuthHeaders } from "@/utils/guestUser";
 
 async function parseSessionJson(res: Response): Promise<Record<string, unknown>> {
   const data = (await res.json()) as Record<string, unknown>;

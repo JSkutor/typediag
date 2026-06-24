@@ -82,13 +82,9 @@
         "key_events_page_id_pages_id_fk": {
           "name": "key_events_page_id_pages_id_fk",
           "tableFrom": "key_events",
-          "columnsFrom": [
-            "page_id"
-          ],
+          "columnsFrom": ["page_id"],
           "tableTo": "pages",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "cascade"
         }
@@ -96,10 +92,7 @@
       "compositePrimaryKeys": {
         "key_events_pk": {
           "name": "key_events_pk",
-          "columns": [
-            "id",
-            "created_at"
-          ]
+          "columns": ["id", "created_at"]
         }
       },
       "uniqueConstraints": {},
@@ -197,26 +190,18 @@
         "pages_run_id_runs_id_fk": {
           "name": "pages_run_id_runs_id_fk",
           "tableFrom": "pages",
-          "columnsFrom": [
-            "run_id"
-          ],
+          "columnsFrom": ["run_id"],
           "tableTo": "runs",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "cascade"
         },
         "pages_target_text_id_target_texts_id_fk": {
           "name": "pages_target_text_id_target_texts_id_fk",
           "tableFrom": "pages",
-          "columnsFrom": [
-            "target_text_id"
-          ],
+          "columnsFrom": ["target_text_id"],
           "tableTo": "target_texts",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "set null"
         }
@@ -294,13 +279,9 @@
         "runs_user_id_users_id_fk": {
           "name": "runs_user_id_users_id_fk",
           "tableFrom": "runs",
-          "columnsFrom": [
-            "user_id"
-          ],
+          "columnsFrom": ["user_id"],
           "tableTo": "users",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "set null"
         }
@@ -390,13 +371,9 @@
         "target_texts_user_id_users_id_fk": {
           "name": "target_texts_user_id_users_id_fk",
           "tableFrom": "target_texts",
-          "columnsFrom": [
-            "user_id"
-          ],
+          "columnsFrom": ["user_id"],
           "tableTo": "users",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "set null"
         }
@@ -405,9 +382,7 @@
       "uniqueConstraints": {
         "target_texts_content_unique": {
           "name": "target_texts_content_unique",
-          "columns": [
-            "content"
-          ],
+          "columns": ["content"],
           "nullsNotDistinct": false
         }
       },

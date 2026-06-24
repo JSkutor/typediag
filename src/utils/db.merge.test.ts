@@ -55,11 +55,7 @@ describe("mergeGuestData", () => {
     await db.mergeGuestData(user.id, user.id);
 
     // Ensure user still exists
-    const existing = await drizzleDb
-      .select()
-      .from(users)
-      .where(eq(users.id, user.id))
-      .limit(1);
+    const existing = await drizzleDb.select().from(users).where(eq(users.id, user.id)).limit(1);
     expect(existing).toHaveLength(1);
   });
 });

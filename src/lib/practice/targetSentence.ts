@@ -41,7 +41,12 @@ export function validateTargetSentence(
   // cleanSentence는 \r\n을 공백으로 치환해버려서 정리 후에는 감지 불가.
   if (/[\r\n]/.test(raw)) {
     const cleaned = cleanSentence(raw);
-    return { isValid: false, reason: "multiline", pureHangulCount: getPureHangulCount(cleaned), cleaned };
+    return {
+      isValid: false,
+      reason: "multiline",
+      pureHangulCount: getPureHangulCount(cleaned),
+      cleaned,
+    };
   }
 
   const cleaned = cleanSentence(raw);

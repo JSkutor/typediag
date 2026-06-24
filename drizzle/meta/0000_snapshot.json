@@ -83,12 +83,8 @@
           "name": "key_events_page_id_pages_id_fk",
           "tableFrom": "key_events",
           "tableTo": "pages",
-          "columnsFrom": [
-            "page_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["page_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -96,10 +92,7 @@
       "compositePrimaryKeys": {
         "key_events_pk": {
           "name": "key_events_pk",
-          "columns": [
-            "id",
-            "created_at"
-          ]
+          "columns": ["id", "created_at"]
         }
       },
       "uniqueConstraints": {},
@@ -198,12 +191,8 @@
           "name": "pages_run_id_runs_id_fk",
           "tableFrom": "pages",
           "tableTo": "runs",
-          "columnsFrom": [
-            "run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["run_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -211,12 +200,8 @@
           "name": "pages_target_text_id_target_texts_id_fk",
           "tableFrom": "pages",
           "tableTo": "target_texts",
-          "columnsFrom": [
-            "target_text_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["target_text_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -295,12 +280,8 @@
           "name": "runs_user_id_users_id_fk",
           "tableFrom": "runs",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -391,12 +372,8 @@
           "name": "target_texts_user_id_users_id_fk",
           "tableFrom": "target_texts",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -406,9 +383,7 @@
         "target_texts_content_unique": {
           "name": "target_texts_content_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "content"
-          ]
+          "columns": ["content"]
         }
       },
       "policies": {},

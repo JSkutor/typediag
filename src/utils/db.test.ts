@@ -30,10 +30,10 @@ describe("db", () => {
           like(targetTexts.id, "target_gen_%"),
           like(targetTexts.content, "no-embed-%"),
           like(targetTexts.content, "with-embed-%"),
-           like(targetTexts.content, "topic-gen-%"),
-           like(targetTexts.content, "topic-dup-%"),
-          like(targetTexts.content, "test-content-%")
-        )
+          like(targetTexts.content, "topic-gen-%"),
+          like(targetTexts.content, "topic-dup-%"),
+          like(targetTexts.content, "test-content-%"),
+        ),
       );
   });
 
@@ -358,9 +358,7 @@ describe("db", () => {
     const id = `target_gen_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`;
     const content = `topic-gen-${crypto.randomUUID()}`;
 
-    await db.insertTopicGeneratedTargets([
-      { id, content, language: "ko", topic: "테스트 주제" },
-    ]);
+    await db.insertTopicGeneratedTargets([{ id, content, language: "ko", topic: "테스트 주제" }]);
 
     const found = await db.findTargetText({ id });
     expect(found?.content).toBe(content);
@@ -416,9 +414,7 @@ describe("db", () => {
     const pending = await drizzleDb
       .select({ id: targetTexts.id })
       .from(targetTexts)
-      .where(
-        and(inArray(targetTexts.id, [noEmbedId, withEmbedId]), isNull(targetTexts.embedding)),
-      );
+      .where(and(inArray(targetTexts.id, [noEmbedId, withEmbedId]), isNull(targetTexts.embedding)));
 
     expect(pending.map((row) => row.id)).toEqual([noEmbedId]);
   });

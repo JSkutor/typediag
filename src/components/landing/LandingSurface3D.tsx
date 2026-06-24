@@ -15,12 +15,7 @@ export const LandingSurface3D: React.FC = () => {
 
   return (
     <div className="landing-surface-3d">
-      <LatencySurface3D
-        keyStats={mockStats}
-        isActivated={isActivated}
-        disableControls
-        isLanding
-      />
+      <LatencySurface3D keyStats={mockStats} isActivated={isActivated} disableControls isLanding />
     </div>
   );
 };

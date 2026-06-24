@@ -199,7 +199,7 @@ export class MaximumValidSequenceAligner {
     wordQwerty: string,
     targetOffset: number,
     qOffset: number,
-    isCompleted: boolean = false
+    isCompleted: boolean = false,
   ): AlignResult[] {
     let tIdx = 0;
     let qIdx = 0;

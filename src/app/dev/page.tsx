@@ -5,6 +5,11 @@ import styles from "./dev.module.css";
 
 const DEV_TOOLS = [
   {
+    href: "/dev/cost",
+    title: "Unit Economics",
+    description: "비용·수익 분리 시뮬레이션 및 월간 손익 추정.",
+  },
+  {
     href: "/dev/cosine",
     title: "Cosine Similarity",
     description: "Topic Mode 시맨틱 검색. DB 유사도 상위 문장 조회.",

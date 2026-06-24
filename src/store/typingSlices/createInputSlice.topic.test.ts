@@ -198,7 +198,7 @@ describe("createInputSlice - Topic Mode", () => {
     await act(async () => {
       useTypingStore.getState().nextTarget();
     });
-    
+
     let state = useTypingStore.getState();
     expect(state.topicTargetIndex).toBe(1);
     expect(state.targetText).toBe("문장 2");

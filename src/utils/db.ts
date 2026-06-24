@@ -328,7 +328,7 @@ export const db = {
           fromKey: ev.from_key ? ev.from_key.substring(0, 20) : null,
           toKey: ev.to_key ? ev.to_key.substring(0, 20) : "",
           keyChar: ev.key_char ? ev.key_char.substring(0, 10) : "",
-          latency: Math.round(typeof ev.latency === 'number' ? ev.latency : 0),
+          latency: Math.round(typeof ev.latency === "number" ? ev.latency : 0),
           holdDurationMs: ev.hold_duration_ms != null ? Math.round(ev.hold_duration_ms) : null,
           isCorrect: ev.is_correct ?? null,
           expectedChar: ev.expected_char ? ev.expected_char.substring(0, 10) : null,

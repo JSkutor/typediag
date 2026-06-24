@@ -1,6 +1,6 @@
 /**
  * Batch embedding script for TypeDiag target_texts.
- * 
+ *
  * Usage: npx tsx --env-file=.env.local scripts/embedBatch.ts
  */
 
@@ -62,16 +62,18 @@ async function main() {
   }
 
   // Upstage API 한 번에 보낼 수 있는 적절한 크기 (토큰 수 제한 고려)
-  const BATCH_SIZE = 50; 
+  const BATCH_SIZE = 50;
   let successCount = 0;
   let failCount = 0;
 
   for (let i = 0; i < rows.length; i += BATCH_SIZE) {
     const batch = rows.slice(i, i + BATCH_SIZE);
-    console.log(`Processing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(rows.length / BATCH_SIZE)} (${batch.length} items)...`);
+    console.log(
+      `Processing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(rows.length / BATCH_SIZE)} (${batch.length} items)...`,
+    );
 
     try {
-      const contents = batch.map(r => r.content);
+      const contents = batch.map((r) => r.content);
 
       const res = await fetch("https://api.upstage.ai/v1/embeddings", {
         method: "POST",
@@ -97,7 +99,7 @@ async function main() {
         for (let j = 0; j < batch.length; j++) {
           const row = batch[j];
           const embeddingObj = embeddings.find((e) => e.index === j);
-          
+
           if (embeddingObj?.embedding) {
             const arrStr = `[${embeddingObj.embedding.join(",")}]`;
             await tx`UPDATE target_texts SET embedding = ${arrStr}::vector WHERE id = ${row.id} AND embedding IS NULL`;

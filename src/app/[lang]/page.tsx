@@ -39,9 +39,15 @@ export default async function LangLandingPage({ params }: { params: Params }) {
             </span>
           </div>
 
-          <h1 className={`hero-headline ${lang === "en" ? "hero-headline--en" : "hero-headline--ko"}`}>
-            <span className="hero-headline-line hero-headline-line--primary">{t.hero.headlinePrimary}</span>
-            <span className="hero-headline-line hero-headline-line--accent">{t.hero.headlineAccent}</span>
+          <h1
+            className={`hero-headline ${lang === "en" ? "hero-headline--en" : "hero-headline--ko"}`}
+          >
+            <span className="hero-headline-line hero-headline-line--primary">
+              {t.hero.headlinePrimary}
+            </span>
+            <span className="hero-headline-line hero-headline-line--accent">
+              {t.hero.headlineAccent}
+            </span>
           </h1>
 
           <p className="hero-subtitle">{t.hero.subtitle}</p>

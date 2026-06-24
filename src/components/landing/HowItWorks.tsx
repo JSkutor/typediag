@@ -6,56 +6,50 @@ interface HowItWorksProps {
 }
 
 const STEP_ICONS = [
-  (
-    <svg
-      key="01"
-      width="28"
-      height="28"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <rect x="2" y="6" width="20" height="12" rx="2" />
-      <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M6 14h12" />
-    </svg>
-  ),
-  (
-    <svg
-      key="02"
-      width="28"
-      height="28"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <circle cx="11" cy="11" r="8" />
-      <path d="m21 21-4.35-4.35" />
-    </svg>
-  ),
-  (
-    <svg
-      key="03"
-      width="28"
-      height="28"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <path d="M12 22V12M12 12L5 7M12 12L19 7M5 7L12 2L19 7M5 7V17L12 22L19 17V7" />
-    </svg>
-  ),
+  <svg
+    key="01"
+    width="28"
+    height="28"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+  >
+    <rect x="2" y="6" width="20" height="12" rx="2" />
+    <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M6 14h12" />
+  </svg>,
+  <svg
+    key="02"
+    width="28"
+    height="28"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+  >
+    <circle cx="11" cy="11" r="8" />
+    <path d="m21 21-4.35-4.35" />
+  </svg>,
+  <svg
+    key="03"
+    width="28"
+    height="28"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+  >
+    <path d="M12 22V12M12 12L5 7M12 12L19 7M5 7L12 2L19 7M5 7V17L12 22L19 17V7" />
+  </svg>,
 ];
 
 const STEP_ACCENTS = ["var(--accent)", "var(--accent-secondary)", "var(--error)"];
@@ -76,12 +70,7 @@ export function HowItWorks({ lang }: HowItWorksProps) {
           {t.steps.map((step, i) => {
             const accentColor = STEP_ACCENTS[i] ?? "var(--accent)";
             return (
-              <RevealOnScroll
-                key={step.num}
-                className="hiw-step"
-                initialY={32}
-                delay={i * 0.12}
-              >
+              <RevealOnScroll key={step.num} className="hiw-step" initialY={32} delay={i * 0.12}>
                 <div className="hiw-step-left">
                   <div
                     className="hiw-step-num"

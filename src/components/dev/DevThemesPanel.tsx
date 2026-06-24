@@ -12,9 +12,9 @@ interface ThemeColors {
   keyModText: string;
   borderSubtle: string;
   shadowColor: string;
-  accent: string;         // Primary Point Color (e.g. Mint, Cyan)
-  accentGlow: string;     // Translucent variant of Primary Accent
-  accentSecond: string;   // Secondary Point Color (e.g. Peach, Amber)
+  accent: string; // Primary Point Color (e.g. Mint, Cyan)
+  accentGlow: string; // Translucent variant of Primary Accent
+  accentSecond: string; // Secondary Point Color (e.g. Peach, Amber)
 }
 
 interface ThemePreset {
@@ -28,7 +28,8 @@ const THEME_PRESETS: ThemePreset[] = [
   {
     id: "muted_navy",
     name: "1. Muted Navy (채도 약화)",
-    description: "1번 베이스: 푸른빛의 채도를 낮추어 배경을 훨씬 은은하고 튀지 않게 약화한 뮤티드 네이비",
+    description:
+      "1번 베이스: 푸른빛의 채도를 낮추어 배경을 훨씬 은은하고 튀지 않게 약화한 뮤티드 네이비",
     colors: {
       bgBase: "#1b1d24",
       bgRaised: "#242833",
@@ -46,7 +47,8 @@ const THEME_PRESETS: ThemePreset[] = [
   {
     id: "soft_slate",
     name: "2. Soft Slate (명도 완화)",
-    description: "1번 베이스: 어두움의 깊이를 한 톤 올려서 명암 강도를 부드럽게 약화한 소프트 슬레이트",
+    description:
+      "1번 베이스: 어두움의 깊이를 한 톤 올려서 명암 강도를 부드럽게 약화한 소프트 슬레이트",
     colors: {
       bgBase: "#20242f",
       bgRaised: "#292e3c",
@@ -64,7 +66,8 @@ const THEME_PRESETS: ThemePreset[] = [
   {
     id: "warm_charcoal",
     name: "3. Warm Charcoal (청색 최소화)",
-    description: "1번 베이스: 배경의 청색 틴트를 최소한으로 빼고 부드러운 다크 회색 차콜로 억제한 테마",
+    description:
+      "1번 베이스: 배경의 청색 틴트를 최소한으로 빼고 부드러운 다크 회색 차콜로 억제한 테마",
     colors: {
       bgBase: "#1e2024",
       bgRaised: "#262930",
@@ -82,7 +85,8 @@ const THEME_PRESETS: ThemePreset[] = [
   {
     id: "low_contrast",
     name: "4. Low Contrast (대비 최소화)",
-    description: "1번 베이스: 배경과 패널 간의 밝기 격차를 최소한으로 좁혀서 시각적 자극을 낮춘 테마",
+    description:
+      "1번 베이스: 배경과 패널 간의 밝기 격차를 최소한으로 좁혀서 시각적 자극을 낮춘 테마",
     colors: {
       bgBase: "#1a1d25",
       bgRaised: "#1f232e",
@@ -142,9 +146,32 @@ export function DevThemesPanel() {
   });
   const [pressedKeys, setPressedKeys] = useState<Record<string, boolean>>({});
   const [activeKeysCount, setActiveKeysCount] = useState<Record<string, number>>({
-    KeyQ: 1, KeyW: 0, KeyE: 0, KeyR: 3, KeyT: 1, KeyY: 0, KeyU: 2, KeyI: 7, KeyO: 2, KeyP: 0,
-    KeyA: 4, KeyS: 5, KeyD: 1, KeyF: 0, KeyG: 0, KeyH: 1, KeyJ: 6, KeyK: 2, KeyL: 3,
-    KeyZ: 0, KeyX: 0, KeyC: 2, KeyV: 1, KeyB: 0, KeyN: 4, KeyM: 3,
+    KeyQ: 1,
+    KeyW: 0,
+    KeyE: 0,
+    KeyR: 3,
+    KeyT: 1,
+    KeyY: 0,
+    KeyU: 2,
+    KeyI: 7,
+    KeyO: 2,
+    KeyP: 0,
+    KeyA: 4,
+    KeyS: 5,
+    KeyD: 1,
+    KeyF: 0,
+    KeyG: 0,
+    KeyH: 1,
+    KeyJ: 6,
+    KeyK: 2,
+    KeyL: 3,
+    KeyZ: 0,
+    KeyX: 0,
+    KeyC: 2,
+    KeyV: 1,
+    KeyB: 0,
+    KeyN: 4,
+    KeyM: 3,
   }); // Simulated key delay map
 
   useEffect(() => {
@@ -209,9 +236,32 @@ export function DevThemesPanel() {
 
   const resetHeatmap = () => {
     setActiveKeysCount({
-      KeyQ: 0, KeyW: 0, KeyE: 0, KeyR: 0, KeyT: 0, KeyY: 0, KeyU: 0, KeyI: 0, KeyO: 0, KeyP: 0,
-      KeyA: 0, KeyS: 0, KeyD: 0, KeyF: 0, KeyG: 0, KeyH: 0, KeyJ: 0, KeyK: 0, KeyL: 0,
-      KeyZ: 0, KeyX: 0, KeyC: 0, KeyV: 0, KeyB: 0, KeyN: 0, KeyM: 0,
+      KeyQ: 0,
+      KeyW: 0,
+      KeyE: 0,
+      KeyR: 0,
+      KeyT: 0,
+      KeyY: 0,
+      KeyU: 0,
+      KeyI: 0,
+      KeyO: 0,
+      KeyP: 0,
+      KeyA: 0,
+      KeyS: 0,
+      KeyD: 0,
+      KeyF: 0,
+      KeyG: 0,
+      KeyH: 0,
+      KeyJ: 0,
+      KeyK: 0,
+      KeyL: 0,
+      KeyZ: 0,
+      KeyX: 0,
+      KeyC: 0,
+      KeyV: 0,
+      KeyB: 0,
+      KeyN: 0,
+      KeyM: 0,
     });
   };
 
@@ -244,9 +294,15 @@ export function DevThemesPanel() {
                 <p className={styles.presetDesc}>{preset.description}</p>
                 <div className={styles.colorSwatches}>
                   <span style={{ backgroundColor: preset.colors.bgBase }} title="Bg Base" />
-                  <span style={{ backgroundColor: preset.colors.keyAlphaBg }} title="Keycap Alpha" />
+                  <span
+                    style={{ backgroundColor: preset.colors.keyAlphaBg }}
+                    title="Keycap Alpha"
+                  />
                   <span style={{ backgroundColor: preset.colors.accent }} title="Primary Accent" />
-                  <span style={{ backgroundColor: preset.colors.accentSecond }} title="Secondary Accent" />
+                  <span
+                    style={{ backgroundColor: preset.colors.accentSecond }}
+                    title="Secondary Accent"
+                  />
                 </div>
               </button>
             ))}
@@ -256,7 +312,7 @@ export function DevThemesPanel() {
         <div className={styles.sidebarSection}>
           <h2 className={styles.sidebarTitle}>2. Color Customizer</h2>
           <p className={styles.sectionDesc}>각 색상을 세부 조정하여 원하는 톤을 찾으세요.</p>
-          
+
           <div className={styles.customizerGrid}>
             <div className={styles.customizerGroup}>
               <h3 className={styles.groupTitle}>Backgrounds & Surfaces</h3>
@@ -358,7 +414,8 @@ export function DevThemesPanel() {
             <div>
               <h3 className={styles.cardTitle}>Mechanical Keyboard Preview</h3>
               <p className={styles.cardSubtitle}>
-                키캡 각인은 깔끔하게 통일하고, Enter/Esc/Space 등 일부 포인트 키캡에만 테마 Accent를 적용했습니다.
+                키캡 각인은 깔끔하게 통일하고, Enter/Esc/Space 등 일부 포인트 키캡에만 테마 Accent를
+                적용했습니다.
               </p>
             </div>
             <button onClick={resetHeatmap} className={styles.utilityBtn}>
@@ -371,7 +428,7 @@ export function DevThemesPanel() {
               <div key={rowIndex} className={styles.keyboardRow}>
                 {/* Esc / Caps Locks */}
                 {rowIndex === 0 && (
-                  <div 
+                  <div
                     className={`${styles.keycap} ${styles.modKey} ${styles.escKey}`}
                     style={{ backgroundColor: "var(--accent-second)", color: "var(--bg-base)" }}
                   >
@@ -392,26 +449,26 @@ export function DevThemesPanel() {
                 {row.map((key) => {
                   const isPressed = pressedKeys[key.code];
                   const delayCount = activeKeysCount[key.code] || 0;
-                  
+
                   return (
                     <div
                       key={key.code}
                       className={`${styles.keycap} ${isPressed ? styles.pressed : ""}`}
                       style={{
                         borderColor: delayCount > 0 ? "var(--accent)" : "var(--border-subtle)",
-                        boxShadow: isPressed 
-                          ? "0 1px 1px var(--shadow-color)" 
+                        boxShadow: isPressed
+                          ? "0 1px 1px var(--shadow-color)"
                           : `0 4px 0 var(--shadow-color), inset 0 1px 0 rgba(255,255,255,0.05)`,
                       }}
                     >
                       {/* Latency glow map inside alpha keys */}
                       {delayCount > 0 && (
-                        <span 
-                          className={styles.keyGlow} 
-                          style={{ 
+                        <span
+                          className={styles.keyGlow}
+                          style={{
                             backgroundColor: "var(--accent)",
-                            opacity: Math.min(delayCount * 0.08, 0.3)
-                          }} 
+                            opacity: Math.min(delayCount * 0.08, 0.3),
+                          }}
                         />
                       )}
                       <span className={styles.keyLegend} style={{ color: "var(--key-alpha-text)" }}>
@@ -428,14 +485,20 @@ export function DevThemesPanel() {
 
                 {/* Right Modifiers: Enter & Shift & Backspace */}
                 {rowIndex === 0 && (
-                  <div className={`${styles.keycap} ${styles.modKey} ${styles.backspaceKey} ${pressedKeys["Backspace"] ? styles.pressed : ""}`}>
+                  <div
+                    className={`${styles.keycap} ${styles.modKey} ${styles.backspaceKey} ${pressedKeys["Backspace"] ? styles.pressed : ""}`}
+                  >
                     <span>Delete</span>
                   </div>
                 )}
                 {rowIndex === 1 && (
-                  <div 
+                  <div
                     className={`${styles.keycap} ${styles.modKey} ${styles.enterKey}`}
-                    style={{ backgroundColor: "var(--accent)", color: "var(--bg-base)", fontWeight: 700 }}
+                    style={{
+                      backgroundColor: "var(--accent)",
+                      color: "var(--bg-base)",
+                      fontWeight: 700,
+                    }}
                   >
                     <span>Enter</span>
                   </div>
@@ -449,7 +512,7 @@ export function DevThemesPanel() {
             ))}
             {/* Spacebar Row */}
             <div className={styles.keyboardRow}>
-              <div 
+              <div
                 className={`${styles.keycap} ${styles.modKey} ${styles.spaceKey} ${pressedKeys["Space"] ? styles.pressed : ""}`}
                 style={{ borderColor: "var(--accent-second)" }}
               >
@@ -475,49 +538,67 @@ export function DevThemesPanel() {
               </div>
               <pre className={styles.codeContent}>
                 <code>
-                  <span style={{ color: "var(--key-mod-text)" }}>{"// TypeDiag Spatial Keystroke Dynamics Model (SKDM)"}</span>{"\n"}
-                  <span style={{ color: "var(--accent)" }}>import</span>{" { calculateKeyLatency } "}
+                  <span style={{ color: "var(--key-mod-text)" }}>
+                    {"// TypeDiag Spatial Keystroke Dynamics Model (SKDM)"}
+                  </span>
+                  {"\n"}
+                  <span style={{ color: "var(--accent)" }}>import</span>
+                  {" { calculateKeyLatency } "}
                   <span style={{ color: "var(--accent)" }}>from</span>{" "}
-                  <span style={{ color: "var(--key-alpha-text)" }}>{"\"@/lib/skdm/model\""}</span>{";\n\n"}
-
+                  <span style={{ color: "var(--key-alpha-text)" }}>{'"@/lib/skdm/model"'}</span>
+                  {";\n\n"}
                   <span style={{ color: "var(--accent)" }}>interface</span>{" "}
-                  <span style={{ color: "var(--accent-second)" }}>KeystrokeEvent</span>{" {\n"}
+                  <span style={{ color: "var(--accent-second)" }}>KeystrokeEvent</span>
+                  {" {\n"}
                   {"  key: "}
-                  <span style={{ color: "var(--key-alpha-text)" }}>string</span>{";\n"}
+                  <span style={{ color: "var(--key-alpha-text)" }}>string</span>
+                  {";\n"}
                   {"  pressTime: "}
-                  <span style={{ color: "var(--key-alpha-text)" }}>number</span>{"; "}
-                  <span style={{ color: "var(--key-mod-text)" }}>{"// ms"}</span>{"\n"}
+                  <span style={{ color: "var(--key-alpha-text)" }}>number</span>
+                  {"; "}
+                  <span style={{ color: "var(--key-mod-text)" }}>{"// ms"}</span>
+                  {"\n"}
                   {"  releaseTime: "}
-                  <span style={{ color: "var(--key-alpha-text)" }}>number</span>{";\n"}
+                  <span style={{ color: "var(--key-alpha-text)" }}>number</span>
+                  {";\n"}
                   {"}\n\n"}
-
                   <span style={{ color: "var(--accent)" }}>export function</span>{" "}
                   <span style={{ color: "var(--accent-second)" }}>analyzeSession</span>
                   {"(events: KeystrokeEvent[]): DiagnosticResult {\n"}
                   {"  "}
-                  <span style={{ color: "var(--accent)" }}>const</span>{" threshold = "}
-                  <span style={{ color: "var(--accent-second)" }}>180</span>{"; "}
-                  <span style={{ color: "var(--key-mod-text)" }}>{"// hesitation threshold"}</span>{"\n"}
+                  <span style={{ color: "var(--accent)" }}>const</span>
+                  {" threshold = "}
+                  <span style={{ color: "var(--accent-second)" }}>180</span>
+                  {"; "}
+                  <span style={{ color: "var(--key-mod-text)" }}>{"// hesitation threshold"}</span>
+                  {"\n"}
                   {"  "}
-                  <span style={{ color: "var(--accent)" }}>let</span>{" latencySum = "}
-                  <span style={{ color: "var(--accent-second)" }}>0</span>{";\n\n"}
-
+                  <span style={{ color: "var(--accent)" }}>let</span>
+                  {" latencySum = "}
+                  <span style={{ color: "var(--accent-second)" }}>0</span>
+                  {";\n\n"}
                   {"  "}
-                  <span style={{ color: "var(--accent)" }}>const</span>{" analysis = events.map(("}
+                  <span style={{ color: "var(--accent)" }}>const</span>
+                  {" analysis = events.map(("}
                   <span style={{ color: "var(--key-alpha-text)" }}>event</span>
                   {") => {\n"}
                   {"    "}
-                  <span style={{ color: "var(--accent)" }}>const</span>{" duration = event.releaseTime - event.pressTime;\n"}
+                  <span style={{ color: "var(--accent)" }}>const</span>
+                  {" duration = event.releaseTime - event.pressTime;\n"}
                   {"    "}
-                  <span style={{ color: "var(--accent)" }}>const</span>{" isHesitant = duration > threshold;\n"}
+                  <span style={{ color: "var(--accent)" }}>const</span>
+                  {" isHesitant = duration > threshold;\n"}
                   {"    \n"}
                   {"    "}
-                  <span style={{ color: "var(--accent)" }}>return</span>{" {\n"}
+                  <span style={{ color: "var(--accent)" }}>return</span>
+                  {" {\n"}
                   {"      key: event.key,\n"}
                   {"      latency: duration,\n"}
                   {"      status: isHesitant ? "}
-                  <span style={{ color: "var(--accent-second)" }}>{"\"hesitant\""}</span>{" : "}
-                  <span style={{ color: "var(--key-alpha-text)" }}>{"\"stable\""}</span>{"\n"}
+                  <span style={{ color: "var(--accent-second)" }}>{'"hesitant"'}</span>
+                  {" : "}
+                  <span style={{ color: "var(--key-alpha-text)" }}>{'"stable"'}</span>
+                  {"\n"}
                   {"    };\n"}
                   {"  });\n"}
                   {"}"}
@@ -538,7 +619,10 @@ export function DevThemesPanel() {
               <div className={styles.scoreCard}>
                 <div className={styles.scoreHeader}>
                   <span>Diagnostic Score</span>
-                  <span className={styles.scoreBadge} style={{ backgroundColor: "var(--accent-glow)", color: "var(--accent)" }}>
+                  <span
+                    className={styles.scoreBadge}
+                    style={{ backgroundColor: "var(--accent-glow)", color: "var(--accent)" }}
+                  >
                     Excellent
                   </span>
                 </div>
@@ -546,7 +630,8 @@ export function DevThemesPanel() {
                   95.8<span className={styles.scoreUnit}>/100</span>
                 </div>
                 <p className={styles.scoreText}>
-                  특정 키(I, J) 구간에서 경미한 딜레이 병목이 감지되었으나 전반적으로 고른 타건 지형을 유지하고 있습니다.
+                  특정 키(I, J) 구간에서 경미한 딜레이 병목이 감지되었으나 전반적으로 고른 타건
+                  지형을 유지하고 있습니다.
                 </p>
               </div>
 
@@ -554,11 +639,15 @@ export function DevThemesPanel() {
               <div className={styles.metricGrid}>
                 <div className={styles.metricCard}>
                   <span className={styles.metricLabel}>평균 타자속도 (WPM)</span>
-                  <span className={styles.metricVal} style={{ color: "var(--accent)" }}>82 WPM</span>
+                  <span className={styles.metricVal} style={{ color: "var(--accent)" }}>
+                    82 WPM
+                  </span>
                 </div>
                 <div className={styles.metricCard}>
                   <span className={styles.metricLabel}>타건 정확도 (ACC)</span>
-                  <span className={styles.metricVal} style={{ color: "var(--accent-second)" }}>98.4%</span>
+                  <span className={styles.metricVal} style={{ color: "var(--accent-second)" }}>
+                    98.4%
+                  </span>
                 </div>
               </div>
 
@@ -566,7 +655,9 @@ export function DevThemesPanel() {
               <div className={styles.miniMap}>
                 <div className={styles.miniMapHeader}>
                   <span>Spatial Latency Terrains (SKDM Heatmap)</span>
-                  <span style={{ color: "var(--key-mod-text)", fontSize: "11px" }}>2D Delaunay Node Projections</span>
+                  <span style={{ color: "var(--key-mod-text)", fontSize: "11px" }}>
+                    2D Delaunay Node Projections
+                  </span>
                 </div>
                 <div className={styles.gridMap}>
                   {Array.from({ length: 15 }).map((_, i) => {
@@ -576,7 +667,7 @@ export function DevThemesPanel() {
                     let opacity = 0.03;
                     let text = "Stable";
                     let textColor = "var(--key-mod-text)";
-                    
+
                     if (isHot) {
                       cellColor = "var(--accent)";
                       opacity = 0.15;
@@ -599,14 +690,16 @@ export function DevThemesPanel() {
                           borderWidth: isHot || isWarm ? "1.5px" : "1px",
                         }}
                       >
-                        <span 
-                          className={styles.cellFill} 
-                          style={{ 
-                            backgroundColor: cellColor, 
-                            opacity: opacity 
-                          }} 
+                        <span
+                          className={styles.cellFill}
+                          style={{
+                            backgroundColor: cellColor,
+                            opacity: opacity,
+                          }}
                         />
-                        <span className={styles.cellKey} style={{ color: textColor }}>{text}</span>
+                        <span className={styles.cellKey} style={{ color: textColor }}>
+                          {text}
+                        </span>
                       </div>
                     );
                   })}
@@ -622,7 +715,8 @@ export function DevThemesPanel() {
             <div>
               <h3 className={styles.cardTitle}>3. Export CSS Token Variables</h3>
               <p className={styles.cardSubtitle}>
-                결정된 테마의 색상을 복사하여 <code>src/app/styles/tokens.css</code> 파일에 덮어쓸 수 있습니다.
+                결정된 테마의 색상을 복사하여 <code>src/app/styles/tokens.css</code> 파일에 덮어쓸
+                수 있습니다.
               </p>
             </div>
             <button

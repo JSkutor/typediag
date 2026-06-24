@@ -108,7 +108,7 @@ describe("validateTopic", () => {
     expect(validateTopic("웹 개발")).toEqual({ isValid: true });
     expect(validateTopic("리액트 타자")).toEqual({ isValid: true });
     expect(validateTopic("일이삼사오육칠팔구십일이삼사오")).toEqual({ isValid: true }); // Exactly 15 chars
-    
+
     // New allowed inputs (English, numbers, common symbols)
     expect(validateTopic("hello")).toEqual({ isValid: true });
     expect(validateTopic("한글123")).toEqual({ isValid: true });

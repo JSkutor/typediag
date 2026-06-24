@@ -37,7 +37,9 @@ export const PracticePanel: React.FC = () => {
       return;
     }
 
-    const isSpace = activeChar.targetChar === " " || (activeChar.targetChar === undefined && activeChar.char === " ");
+    const isSpace =
+      activeChar.targetChar === " " ||
+      (activeChar.targetChar === undefined && activeChar.char === " ");
     if (isSpace && lastInputIndex < diffResult.length - 1) {
       const activeEl = document.getElementById(`text-char-${lastInputIndex}`);
       const nextEl = document.getElementById(`text-char-${lastInputIndex + 1}`);
@@ -228,16 +230,18 @@ export const PracticePanel: React.FC = () => {
       </div>
 
       {mode === "topic" && !isTopicInputActive && topicTargets.length > 0 && (
-        <div style={{
-          position: "absolute",
-          top: "1rem",
-          right: "1rem",
-          fontSize: "0.875rem",
-          color: "var(--text-secondary, #8d929b)",
-          backgroundColor: "rgba(255, 255, 255, 0.05)",
-          padding: "4px 12px",
-          borderRadius: "9999px",
-        }}>
+        <div
+          style={{
+            position: "absolute",
+            top: "1rem",
+            right: "1rem",
+            fontSize: "0.875rem",
+            color: "var(--text-secondary, #8d929b)",
+            backgroundColor: "rgba(255, 255, 255, 0.05)",
+            padding: "4px 12px",
+            borderRadius: "9999px",
+          }}
+        >
           {isEn
             ? `Remaining: ${topicTargets.length - topicTargetIndex}`
             : `준비된 텍스트: ${topicTargets.length - topicTargetIndex}`}
@@ -296,7 +300,9 @@ export const PracticePanel: React.FC = () => {
                 animation: "pulse 1.5s infinite",
               }}
             >
-              {isEn ? "Generating sentences for the topic..." : "주제에 맞는 문장을 찾는 중입니다..."}
+              {isEn
+                ? "Generating sentences for the topic..."
+                : "주제에 맞는 문장을 찾는 중입니다..."}
             </div>
           </div>
         ) : (
@@ -317,11 +323,18 @@ export const PracticePanel: React.FC = () => {
             {diffResult.length === 0 && <span className="typing-cursor left" />}
             {(() => {
               // Group diffResult into words (non-spaces) and spaces to implement word wrapping.
-              const groups: { type: "word" | "space"; items: { item: typeof diffResult[number]; index: number }[] }[] = [];
-              let currentGroup: { type: "word" | "space"; items: { item: typeof diffResult[number]; index: number }[] } | null = null;
+              const groups: {
+                type: "word" | "space";
+                items: { item: (typeof diffResult)[number]; index: number }[];
+              }[] = [];
+              let currentGroup: {
+                type: "word" | "space";
+                items: { item: (typeof diffResult)[number]; index: number }[];
+              } | null = null;
 
               diffResult.forEach((d, i) => {
-                const isSpace = d.targetChar === " " || (d.targetChar === undefined && d.char === " ");
+                const isSpace =
+                  d.targetChar === " " || (d.targetChar === undefined && d.char === " ");
 
                 if (isSpace) {
                   if (currentGroup && currentGroup.type === "space") {
@@ -353,15 +366,16 @@ export const PracticePanel: React.FC = () => {
                     highlightClass += " text-char-space-error";
                   }
 
-                  const showCursorRight = qwertyBuffer.length > 0 && i === lastInputIndex && cursorJumpIndex === null;
-                  const showCursorLeft = (qwertyBuffer.length === 0 && i === 0) || (cursorJumpIndex !== null && i === cursorJumpIndex);
+                  const showCursorRight =
+                    qwertyBuffer.length > 0 && i === lastInputIndex && cursorJumpIndex === null;
+                  const showCursorLeft =
+                    (qwertyBuffer.length === 0 && i === 0) ||
+                    (cursorJumpIndex !== null && i === cursorJumpIndex);
 
                   return (
                     <span key={i} id={`text-char-${i}`} className="text-char-container relative">
                       {d.op !== "INSERT" && (
-                        <span
-                          className={isOmitted ? "text-char-omitted" : "text-char-muted"}
-                        >
+                        <span className={isOmitted ? "text-char-omitted" : "text-char-muted"}>
                           {d.targetChar === " " ? "\u00A0" : d.targetChar}
                         </span>
                       )}

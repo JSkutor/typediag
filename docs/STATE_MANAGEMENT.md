@@ -169,9 +169,9 @@ To prevent long pauses from skewing metrics like Words Per Minute (WPM) and Char
 - **WPM/CPM Calculation**: The elapsed time is not calculated as `finishedAt - startedAt`. Instead, it is the sum of the filtered latency durations of all keypresses.
 - **Latency Blending**: Individual keypress latencies exceeding **3 seconds** are classified as outliers. During metrics calculation, these outliers are replaced by the average of the non-outlier latencies in the same sentence.
 - **Gap Time Correction**: After a gap of 3+ minutes mid-sentence, the starting timestamp of the page is corrected using:
-  \[
-  T*{\text{started}} = T*{\text{finished}} - \text{Total Latency of Events (excluding the gap duration)}
-  \]
+  $$
+  T_{\text{started}} = T_{\text{finished}} - \text{Total Latency of Events (excluding the gap duration)}
+  $$
   - This keeps the timestamps clean and aligned with the physical typing time.
 
 세션 API·게스트 인증 상세: [API.md](API.md), [AUTH.md](AUTH.md)

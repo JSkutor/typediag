@@ -449,7 +449,7 @@ export class Surface3DManager {
         this.animState.camZ = -500; // Pushed back from -350
         this.animState.fov = 60; // Moderated from 75 for comfortable perspective
       }
-      
+
       this.applyAnimState(true);
       this.controls.enabled = false;
 
@@ -470,7 +470,7 @@ export class Surface3DManager {
         });
 
         const TARGET_ELEVATION_SCALE = 180;
-        
+
         let targetCamX = 0;
         let targetCamY = 480;
         let targetCamZ = 480;

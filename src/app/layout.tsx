@@ -34,7 +34,11 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider appearance={clerkAppearance} afterSignOutUrl="/ko">
-      <html lang="en" suppressHydrationWarning className={`${outfit.variable} ${firaCode.variable}`}>
+      <html
+        lang="en"
+        suppressHydrationWarning
+        className={`${outfit.variable} ${firaCode.variable}`}
+      >
         <body>
           <ClerkErrorHandler />
           <LangHtmlSync />

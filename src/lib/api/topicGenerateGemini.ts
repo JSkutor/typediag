@@ -129,9 +129,7 @@ async function callGeminiGenerateContent(
 
   const parsed = parseGeminiSentencesResponse(rawText);
   if (parsed.rawCount > 0 && parsed.sentences.length === 0) {
-    console.warn(
-      `[generate/route] All ${parsed.rawCount} Gemini sentences rejected by validation`,
-    );
+    console.warn(`[generate/route] All ${parsed.rawCount} Gemini sentences rejected by validation`);
   }
   return parsed;
 }

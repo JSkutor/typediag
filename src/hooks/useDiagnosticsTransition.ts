@@ -2,10 +2,7 @@ import { useCallback, useState } from "react";
 import { useTypingStore } from "@/store/useTypingStore";
 import { useWorkspaceStore } from "@/store/useWorkspaceStore";
 import { runPipeline, buildLayout, triangulate, type KeyEvent } from "@/lib/skdm";
-import {
-  applyGuestTokenFromResponse,
-  getGuestAuthHeaders,
-} from "@/utils/guestUser";
+import { applyGuestTokenFromResponse, getGuestAuthHeaders } from "@/utils/guestUser";
 
 export function useDiagnosticsTransition() {
   const setUiState = useWorkspaceStore((state) => state.setUiState);

@@ -16,4 +16,3 @@ export function getMockKeyStats(): Record<string, KeyResult> {
 export function getMockCylindricalEvents(): KeyEvent[] {
   return PRECOMPUTED_CYLINDRICAL_EVENTS;
 }
-

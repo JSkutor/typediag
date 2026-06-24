@@ -1,9 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  SUPPORTED_LANGS,
-  isValidLang,
-  resolveLangFromAcceptLanguage,
-} from "@/lib/i18n/lang";
+import { SUPPORTED_LANGS, isValidLang, resolveLangFromAcceptLanguage } from "@/lib/i18n/lang";
 import { getLandingCopy } from "@/lib/i18n/landing";
 
 describe("i18n/lang", () => {

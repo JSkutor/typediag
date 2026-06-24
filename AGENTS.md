@@ -57,6 +57,7 @@ graphify-ts mcp 명령을 사용해 구조를 파악하라.
 | **MVSA 알고리즘**       | `src/utils/mvsa.ts`              | 실시간 한글 자소 대조 및 오타 판별 정렬 엔진. `docs/MVSA_ALGORITHM.md` 명세와 싱크 필요. |
 | **Topic API**           | `src/app/api/practice/topic/`    | 토픽 모드 벡터 검색(`route.ts`) 및 LLM 생성(`generate/route.ts`) 라우트 SSOT. Gemini 호출·재시도·응답 파싱은 `src/lib/api/topicGenerateGemini.ts`. |
 | **Topic 클라이언트 상태** | `src/store/typingSlices/createTopicSlice.ts` | Topic 모드 Zustand slice. `docs/TOPIC_MODE.md`와 싱크 필요. |
+| **BM·단위경제** | `docs/BUSINESS_MODEL.md` | 비용·수익 발생 지점, 단가, 월간 산식 SSOT. 수치 구현: `src/lib/dev/costSimulation.ts`, `revenueSimulation.ts`, `platformScaling.ts`. |
 
 ---
 

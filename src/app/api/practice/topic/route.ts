@@ -51,7 +51,9 @@ export async function POST(req: Request) {
         similarity: sql<number>`1 - (${targetTexts.embedding} <=> ${vectorLiteral})`,
       })
       .from(targetTexts)
-      .where(sql`${targetTexts.embedding} IS NOT NULL AND (1 - (${targetTexts.embedding} <=> ${vectorLiteral})) > 0.5`)
+      .where(
+        sql`${targetTexts.embedding} IS NOT NULL AND (1 - (${targetTexts.embedding} <=> ${vectorLiteral})) > 0.5`,
+      )
       .orderBy(sql`${targetTexts.embedding} <=> ${vectorLiteral}`)
       .limit(100);
 

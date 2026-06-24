@@ -57,7 +57,9 @@ export function DiagnosisPreview({ lang }: DiagnosisPreviewProps) {
             initialY={0}
             delay={0.1}
           >
-            <span className="diagnosis-card-label diagnosis-card-label--accent">{t.afterLabel}</span>
+            <span className="diagnosis-card-label diagnosis-card-label--accent">
+              {t.afterLabel}
+            </span>
 
             <div className="diagnosis-highlight">
               <span className="diagnosis-highlight-key">R → T</span>
