@@ -22,8 +22,6 @@ export const DashboardPanel: React.FC<DashboardPanelProps> = ({
         {diagnosticMode === "surface" && "3D Latency Surface"}
         {diagnosticMode === "cylindrical" && `Cylindrical: [${focusedKey}]`}
         {diagnosticMode === "backspace" && "Backspace Path"}
-        {diagnosticMode === "shift" && "Shift Sync"}
-        {diagnosticMode === "space" && "Spacebar Rhythm"}
         {diagnosticMode === "finger" && "Finger Load"}
       </h2>
       <div className="dashboard-desc">
@@ -33,10 +31,6 @@ export const DashboardPanel: React.FC<DashboardPanelProps> = ({
           "Polar coordinate projection of successor keys. Radius is physical distance, height is latency."}
         {diagnosticMode === "backspace" &&
           "Highlights keys that frequently trigger an immediate backspace error correction."}
-        {diagnosticMode === "shift" &&
-          "Evaluates timing synchronization and ergonomic balance between Shift and character keys."}
-        {diagnosticMode === "space" &&
-          "Analyzes thumb imbalance and rhythm stutters before and after spacebar presses."}
         {diagnosticMode === "finger" &&
           "Workload distribution and error rates mapped by standard touch typing finger assignments."}
       </div>

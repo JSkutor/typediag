@@ -4,8 +4,10 @@ import type { CylindricalVector } from "@/lib/skdm/cylindrical";
 // ---------------------------------------------------------------------------
 // Cylindrical 3D Constants & Utils
 // ---------------------------------------------------------------------------
-export const CYLINDRICAL_MAX_RADIUS = 6.0; // max XZ radius
-export const CYLINDRICAL_MAX_HEIGHT = 6.0; // max Y height
+export const CYLINDRICAL_MAX_RADIUS = 8.0; // max XZ radius (frequency)
+export const CYLINDRICAL_MAX_HEIGHT = 6.0; // max Y height (latency)
+/** Normalized r when a fromKey has no reference transitions (petal rim stays off origin). */
+export const CYLINDRICAL_MIN_NORMALIZED_R = 0.12;
 
 /** Functional colors for 3D data elements */
 export const CYL_COLORS = {
@@ -15,12 +17,14 @@ export const CYL_COLORS = {
   vectorArrow: 0xf59e0b,
   inactive: 0x3b82f6,
   inactiveNode: 0x4dc6e8,
-  cylinder: 0x8b5cf6,
+  cylinder: 0xa194b8,
   dropLine: 0x57d68d,
   radLine: 0x8d929b,
   angleArc: 0xfbbf24,
   gridMain: 0x323640,
-  gridSub: 0x262930,
+  gridSub: 0x282b30,
+  /** Same family as sceneBg — barely lifted so grid reads without clashing. */
+  floorDisc: 0x1f2226,
   petalBorder: 0x4dc6e8,
 };
 

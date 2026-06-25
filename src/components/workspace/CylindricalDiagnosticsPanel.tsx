@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useCylindricalDiagnostics } from "@/hooks/useCylindricalDiagnostics";
+import { computeDrawerContentShiftPx } from "@/components/workspace/cylindricalDrawerInset";
 import {
   FATAL_NGRAM_ERROR_RATE_THRESHOLD,
   FATAL_NGRAM_MIN_SAMPLES,
@@ -23,14 +24,71 @@ interface CylindricalDiagnosticsPanelProps {
   events: Parameters<typeof useCylindricalDiagnostics>[0];
   focusKey: string;
   setFocusKey: (key: string) => void;
+  onDrawerShiftPx?: (shiftPx: number) => void;
 }
 
 export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelProps> = ({
   events,
   focusKey,
   setFocusKey,
+  onDrawerShiftPx,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const drawerBodyRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code !== "Space" || e.repeat) return;
+
+      const target = e.target;
+      if (target instanceof HTMLElement) {
+        const tag = target.tagName;
+        if (
+          tag === "INPUT" ||
+          tag === "SELECT" ||
+          tag === "TEXTAREA" ||
+          target.isContentEditable
+        ) {
+          return;
+        }
+      }
+
+      e.preventDefault();
+      setIsOpen((prev) => !prev);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    if (!onDrawerShiftPx) return;
+
+    let rafId = 0;
+
+    const reportShift = () => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        const bodyWidth = Math.round(drawerBodyRef.current?.getBoundingClientRect().width ?? 0);
+        onDrawerShiftPx(computeDrawerContentShiftPx(bodyWidth));
+      });
+    };
+
+    reportShift();
+
+    const body = drawerBodyRef.current;
+    if (!body) return;
+
+    const observer = new ResizeObserver(reportShift);
+    observer.observe(body);
+    window.addEventListener("resize", reportShift);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      observer.disconnect();
+      window.removeEventListener("resize", reportShift);
+    };
+  }, [onDrawerShiftPx]);
 
   const { focusKeyOptions, outcome, chartData, diagnostics } = useCylindricalDiagnostics(
     events,
@@ -47,14 +105,19 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
         onClick={() => setIsOpen((prev) => !prev)}
         aria-expanded={isOpen}
         aria-controls="cyl-drawer-panel"
-        aria-label={isOpen ? "진단 패널 닫기" : "진단 패널 열기"}
+        aria-label={isOpen ? "진단 패널 닫기 (Space)" : "진단 패널 열기 (Space)"}
       >
         <span className="cyl-drawer__chevron" aria-hidden="true">
           ›
         </span>
       </button>
 
-      <div id="cyl-drawer-panel" className="cyl-drawer__body" aria-hidden={!isOpen}>
+      <div
+        id="cyl-drawer-panel"
+        ref={drawerBodyRef}
+        className="cyl-drawer__body"
+        aria-hidden={!isOpen}
+      >
         <div className="cyl-drawer__grid">
           <section className="cyl-drawer__col cyl-drawer__col--controls">
             <header className="cyl-panel__header">

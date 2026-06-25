@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { CYLINDRICAL_MIN_NORMALIZED_R } from "@/components/workspace/geometryUtils";
 import {
   buildCylindricalVectors,
   getAvailableFocusKeys,
@@ -199,7 +200,7 @@ describe("cylindrical module", () => {
       expect(aVec?.normalizedZ).toBe(150 / globalMax.maxZ); // maxZ = 150 -> 1
 
       const zVec = vectors.find((v) => v.fromKey === "z");
-      expect(zVec?.normalizedR).toBe(0.15); // Default minimum
+      expect(zVec?.normalizedR).toBe(CYLINDRICAL_MIN_NORMALIZED_R);
       expect(zVec?.normalizedZ).toBe(0.05); // Default minimum
     });
   });

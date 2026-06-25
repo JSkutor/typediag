@@ -10,6 +10,7 @@
  * z = mean latency in ms
  */
 
+import { CYLINDRICAL_MIN_NORMALIZED_R } from "@/components/workspace/geometryUtils";
 import type { KeyEvent } from "./types";
 import { filterInterruptedTransitions, filterOutliers } from "./model";
 import { getTheta, THETA_ORDER } from "./theta";
@@ -111,9 +112,8 @@ export function buildCylindricalVectors(
     let normalizedZ: number | undefined;
     if (globalMax) {
       // Global square root normalization for R keeps relative differences visible.
-      // If there is no data (r = 0), we set a minimum radius (e.g., 0.15) and height (e.g., 0.05)
-      // to prevent the flower petal from completely collapsing to the center.
-      normalizedR = r > 0 ? Math.sqrt(r / globalMax.maxR) : 0.15;
+      // If there is no data (r = 0), use a floor normalizedR so the petal rim stays off origin.
+      normalizedR = r > 0 ? Math.sqrt(r / globalMax.maxR) : CYLINDRICAL_MIN_NORMALIZED_R;
       normalizedZ = z > 0 ? z / globalMax.maxZ : 0.05;
     }
 

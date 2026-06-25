@@ -9,7 +9,8 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import type { CylindricalVector } from "@/lib/skdm/cylindrical";
-import { CYL_COLORS as C, toCylindricalCartesian } from "./geometryUtils";
+import { CYL_COLORS as C, CYLINDRICAL_MAX_RADIUS, toCylindricalCartesian } from "./geometryUtils";
+import { buildSmoothPetalGeometry, buildPetalVertexColors } from "./cylindricalPetalGeometry";
 
 // ---------------------------------------------------------------------------
 // Constants moved to geometryUtils.ts
@@ -20,7 +21,6 @@ import { CYL_COLORS as C, toCylindricalCartesian } from "./geometryUtils";
 // ---------------------------------------------------------------------------
 
 export interface CylindricalToggles {
-  cylinder: boolean;
   grid: boolean;
   projections: boolean;
   petal: boolean;
@@ -61,28 +61,27 @@ export class Cylindrical3DManager {
   private isDisposed = false;
 
   private visualGroup = new THREE.Group();
-  private gridHelper: THREE.GridHelper;
+  private floorGroup = new THREE.Group();
   private pointLight: THREE.PointLight;
 
   // Toggle-controlled mesh references
-  private cylinderGuide: THREE.Object3D | null = null;
-  private cylinderTopRing: THREE.LineSegments | THREE.Mesh | null = null;
-  private cylinderBottomRing: THREE.Mesh | null = null;
   private projectionGroup: THREE.Group | null = null;
   private petalMesh: THREE.Mesh | null = null;
   private petalBorder: THREE.Line | null = null;
+  private originMarker: THREE.Mesh | null = null;
 
   // Target mesh for label projection
   private targetMesh: THREE.Mesh | null = null;
   private curCartesian: CartesianCoords = { x: 0, y: 0, z: 0 };
   private vectors: CylindricalVector[] = [];
+  private vectorSignature = "";
 
   private reqId = 0;
   private needsRender = true;
   private width: number;
   private height: number;
+  private drawerShiftPx = 0;
   private toggles: CylindricalToggles = {
-    cylinder: true,
     grid: true,
     projections: false,
     petal: true,
@@ -100,7 +99,7 @@ export class Cylindrical3DManager {
     // Scene
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(C.sceneBg);
-    this.scene.fog = new THREE.FogExp2(C.sceneBg, 0.012);
+    this.scene.fog = new THREE.FogExp2(C.sceneBg, 0.014);
 
     // Camera
     this.camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 1000);
@@ -114,14 +113,14 @@ export class Cylindrical3DManager {
     });
     this.renderer.setSize(width, height);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.enabled = false; // Disable shadow map for performance
     container.appendChild(this.renderer.domElement);
 
     // Controls
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
-    this.controls.dampingFactor = 0.05;
-    this.controls.rotateSpeed = 1.2;
+    this.controls.dampingFactor = 0.18;
+    this.controls.rotateSpeed = 1.65;
     this.controls.zoomSpeed = 1.2;
     this.controls.enablePan = false;
     this.controls.panSpeed = 1.2;
@@ -137,7 +136,7 @@ export class Cylindrical3DManager {
     this.scene.add(this.visualGroup);
 
     // Lights
-    const ambient = new THREE.AmbientLight(0xffffff, 0.2);
+    const ambient = new THREE.AmbientLight(0xffffff, 0.28);
     this.scene.add(ambient);
 
     const dir = new THREE.DirectionalLight(0xffffff, 0.7);
@@ -148,9 +147,44 @@ export class Cylindrical3DManager {
     this.pointLight = new THREE.PointLight(C.targetNode, 1.5, 15);
     this.scene.add(this.pointLight);
 
-    // Grid
-    this.gridHelper = new THREE.GridHelper(24, 24, C.gridMain, C.gridSub);
-    this.scene.add(this.gridHelper);
+    // Floor: opaque disc (depthWrite) + polar grid — always drawn before petal (renderOrder -2)
+    const floorRadius = CYLINDRICAL_MAX_RADIUS * 1.25;
+    const floorDisc = new THREE.Mesh(
+      new THREE.CircleGeometry(floorRadius, 72),
+      new THREE.MeshBasicMaterial({
+        color: C.floorDisc,
+        side: THREE.DoubleSide,
+        depthWrite: true,
+      }),
+    );
+    floorDisc.rotation.x = -Math.PI / 2;
+    floorDisc.position.y = -0.02;
+    floorDisc.renderOrder = -2;
+    this.floorGroup.add(floorDisc);
+
+    const polarGrid = new THREE.PolarGridHelper(
+      floorRadius,
+      16,
+      8,
+      64,
+      C.gridMain,
+      C.gridSub,
+    );
+    polarGrid.position.y = 0.001;
+    polarGrid.renderOrder = -2;
+    polarGrid.traverse((child) => {
+      if (child instanceof THREE.Line || child instanceof THREE.LineSegments) {
+        const mat = child.material;
+        if (mat instanceof THREE.Material) {
+          mat.transparent = true;
+          mat.opacity = 0.22;
+          mat.depthWrite = false;
+        }
+      }
+    });
+    this.floorGroup.add(polarGrid);
+    this.floorGroup.renderOrder = -2;
+    this.scene.add(this.floorGroup);
 
     // Start render loop
     this.animate = this.animate.bind(this);
@@ -170,24 +204,24 @@ export class Cylindrical3DManager {
 
   /** Rebuild the entire 3D scene for a new set of vectors / selection. */
   public updateScene(vectors: CylindricalVector[], selectedFrom: string): void {
+    const nextSignature = this.buildVectorSignature(vectors);
+    const geometryUnchanged = nextSignature === this.vectorSignature && vectors.length > 0;
+
     this.vectors = vectors;
+
+    if (geometryUnchanged) {
+      this.updateSelection(vectors, selectedFrom);
+      return;
+    }
+
+    this.vectorSignature = nextSignature;
     this.clearVisualGroup();
     if (vectors.length === 0) return;
 
     // 0. Petal surface (needs ≥ 3 vectors)
-    this.buildPetalSurface(vectors);
+    this.buildPetalSurface(vectors, selectedFrom);
 
-    // 1. Inactive vectors (all except selected)
-    for (const v of vectors) {
-      if (v.fromKey === selectedFrom) continue;
-      this.addInactiveVector(v);
-    }
-
-    // 2. Active vector
-    const active = vectors.find((v) => v.fromKey === selectedFrom);
-    if (active) {
-      this.buildActiveVector(active);
-    }
+    this.rebuildVectorHighlights(vectors, selectedFrom);
 
     this.applyToggles();
     this.needsRender = true;
@@ -205,14 +239,27 @@ export class Cylindrical3DManager {
     this.width = w;
     this.height = h;
     this.camera.aspect = w / h;
-    this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h);
+    this.applyDrawerViewOffset();
+    this.needsRender = true;
+  }
+
+  /**
+   * Shift scene content right so it stays centered when the left drawer opens.
+   * `shiftPx` should track the drawer body width via ResizeObserver for CSS sync.
+   */
+  public setDrawerShiftPx(shiftPx: number): void {
+    const next = Math.max(0, Math.round(shiftPx));
+    if (next === this.drawerShiftPx) return;
+    this.drawerShiftPx = next;
+    this.applyDrawerViewOffset();
     this.needsRender = true;
   }
 
   /** Tear down everything. */
   public dispose(): void {
     this.isDisposed = true;
+    if (this.camera.view) this.camera.clearViewOffset();
     this.onLabelsUpdate = undefined;
     cancelAnimationFrame(this.reqId);
     this.controls.dispose();
@@ -228,124 +275,113 @@ export class Cylindrical3DManager {
 
   private clearVisualGroup(): void {
     while (this.visualGroup.children.length > 0) {
-      this.visualGroup.remove(this.visualGroup.children[0]);
+      const child = this.visualGroup.children[0];
+      this.visualGroup.remove(child);
+      child.traverse((obj) => {
+        if (obj instanceof THREE.Mesh || obj instanceof THREE.Line || obj instanceof THREE.Points) {
+          if (obj.geometry) obj.geometry.dispose();
+          if (obj.material) {
+            if (Array.isArray(obj.material)) {
+              obj.material.forEach((m) => m.dispose());
+            } else {
+              obj.material.dispose();
+            }
+          }
+        }
+      });
     }
-    this.cylinderGuide = null;
-    this.cylinderTopRing = null;
-    this.cylinderBottomRing = null;
     this.projectionGroup = null;
     this.petalMesh = null;
     this.petalBorder = null;
+    this.originMarker = null;
     this.targetMesh = null;
   }
 
-  /** Draw a dim line + small sphere for a non-selected vector. (Removed by user request) */
-  private addInactiveVector(v: CylindricalVector): void {
-    // Left empty to only show petal
+  private buildVectorSignature(vectors: CylindricalVector[]): string {
+    return vectors.map((v) => `${v.fromKey}:${v.theta}:${v.r}:${v.z}`).join("|");
   }
 
-  /** Build the fully highlighted active vector with all helpers. */
+  /** Fast path when only the highlighted fromKey changes. */
+  private updateSelection(vectors: CylindricalVector[], selectedFrom: string): void {
+    this.updatePetalHighlight(vectors, selectedFrom);
+    this.clearVectorHighlights();
+    this.rebuildVectorHighlights(vectors, selectedFrom);
+    this.applyToggles();
+    this.needsRender = true;
+  }
+
+  private updatePetalHighlight(vectors: CylindricalVector[], selectedFrom: string): void {
+    if (!this.petalMesh || vectors.length < 3) return;
+
+    const sorted = [...vectors].sort((a, b) => a.theta - b.theta);
+    const colors = buildPetalVertexColors(sorted, selectedFrom);
+    const colorAttr = this.petalMesh.geometry.getAttribute("color") as THREE.BufferAttribute;
+    colorAttr.array.set(colors);
+    colorAttr.needsUpdate = true;
+  }
+
+  private clearVectorHighlights(): void {
+    const keep = new Set<THREE.Object3D>();
+    if (this.petalMesh) keep.add(this.petalMesh);
+    if (this.petalBorder) keep.add(this.petalBorder);
+    if (this.originMarker) keep.add(this.originMarker);
+
+    const toRemove = this.visualGroup.children.filter((child) => !keep.has(child));
+    for (const child of toRemove) {
+      this.visualGroup.remove(child);
+    }
+    this.projectionGroup = null;
+    this.targetMesh = null;
+  }
+
+  private rebuildVectorHighlights(vectors: CylindricalVector[], selectedFrom: string): void {
+    for (const v of vectors) {
+      if (v.fromKey === selectedFrom) continue;
+      this.addInactiveVector(v);
+    }
+
+    const active = vectors.find((v) => v.fromKey === selectedFrom);
+    if (active) {
+      this.buildActiveVector(active);
+    }
+  }
+
+  /** Dim guide line for non-selected incoming keys. */
+  private addInactiveVector(v: CylindricalVector): void {
+    const { vx, vy, vz } = this.toCartesian(v);
+    const pts = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(vx, vy, vz)];
+    const geom = new THREE.BufferGeometry().setFromPoints(pts);
+    const mat = new THREE.LineBasicMaterial({
+      color: C.inactive,
+      transparent: true,
+      opacity: 0.1,
+    });
+    const line = new THREE.Line(geom, mat);
+    line.renderOrder = 0;
+    this.visualGroup.add(line);
+  }
+
+  /** Build the highlighted active vector: spoke, endpoint beacon, optional floor arc. */
   private buildActiveVector(v: CylindricalVector): void {
     const { vx, vy, vz } = this.toCartesian(v);
     this.curCartesian = { x: vx, y: vy, z: vz };
 
-    // Point light follows the target
     this.pointLight.position.set(vx, vy, vz);
     this.pointLight.color.setHex(C.targetNode);
+    this.pointLight.intensity = 0.32;
+    this.pointLight.distance = 10;
 
-    const thetaRad = v.theta;
-    const cylRadius = Math.sqrt(vx * vx + vz * vz);
-
-    // Target mesh is needed for labels, but make it invisible
     const tGeom = new THREE.SphereGeometry(0.01, 8, 8);
     const tMat = new THREE.MeshBasicMaterial({ visible: false });
     this.targetMesh = new THREE.Mesh(tGeom, tMat);
     this.targetMesh.position.set(vx, vy, vz);
     this.visualGroup.add(this.targetMesh);
 
-    // [4] Cylinder guide hologram (Alpha Gradient + Floating Dashed Rings)
-    if (cylRadius > 0.05 && vy > 0.05) {
-      const cylGroup = new THREE.Group();
+    this.addActiveSpoke(vx, vy, vz);
+    this.addEndpointMarker(vx, vy, vz);
 
-      // 1. Alpha Gradient Light Pillar
-      const cylSolidGeom = new THREE.CylinderGeometry(cylRadius, cylRadius, vy, 32, 1, true);
-      const colorObj = new THREE.Color(C.cylinder);
-      const cylSolidMat = new THREE.ShaderMaterial({
-        uniforms: {
-          uColor: { value: colorObj },
-          uHeight: { value: vy },
-        },
-        vertexShader: `
-          varying float vY;
-          void main() {
-            vY = position.y;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-          }
-        `,
-        fragmentShader: `
-          uniform vec3 uColor;
-          uniform float uHeight;
-          varying float vY;
-          void main() {
-            float normalizedY = (vY + uHeight * 0.5) / uHeight;
-            float alpha = smoothstep(1.0, 0.0, normalizedY) * 0.25;
-            gl_FragColor = vec4(uColor, alpha);
-          }
-        `,
-        transparent: true,
-        side: THREE.DoubleSide,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-      });
-      const cylSolid = new THREE.Mesh(cylSolidGeom, cylSolidMat);
-      cylGroup.add(cylSolid);
-
-      // 2. Glowing Bottom Ring (Solid)
-      const ringGeom = new THREE.RingGeometry(cylRadius - 0.015, cylRadius + 0.015, 64);
-      const ringMat = new THREE.MeshBasicMaterial({
-        color: C.cylinder,
-        transparent: true,
-        opacity: 0.4,
-        side: THREE.DoubleSide,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-      });
-      this.cylinderBottomRing = new THREE.Mesh(ringGeom, ringMat);
-      this.cylinderBottomRing.rotation.x = Math.PI / 2;
-      this.cylinderBottomRing.position.y = -vy / 2;
-      cylGroup.add(this.cylinderBottomRing);
-
-      // 3. Middle Floating Dashed Ring
-      const edgeGeom = new THREE.EdgesGeometry(new THREE.CircleGeometry(cylRadius, 64));
-      const dashMat = new THREE.LineDashedMaterial({
-        color: C.cylinder,
-        transparent: true,
-        opacity: 0.35,
-        dashSize: 0.15,
-        gapSize: 0.1,
-        blending: THREE.AdditiveBlending,
-      });
-      const middleRing = new THREE.LineSegments(edgeGeom, dashMat);
-      middleRing.computeLineDistances();
-      middleRing.rotation.x = Math.PI / 2;
-      middleRing.position.y = 0;
-      cylGroup.add(middleRing);
-
-      // 4. Top Floating Dashed Ring
-      const topRing = middleRing.clone();
-      topRing.position.y = vy / 2;
-      cylGroup.add(topRing);
-      this.cylinderTopRing = topRing;
-
-      this.cylinderGuide = cylGroup;
-      this.cylinderGuide.position.set(0, vy / 2, 0);
-      this.visualGroup.add(this.cylinderGuide);
-    }
-
-    // [5] Projections group
     this.projectionGroup = new THREE.Group();
 
-    // (B) Radius guide line
     const radPts = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(vx, 0, vz)];
     const radGeom = new THREE.BufferGeometry().setFromPoints(radPts);
     const radMat = new THREE.LineDashedMaterial({
@@ -357,76 +393,131 @@ export class Cylindrical3DManager {
     radLine.computeLineDistances();
     this.projectionGroup.add(radLine);
 
+    this.projectionGroup.renderOrder = 2;
     this.visualGroup.add(this.projectionGroup);
   }
 
-  /** Build petal surface connecting all vector endpoints through origin. */
-  private buildPetalSurface(vectors: CylindricalVector[]): void {
+  private addActiveSpoke(vx: number, vy: number, vz: number): void {
+    const end = new THREE.Vector3(vx, vy, vz);
+    const dir = end.clone();
+    const length = dir.length();
+    if (length < 0.05) return;
+
+    dir.normalize();
+
+    const shaftGeom = new THREE.CylinderGeometry(0.045, 0.045, length, 10, 1, true);
+    shaftGeom.translate(0, length / 2, 0);
+    const shaftMat = new THREE.MeshBasicMaterial({
+      color: C.targetNode,
+      transparent: true,
+      opacity: 0.2,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+    const shaft = new THREE.Mesh(shaftGeom, shaftMat);
+    shaft.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+    shaft.renderOrder = 2;
+    this.visualGroup.add(shaft);
+
+    const coreGeom = new THREE.CylinderGeometry(0.018, 0.018, length, 8, 1, true);
+    coreGeom.translate(0, length / 2, 0);
+    const coreMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.58,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+    const core = new THREE.Mesh(coreGeom, coreMat);
+    core.quaternion.copy(shaft.quaternion);
+    core.renderOrder = 3;
+    this.visualGroup.add(core);
+  }
+
+  /** Pearl-like rim node with a faint outer shell. */
+  private addEndpointMarker(vx: number, vy: number, vz: number): void {
+    const node = new THREE.Group();
+    node.position.set(vx, vy, vz);
+
+    const shellGeom = new THREE.SphereGeometry(0.1, 24, 24);
+    const shellMat = new THREE.MeshBasicMaterial({
+      color: C.targetNode,
+      transparent: true,
+      opacity: 0.055,
+      depthWrite: false,
+    });
+    const shell = new THREE.Mesh(shellGeom, shellMat);
+    shell.renderOrder = 3;
+    node.add(shell);
+
+    const coreGeom = new THREE.SphereGeometry(0.068, 28, 28);
+    const coreMat = new THREE.MeshStandardMaterial({
+      color: 0xf0f7fa,
+      emissive: C.targetNode,
+      emissiveIntensity: 0.07,
+      roughness: 0.68,
+      metalness: 0.04,
+      transparent: true,
+      opacity: 0.72,
+      depthWrite: false,
+    });
+    const core = new THREE.Mesh(coreGeom, coreMat);
+    core.renderOrder = 4;
+    node.add(core);
+
+    this.visualGroup.add(node);
+  }
+
+  /** Build smooth petal surface (spline rim) through origin. */
+  private buildPetalSurface(vectors: CylindricalVector[], selectedFrom: string): void {
     if (vectors.length < 3) return;
 
     const sorted = [...vectors].sort((a, b) => a.theta - b.theta);
-    const vertices: number[] = [];
-    const colors: number[] = [];
-
-    // Origin vertex
-    vertices.push(0, 0, 0);
-    const originColor = new THREE.Color(C.originNode);
-    colors.push(originColor.r, originColor.g, originColor.b);
-
-    // Endpoint vertices
-    for (const v of sorted) {
-      const { vx, vy, vz } = this.toCartesian(v);
-      vertices.push(vx, vy, vz);
-
-      // Gradient: cyan (100ms) → amber (800ms)
-      const t = Math.min(1, Math.max(0, (v.z - 100) / 700));
-      colors.push(0.02 + t * 0.96, 0.71 + t * 0.04, 0.83 - t * 0.69);
-    }
-
-    // Fan triangles
-    const N = sorted.length;
-    const indices: number[] = [];
-    for (let i = 1; i <= N; i++) {
-      const next = i === N ? 1 : i + 1;
-      indices.push(0, i, next);
-    }
+    const { positions, colors, indices, borderPoints } = buildSmoothPetalGeometry(
+      sorted,
+      selectedFrom,
+    );
 
     const geom = new THREE.BufferGeometry();
-    geom.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
-    geom.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+    geom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    geom.setAttribute("color", new THREE.BufferAttribute(colors, 3));
     geom.setIndex(indices);
     geom.computeVertexNormals();
 
-    const mat = new THREE.MeshStandardMaterial({
+    const mat = new THREE.MeshPhongMaterial({
       vertexColors: true,
       transparent: true,
-      opacity: 0.55,
+      opacity: 0.62,
       side: THREE.DoubleSide,
-      roughness: 0.3,
-      metalness: 0.1,
+      shininess: 30,
       depthWrite: false,
     });
 
     this.petalMesh = new THREE.Mesh(geom, mat);
-    this.petalMesh.castShadow = true;
-    this.petalMesh.receiveShadow = true;
+    this.petalMesh.renderOrder = 1;
     this.visualGroup.add(this.petalMesh);
 
-    // Border line
-    const borderPts = sorted.map((v) => {
-      const c = this.toCartesian(v);
-      return new THREE.Vector3(c.vx, c.vy, c.vz);
-    });
-    if (borderPts.length > 0) borderPts.push(borderPts[0].clone());
-
-    const borderGeom = new THREE.BufferGeometry().setFromPoints(borderPts);
+    const borderGeom = new THREE.BufferGeometry().setFromPoints(borderPoints);
     const borderMat = new THREE.LineBasicMaterial({
       color: C.petalBorder,
       transparent: true,
-      opacity: 0.75,
+      opacity: 0.55,
+      depthWrite: false,
     });
     this.petalBorder = new THREE.Line(borderGeom, borderMat);
+    this.petalBorder.renderOrder = 1;
     this.visualGroup.add(this.petalBorder);
+
+    const originGeom = new THREE.SphereGeometry(0.055, 16, 16);
+    const originMat = new THREE.MeshBasicMaterial({
+      color: C.originNode,
+      transparent: true,
+      opacity: 0.55,
+      depthWrite: false,
+    });
+    this.originMarker = new THREE.Mesh(originGeom, originMat);
+    this.originMarker.renderOrder = 1;
+    this.visualGroup.add(this.originMarker);
   }
 
   // -----------------------------------------------------------------------
@@ -483,52 +574,37 @@ export class Cylindrical3DManager {
     return group;
   }
 
-  /** Floor-plane angle arc with translucent fill. */
-  private createAngleArc(radius: number, thetaRad: number, color: number): THREE.Group {
-    const arcGroup = new THREE.Group();
-    if (thetaRad <= 0.01) return arcGroup;
-
-    const curve = new THREE.EllipseCurve(0, 0, radius, radius, 0, thetaRad, false, 0);
-
-    const pts2D = curve.getPoints(Math.max(10, Math.floor(thetaRad * 30)));
-    const pts3D = pts2D.map((p) => new THREE.Vector3(p.x, 0, p.y));
-
-    const lineGeom = new THREE.BufferGeometry().setFromPoints(pts3D);
-    const lineMat = new THREE.LineBasicMaterial({ color });
-    arcGroup.add(new THREE.Line(lineGeom, lineMat));
-
-    // Translucent fill
-    const shape = new THREE.Shape();
-    shape.moveTo(0, 0);
-    pts2D.forEach((p) => shape.lineTo(p.x, p.y));
-    shape.lineTo(0, 0);
-
-    const fillGeom = new THREE.ShapeGeometry(shape);
-    const fillMat = new THREE.MeshBasicMaterial({
-      color,
-      transparent: true,
-      opacity: 0.08,
-      side: THREE.DoubleSide,
-    });
-    const fill = new THREE.Mesh(fillGeom, fillMat);
-    fill.rotation.x = Math.PI / 2;
-    arcGroup.add(fill);
-
-    return arcGroup;
-  }
-
   // -----------------------------------------------------------------------
   // Internal: Toggle visibility
   // -----------------------------------------------------------------------
 
   private applyToggles(): void {
-    if (this.cylinderGuide) this.cylinderGuide.visible = this.toggles.cylinder;
-    if (this.cylinderTopRing) this.cylinderTopRing.visible = this.toggles.cylinder;
-    if (this.cylinderBottomRing) this.cylinderBottomRing.visible = this.toggles.cylinder;
-    if (this.gridHelper) this.gridHelper.visible = this.toggles.grid;
+    if (this.floorGroup) this.floorGroup.visible = this.toggles.grid;
     if (this.projectionGroup) this.projectionGroup.visible = this.toggles.projections;
     if (this.petalMesh) this.petalMesh.visible = this.toggles.petal;
     if (this.petalBorder) this.petalBorder.visible = this.toggles.petal;
+  }
+
+  /**
+   * Shift the projection frustum so content appears right of the left drawer.
+   * Uses setViewOffset — camera / OrbitControls stay untouched (no jitter).
+   */
+  private applyDrawerViewOffset(): void {
+    if (this.drawerShiftPx <= 0) {
+      if (this.camera.view) this.camera.clearViewOffset();
+      else this.camera.updateProjectionMatrix();
+      return;
+    }
+
+    // Negative offsetX moves scene right on screen (drawer eats left side).
+    this.camera.setViewOffset(
+      this.width,
+      this.height,
+      -this.drawerShiftPx,
+      0,
+      this.width,
+      this.height,
+    );
   }
 
   // -----------------------------------------------------------------------
@@ -548,9 +624,11 @@ export class Cylindrical3DManager {
       this.needsRender = true;
     }
 
-    this.controls.update();
+    const controlsChanged = this.controls.update();
 
-    if (!this.needsRender) return;
+    if (!this.needsRender && !controlsChanged && !this.toggles.autoRotate) return;
+
+    this.applyDrawerViewOffset();
 
     this.renderer.render(this.scene, this.camera);
 

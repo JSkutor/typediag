@@ -216,7 +216,7 @@ Surface 메시 인덱스용 `Uint32Array` triangles 반환.
 
 `globalMax`가 있으면:
 
-- `normalizedR = r > 0 ? sqrt(r / maxR) : 0.15`
+- `normalizedR = r > 0 ? sqrt(r / maxR) : 0.12` (`CYLINDRICAL_MIN_NORMALIZED_R`)
 - `normalizedZ = z > 0 ? z / maxZ : 0.05`
 
 `getGlobalCylindricalMax(events)`로 세션 전체 쌍의 max 빈도·max 평균 지연 계산.
@@ -233,7 +233,7 @@ vy = normZ × CYLINDRICAL_MAX_HEIGHT
 vz = normR × CYLINDRICAL_MAX_RADIUS × sin(θ)
 ```
 
-`CYLINDRICAL_MAX_RADIUS` / `CYLINDRICAL_MAX_HEIGHT` = 6.0
+`CYLINDRICAL_MAX_RADIUS` = 8.0, `CYLINDRICAL_MAX_HEIGHT` = 6.0
 
 ---
 
