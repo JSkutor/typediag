@@ -6,7 +6,7 @@ import { useCylindricalDiagnostics } from "@/hooks/useCylindricalDiagnostics";
 import { KEYBOARD_META } from "@/lib/skdm/keyboardMeta";
 import { type PiecewiseFitSuccess, type PiecewiseFitFailure } from "@/utils/piecewiseRegression";
 import { PIECEWISE_FAILURE_LABEL } from "@/lib/dev/piecewiseDev";
-import type { CloudTypingPhase, CloudTypingStrength, CloudTypingEffectiveness, KeystrokeDiagnostics } from "@/utils/cylindricalStats";
+import type { CloudTypingLevel, CloudTypingEffectiveness, KeystrokeDiagnostics } from "@/utils/cylindricalStats";
 import { SpatialErrorOrbitViz } from "@/components/workspace/SpatialErrorOrbitViz";
 
 interface CylindricalDiagnosticsPanelProps {
@@ -115,21 +115,17 @@ function TransitionBars({
   );
 }
 
-const CLOUD_TYPING_PHASE_LABEL: Record<CloudTypingPhase, string> = {
-  skilled: "구름타법 숙달",
+const CLOUD_TYPING_LEVEL_LABEL: Record<CloudTypingLevel, string> = {
   not_applied: "미적용",
+  weak: "약함",
+  moderate: "보통",
+  strong: "강함",
 };
 
 const CLOUD_TYPING_EFFECTIVENESS_LABEL: Record<CloudTypingEffectiveness, string> = {
-  effective: "구름타법 효과적 (속도 향상)",
-  counterproductive: "구름타법 역효과 (타건 꼬임)",
+  effective: "효과적",
+  counterproductive: "역효과",
   neutral: "상관 없음",
-};
-
-const CLOUD_TYPING_STRENGTH_LABEL: Record<CloudTypingStrength, string> = {
-  strong: "구름타법 강함",
-  moderate: "구름타법 보통",
-  weak: "구름타법 약함",
 };
 
 function CloudTypingView({
@@ -137,41 +133,55 @@ function CloudTypingView({
 }: {
   cloudTyping: KeystrokeDiagnostics["cloudTyping"];
 }) {
-  const { key: keyStats, effectivenessCorrelation, effectiveness } = cloudTyping;
+  const { key: keyStats, effectivenessCorrelation, effectiveness, insufficientSample, analysisPoolCount } =
+    cloudTyping;
+
+  if (insufficientSample) {
+    return (
+      <p className="cyl-diag__empty">
+        표본 부족 (나가는 전이 n={analysisPoolCount}, 11회 이상 필요)
+      </p>
+    );
+  }
 
   if (!keyStats) {
     return <p className="cyl-diag__empty">이 키에서 나가는 전이 데이터가 없습니다.</p>;
   }
 
-  const totalMs = keyStats.latencyMs > 0 ? keyStats.latencyMs : keyStats.dwellMs + keyStats.flightMs;
-  const dwellPct = totalMs > 0 ? (keyStats.dwellMs / totalMs) * 100 : 50;
-  const flightPct = 100 - dwellPct;
+  const barScale = Math.max(keyStats.latencyMs, keyStats.dwellMs, 1);
+  const latencyPct = (keyStats.latencyMs / barScale) * 100;
+  const dwellPct = (keyStats.dwellMs / barScale) * 100;
 
-  const statusLabel = CLOUD_TYPING_PHASE_LABEL[keyStats.phase];
+  const ratioPct = (keyStats.cloudTypingRatio * 100).toFixed(0);
+  const levelLabel = CLOUD_TYPING_LEVEL_LABEL[keyStats.level];
 
-  const statusClass =
-    keyStats.phase === "skilled"
-      ? "text-success"
-      : "text-muted";
+  const ratioClass =
+    keyStats.level === "not_applied"
+      ? "text-muted"
+      : "text-success";
 
-  const strengthLabel =
-    keyStats.phase === "skilled" && keyStats.strength
-      ? CLOUD_TYPING_STRENGTH_LABEL[keyStats.strength]
-      : null;
-
-  const effectLabel = effectivenessCorrelation.isSignificant 
+  const effectLabel = effectivenessCorrelation.isSignificant
     ? CLOUD_TYPING_EFFECTIVENESS_LABEL[effectiveness]
-    : "구름타법 상관 무의미";
-    
-  const effectClass = 
-    effectiveness === "effective" ? "text-success" : 
-    effectiveness === "counterproductive" ? "text-danger" : "text-muted";
+    : "상관 무의미";
+
+  const effectClass =
+    effectiveness === "effective"
+      ? "text-success"
+      : effectiveness === "counterproductive"
+        ? "text-danger"
+        : "text-muted";
 
   return (
     <>
-      <div className="cyl-diag__correlation-box">
-        <span className="cyl-diag__correlation-val">{(keyStats.cloudTypingRatio * 100).toFixed(0)}%</span>
-        <span className={`cyl-diag__correlation-sig ${statusClass}`}>{statusLabel}</span>
+      <div className="cyl-diag__cloud-dual">
+        <div className={`cyl-diag__cloud-dual-col ${ratioClass}`}>
+          <span className="cyl-diag__cloud-dual-val">{ratioPct}%</span>
+          <span className="cyl-diag__cloud-dual-sep">·</span>
+          <span className="cyl-diag__cloud-dual-lbl">{levelLabel}</span>
+        </div>
+        <div className={`cyl-diag__cloud-dual-col cyl-diag__cloud-dual-col--end ${effectClass}`}>
+          <span className="cyl-diag__cloud-dual-val">{effectLabel}</span>
+        </div>
       </div>
       <div className="cyl-diag__cloud-pair-meta">
         {formatKey(keyStats.key)} 키 · 나가는 전이 n={keyStats.sampleCount}
@@ -182,16 +192,26 @@ function CloudTypingView({
           상관 분석에 나가는 전이 5회 이상 필요 (키 홀드 기록 포함)
         </div>
       )}
-      {strengthLabel && <div className="cyl-diag__correlation-p">{strengthLabel}</div>}
-      <div className={`cyl-diag__correlation-p ${effectClass}`}>{effectLabel}</div>
-      <div className="cyl-diag__dwell-flight">
-        <div className="cyl-diag__dwell-flight-bar">
-          <div className="cyl-diag__dwell-segment" style={{ width: `${dwellPct}%` }} />
-          <div className="cyl-diag__flight-segment" style={{ width: `${flightPct}%` }} />
+      <div className="cyl-diag__metric-bars">
+        <div className="cyl-diag__metric-bar-row">
+          <span className="cyl-diag__metric-bar-label">Latency</span>
+          <div className="cyl-diag__metric-bar-track">
+            <div
+              className="cyl-diag__metric-bar-fill cyl-diag__metric-bar-fill--latency"
+              style={{ width: `${latencyPct}%` }}
+            />
+          </div>
+          <span className="cyl-diag__metric-bar-value">{keyStats.latencyMs.toFixed(1)} ms</span>
         </div>
-        <div className="cyl-diag__dwell-flight-labels">
-          <span>Dwell {keyStats.dwellMs.toFixed(1)} ms</span>
-          <span>Flight {keyStats.flightMs.toFixed(1)} ms</span>
+        <div className="cyl-diag__metric-bar-row">
+          <span className="cyl-diag__metric-bar-label">Dwell</span>
+          <div className="cyl-diag__metric-bar-track">
+            <div
+              className="cyl-diag__metric-bar-fill cyl-diag__metric-bar-fill--dwell"
+              style={{ width: `${dwellPct}%` }}
+            />
+          </div>
+          <span className="cyl-diag__metric-bar-value">{keyStats.dwellMs.toFixed(1)} ms</span>
         </div>
       </div>
     </>
@@ -629,7 +649,7 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
                   <p className="cyl-diag__card-desc">
                     outgoing transition(fromKey === focusKey) 전체. dwell은 reference
                     transition 홀드,
-                    ND≤0.3면 롤오버. 비율은 숙달/미적용, r은 효과성(양의 상관=속도와 맞물림).
+                    |ND|≤0.25면 롤오버. 분석 풀 11회 이상일 때만 집계.
                   </p>
                 </div>
 

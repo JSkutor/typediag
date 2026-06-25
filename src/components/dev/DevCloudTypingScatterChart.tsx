@@ -1,10 +1,16 @@
 "use client";
 
 import type { CloudTypingScatterPoint } from "@/lib/dev/cloudTypingDev";
+import {
+  CLOUD_TYPING_DEV_ND_MAX,
+  traceDevCloudBandPolygon,
+} from "@/lib/dev/cloudTypingDev";
 
 interface DevCloudTypingScatterChartProps {
-  points: CloudTypingScatterPoint[];
+  analysisPoints: CloudTypingScatterPoint[];
+  excludedPoints: CloudTypingScatterPoint[];
   focusKey: string;
+  minDenomMs: number;
 }
 
 const WIDTH = 720;
@@ -23,41 +29,93 @@ function scaleLinear(
   return rangeMin + t * (rangeMax - rangeMin);
 }
 
-export function DevCloudTypingScatterChart({ points, focusKey }: DevCloudTypingScatterChartProps) {
+function buildLinearTicks(domainMax: number, count: number): number[] {
+  const step = domainMax / (count - 1);
+  return Array.from({ length: count }, (_, i) =>
+    Number((i * step).toFixed(0)),
+  );
+}
+
+export function DevCloudTypingScatterChart({
+  analysisPoints,
+  excludedPoints,
+  focusKey,
+  minDenomMs,
+}: DevCloudTypingScatterChartProps) {
   const plotWidth = WIDTH - PAD.left - PAD.right;
   const plotHeight = HEIGHT - PAD.top - PAD.bottom;
 
-  const xValues = points.map((p) => p.durationMs);
-  const yValues = points.map((p) => p.latencyMs);
-  const xMax = xValues.length > 0 ? Math.max(...xValues, 1) : 1;
-  const yMax = yValues.length > 0 ? Math.max(...yValues, 1) : 1;
-  const paddingX = Math.max(8, xMax * 0.06);
-  const paddingY = Math.max(8, yMax * 0.06);
+  const allPoints = [...analysisPoints, ...excludedPoints];
+  const xValues = allPoints.map((p) => p.holdMs);
+  const yValues = allPoints.map((p) => p.latencyMs);
+  const xMax = xValues.length > 0 ? Math.max(...xValues, 100) : 150;
+  const yMax = yValues.length > 0 ? Math.max(...yValues, 100) : 150;
+  const paddingX = Math.max(10, xMax * 0.08);
+  const paddingY = Math.max(10, yMax * 0.08);
   const domainXMax = xMax + paddingX;
   const domainYMax = yMax + paddingY;
 
-  const toSvgX = (x: number) => scaleLinear(x, 0, domainXMax, PAD.left, PAD.left + plotWidth);
-  const toSvgY = (y: number) =>
-    scaleLinear(y, 0, domainYMax, PAD.top + plotHeight, PAD.top);
+  const toSvgX = (holdMs: number) =>
+    scaleLinear(holdMs, 0, domainXMax, PAD.left, PAD.left + plotWidth);
+  const toSvgY = (latencyMs: number) =>
+    scaleLinear(latencyMs, 0, domainYMax, PAD.top + plotHeight, PAD.top);
 
-  const xTicks = 5;
-  const yTicks = 5;
-  const xTickValues = Array.from({ length: xTicks }, (_, i) => (i / (xTicks - 1)) * domainXMax);
-  const yTickValues = Array.from({ length: yTicks }, (_, i) => (i / (yTicks - 1)) * domainYMax);
+  const xTickValues = buildLinearTicks(domainXMax, 6);
+  const yTickValues = buildLinearTicks(domainYMax, 6);
+
+  const bandPath = traceDevCloudBandPolygon(
+    domainXMax,
+    domainYMax,
+    CLOUD_TYPING_DEV_ND_MAX,
+    minDenomMs,
+  )
+    .map((point) => `${toSvgX(point.hold)},${toSvgY(point.latency)}`)
+    .join(" ");
 
   const diagonalEnd = Math.min(domainXMax, domainYMax);
+
+  const renderPoint = (point: CloudTypingScatterPoint, index: number, prefix: string) => {
+    const fill = !point.inAnalysisPool
+      ? "var(--text-muted)"
+      : point.isCloudStroke
+        ? "var(--accent)"
+        : "var(--text-secondary)";
+    const opacity = point.inAnalysisPool ? 0.88 : 0.45;
+
+    return (
+      <circle
+        key={`${prefix}-${index}`}
+        cx={toSvgX(point.holdMs)}
+        cy={toSvgY(point.latencyMs)}
+        r={point.inAnalysisPool ? 4.5 : 4}
+        fill={fill}
+        opacity={opacity}
+        stroke={point.inAnalysisPool && point.isCloudStroke ? "var(--accent-hover)" : "none"}
+        strokeWidth={1}
+      >
+        <title>
+          {focusKey}→{point.toKey}: hold={point.holdMs.toFixed(1)}ms, latency={point.latencyMs.toFixed(1)}ms
+          , ND={point.normalizedDifference.toFixed(3)}
+          {point.isCloudStroke ? " (cloud stroke)" : ""}
+          {!point.inAnalysisPool ? " (머뭇거림 제외)" : ""}
+        </title>
+      </circle>
+    );
+  };
 
   return (
     <svg
       className="cloud-typing-scatter-chart"
       viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
       role="img"
-      aria-label={`${focusKey} outgoing transition hold vs latency scatter`}
+      aria-label={`${focusKey} raw hold vs latency scatter`}
     >
       <rect x={0} y={0} width={WIDTH} height={HEIGHT} fill="var(--bg-inset)" rx={12} />
 
+      <polygon points={bandPath} fill="var(--accent)" opacity={0.1} />
+
       {yTickValues.map((tick) => (
-        <g key={tick}>
+        <g key={`y-${tick}`}>
           <line
             x1={PAD.left}
             x2={PAD.left + plotWidth}
@@ -73,13 +131,13 @@ export function DevCloudTypingScatterChart({ points, focusKey }: DevCloudTypingS
             fontSize={11}
             fontFamily="var(--font-mono)"
           >
-            {Math.round(tick)}
+            {tick}
           </text>
         </g>
       ))}
 
       {xTickValues.map((tick) => (
-        <g key={tick}>
+        <g key={`x-${tick}`}>
           <line
             x1={toSvgX(tick)}
             x2={toSvgX(tick)}
@@ -97,7 +155,7 @@ export function DevCloudTypingScatterChart({ points, focusKey }: DevCloudTypingS
             fontSize={11}
             fontFamily="var(--font-mono)"
           >
-            {Math.round(tick)}
+            {tick}
           </text>
         </g>
       ))}
@@ -127,21 +185,8 @@ export function DevCloudTypingScatterChart({ points, focusKey }: DevCloudTypingS
         stroke="var(--border-strong)"
       />
 
-      {points.map((point, index) => (
-        <circle
-          key={index}
-          cx={toSvgX(point.durationMs)}
-          cy={toSvgY(point.latencyMs)}
-          r={4}
-          fill="var(--accent)"
-          opacity={0.82}
-        >
-          <title>
-            {focusKey}→{point.toKey}: reference hold={point.durationMs}ms, outgoing latency=
-            {point.latencyMs}ms
-          </title>
-        </circle>
-      ))}
+      {excludedPoints.map((point, index) => renderPoint(point, index, "ex"))}
+      {analysisPoints.map((point, index) => renderPoint(point, index, "in"))}
 
       <text
         x={PAD.left + plotWidth / 2}
@@ -150,7 +195,7 @@ export function DevCloudTypingScatterChart({ points, focusKey }: DevCloudTypingS
         fill="var(--text-secondary)"
         fontSize={12}
       >
-        X: reference transition holdDurationMs · Y: outgoing transition latencyMs
+        D, L 원본(ms) 축 · 최소 분모 M={minDenomMs}ms · ND=|L-D|/max(L+D, M) ≤ {CLOUD_TYPING_DEV_ND_MAX}
       </text>
     </svg>
   );

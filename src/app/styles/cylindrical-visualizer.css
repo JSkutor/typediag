@@ -798,6 +798,52 @@
   font-size: 0.62rem;
 }
 
+.cyl-diag__metric-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.cyl-diag__metric-bar-row {
+  display: grid;
+  grid-template-columns: 52px 1fr 56px;
+  align-items: center;
+  gap: 8px;
+}
+
+.cyl-diag__metric-bar-label {
+  color: var(--text-muted);
+  font-size: 0.62rem;
+}
+
+.cyl-diag__metric-bar-track {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--border-subtle);
+}
+
+.cyl-diag__metric-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+}
+
+.cyl-diag__metric-bar-fill--latency {
+  background: #ec4899;
+}
+
+.cyl-diag__metric-bar-fill--dwell {
+  background: #06b6d4;
+}
+
+.cyl-diag__metric-bar-value {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  text-align: right;
+}
+
 .cyl-diag__dwell-flight {
   display: flex;
   flex-direction: column;
@@ -1195,6 +1241,46 @@
   font-size: 0.6rem;
   color: var(--text-muted);
   font-family: var(--font-mono);
+}
+
+.cyl-diag__cloud-dual {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.cyl-diag__cloud-dual-col {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.cyl-diag__cloud-dual-col--end {
+  justify-content: flex-end;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.cyl-diag__cloud-dual-val {
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  line-height: 1.2;
+}
+
+.cyl-diag__cloud-dual-sep {
+  font-size: 0.9rem;
+  font-weight: 600;
+  opacity: 0.65;
+}
+
+.cyl-diag__cloud-dual-lbl {
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 .cyl-diag__correlation-val {

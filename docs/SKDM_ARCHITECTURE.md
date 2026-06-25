@@ -78,13 +78,13 @@ export function runPipeline(
 
 ```mermaid
 flowchart TD
-    Raw([KeyEvent[]])
+    Raw(["KeyEvent[]"])
     --> F1["filterInterruptedTransitions"]
     --> F2["filterOutliers → maxClipMs"]
     --> F3["aggregatePairs(validEvents, maxClipMs)"]
     --> F4["summarizeKeys(pairStats, layout, validEvents)"]
     --> F5["smooth(results)"]
-    --> Out([Record key → KeyResult])
+    --> Out(["Record key → KeyResult"])
 ```
 
 ### 3.1. `filterInterruptedTransitions`

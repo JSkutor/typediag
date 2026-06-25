@@ -28,7 +28,7 @@ sequenceDiagram
     SearchAPI->>DB: cosine similarity > 0.5, limit 100
 
     alt 캐시 히트
-        SearchAPI-->>Client: 200 { data: [...] }
+        SearchAPI-->>Client: 200 JSON data array
     else 캐시 미스
         SearchAPI-->>Client: 404
         Client->>GenAPI: { topic }

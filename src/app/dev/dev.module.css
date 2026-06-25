@@ -278,6 +278,36 @@
   box-shadow: 0 0 0 2px var(--accent-dim);
 }
 
+.rangeInput {
+  flex: 1;
+  min-width: 140px;
+  max-width: 320px;
+  accent-color: var(--accent);
+}
+
+.alphaNumberInput {
+  width: 72px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-inset);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.alphaNumberInput:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-dim);
+}
+
+.alphaUnit {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
 .primaryButton {
   padding: 8px 16px;
   border: none;

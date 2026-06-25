@@ -88,20 +88,29 @@ export interface KeystrokeDiagnostics {
 const LATENCY_CONSISTENCY_MIN_SAMPLES = 5;
 const LATENCY_HISTOGRAM_BINS = 12;
 
+export const CLOUD_TYPING_ND_MAX = 0.25;
+/** ND 분모 하한(ms). 빠른 타건에서 비율 폭주를 막는 휴리스틱. */
+export const CLOUD_TYPING_MIN_DENOM = 300;
+const CLOUD_TYPING_MIN_SAMPLES = 10;
+const CLOUD_TYPING_LEVEL_WEAK = 0.7;
+const CLOUD_TYPING_LEVEL_MODERATE = 0.8;
+const CLOUD_TYPING_LEVEL_STRONG = 0.9;
 const CLOUD_TYPING_CORRELATION_R_THRESHOLD = 0.3;
 const CLOUD_TYPING_CORRELATION_P_THRESHOLD = 0.05;
 const CLOUD_TYPING_CORRELATION_MIN_SAMPLES = 5;
+
+const CLOUD_TYPING_EXCLUDE_TO_KEYS = new Set(["shift_l", "shift_r", "backspace", "enter"]);
 
 const EMPTY_CLOUD_TYPING: CloudTypingDiagnostics = {
   effectivenessCorrelation: { pearsonR: 0, pValue: 1.0, isSignificant: false, sampleCount: 0 },
   effectiveness: "neutral",
   sessionCloudTypingRatio: 0,
   key: null,
+  insufficientSample: false,
+  analysisPoolCount: 0,
 };
 
-export type CloudTypingStrength = "strong" | "moderate" | "weak";
-/** 숙련 = 롤오버 비율 높음, 미적용 = 비율 낮음 */
-export type CloudTypingPhase = "skilled" | "not_applied";
+export type CloudTypingLevel = "not_applied" | "weak" | "moderate" | "strong";
 export type CloudTypingEffectiveness = "effective" | "counterproductive" | "neutral";
 
 export interface HoldCorrelationResult {
@@ -121,8 +130,7 @@ export interface CloudTypingKeyResult {
   normalizedDifference: number;
   cloudTypingRatio: number;
   sampleCount: number;
-  phase: CloudTypingPhase;
-  strength: CloudTypingStrength | null;
+  level: CloudTypingLevel;
 }
 
 export interface CloudTypingDiagnostics {
@@ -130,6 +138,9 @@ export interface CloudTypingDiagnostics {
   effectiveness: CloudTypingEffectiveness;
   sessionCloudTypingRatio: number;
   key: CloudTypingKeyResult | null;
+  /** 분석 풀 n ≤ CLOUD_TYPING_MIN_SAMPLES — 연산 생략 */
+  insufficientSample: boolean;
+  analysisPoolCount: number;
 }
 
 /**
@@ -143,30 +154,107 @@ export interface TransitionDwellSample {
   fromHoldMs: number;
 }
 
+function hasValidHold(event: KeyEvent): event is KeyEvent & { holdDurationMs: number } {
+  return (
+    event.holdDurationMs !== undefined &&
+    event.holdDurationMs !== null &&
+    typeof event.holdDurationMs === "number"
+  );
+}
+
+/** ND = |L − D| / max(L + D, M), D = hold */
+export function computeNormalizedDifference(
+  holdMs: number,
+  latencyMs: number,
+  minDenomMs: number = CLOUD_TYPING_MIN_DENOM,
+): number {
+  const denominator = Math.max(latencyMs + holdMs, minDenomMs);
+  if (denominator <= 0) return 1;
+  return Math.abs(latencyMs - holdMs) / denominator;
+}
+
+export function extractOutgoingSamples(
+  events: KeyEvent[],
+  focusKey: string,
+): TransitionDwellSample[] {
+  const samples: TransitionDwellSample[] = [];
+
+  for (let i = 1; i < events.length; i++) {
+    const outgoingEvent = events[i];
+    const referenceEvent = events[i - 1];
+
+    if (outgoingEvent.fromKey !== focusKey) continue;
+    if (outgoingEvent.isCorrect !== true || outgoingEvent.latencyMs <= 0) continue;
+    if (CLOUD_TYPING_EXCLUDE_TO_KEYS.has(outgoingEvent.toKey)) continue;
+    if (referenceEvent.toKey !== focusKey) continue;
+    if (!hasValidHold(referenceEvent)) continue;
+
+    samples.push({
+      fromKey: focusKey,
+      toKey: outgoingEvent.toKey,
+      latencyMs: outgoingEvent.latencyMs,
+      fromHoldMs: referenceEvent.holdDurationMs,
+    });
+  }
+
+  return samples;
+}
+
+/** @deprecated use extractOutgoingSamples */
 export function extractOutgoingDwellSamples(
-  _events: KeyEvent[],
-  _focusKey: string,
+  events: KeyEvent[],
+  focusKey: string,
 ): TransitionDwellSample[] {
-  return [];
+  return extractOutgoingSamples(events, focusKey);
 }
 
+/** @deprecated use extractOutgoingSamples + filterOutgoingHesitation */
 export function extractOutgoingCorrelationSamples(
-  _events: KeyEvent[],
-  _focusKey: string,
+  events: KeyEvent[],
+  focusKey: string,
 ): TransitionDwellSample[] {
-  return [];
+  return filterOutgoingHesitation(extractOutgoingSamples(events, focusKey));
 }
 
-export function extractTransitionDwellSamples(_events: KeyEvent[]): TransitionDwellSample[] {
-  return [];
+export function filterOutgoingHesitation(
+  samples: TransitionDwellSample[],
+): TransitionDwellSample[] {
+  if (samples.length === 0) return [];
+
+  const latencies = samples.map((sample) => sample.latencyMs);
+  const sorted = [...latencies].sort((a, b) => a - b);
+  const q3 = getPercentile(sorted, 0.75);
+  const q1 = getPercentile(sorted, 0.25);
+  const iqr = q3 - q1;
+  const hesitationThreshold = q3 + 1.5 * iqr;
+
+  return samples.filter((sample) => sample.latencyMs <= hesitationThreshold);
 }
 
-export function extractCorrelationSamples(_events: KeyEvent[]): TransitionDwellSample[] {
-  return [];
+export function isCloudTypingStroke(
+  holdMs: number,
+  latencyMs: number,
+  ndMax: number = CLOUD_TYPING_ND_MAX,
+  minDenomMs: number = CLOUD_TYPING_MIN_DENOM,
+): boolean {
+  return computeNormalizedDifference(holdMs, latencyMs, minDenomMs) <= ndMax;
 }
 
-export function isCloudTypingStroke(_dwellMs: number, _latencyMs: number): boolean {
-  return false;
+function classifyCloudTypingLevel(ratio: number): CloudTypingLevel {
+  if (ratio >= CLOUD_TYPING_LEVEL_STRONG) return "strong";
+  if (ratio >= CLOUD_TYPING_LEVEL_MODERATE) return "moderate";
+  if (ratio >= CLOUD_TYPING_LEVEL_WEAK) return "weak";
+  return "not_applied";
+}
+
+function classifyCloudTypingEffectiveness(
+  pearsonR: number,
+  isSignificant: boolean,
+): CloudTypingEffectiveness {
+  if (!isSignificant) return "neutral";
+  if (pearsonR <= -CLOUD_TYPING_CORRELATION_R_THRESHOLD) return "effective";
+  if (pearsonR >= CLOUD_TYPING_CORRELATION_R_THRESHOLD) return "counterproductive";
+  return "neutral";
 }
 
 /** relativeMad = MAD/median 기준 일관성 등급 */
@@ -249,10 +337,69 @@ export function computePearsonCorrelation(
 }
 
 export function computeCloudTypingDiagnostics(
-  _events: KeyEvent[],
-  _focusKey: string,
+  events: KeyEvent[],
+  focusKey: string,
 ): CloudTypingDiagnostics {
-  return EMPTY_CLOUD_TYPING;
+  if (!focusKey || events.length === 0) {
+    return EMPTY_CLOUD_TYPING;
+  }
+
+  const rawSamples = extractOutgoingSamples(events, focusKey);
+  const analysisPool = filterOutgoingHesitation(rawSamples);
+
+  if (analysisPool.length === 0) {
+    return EMPTY_CLOUD_TYPING;
+  }
+
+  if (analysisPool.length <= CLOUD_TYPING_MIN_SAMPLES) {
+    return {
+      ...EMPTY_CLOUD_TYPING,
+      insufficientSample: true,
+      analysisPoolCount: analysisPool.length,
+    };
+  }
+
+  const ndValues = analysisPool.map((sample) =>
+    computeNormalizedDifference(sample.fromHoldMs, sample.latencyMs),
+  );
+  const latencies = analysisPool.map((sample) => sample.latencyMs);
+  const holds = analysisPool.map((sample) => sample.fromHoldMs);
+  const flights = analysisPool.map((sample) =>
+    Math.max(0, sample.latencyMs - sample.fromHoldMs),
+  );
+
+  const strokeCount = analysisPool.filter((sample) =>
+    isCloudTypingStroke(sample.fromHoldMs, sample.latencyMs),
+  ).length;
+  const cloudTypingRatio = strokeCount / analysisPool.length;
+
+  const effectivenessCorrelation = computePearsonCorrelation(ndValues, latencies);
+  const effectiveness = classifyCloudTypingEffectiveness(
+    effectivenessCorrelation.pearsonR,
+    effectivenessCorrelation.isSignificant,
+  );
+
+  return {
+    effectivenessCorrelation,
+    effectiveness,
+    sessionCloudTypingRatio: cloudTypingRatio,
+    insufficientSample: false,
+    analysisPoolCount: analysisPool.length,
+    key: {
+      key: focusKey,
+      dwellMs: getMedian(holds),
+      flightMs: getMedian(flights),
+      latencyMs: getMedian(latencies),
+      normalizedDifference: getMedian(
+        analysisPool.map((sample) =>
+          computeNormalizedDifference(sample.fromHoldMs, sample.latencyMs),
+        ),
+      ),
+      cloudTypingRatio,
+      sampleCount: analysisPool.length,
+      level: classifyCloudTypingLevel(cloudTypingRatio),
+    },
+  };
 }
 
 function computeLatencyConsistency(latencies: number[]) {
@@ -454,7 +601,7 @@ export function calculateKeystrokeDiagnostics(
     }
   }
 
-  const cloudTyping = EMPTY_CLOUD_TYPING;
+  const cloudTyping = computeCloudTypingDiagnostics(events, focusKey);
 
   // 3) 상세 통계 (detailedStats 대응) — reference transition(toKey === focusKey) 정답
   const targetCorrectEvents = events.filter(

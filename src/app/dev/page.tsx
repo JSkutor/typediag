@@ -21,8 +21,9 @@ const DEV_TOOLS = [
   },
   {
     href: "/dev/cloud-typing",
-    title: "Cloud Typing Scatter",
-    description: "focusKey outgoing transition (holdDurationMs, latencyMs) 산점도.",
+    title: "Cloud Typing (구름타법)",
+    description:
+      "diag §2.1 분석 풀 + dev ND(|L−D|/max(L+D,M)) — 구름 비율·효과성 r, hold/latency 산점도.",
   },
   {
     href: "/dev/themes",

@@ -12,6 +12,9 @@ mode 기능 이후에 기능 추가 없다.
 latency 그냥 쓰면 안됨. 머뭇거림 빼(있는 코드 써.)
 diag 말고 다른 곳에도 focuskey 용어 통일.
 시안 핑크 Marginal Median Heuristic 적용
+n < 5~10이면 IQR 스킵 등 로직 구현해. 지금은 n 하드코딩
+
+600타 시드 테스트
 
 
 

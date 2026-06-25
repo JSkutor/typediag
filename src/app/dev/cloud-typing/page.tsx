@@ -13,11 +13,11 @@ export default function DevCloudTypingPage() {
     <div className={styles.page}>
       <div className={`${styles.inner} ${styles.innerWide}`}>
         <header className={styles.header}>
-          <h1 className={styles.title}>Dev · Cloud Typing Scatter</h1>
+          <h1 className={styles.title}>Dev · Cloud Typing (구름타법)</h1>
           <p className={styles.subtitle}>
-            Zustand <code>analysisEvents</code>에서 focusKey outgoing transition 기준 쌍의
-            (reference holdDurationMs, outgoing latencyMs)를 좌표평면에 표시합니다.
-            development 모드에서만 접근 가능합니다.
+            Cylindrical Diagnostics §2.1 분석 풀 + dev ND 식{" "}
+            <code>|L−D|/max(L+D, M)</code> 산점도·구름 음영(ND ≤ 0.25). development 모드에서만
+            접근 가능합니다.
           </p>
         </header>
         <DevCloudTypingPanel />
