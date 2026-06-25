@@ -349,7 +349,7 @@ describe("useCylindricalDiagnostics diagnostics", () => {
   });
 
   describe("spatialErrorDistance", () => {
-    it("is exposed via calculateKeystrokeDiagnostics", () => {
+    it("is exposed via useCylindricalDiagnostics", () => {
       const events: KeyEvent[] = [
         { fromKey: "a", toKey: "f", latencyMs: 100, isCorrect: true, expectedChar: null },
         { fromKey: "a", toKey: "g", latencyMs: 100, isCorrect: false, expectedChar: "f" },

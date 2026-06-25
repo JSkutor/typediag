@@ -78,7 +78,7 @@ npm run db:embed    # Batch-embed target texts (requires UPSTAGE_API_KEY)
 - `docs/SKDM_ARCHITECTURE.md` — SKDM pipeline and 3D visualization architecture
 - `docs/STATE_MANAGEMENT.md` — Zustand slices & session lifecycle
 - `docs/DESIGN_SYSTEM.md` — UI theme (“Space Grey & Ocean Cyan”)
-- `docs/DIAGNOSTICS.md` — 3D diagnostics stats & piecewise regression (Korean)
+- `docs/DIAGNOSTICS.md` — Cylindrical Diagnostics 구조·용어·통계 (focusKey, accumulator, Cloud Typing, piecewise regression)
 - `docs/HARDCORE_MODE.md` — Hardcore MLP language model (Korean)
 - `docs/TOPIC_MODE.md` — Topic Mode vector caching & LLM generation (Korean)
 

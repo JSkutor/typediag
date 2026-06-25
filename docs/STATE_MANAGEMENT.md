@@ -118,7 +118,7 @@ For a held backspace burst:
 - Each repeat keydown creates a new event with `holdDurationMs: null`.
 - Only the **final** backspace event in the burst receives the total press-to-release duration on keyup; earlier repeat events stay `null`.
 
-SKDM latency surface는 `latencyMs`만 사용. `holdDurationMs`는 DB 영속화 및 **구름타법(Dwell·Flight) 진단** (`docs/DIAGNOSTICS.md` §2.1)에 사용.
+SKDM latency surface는 `latencyMs`만 사용. `holdDurationMs`는 DB 영속화 및 **구름타법** 진단 (`docs/DIAGNOSTICS.md` §3)에 사용.
 
 ### 1.5. Topic Mode Fetching & State (`createTopicSlice.ts`)
 
@@ -137,6 +137,23 @@ SKDM latency surface는 `latencyMs`만 사용. `holdDurationMs`는 DB 영속화 
 - **Prefetch**: 초기 fetch 결과가 3개 미만이거나, `topicNextTarget`에서 남은 문장 수 `remainingCount <= 3`이면 `requestMoreTopicTargets`를 백그라운드 호출.
 - **Delegation**: `createInputSlice.ts`가 `setMode("topic")`, `nextTarget`, `prevTarget`, 물리 키 라우팅 시 topic slice에 위임.
 - 상세 파이프라인: [TOPIC_MODE.md](TOPIC_MODE.md)
+
+### 1.6. Cylindrical Diagnostics (`useCylindricalDiagnostics`)
+
+진단 모드(`diagnosticMode === "cylindrical"`)에서 3패널 통계는 Zustand가 아닌 **전용 훅**이 계산합니다. 구조·용어 SSOT: [DIAGNOSTICS.md](DIAGNOSTICS.md) §0.
+
+| 항목 | SSOT |
+| :--- | :--- |
+| 이벤트 소스 | `useDiagnosticsTransition` → `analysisEvents` (DB run 병합 또는 live `events`) |
+| 통계 훅 | `src/hooks/useCylindricalDiagnostics.ts` |
+| 1패스 누산 | `buildDiagnosticsAccumulator` (`src/utils/cylindricalStats.ts`) |
+| focusKey별 집계 | `finalizeKeystrokeDiagnostics(acc, focusKey)` |
+| 분절회귀 | `fitPiecewiseFromLatencies` (`piecewiseRegression.ts`) |
+| UI | `CylindricalDiagnosticsPanel.tsx` — `focusKey` 셀렉터, `focusKeyOptions` |
+
+**용어**: 분석 초점은 **`focusKey`**. `toKey === focusKey` 행은 **reference transition**, `fromKey === focusKey` 행은 **outgoing transition**. `holdDurationMs`는 reference에서, Cloud Typing의 latency는 outgoing에서 읽습니다.
+
+`focusKey`만 바꿀 때 `events` 재순회 없이 accumulator를 재사용합니다.
 
 ---
 

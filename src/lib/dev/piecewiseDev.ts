@@ -41,6 +41,6 @@ export function ensureFinalUpperBound(events: KeyEvent[]) {
 
 export const PIECEWISE_FAILURE_LABEL: Record<string, string> = {
   no_bound: "finalUpperBound 없음 (SKDM 파이프라인 미실행 또는 이벤트 50개 미만)",
-  insufficient_data: "필터 후 정답 이벤트 50개 미만",
+  insufficient_data: "필터 후 정답 이벤트 20개 미만",
   ols_failed: "OLS 역행렬 실패 (특이 행렬)",
 };

@@ -1,8 +1,10 @@
 import { KeyEvent } from "@/lib/skdm";
 import { KEYBOARD_META, getHand, needsShift } from "@/lib/skdm/keyboardMeta";
-import { getSpatialErrorDistance } from "@/lib/skdm/diagnostics";
+import { charToLayoutKey } from "@/lib/practice/hangulRules";
+import { buildLayout } from "@/lib/skdm/layout";
+import { keyDistanceU } from "@/lib/skdm/geometry";
 import { getMAD, getMedian, getPercentile, getStudentTPValue } from "./stats";
-import { PiecewiseFitOutcome } from "@/utils/piecewiseRegression";
+import type { PiecewiseFitOutcome } from "@/utils/piecewiseRegression";
 
 /** Cylindrical Diagnostics SSOT — focusKey / reference·outgoing transition 용어: docs/DIAGNOSTICS.md */
 
@@ -200,22 +202,6 @@ export function extractOutgoingSamples(
   return samples;
 }
 
-/** @deprecated use extractOutgoingSamples */
-export function extractOutgoingDwellSamples(
-  events: KeyEvent[],
-  focusKey: string,
-): TransitionDwellSample[] {
-  return extractOutgoingSamples(events, focusKey);
-}
-
-/** @deprecated use extractOutgoingSamples + filterOutgoingHesitation */
-export function extractOutgoingCorrelationSamples(
-  events: KeyEvent[],
-  focusKey: string,
-): TransitionDwellSample[] {
-  return filterOutgoingHesitation(extractOutgoingSamples(events, focusKey));
-}
-
 export function filterOutgoingHesitation(
   samples: TransitionDwellSample[],
 ): TransitionDwellSample[] {
@@ -336,15 +322,11 @@ export function computePearsonCorrelation(
   return { pearsonR, pValue, isSignificant, sampleCount: xs.length };
 }
 
-export function computeCloudTypingDiagnostics(
-  events: KeyEvent[],
+/** 이미 추출된 rawSamples를 받아 cloud typing 집계를 수행합니다 (events 재순회 없음). */
+function computeCloudTypingFromSamples(
+  rawSamples: TransitionDwellSample[],
   focusKey: string,
 ): CloudTypingDiagnostics {
-  if (!focusKey || events.length === 0) {
-    return EMPTY_CLOUD_TYPING;
-  }
-
-  const rawSamples = extractOutgoingSamples(events, focusKey);
   const analysisPool = filterOutgoingHesitation(rawSamples);
 
   if (analysisPool.length === 0) {
@@ -390,16 +372,23 @@ export function computeCloudTypingDiagnostics(
       dwellMs: getMedian(holds),
       flightMs: getMedian(flights),
       latencyMs: getMedian(latencies),
-      normalizedDifference: getMedian(
-        analysisPool.map((sample) =>
-          computeNormalizedDifference(sample.fromHoldMs, sample.latencyMs),
-        ),
-      ),
+      normalizedDifference: getMedian(ndValues),
       cloudTypingRatio,
       sampleCount: analysisPool.length,
       level: classifyCloudTypingLevel(cloudTypingRatio),
     },
   };
+}
+
+export function computeCloudTypingDiagnostics(
+  events: KeyEvent[],
+  focusKey: string,
+): CloudTypingDiagnostics {
+  if (!focusKey || events.length === 0) {
+    return EMPTY_CLOUD_TYPING;
+  }
+  const rawSamples = extractOutgoingSamples(events, focusKey);
+  return computeCloudTypingFromSamples(rawSamples, focusKey);
 }
 
 function computeLatencyConsistency(latencies: number[]) {
@@ -419,8 +408,252 @@ function computeLatencyConsistency(latencies: number[]) {
   };
 }
 
-export function calculateKeystrokeDiagnostics(
-  events: KeyEvent[],
+// ============================================================
+// Accumulator — 단일 O(N) 패스로 모든 진단 데이터를 수집
+// ============================================================
+
+/** 키 하나에 대한 누산 데이터. buildDiagnosticsAccumulator 내부에서 생성됩니다. */
+export interface PerKeyAccumulator {
+  /** reference transition 정답 latency 배열 (toKey===key, isCorrect, latencyMs>0). 시간순 보존. */
+  referenceLatencies: number[];
+  /** reference transition 기준 손가락 전환 카운트 */
+  fingerCounts: {
+    oppositeHand: number;
+    sameHandPinky: number;
+    sameHandRing: number;
+    sameHandMiddle: number;
+    sameHandIndex: number;
+    other: number;
+    total: number;
+  };
+  /** outgoing transition 샘플 (fromKey===key). cloud typing 집계용. */
+  outgoingSamples: TransitionDwellSample[];
+  /** 이 키가 오타 스트릭의 시작점(toKey===key && isErrorStart)인 횟수 */
+  errorInducementCount: number;
+  /** late keystroke 횟수 (expectedChar===key && nextEvent.toKey===key) */
+  lateKeystrokeCount: number;
+  /** 공간적 오타 거리 데이터 (expectedChar===key && isCorrect===false) */
+  spatialErrors: {
+    distancesU: number[];
+    typoCounts: Record<string, number>;
+  };
+}
+
+/** 단일 O(N) 순회로 수집한 전역·키별 누산 데이터 */
+export interface DiagnosticsAccumulator {
+  /** toKey → correct count (all keys, countCorrectReferenceTransitions와 동일) */
+  correctByKey: Map<string, number>;
+  /** 전역 순서쌍 빈도 (correct, alpha 키만) */
+  pairCounts: Map<string, number>;
+  /** 키별 correct/incorrect 카운트 (EXCLUDE_KEYS 제외, unconsciousKey·lateKeystroke 분모용) */
+  keyStats: Map<string, { correct: number; incorrect: number }>;
+  /** 전역 오타 스트릭 시작 횟수 */
+  totalErrorStartsCount: number;
+  /** Shift 조합 키 정답 이벤트의 latency 배열 */
+  shiftLatencies: number[];
+  /** 일반(비-Shift) 정답 이벤트의 latency 배열 */
+  nonShiftLatencies: number[];
+  /** 키별 누산 데이터 */
+  perKey: Map<string, PerKeyAccumulator>;
+}
+
+const ACCUMULATOR_EXCLUDE_KEYS = new Set(["shift_l", "shift_r", "backspace", "enter"]);
+const ALPHA_KEY_REGEX = /^[a-zA-Z]$/;
+
+function getOrCreatePerKey(
+  perKey: Map<string, PerKeyAccumulator>,
+  key: string,
+): PerKeyAccumulator {
+  let entry = perKey.get(key);
+  if (!entry) {
+    entry = {
+      referenceLatencies: [],
+      fingerCounts: {
+        oppositeHand: 0,
+        sameHandPinky: 0,
+        sameHandRing: 0,
+        sameHandMiddle: 0,
+        sameHandIndex: 0,
+        other: 0,
+        total: 0,
+      },
+      outgoingSamples: [],
+      errorInducementCount: 0,
+      lateKeystrokeCount: 0,
+      spatialErrors: { distancesU: [], typoCounts: {} },
+    };
+    perKey.set(key, entry);
+  }
+  return entry;
+}
+
+/**
+ * events 배열을 단일 O(N) 순회하여 모든 진단 데이터를 누산합니다.
+ *
+ * 반환된 DiagnosticsAccumulator를 `finalizeKeystrokeDiagnostics(acc, focusKey)`에
+ * 전달하면 events 재순회 없이 O(k) 시간에 진단 결과를 생성할 수 있습니다.
+ */
+export function buildDiagnosticsAccumulator(events: KeyEvent[]): DiagnosticsAccumulator {
+  const correctByKey = new Map<string, number>();
+  const pairCounts = new Map<string, number>();
+  const keyStats = new Map<string, { correct: number; incorrect: number }>();
+  const perKey = new Map<string, PerKeyAccumulator>();
+  let totalErrorStartsCount = 0;
+  const shiftLatencies: number[] = [];
+  const nonShiftLatencies: number[] = [];
+
+  const layout = buildLayout();
+
+  for (let i = 0; i < events.length; i++) {
+    const event = events[i];
+    const prevEvent = i > 0 ? events[i - 1] : null;
+    const nextEvent = i < events.length - 1 ? events[i + 1] : null;
+
+    // 1. correctByKey (all keys, focusKeyOptions용)
+    if (event.isCorrect === true) {
+      correctByKey.set(event.toKey, (correctByKey.get(event.toKey) ?? 0) + 1);
+    }
+
+    // 2. keyStats (EXCLUDE_KEYS 제외, unconsciousKey·totalErrorsCount용)
+    if (!ACCUMULATOR_EXCLUDE_KEYS.has(event.toKey) && (event.isCorrect === true || event.isCorrect === false)) {
+      const stat = keyStats.get(event.toKey) ?? { correct: 0, incorrect: 0 };
+      if (event.isCorrect === true) stat.correct++;
+      else stat.incorrect++;
+      keyStats.set(event.toKey, stat);
+    }
+
+    // 3. pairCounts (correct & alpha 키 순서쌍)
+    if (
+      event.isCorrect === true &&
+      event.fromKey &&
+      ALPHA_KEY_REGEX.test(event.toKey) &&
+      !ACCUMULATOR_EXCLUDE_KEYS.has(event.fromKey) &&
+      !ACCUMULATOR_EXCLUDE_KEYS.has(event.toKey)
+    ) {
+      const pairKey = `${event.fromKey}→${event.toKey}`;
+      pairCounts.set(pairKey, (pairCounts.get(pairKey) ?? 0) + 1);
+    }
+
+    // 4. shiftLatencies / nonShiftLatencies
+    if (event.isCorrect === true && !ACCUMULATOR_EXCLUDE_KEYS.has(event.toKey)) {
+      const char = event.expectedChar || event.keyChar;
+      if (needsShift(char)) shiftLatencies.push(event.latencyMs);
+      else nonShiftLatencies.push(event.latencyMs);
+    }
+
+    // 5. 오타 스트릭 시작 → errorInducementCount
+    const isErrorStart =
+      event.isCorrect === false && (prevEvent === null || prevEvent.isCorrect === true);
+    if (isErrorStart) {
+      totalErrorStartsCount++;
+      getOrCreatePerKey(perKey, event.toKey).errorInducementCount++;
+    }
+
+    // 6. Late keystroke (event.expectedChar === nextEvent.toKey 동시 체크)
+    if (
+      nextEvent !== null &&
+      event.isCorrect === false &&
+      nextEvent.isCorrect === false &&
+      (prevEvent === null || prevEvent.isCorrect === true) &&
+      event.expectedChar &&
+      nextEvent.toKey === event.expectedChar
+    ) {
+      getOrCreatePerKey(perKey, event.expectedChar).lateKeystrokeCount++;
+    }
+
+    // 7. Reference transition (toKey === key && isCorrect && latencyMs > 0)
+    if (event.isCorrect === true && event.latencyMs > 0) {
+      const keyEntry = getOrCreatePerKey(perKey, event.toKey);
+      keyEntry.referenceLatencies.push(event.latencyMs);
+
+      // 손가락 전환 분류 (fromKey → toKey 기준)
+      const targetMeta = KEYBOARD_META[event.toKey.toLowerCase()];
+      if (targetMeta) {
+        const fromKeyLower = event.fromKey?.toLowerCase();
+        const fromMeta = fromKeyLower ? KEYBOARD_META[fromKeyLower] : undefined;
+
+        if (!event.fromKey || !fromMeta) {
+          keyEntry.fingerCounts.other++;
+        } else if (fromMeta.hand !== targetMeta.hand) {
+          keyEntry.fingerCounts.oppositeHand++;
+        } else {
+          switch (fromMeta.finger) {
+            case "pinky":
+              keyEntry.fingerCounts.sameHandPinky++;
+              break;
+            case "ring":
+              keyEntry.fingerCounts.sameHandRing++;
+              break;
+            case "middle":
+              keyEntry.fingerCounts.sameHandMiddle++;
+              break;
+            case "index":
+              keyEntry.fingerCounts.sameHandIndex++;
+              break;
+            default:
+              keyEntry.fingerCounts.other++;
+          }
+        }
+        keyEntry.fingerCounts.total++;
+      }
+    }
+
+    // 8. Outgoing transition (fromKey === key) → cloud typing 샘플
+    if (
+      i > 0 &&
+      event.fromKey &&
+      event.isCorrect === true &&
+      event.latencyMs > 0 &&
+      !CLOUD_TYPING_EXCLUDE_TO_KEYS.has(event.toKey)
+    ) {
+      const refEvent = events[i - 1];
+      if (refEvent.toKey === event.fromKey && hasValidHold(refEvent)) {
+        const keyEntry = getOrCreatePerKey(perKey, event.fromKey);
+        keyEntry.outgoingSamples.push({
+          fromKey: event.fromKey,
+          toKey: event.toKey,
+          latencyMs: event.latencyMs,
+          fromHoldMs: refEvent.holdDurationMs,
+        });
+      }
+    }
+
+    // 9. 공간적 오타 거리 (expectedChar === key && isCorrect === false)
+    if (event.isCorrect === false && event.expectedChar) {
+      const expectedLayoutKey = charToLayoutKey(event.expectedChar);
+      if (expectedLayoutKey) {
+        const toKeyNorm = event.toKey?.toLowerCase();
+        const typoKey = toKeyNorm && /^[a-z]$/.test(toKeyNorm) ? toKeyNorm : null;
+        if (typoKey) {
+          const distU = keyDistanceU(expectedLayoutKey, typoKey, layout);
+          if (distU !== null) {
+            const keyEntry = getOrCreatePerKey(perKey, expectedLayoutKey);
+            keyEntry.spatialErrors.distancesU.push(distU);
+            keyEntry.spatialErrors.typoCounts[typoKey] =
+              (keyEntry.spatialErrors.typoCounts[typoKey] ?? 0) + 1;
+          }
+        }
+      }
+    }
+  }
+
+  return {
+    correctByKey,
+    pairCounts,
+    keyStats,
+    totalErrorStartsCount,
+    shiftLatencies,
+    nonShiftLatencies,
+    perKey,
+  };
+}
+
+/**
+ * DiagnosticsAccumulator에서 focusKey에 대한 KeystrokeDiagnostics를 O(k)에 생성합니다.
+ * events 재순회 없음.
+ */
+export function finalizeKeystrokeDiagnostics(
+  acc: DiagnosticsAccumulator,
   focusKey: string,
 ): KeystrokeDiagnostics {
   const defaultDiagnostics: KeystrokeDiagnostics = {
@@ -456,80 +689,41 @@ export function calculateKeystrokeDiagnostics(
     spatialErrorDistance: null,
   };
 
-  if (!focusKey || events.length === 0) {
-    return defaultDiagnostics;
-  }
+  if (!focusKey) return defaultDiagnostics;
 
-  // 1) 오타 유발 및 순서 뒤바뀜 (additionalStats 대응)
-  let totalErrorStartsCount = 0;
-  let errorInducementCount = 0;
-  let totalErrorsCount = 0;
-  let lateKeystrokeCount = 0;
+  const keyEntry = acc.perKey.get(focusKey);
+  const keyStat = acc.keyStats.get(focusKey) ?? { correct: 0, incorrect: 0 };
 
-  for (let i = 0; i < events.length; i++) {
-    const event = events[i];
-    const precedingEvent = i > 0 ? events[i - 1] : null;
-    const isErrorStart =
-      event.isCorrect === false &&
-      (precedingEvent === null || precedingEvent.isCorrect === true);
-
-    if (isErrorStart) {
-      totalErrorStartsCount++;
-      if (event.toKey === focusKey) {
-        errorInducementCount++;
-      }
-    }
-
-    if (event.toKey === focusKey && event.isCorrect === false) {
-      totalErrorsCount++;
-    }
-  }
-
-  for (let k = 0; k < events.length - 1; k++) {
-    const precedingEvent = k > 0 ? events[k - 1] : null;
-    const event = events[k];
-    const followingEvent = events[k + 1];
-    const precedingWasCorrect = precedingEvent ? precedingEvent.isCorrect === true : true;
-
-    if (
-      event.isCorrect === false &&
-      followingEvent.isCorrect === false &&
-      precedingWasCorrect &&
-      followingEvent.toKey === focusKey &&
-      event.expectedChar === focusKey
-    ) {
-      lateKeystrokeCount++;
-    }
-  }
+  // --- 오타 유발 & 순서 뒤바뀜 ---
+  const errorInducementCount = keyEntry?.errorInducementCount ?? 0;
+  const lateKeystrokeCount = keyEntry?.lateKeystrokeCount ?? 0;
+  const totalErrorsCount = keyStat.incorrect;
 
   const errorInducementRate =
-    totalErrorStartsCount > 0 ? (errorInducementCount / totalErrorStartsCount) * 100 : 0;
+    acc.totalErrorStartsCount > 0
+      ? (errorInducementCount / acc.totalErrorStartsCount) * 100
+      : 0;
   const lateKeystrokeRate =
     totalErrorsCount > 0 ? (lateKeystrokeCount / totalErrorsCount) * 100 : 0;
 
-  const spatialErrorDistance = getSpatialErrorDistance(events, focusKey);
-
-  // 2) 선택적 진단 (optionalStats 대응)
-  const EXCLUDE_KEYS = new Set(["shift_l", "shift_r", "backspace", "enter"]);
-  const isAlphaKey = (k: string) => /^[a-zA-Z]$/.test(k);
-
-  // (1) 빈번 순서쌍 top5
-  const pairCounts = new Map<string, number>();
-  for (const event of events) {
-    if (
-      event.isCorrect === true &&
-      event.fromKey &&
-      event.toKey &&
-      isAlphaKey(event.toKey) &&
-      !EXCLUDE_KEYS.has(event.fromKey) &&
-      !EXCLUDE_KEYS.has(event.toKey)
-    ) {
-      const pairKey = `${event.fromKey}→${event.toKey}`;
-      pairCounts.set(pairKey, (pairCounts.get(pairKey) || 0) + 1);
-    }
+  // --- 공간적 오타 거리 (accumulator에서 직접 취득) ---
+  const spatialErrors = keyEntry?.spatialErrors;
+  let spatialErrorDistance = null;
+  if (spatialErrors && spatialErrors.distancesU.length > 0) {
+    const sorted = [...spatialErrors.distancesU].sort((a, b) => a - b);
+    spatialErrorDistance = {
+      sampleCount: sorted.length,
+      quartilesU: {
+        q1: getPercentile(sorted, 0.25),
+        q2: getPercentile(sorted, 0.5),
+        q3: getPercentile(sorted, 0.75),
+      },
+      typoCounts: { ...spatialErrors.typoCounts },
+    };
   }
-  const allTopPairs = [...pairCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
 
+  // --- 빈번 순서쌍 top5 ---
+  const allTopPairs = [...acc.pairCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
   let commonPair = null;
   const matchIdx = allTopPairs.findIndex(([pair]) => pair.split("→")[1] === focusKey);
   if (matchIdx !== -1) {
@@ -538,24 +732,8 @@ export function calculateKeystrokeDiagnostics(
     commonPair = { rank: matchIdx + 1, from, to, count };
   }
 
-  // (2) 무의식적 오타 키 top3
-  const keyStats = new Map<string, { correct: number; incorrect: number }>();
-  for (const event of events) {
-    if (event.isCorrect === true || event.isCorrect === false) {
-      const key = event.toKey;
-      if (EXCLUDE_KEYS.has(key)) continue;
-      if (!keyStats.has(key)) {
-        keyStats.set(key, { correct: 0, incorrect: 0 });
-      }
-      const stat = keyStats.get(key)!;
-      if (event.isCorrect === true) {
-        stat.correct++;
-      } else {
-        stat.incorrect++;
-      }
-    }
-  }
-  const unconsciousKeys = [...keyStats.entries()]
+  // --- 무의식적 오타 키 top3 ---
+  const unconsciousKeys = [...acc.keyStats.entries()]
     .map(([key, stat]) => {
       const total = stat.correct + stat.incorrect;
       const errorRate = total > 0 ? (stat.incorrect / total) * 100 : 0;
@@ -566,54 +744,43 @@ export function calculateKeystrokeDiagnostics(
     .slice(0, 3);
 
   let unconsciousKey = null;
-  const matchUnconsciousIdx = unconsciousKeys.findIndex((item) => item.key === focusKey);
-  if (matchUnconsciousIdx !== -1) {
-    unconsciousKey = { rank: matchUnconsciousIdx + 1, ...unconsciousKeys[matchUnconsciousIdx] };
+  const matchUncIdx = unconsciousKeys.findIndex((item) => item.key === focusKey);
+  if (matchUncIdx !== -1) {
+    unconsciousKey = { rank: matchUncIdx + 1, ...unconsciousKeys[matchUncIdx] };
   }
 
-  // (3) 시프트 지연 패널티
-  const correctEvents = events.filter((event) => event.isCorrect === true);
-  const shiftLatencies: number[] = [];
-  const nonShiftLatencies: number[] = [];
-
-  for (const event of correctEvents) {
-    if (EXCLUDE_KEYS.has(event.toKey)) continue;
-    const char = event.expectedChar || event.keyChar;
-    if (needsShift(char)) {
-      shiftLatencies.push(event.latencyMs);
-    } else {
-      nonShiftLatencies.push(event.latencyMs);
-    }
-  }
-
+  // --- Shift 지연 패널티 ---
   let shiftPenalty = null;
-  if (shiftLatencies.length >= 10) {
-    const shiftMedian = getMedian(shiftLatencies);
-    const nonShiftMedian = getMedian(nonShiftLatencies);
+  if (acc.shiftLatencies.length >= 10) {
+    const shiftMedian = getMedian(acc.shiftLatencies);
+    const nonShiftMedian = getMedian(acc.nonShiftLatencies);
     const diff = shiftMedian - nonShiftMedian;
     if (diff > 0) {
       shiftPenalty = {
         shiftMedianMs: shiftMedian,
         nonShiftMedianMs: nonShiftMedian,
         differenceMs: diff,
-        shiftCount: shiftLatencies.length,
+        shiftCount: acc.shiftLatencies.length,
       };
     }
   }
 
-  const cloudTyping = computeCloudTypingDiagnostics(events, focusKey);
-
-  // 3) 상세 통계 (detailedStats 대응) — reference transition(toKey === focusKey) 정답
-  const targetCorrectEvents = events.filter(
-    (event) => event.toKey === focusKey && event.isCorrect === true,
+  // --- Cloud Typing (누산된 outgoingSamples 사용) ---
+  const cloudTyping = computeCloudTypingFromSamples(
+    keyEntry?.outgoingSamples ?? [],
+    focusKey,
   );
-  if (targetCorrectEvents.length === 0) {
+
+  // --- Reference transition 정답 기반 상세 통계 ---
+  const latencies = keyEntry?.referenceLatencies ?? [];
+
+  if (latencies.length === 0) {
     return {
       ...defaultDiagnostics,
       errorInducement: {
         rate: errorInducementRate,
         count: errorInducementCount,
-        totalErrorStartsCount,
+        totalErrorStartsCount: acc.totalErrorStartsCount,
       },
       lateKeystroke: { rate: lateKeystrokeRate, count: lateKeystrokeCount, totalErrorsCount },
       commonPair,
@@ -624,8 +791,7 @@ export function calculateKeystrokeDiagnostics(
     };
   }
 
-  // 반응 속도 및 CPM
-  const latencies = targetCorrectEvents.map((event) => event.latencyMs);
+  // 반응 속도 & CPM
   const medianLatencyMs = getMedian(latencies);
   const equivalentCpm = medianLatencyMs > 0 ? Math.round(60000 / medianLatencyMs) : 0;
   const latencyConsistency = computeLatencyConsistency(latencies);
@@ -633,80 +799,40 @@ export function calculateKeystrokeDiagnostics(
   // 머뭇거림 비율
   const sortedLatencies = [...latencies].sort((a, b) => a - b);
   const q1 = getPercentile(sortedLatencies, 0.25);
-  const q3 = getPercentile(sortedLatencies, 0.75);
-  const iqr = q3 - q1;
-  const iqrThreshold = q3 + 1.5 * iqr;
-
+  const q3Lat = getPercentile(sortedLatencies, 0.75);
+  const iqr = q3Lat - q1;
+  const iqrThreshold = q3Lat + 1.5 * iqr;
   const hesitationCount = latencies.filter((l) => l > iqrThreshold).length;
-  const hesitationRatio = latencies.length > 0 ? (hesitationCount / latencies.length) * 100 : 0;
-  const hasHesitationTendency = hesitationRatio >= 5;
+  const hesitationRatio = (hesitationCount / latencies.length) * 100;
 
-  // 손가락 타이핑 전이
-  const targetMeta = KEYBOARD_META[focusKey.toLowerCase()];
-  const transitionCounts = {
-    oppositeHand: 0,
-    sameHandPinky: 0,
-    sameHandRing: 0,
-    sameHandMiddle: 0,
-    sameHandIndex: 0,
-    other: 0,
-    total: 0,
-  };
-
-  if (targetMeta) {
-    const targetHand = targetMeta.hand;
-
-    for (const event of targetCorrectEvents) {
-      if (!event.fromKey) {
-        transitionCounts.other++;
-        transitionCounts.total++;
-        continue;
-      }
-
-      const fromKeyLower = event.fromKey.toLowerCase();
-      const fromMeta = KEYBOARD_META[fromKeyLower];
-
-      if (!fromMeta) {
-        transitionCounts.other++;
-      } else if (fromMeta.hand !== targetHand) {
-        transitionCounts.oppositeHand++;
-      } else {
-        if (fromMeta.finger === "pinky") transitionCounts.sameHandPinky++;
-        else if (fromMeta.finger === "ring") transitionCounts.sameHandRing++;
-        else if (fromMeta.finger === "middle") transitionCounts.sameHandMiddle++;
-        else if (fromMeta.finger === "index") transitionCounts.sameHandIndex++;
-        else transitionCounts.other++;
-      }
-      transitionCounts.total++;
-    }
-  }
-
-  const totalTransitions = transitionCounts.total || 1;
+  // 손가락 전환 비율
+  const fingerCounts = keyEntry!.fingerCounts;
+  const totalTransitions = fingerCounts.total || 1;
   const transitionRatios = {
-    oppositeHand: (transitionCounts.oppositeHand / totalTransitions) * 100,
-    sameHandPinky: (transitionCounts.sameHandPinky / totalTransitions) * 100,
-    sameHandRing: (transitionCounts.sameHandRing / totalTransitions) * 100,
-    sameHandMiddle: (transitionCounts.sameHandMiddle / totalTransitions) * 100,
-    sameHandIndex: (transitionCounts.sameHandIndex / totalTransitions) * 100,
-    other: (transitionCounts.other / totalTransitions) * 100,
+    oppositeHand: (fingerCounts.oppositeHand / totalTransitions) * 100,
+    sameHandPinky: (fingerCounts.sameHandPinky / totalTransitions) * 100,
+    sameHandRing: (fingerCounts.sameHandRing / totalTransitions) * 100,
+    sameHandMiddle: (fingerCounts.sameHandMiddle / totalTransitions) * 100,
+    sameHandIndex: (fingerCounts.sameHandIndex / totalTransitions) * 100,
+    other: (fingerCounts.other / totalTransitions) * 100,
   };
 
-  // 상대 속도 비교
+  // 동일 손 상대 속도
   let relativeSpeedMs = 0;
   let comparedToMedianMs = 0;
+  const targetMeta = KEYBOARD_META[focusKey.toLowerCase()];
   if (targetMeta) {
     const targetHand = targetMeta.hand;
-    const otherKeysSameHandLatencies = events
-      .filter(
-        (event) =>
-          event.isCorrect === true &&
-          event.toKey !== focusKey &&
-          getHand(event.toKey) === targetHand,
-      )
-      .map((event) => event.latencyMs);
-
-    if (otherKeysSameHandLatencies.length > 0) {
-      comparedToMedianMs = getMedian(otherKeysSameHandLatencies);
+    const sameHandLatencies: number[] = [];
+    for (const [key, entry] of acc.perKey) {
+      if (key !== focusKey && getHand(key) === targetHand) {
+        for (const l of entry.referenceLatencies) {
+          sameHandLatencies.push(l);
+        }
+      }
+    }
+    if (sameHandLatencies.length > 0) {
+      comparedToMedianMs = getMedian(sameHandLatencies);
       relativeSpeedMs = medianLatencyMs - comparedToMedianMs;
     }
   }
@@ -715,29 +841,22 @@ export function calculateKeystrokeDiagnostics(
     errorInducement: {
       rate: errorInducementRate,
       count: errorInducementCount,
-      totalErrorStartsCount,
+      totalErrorStartsCount: acc.totalErrorStartsCount,
     },
-    lateKeystroke: {
-      rate: lateKeystrokeRate,
-      count: lateKeystrokeCount,
-      totalErrorsCount,
-    },
+    lateKeystroke: { rate: lateKeystrokeRate, count: lateKeystrokeCount, totalErrorsCount },
     commonPair,
     unconsciousKey,
     shiftPenalty,
-    speedMetrics: {
-      medianLatencyMs,
-      equivalentCpm,
-    },
+    speedMetrics: { medianLatencyMs, equivalentCpm },
     cloudTyping,
     hesitation: {
       ratio: hesitationRatio,
-      hasTendency: hasHesitationTendency,
+      hasTendency: hesitationRatio >= 5,
       thresholdMs: iqrThreshold,
     },
     fingerTransitions: {
       ratios: transitionRatios,
-      counts: transitionCounts,
+      counts: fingerCounts,
     },
     relativeSpeed: {
       speedDiffMs: relativeSpeedMs,

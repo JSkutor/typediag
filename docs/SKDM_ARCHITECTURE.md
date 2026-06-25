@@ -11,7 +11,7 @@ SKDM은 타건 이벤트 스트림 `{fromKey → toKey, latencyMs}`를 키보드
 | 통계 헬퍼 | `src/lib/skdm/stats.ts` — NumPy 호환 mean/median/std/percentile |
 | 원통 좌표 | `src/lib/skdm/cylindrical.ts`, `src/lib/skdm/theta.ts`, `theta_order.json` |
 | 키 메타 (손·손가락) | `src/lib/skdm/keyboardMeta.ts` |
-| 진단 지표 | `src/lib/skdm/diagnostics.ts` |
+| Cylindrical 통계·UI | [DIAGNOSTICS.md](DIAGNOSTICS.md) — `cylindricalStats.ts`, `useCylindricalDiagnostics` |
 | Python 레거시 | `skdm/model.py`, `skdm/config.py`, `skdm/layout.py` |
 | 패리티 검증 | `src/lib/skdm/model.parity.test.ts`, `__fixtures__/python-reference.json` |
 | 이벤트 수집 | `src/store/typingSlices/createKeystrokeSlice.ts` |
@@ -20,6 +20,14 @@ SKDM은 타건 이벤트 스트림 `{fromKey → toKey, latencyMs}`를 키보드
 | Surface 3D | `src/components/workspace/Surface3DManager.ts`, `LatencySurface3D.tsx` |
 | Cylindrical 3D | `src/components/workspace/CylindricalVector3D.tsx`, `geometryUtils.ts` |
 | 2D 요약 패널 | `src/components/practice/ResultsPanel.tsx` |
+
+### Cylindrical 용어 ([DIAGNOSTICS.md](DIAGNOSTICS.md)와 동기)
+
+| 용어 | 식별 | SKDM에서의 사용 |
+| :--- | :--- | :--- |
+| **focusKey** | UI·API 인자 `focusKey` | 원통 뷰·진단 패널의 분석 초점 |
+| **reference transition** | `toKey === focusKey` | `buildCylindricalVectors`, θ·r·z 집계 |
+| **outgoing transition** | `fromKey === focusKey` | SKDM `runPipeline`과 무관 — [DIAGNOSTICS.md](DIAGNOSTICS.md) Cloud Typing 전용 |
 
 ---
 
@@ -30,7 +38,7 @@ SKDM은 타건 이벤트 스트림 `{fromKey → toKey, latencyMs}`를 키보드
 | 뷰 | `diagnosticMode` | 데이터 소스 | 역할 |
 | :--- | :--- | :--- | :--- |
 | **Global Latency Surface** | `"surface"` | `runPipeline` → `KeyResult.zSmoothed` + Delaunay `triangles` | 키보드 전체 지연 지형 (macro) |
-| **Cylindrical Vector** | `"cylindrical"` | `buildCylindricalVectors(events, focusKey)` | focusKey로 들어오는 reference transition (micro) |
+| **Cylindrical Vector** | `"cylindrical"` | `buildCylindricalVectors(events, focusKey)` | focusKey로 **들어오는 reference transition** (micro) |
 
 Tab 등으로 진단 모드에 들어가면 `useDiagnosticsTransition`이 이벤트를 모아 `runPipeline`을 실행하고, `useWorkspaceStore.setAnalysisData(results, triangles, events)`에 결과를 넣습니다.
 
@@ -215,6 +223,8 @@ Surface 메시 인덱스용 `Uint32Array` triangles 반환.
 
 `getAvailableFocusKeys(events)`: 전처리 후 `toKey`가 `^[a-z]$`인 focusKey 후보 목록.
 
+진단 2D 패널·Cloud Typing·분절회귀는 SKDM 파이프라인과 **별도 레이어**입니다. 명세: [DIAGNOSTICS.md](DIAGNOSTICS.md).
+
 ### 5.2. 3D 배치 (`geometryUtils.toCylindricalCartesian`)
 
 ```
@@ -265,22 +275,7 @@ HUD 라벨 Y 오프셋은 `zSmoothed ** LATENCY_POWER`를 별도 사용 (메시 
 
 ---
 
-## 7. 진단 지표 (`diagnostics.ts`)
-
-원시 `events`와 선택 `targetKey` 기준. Cylindrical 패널에서 사용.
-
-| 함수 | 내용 |
-| :--- | :--- |
-| `getShiftOverhead` | 직접 입력 vs `from → shift → target(대문자)` 3연속 패턴 지연 비교. `KEYBOARD_META.shiftCombinable` false면 `applicable: false` |
-| `getFirstErrorStats` | 해당 키 입력 직전/직후 오타(`isCorrect === false`) 빈도 |
-| `getPhysicalVariance` | 동일 row / 동일 finger / 교대 손 vs 기타 incoming 전이 평균 지연 비교 |
-| `getSlowestFromKeys` | `CylindricalVector[]`에서 상위 N개 느린 from key |
-
-Shift·물리 분산 분석은 `keyboardMeta.ts`의 row/hand/finger 메타데이터 사용.
-
----
-
-## 8. 출력 타입 (`KeyResult`)
+## 7. 출력 타입 (`KeyResult`)
 
 ```typescript
 export interface KeyResult {
@@ -300,7 +295,7 @@ export interface KeyResult {
 
 ---
 
-## 9. Python 포트 및 테스트
+## 8. Python 포트 및 테스트
 
 TypeScript `model.ts`는 `skdm/model.py` 직접 포트. `stats.ts`는 NumPy percentile/median/std 의미를 맞춤.
 
@@ -316,7 +311,7 @@ TypeScript `model.ts`는 `skdm/model.py` 직접 포트. `stats.ts`는 NumPy perc
 
 ---
 
-## 10. MVSA와의 관계
+## 9. MVSA와의 관계
 
 - MVSA(`runMvsa`) → 키 입력 시 `isCorrect` / `expectedChar` 판정
 - SKDM `filterInterruptedTransitions` → `isCorrect === false` 전이를 지연 통계에서 제거

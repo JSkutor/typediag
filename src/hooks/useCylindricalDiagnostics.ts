@@ -1,28 +1,42 @@
 import { useMemo } from "react";
 import { KeyEvent } from "@/lib/skdm";
-import { calculateChartData, calculateKeystrokeDiagnostics } from "@/utils/cylindricalStats";
-import { countCorrectReferenceTransitions, ensureFinalUpperBound } from "@/lib/dev/piecewiseDev";
-import { fitPiecewiseLinearWithDiagnostics } from "@/utils/piecewiseRegression";
+import {
+  buildDiagnosticsAccumulator,
+  calculateChartData,
+  finalizeKeystrokeDiagnostics,
+} from "@/utils/cylindricalStats";
+import { ensureFinalUpperBound } from "@/lib/dev/piecewiseDev";
+import { fitPiecewiseFromLatencies } from "@/utils/piecewiseRegression";
 
 export function useCylindricalDiagnostics(events: KeyEvent[], focusKey: string) {
-  // 1. focusKey 후보별 reference transition 정답 수 → 선택 옵션
+  // O(N) 단일 패스 — events가 바뀔 때만 재실행
+  const acc = useMemo(() => buildDiagnosticsAccumulator(events), [events]);
+
+  // O(1) — accumulator에서 직접 파생, focusKey 변경 시에도 events 재순회 없음
   const focusKeyOptions = useMemo(
-    () => [...countCorrectReferenceTransitions(events).entries()].sort((a, b) => b[1] - a[1]),
-    [events],
+    () => [...acc.correctByKey.entries()].sort((a, b) => b[1] - a[1]),
+    [acc],
   );
 
-  // 2. 분절 선형 회귀(Piecewise Regression) — reference transition(toKey === focusKey) 정답만
+  // O(k) — focusKey reference latencies만 처리 (events 재순회 없음)
   const outcome = useMemo(() => {
     if (!focusKey || events.length === 0) return null;
     ensureFinalUpperBound(events);
-    return fitPiecewiseLinearWithDiagnostics(events, focusKey);
-  }, [events, focusKey]);
+    const perKeyData = acc.perKey.get(focusKey);
+    const rawCorrectCount = acc.keyStats.get(focusKey)?.correct ?? 0;
+    return fitPiecewiseFromLatencies(
+      perKeyData?.referenceLatencies ?? [],
+      focusKey,
+      rawCorrectCount,
+    );
+  }, [acc, focusKey, events]);
 
   const chartData = useMemo(() => calculateChartData(outcome), [outcome]);
 
+  // O(k) — accumulator 소비, events 재순회 없음. focusKey만 바뀌면 O(k) 재실행.
   const diagnostics = useMemo(
-    () => calculateKeystrokeDiagnostics(events, focusKey),
-    [events, focusKey],
+    () => finalizeKeystrokeDiagnostics(acc, focusKey),
+    [acc, focusKey],
   );
 
   return {

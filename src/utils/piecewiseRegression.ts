@@ -7,7 +7,7 @@
  *   1. reference transition(toKey === focusKey) 이벤트 중 isCorrect === true 만 필터링.
  *   2. finalUpperBound를 localStorage에서 로드하여 이상치(outlier) 제거 상한선으로 사용.
  *      - finalUpperBound 레코드가 없으면 → null 반환 (데이터 부족으로 간주).
- *      - 필터 후 데이터 50개 미만이어도 → null 반환.
+ *      - 필터 후 데이터 20개 미만이어도 → null 반환.
  *   3. X = 시간 순서 인덱스 [0, 1, 2, ..., N-1], Y = latencyMs 배열.
  *   4. 그리드 서치(Grid Search)로 최적 초기 분절점 c₀ 추정.
  *   5. 무제오 알고리즘(Muggeo's Method)으로 c₀를 정밀 수렴시켜 최종 c 도출.
@@ -23,7 +23,6 @@
  *   Statistics in Medicine, 22(19), 3055-3071.
  */
 
-import { KeyEvent } from "@/lib/skdm/types";
 import {
   readSkdmFinalUpperBound,
   type SkdmFinalUpperBoundRecord,
@@ -333,7 +332,7 @@ const MAX_SAMPLE_DOTS = 40;
 /** 분절 회귀 실패 사유 (dev/디버그 UI용) */
 export type PiecewiseFailureReason = "no_bound" | "insufficient_data" | "ols_failed";
 
-/** fitPiecewiseLinearWithDiagnostics가 함께 반환하는 내부 파이프라인 메타데이터 */
+/** fitPiecewiseFromLatencies가 함께 반환하는 내부 파이프라인 메타데이터 */
 export interface PiecewiseFitDiagnostics {
   focusKey: string;
   boundRecord: SkdmFinalUpperBoundRecord;
@@ -420,17 +419,22 @@ export function aggregateToWindows(
 }
 
 /**
- * 특정 키에 대한 분절 선형 회귀를 수행하고 방정식·진단 정보를 반환.
+ * 이미 수집된 latency 시퀀스로 분절 선형 회귀를 수행합니다.
+ *
+ * `buildDiagnosticsAccumulator`의 perKey.referenceLatencies 처럼
+ * 사전에 필터링된 배열을 받아 events 재순회를 제거합니다.
+ *
+ * @param orderedLatencies - isCorrect && latencyMs > 0 필터를 통과한 latency 배열 (시간순)
+ * @param focusKey         - 분석 대상 키 (diagnostics 출력용)
+ * @param rawCorrectCount  - isCorrect 조건만 통과한 총 개수 (latencyMs=0 포함, diagnostics용)
  */
-export function fitPiecewiseLinearWithDiagnostics(
-  events: KeyEvent[],
+export function fitPiecewiseFromLatencies(
+  orderedLatencies: number[],
   focusKey: string,
+  rawCorrectCount: number,
 ): PiecewiseFitOutcome {
   const boundRecord = readSkdmFinalUpperBound();
   if (boundRecord === null) {
-    const rawCorrectCount = events.filter(
-      (e) => e.toKey === focusKey && e.isCorrect === true,
-    ).length;
     return {
       reason: "no_bound",
       focusKey,
@@ -442,9 +446,8 @@ export function fitPiecewiseLinearWithDiagnostics(
   }
 
   const upperBoundMs = boundRecord.final_upper_bound_ms;
-  const rawCorrect = events.filter((e) => e.toKey === focusKey && e.isCorrect === true);
-  const rawCorrectCount = rawCorrect.length;
-  const filtered = rawCorrect.filter((e) => e.latencyMs > 0 && e.latencyMs <= upperBoundMs);
+  const filtered = orderedLatencies.filter((l) => l <= upperBoundMs);
+  // excludedByBoundCount은 latencyMs=0 이벤트도 포함하는 rawCorrectCount와의 차이
   const excludedByBoundCount = rawCorrectCount - filtered.length;
 
   if (filtered.length < 20) {
@@ -458,8 +461,7 @@ export function fitPiecewiseLinearWithDiagnostics(
     };
   }
 
-  const rawLatencies = filtered.map((e) => e.latencyMs);
-  const { xs, Y } = aggregateToWindows(rawLatencies, 20);
+  const { xs, Y } = aggregateToWindows(filtered, 20);
   const n = xs.length;
   const points = xs.map((x, i) => ({ x, y: Y[i] }));
 
@@ -509,26 +511,4 @@ export function fitPiecewiseLinearWithDiagnostics(
       points,
     },
   };
-}
-
-/**
- * 특정 키에 대한 분절 선형 회귀를 수행하고 방정식을 반환.
- *
- * @param events      KeyEvent 배열 (전체 세션 데이터)
- * @param focusKey 분석 초점 키 (reference transition: toKey === focusKey)
- * @returns           PiecewiseResult 또는 null
- *                    - null 반환 조건:
- *                      1) localStorage에 finalUpperBound 레코드가 없을 때
- *                      2) 필터링 후 유효 데이터가 50개 미만일 때
- *                      3) 행렬 역산 실패(특이 행렬)로 OLS 계산이 불가능할 때
- */
-export function fitPiecewiseLinear(
-  events: KeyEvent[],
-  focusKey: string,
-): PiecewiseResult | null {
-  const outcome = fitPiecewiseLinearWithDiagnostics(events, focusKey);
-  if ("result" in outcome) {
-    return outcome.result;
-  }
-  return null;
 }

@@ -12,7 +12,10 @@ import {
 } from "@/lib/dev/piecewiseDev";
 import { useWorkspaceStore } from "@/store/useWorkspaceStore";
 import {
-  fitPiecewiseLinearWithDiagnostics,
+  buildDiagnosticsAccumulator,
+} from "@/utils/cylindricalStats";
+import {
+  fitPiecewiseFromLatencies,
   type PiecewiseFitFailure,
   type PiecewiseFitSuccess,
 } from "@/utils/piecewiseRegression";
@@ -53,7 +56,14 @@ export function DevPiecewisePanel() {
   const outcome = useMemo(() => {
     if (!focusKey || analysisEvents.length === 0) return null;
     ensureFinalUpperBound(analysisEvents);
-    return fitPiecewiseLinearWithDiagnostics(analysisEvents, focusKey);
+    const acc = buildDiagnosticsAccumulator(analysisEvents);
+    const perKeyData = acc.perKey.get(focusKey);
+    const rawCorrectCount = acc.keyStats.get(focusKey)?.correct ?? 0;
+    return fitPiecewiseFromLatencies(
+      perKeyData?.referenceLatencies ?? [],
+      focusKey,
+      rawCorrectCount,
+    );
   }, [analysisEvents, focusKey]);
 
   const topKeyCounts = useMemo(() => focusKeyOptions.slice(0, 5), [focusKeyOptions]);
