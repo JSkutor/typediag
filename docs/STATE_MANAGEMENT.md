@@ -118,7 +118,7 @@ For a held backspace burst:
 - Each repeat keydown creates a new event with `holdDurationMs: null`.
 - Only the **final** backspace event in the burst receives the total press-to-release duration on keyup; earlier repeat events stay `null`.
 
-SKDM latency analysis does not use `holdDurationMs`; this is mainly for persistence / future diagnostics.
+SKDM latency surface는 `latencyMs`만 사용. `holdDurationMs`는 DB 영속화 및 **구름타법(Dwell·Flight) 진단** (`docs/DIAGNOSTICS.md` §2.1)에 사용.
 
 ### 1.5. Topic Mode Fetching & State (`createTopicSlice.ts`)
 

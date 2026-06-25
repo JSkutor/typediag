@@ -791,6 +791,13 @@
   background: var(--accent);
 }
 
+.cyl-diag__cloud-pair-meta {
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+}
+
 .cyl-diag__dwell-flight {
   display: flex;
   flex-direction: column;

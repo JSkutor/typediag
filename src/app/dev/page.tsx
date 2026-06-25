@@ -20,6 +20,11 @@ const DEV_TOOLS = [
     description: "Zustand analysisEvents 기반 분절 회귀 시각화.",
   },
   {
+    href: "/dev/cloud-typing",
+    title: "Cloud Typing Scatter",
+    description: "center outgoing (holdDurationMs, latencyMs) 산점도.",
+  },
+  {
     href: "/dev/themes",
     title: "Theme Playground",
     description: "다크 그레이, 차콜 배경과 알록달록한 각인 색상 조합 테스트 베드.",

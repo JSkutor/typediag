@@ -39,7 +39,7 @@ function CylindricalVector3DInner({
 }: CylindricalVector3DInnerProps) {
   const mountRef = useRef<HTMLDivElement>(null);
 
-  const [selectedTo, setSelectedTo] = useState(initialCenterKey ?? "");
+  const [focusKey, setFocusKey] = useState(initialCenterKey ?? "");
   const [selectedFrom, setSelectedFrom] = useState("");
   const [managerReady, setManagerReady] = useState(false);
   const labelRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -57,14 +57,14 @@ function CylindricalVector3DInner({
     [events, initialCenterKey],
   );
   const vectors = useMemo(
-    () => (selectedTo ? buildCylindricalVectors(events, selectedTo, globalMax) : []),
-    [events, selectedTo, globalMax],
+    () => (focusKey ? buildCylindricalVectors(events, focusKey, globalMax) : []),
+    [events, focusKey, globalMax],
   );
 
   useEffect(() => {
     if (!defaultSelection) return;
     const timer = setTimeout(() => {
-      setSelectedTo(defaultSelection.toKey);
+      setFocusKey(defaultSelection.toKey);
       setSelectedFrom(defaultSelection.fromKey);
     }, 0);
     return () => clearTimeout(timer);
@@ -110,8 +110,8 @@ function CylindricalVector3DInner({
       {!hidePanel && (
         <CylindricalDiagnosticsPanel
           events={events}
-          selectedTo={selectedTo}
-          setSelectedTo={setSelectedTo}
+          focusKey={focusKey}
+          setFocusKey={setFocusKey}
         />
       )}
 

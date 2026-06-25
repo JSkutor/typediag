@@ -4,6 +4,8 @@ import { getSpatialErrorDistance } from "@/lib/skdm/diagnostics";
 import { getMAD, getMedian, getPercentile, getStudentTPValue } from "./stats";
 import { PiecewiseFitOutcome } from "@/utils/piecewiseRegression";
 
+/** Cylindrical Diagnostics SSOT — focusKey / reference·outgoing transition 용어: docs/DIAGNOSTICS.md */
+
 export interface KeystrokeDiagnostics {
   errorInducement: {
     rate: number;
@@ -38,12 +40,7 @@ export interface KeystrokeDiagnostics {
     medianLatencyMs: number;
     equivalentCpm: number;
   };
-  holdCorrelation: {
-    pearsonR: number;
-    pValue: number;
-    isSignificant: boolean;
-    sampleCount: number;
-  };
+  cloudTyping: CloudTypingDiagnostics;
   hesitation: {
     ratio: number;
     hasTendency: boolean;
@@ -91,6 +88,87 @@ export interface KeystrokeDiagnostics {
 const LATENCY_CONSISTENCY_MIN_SAMPLES = 5;
 const LATENCY_HISTOGRAM_BINS = 12;
 
+const CLOUD_TYPING_CORRELATION_R_THRESHOLD = 0.3;
+const CLOUD_TYPING_CORRELATION_P_THRESHOLD = 0.05;
+const CLOUD_TYPING_CORRELATION_MIN_SAMPLES = 5;
+
+const EMPTY_CLOUD_TYPING: CloudTypingDiagnostics = {
+  effectivenessCorrelation: { pearsonR: 0, pValue: 1.0, isSignificant: false, sampleCount: 0 },
+  effectiveness: "neutral",
+  sessionCloudTypingRatio: 0,
+  key: null,
+};
+
+export type CloudTypingStrength = "strong" | "moderate" | "weak";
+/** 숙련 = 롤오버 비율 높음, 미적용 = 비율 낮음 */
+export type CloudTypingPhase = "skilled" | "not_applied";
+export type CloudTypingEffectiveness = "effective" | "counterproductive" | "neutral";
+
+export interface HoldCorrelationResult {
+  pearsonR: number;
+  pValue: number;
+  isSignificant: boolean;
+  sampleCount: number;
+}
+
+/** outgoing transition(fromKey === focusKey) 집계 결과 */
+export interface CloudTypingKeyResult {
+  key: string;
+  dwellMs: number;
+  flightMs: number;
+  /** 전이 latency 중앙값 (dwell+flight 바 비율의 분모) */
+  latencyMs: number;
+  normalizedDifference: number;
+  cloudTypingRatio: number;
+  sampleCount: number;
+  phase: CloudTypingPhase;
+  strength: CloudTypingStrength | null;
+}
+
+export interface CloudTypingDiagnostics {
+  effectivenessCorrelation: HoldCorrelationResult;
+  effectiveness: CloudTypingEffectiveness;
+  sessionCloudTypingRatio: number;
+  key: CloudTypingKeyResult | null;
+}
+
+/**
+ * 전이 샘플 한 건: outgoing(또는 일반 transition) 행의 latency + fromKey reference transition 행의 hold.
+ * hold는 「이전 쌍」이 아니라 fromKey(focusKey)를 누른 keypress 이벤트(toKey === fromKey)에 붙는다.
+ */
+export interface TransitionDwellSample {
+  fromKey: string;
+  toKey: string;
+  latencyMs: number;
+  fromHoldMs: number;
+}
+
+export function extractOutgoingDwellSamples(
+  _events: KeyEvent[],
+  _focusKey: string,
+): TransitionDwellSample[] {
+  return [];
+}
+
+export function extractOutgoingCorrelationSamples(
+  _events: KeyEvent[],
+  _focusKey: string,
+): TransitionDwellSample[] {
+  return [];
+}
+
+export function extractTransitionDwellSamples(_events: KeyEvent[]): TransitionDwellSample[] {
+  return [];
+}
+
+export function extractCorrelationSamples(_events: KeyEvent[]): TransitionDwellSample[] {
+  return [];
+}
+
+export function isCloudTypingStroke(_dwellMs: number, _latencyMs: number): boolean {
+  return false;
+}
+
 /** relativeMad = MAD/median 기준 일관성 등급 */
 function classifyLatencyConsistency(relativeMad: number): "steady" | "moderate" | "erratic" {
   if (relativeMad < 0.2) return "steady";
@@ -118,6 +196,65 @@ function buildLatencyHistogram(values: number[], binCount: number): number[] {
   return counts.map((count) => Math.round((count / peak) * 100));
 }
 
+export function computePearsonCorrelation(
+  xs: number[],
+  ys: number[],
+): HoldCorrelationResult {
+  const defaultResult: HoldCorrelationResult = {
+    pearsonR: 0,
+    pValue: 1.0,
+    isSignificant: false,
+    sampleCount: xs.length,
+  };
+
+  if (xs.length < CLOUD_TYPING_CORRELATION_MIN_SAMPLES || xs.length !== ys.length) {
+    return { ...defaultResult, sampleCount: xs.length };
+  }
+
+  const meanX = xs.reduce((a, b) => a + b, 0) / xs.length;
+  const meanY = ys.reduce((a, b) => a + b, 0) / ys.length;
+
+  let num = 0;
+  let denX = 0;
+  let denY = 0;
+  for (let i = 0; i < xs.length; i++) {
+    const dx = xs[i] - meanX;
+    const dy = ys[i] - meanY;
+    num += dx * dy;
+    denX += dx * dx;
+    denY += dy * dy;
+  }
+
+  if (denX <= 0 || denY <= 0) {
+    return defaultResult;
+  }
+
+  let pearsonR = num / Math.sqrt(denX * denY);
+  pearsonR = Math.max(-1, Math.min(1, pearsonR));
+
+  let pValue = 1.0;
+  const df = xs.length - 2;
+  if (Math.abs(pearsonR) < 1.0) {
+    const t = pearsonR * Math.sqrt(df / (1 - pearsonR * pearsonR));
+    pValue = getStudentTPValue(t, df);
+  } else {
+    pValue = 0.0;
+  }
+
+  const isSignificant =
+    Math.abs(pearsonR) > CLOUD_TYPING_CORRELATION_R_THRESHOLD &&
+    pValue < CLOUD_TYPING_CORRELATION_P_THRESHOLD;
+
+  return { pearsonR, pValue, isSignificant, sampleCount: xs.length };
+}
+
+export function computeCloudTypingDiagnostics(
+  _events: KeyEvent[],
+  _focusKey: string,
+): CloudTypingDiagnostics {
+  return EMPTY_CLOUD_TYPING;
+}
+
 function computeLatencyConsistency(latencies: number[]) {
   if (latencies.length < LATENCY_CONSISTENCY_MIN_SAMPLES) return null;
 
@@ -137,7 +274,7 @@ function computeLatencyConsistency(latencies: number[]) {
 
 export function calculateKeystrokeDiagnostics(
   events: KeyEvent[],
-  selectedTo: string,
+  focusKey: string,
 ): KeystrokeDiagnostics {
   const defaultDiagnostics: KeystrokeDiagnostics = {
     errorInducement: { rate: 0, count: 0, totalErrorStartsCount: 0 },
@@ -146,7 +283,7 @@ export function calculateKeystrokeDiagnostics(
     unconsciousKey: null,
     shiftPenalty: null,
     speedMetrics: { medianLatencyMs: 0, equivalentCpm: 0 },
-    holdCorrelation: { pearsonR: 0, pValue: 1.0, isSignificant: false, sampleCount: 0 },
+    cloudTyping: EMPTY_CLOUD_TYPING,
     hesitation: { ratio: 0, hasTendency: false, thresholdMs: 0 },
     fingerTransitions: {
       ratios: {
@@ -172,7 +309,7 @@ export function calculateKeystrokeDiagnostics(
     spatialErrorDistance: null,
   };
 
-  if (!selectedTo || events.length === 0) {
+  if (!focusKey || events.length === 0) {
     return defaultDiagnostics;
   }
 
@@ -189,12 +326,12 @@ export function calculateKeystrokeDiagnostics(
 
     if (isErrorStart) {
       totalErrorStartsCount++;
-      if (ev.toKey === selectedTo) {
+      if (ev.toKey === focusKey) {
         errorInducementCount++;
       }
     }
 
-    if (ev.toKey === selectedTo && ev.isCorrect === false) {
+    if (ev.toKey === focusKey && ev.isCorrect === false) {
       totalErrorsCount++;
     }
   }
@@ -209,8 +346,8 @@ export function calculateKeystrokeDiagnostics(
       curr.isCorrect === false &&
       next.isCorrect === false &&
       isPrevCorrect &&
-      next.toKey === selectedTo &&
-      curr.expectedChar === selectedTo
+      next.toKey === focusKey &&
+      curr.expectedChar === focusKey
     ) {
       lateKeystrokeCount++;
     }
@@ -221,7 +358,7 @@ export function calculateKeystrokeDiagnostics(
   const lateKeystrokeRate =
     totalErrorsCount > 0 ? (lateKeystrokeCount / totalErrorsCount) * 100 : 0;
 
-  const spatialErrorDistance = getSpatialErrorDistance(events, selectedTo);
+  const spatialErrorDistance = getSpatialErrorDistance(events, focusKey);
 
   // 2) 선택적 진단 (optionalStats 대응)
   const EXCLUDE_KEYS = new Set(["shift_l", "shift_r", "backspace", "enter"]);
@@ -245,7 +382,7 @@ export function calculateKeystrokeDiagnostics(
   const allTopPairs = [...pairCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
 
   let commonPair = null;
-  const matchIdx = allTopPairs.findIndex(([pair]) => pair.split("→")[1] === selectedTo);
+  const matchIdx = allTopPairs.findIndex(([pair]) => pair.split("→")[1] === focusKey);
   if (matchIdx !== -1) {
     const [pair, count] = allTopPairs[matchIdx];
     const [from, to] = pair.split("→");
@@ -280,7 +417,7 @@ export function calculateKeystrokeDiagnostics(
     .slice(0, 3);
 
   let unconsciousKey = null;
-  const matchUnconsciousIdx = unconsciousKeys.findIndex((item) => item.key === selectedTo);
+  const matchUnconsciousIdx = unconsciousKeys.findIndex((item) => item.key === focusKey);
   if (matchUnconsciousIdx !== -1) {
     unconsciousKey = { rank: matchUnconsciousIdx + 1, ...unconsciousKeys[matchUnconsciousIdx] };
   }
@@ -315,9 +452,11 @@ export function calculateKeystrokeDiagnostics(
     }
   }
 
-  // 3) 상세 통계 (detailedStats 대응)
+  const cloudTyping = EMPTY_CLOUD_TYPING;
+
+  // 3) 상세 통계 (detailedStats 대응) — reference transition(toKey === focusKey) 정답
   const targetCorrectEvents = events.filter(
-    (ev) => ev.toKey === selectedTo && ev.isCorrect === true,
+    (ev) => ev.toKey === focusKey && ev.isCorrect === true,
   );
   if (targetCorrectEvents.length === 0) {
     return {
@@ -332,6 +471,7 @@ export function calculateKeystrokeDiagnostics(
       unconsciousKey,
       shiftPenalty,
       spatialErrorDistance,
+      cloudTyping,
     };
   }
 
@@ -340,52 +480,6 @@ export function calculateKeystrokeDiagnostics(
   const medianLatencyMs = getMedian(latencies);
   const equivalentCpm = medianLatencyMs > 0 ? Math.round(60000 / medianLatencyMs) : 0;
   const latencyConsistency = computeLatencyConsistency(latencies);
-
-  // Hold Duration 상관계수
-  const validPairs = targetCorrectEvents
-    .filter(
-      (ev) =>
-        ev.holdDurationMs !== undefined &&
-        ev.holdDurationMs !== null &&
-        typeof ev.holdDurationMs === "number",
-    )
-    .map((ev) => ({ x: ev.holdDurationMs as number, y: ev.latencyMs }));
-
-  let pearsonR = 0;
-  let pValue = 1.0;
-  let isCorrelationSignificant = false;
-
-  if (validPairs.length >= 3) {
-    const xs = validPairs.map((p) => p.x);
-    const ys = validPairs.map((p) => p.y);
-    const meanX = xs.reduce((a, b) => a + b, 0) / xs.length;
-    const meanY = ys.reduce((a, b) => a + b, 0) / ys.length;
-
-    let num = 0;
-    let denX = 0;
-    let denY = 0;
-    for (let i = 0; i < validPairs.length; i++) {
-      const dx = xs[i] - meanX;
-      const dy = ys[i] - meanY;
-      num += dx * dy;
-      denX += dx * dx;
-      denY += dy * dy;
-    }
-
-    if (denX > 0 && denY > 0) {
-      pearsonR = num / Math.sqrt(denX * denY);
-      pearsonR = Math.max(-1, Math.min(1, pearsonR));
-
-      const df = validPairs.length - 2;
-      if (Math.abs(pearsonR) < 1.0) {
-        const t = pearsonR * Math.sqrt(df / (1 - pearsonR * pearsonR));
-        pValue = getStudentTPValue(t, df);
-      } else {
-        pValue = 0.0;
-      }
-      isCorrelationSignificant = pearsonR > 0.4 && pValue < 0.05;
-    }
-  }
 
   // 머뭇거림 비율
   const sortedLatencies = [...latencies].sort((a, b) => a - b);
@@ -399,7 +493,7 @@ export function calculateKeystrokeDiagnostics(
   const hasHesitationTendency = hesitationRatio >= 5;
 
   // 손가락 타이핑 전이
-  const targetMeta = KEYBOARD_META[selectedTo.toLowerCase()];
+  const targetMeta = KEYBOARD_META[focusKey.toLowerCase()];
   const transitionCounts = {
     oppositeHand: 0,
     sameHandPinky: 0,
@@ -456,7 +550,7 @@ export function calculateKeystrokeDiagnostics(
     const otherKeysSameHandLatencies = events
       .filter(
         (ev) =>
-          ev.isCorrect === true && ev.toKey !== selectedTo && getHand(ev.toKey) === targetHand,
+          ev.isCorrect === true && ev.toKey !== focusKey && getHand(ev.toKey) === targetHand,
       )
       .map((ev) => ev.latencyMs);
 
@@ -484,12 +578,7 @@ export function calculateKeystrokeDiagnostics(
       medianLatencyMs,
       equivalentCpm,
     },
-    holdCorrelation: {
-      pearsonR,
-      pValue,
-      isSignificant: isCorrelationSignificant,
-      sampleCount: validPairs.length,
-    },
+    cloudTyping,
     hesitation: {
       ratio: hesitationRatio,
       hasTendency: hasHesitationTendency,

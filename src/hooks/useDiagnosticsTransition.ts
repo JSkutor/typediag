@@ -51,7 +51,7 @@ export function useDiagnosticsTransition() {
     setDiagnosticMode("surface");
   }, [setAnalysisData, setUiState, setDiagnosticMode]);
 
-  const startMockDiagnostics = useCallback(async () => {
+  const loadMockAnalysisData = useCallback(async (): Promise<boolean> => {
     setIsMockLoading(true);
     try {
       const res = await fetch("/api/session?action=mock");
@@ -63,8 +63,7 @@ export function useDiagnosticsTransition() {
 
       if (eventsToAnalyze.length === 0) {
         console.warn("No mock events received.");
-        setIsMockLoading(false);
-        return;
+        return false;
       }
 
       const layout = buildLayout();
@@ -72,14 +71,27 @@ export function useDiagnosticsTransition() {
       const { triangles } = triangulate(results);
 
       setAnalysisData(results, triangles, eventsToAnalyze);
-      setUiState("diagnostics");
-      setDiagnosticMode("surface");
+      return true;
     } catch (err) {
       console.error("Failed to compile mock stats:", err);
+      return false;
     } finally {
       setIsMockLoading(false);
     }
-  }, [setAnalysisData, setUiState, setDiagnosticMode]);
+  }, [setAnalysisData]);
 
-  return { startDiagnosticsTransition, startMockDiagnostics, isMockLoading };
+  const startMockDiagnostics = useCallback(async () => {
+    const loaded = await loadMockAnalysisData();
+    if (loaded) {
+      setUiState("diagnostics");
+      setDiagnosticMode("surface");
+    }
+  }, [loadMockAnalysisData, setUiState, setDiagnosticMode]);
+
+  return {
+    startDiagnosticsTransition,
+    startMockDiagnostics,
+    loadMockAnalysisData,
+    isMockLoading,
+  };
 }

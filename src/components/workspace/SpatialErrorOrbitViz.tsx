@@ -38,14 +38,14 @@ function layoutBounds(keys: KeyPosition[]) {
 }
 
 interface SpatialErrorOrbitVizProps {
-  centerKey: string;
+  focusKey: string;
   data: SpatialErrorDistanceResult;
 }
 
-export function SpatialErrorOrbitViz({ centerKey, data }: SpatialErrorOrbitVizProps) {
+export function SpatialErrorOrbitViz({ focusKey, data }: SpatialErrorOrbitVizProps) {
   const viz = useMemo(() => {
     const layout = buildLayout();
-    const targetKey = centerKey.toLowerCase();
+    const targetKey = focusKey.toLowerCase();
     const targetPos = layout[targetKey];
     if (!targetPos) return null;
 
@@ -109,7 +109,7 @@ export function SpatialErrorOrbitViz({ centerKey, data }: SpatialErrorOrbitVizPr
         opacity: 0.55 + (m.count / maxTypoCount) * 0.35,
       })),
     };
-  }, [centerKey, data]);
+  }, [focusKey, data]);
 
   if (!viz) return null;
 
@@ -119,7 +119,7 @@ export function SpatialErrorOrbitViz({ centerKey, data }: SpatialErrorOrbitVizPr
         className="cyl-diag__spatial-orbit-svg"
         viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
         role="img"
-        aria-label={`${centerKey.toUpperCase()} 키 기준 공간적 오타 분포`}
+        aria-label={`${focusKey.toUpperCase()} 키 공간적 오타 분포`}
       >
         <g className="cyl-diag__spatial-keys">
           {viz.keys.map((k) => (
@@ -178,7 +178,7 @@ export function SpatialErrorOrbitViz({ centerKey, data }: SpatialErrorOrbitVizPr
       </div>
 
       <p className="cyl-diag__card-desc cyl-diag__spatial-orbit-caption">
-        정답 {centerKey.toUpperCase()} 대신 누른 키 — 핑크 원 크기 = 오타 빈도
+        정답 {focusKey.toUpperCase()} 대신 누른 키 — 핑크 원 크기 = 오타 빈도
       </p>
     </div>
   );

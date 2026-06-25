@@ -4,7 +4,7 @@
  * 특정 키(toKey)에 대한 타자 개선도를 분석하는 분절 선형 회귀(Piecewise Linear Regression) 모듈.
  *
  * 알고리즘 흐름:
- *   1. 입력 이벤트 배열을 (toKey === targetToKey && isCorrect === true) 조건으로 필터링.
+ *   1. reference transition(toKey === focusKey) 이벤트 중 isCorrect === true 만 필터링.
  *   2. finalUpperBound를 localStorage에서 로드하여 이상치(outlier) 제거 상한선으로 사용.
  *      - finalUpperBound 레코드가 없으면 → null 반환 (데이터 부족으로 간주).
  *      - 필터 후 데이터 50개 미만이어도 → null 반환.
@@ -515,7 +515,7 @@ export function fitPiecewiseLinearWithDiagnostics(
  * 특정 키에 대한 분절 선형 회귀를 수행하고 방정식을 반환.
  *
  * @param events      KeyEvent 배열 (전체 세션 데이터)
- * @param targetToKey 분석할 키 (예: "a", "ㄱ")
+ * @param targetToKey 분석 focusKey (reference transition의 toKey, 예: "a", "ㄱ")
  * @returns           PiecewiseResult 또는 null
  *                    - null 반환 조건:
  *                      1) localStorage에 finalUpperBound 레코드가 없을 때

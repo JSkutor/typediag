@@ -212,7 +212,6 @@ describe("useCylindricalDiagnostics diagnostics", () => {
       const { result } = renderHook(() => useCylindricalDiagnostics([], "f"));
       expect(result.current.diagnostics.speedMetrics.medianLatencyMs).toBe(0);
       expect(result.current.diagnostics.speedMetrics.equivalentCpm).toBe(0);
-      expect(result.current.diagnostics.holdCorrelation.pearsonR).toBe(0);
       expect(result.current.diagnostics.hesitation.ratio).toBe(0);
     });
 
@@ -228,21 +227,6 @@ describe("useCylindricalDiagnostics diagnostics", () => {
       const { result } = renderHook(() => useCylindricalDiagnostics(events, "f"));
       expect(result.current.diagnostics.speedMetrics.medianLatencyMs).toBe(200);
       expect(result.current.diagnostics.speedMetrics.equivalentCpm).toBe(300);
-    });
-
-    it("should calculate Pearson correlation and detect significance", () => {
-      // Create a dataset where hold duration and latency are perfectly linearly correlated
-      const events: KeyEvent[] = [
-        { fromKey: "a", toKey: "f", latencyMs: 100, holdDurationMs: 50, isCorrect: true },
-        { fromKey: "a", toKey: "f", latencyMs: 200, holdDurationMs: 100, isCorrect: true },
-        { fromKey: "a", toKey: "f", latencyMs: 300, holdDurationMs: 150, isCorrect: true },
-      ];
-
-      const { result } = renderHook(() => useCylindricalDiagnostics(events, "f"));
-      expect(result.current.diagnostics.holdCorrelation.pearsonR).toBeCloseTo(1.0, 5);
-      // Perfect correlation with 3 samples (df=1) yields a low p-value (approx 0.0)
-      expect(result.current.diagnostics.holdCorrelation.pValue).toBeLessThan(0.05);
-      expect(result.current.diagnostics.holdCorrelation.isSignificant).toBe(true);
     });
 
     it("should calculate hesitation ratio based on IQR threshold", () => {

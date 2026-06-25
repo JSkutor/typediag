@@ -6,13 +6,13 @@ import { useCylindricalDiagnostics } from "@/hooks/useCylindricalDiagnostics";
 import { KEYBOARD_META } from "@/lib/skdm/keyboardMeta";
 import { type PiecewiseFitSuccess, type PiecewiseFitFailure } from "@/utils/piecewiseRegression";
 import { PIECEWISE_FAILURE_LABEL } from "@/lib/dev/piecewiseDev";
-import type { KeystrokeDiagnostics } from "@/utils/cylindricalStats";
+import type { CloudTypingPhase, CloudTypingStrength, CloudTypingEffectiveness, KeystrokeDiagnostics } from "@/utils/cylindricalStats";
 import { SpatialErrorOrbitViz } from "@/components/workspace/SpatialErrorOrbitViz";
 
 interface CylindricalDiagnosticsPanelProps {
   events: KeyEvent[];
-  selectedTo: string;
-  setSelectedTo: (key: string) => void;
+  focusKey: string;
+  setFocusKey: (key: string) => void;
 }
 
 const KEY_LABEL: Record<string, string> = { space: "␣", ",": ",", ".": "." };
@@ -49,7 +49,6 @@ function ComingSoonTag() {
 
 /** 미구현 항목 전용 — 실데이터 연동 전 UI 스켈레톤 */
 const PLACEHOLDER = {
-  dwellFlight: { dwellMs: 68.2, flightMs: 74.4, cloudTypingScore: 0.72 },
   nStepTransition: [
     { step: 1, pattern: "g→b", prob: 0.18 },
     { step: 2, pattern: "g→g→b", prob: 0.09 },
@@ -76,8 +75,8 @@ const LATENCY_LEVEL_BADGE: Record<
   erratic: "badge-warning",
 };
 
-function buildFingerTransitionItems(selectedTo: string, diagnostics: KeystrokeDiagnostics) {
-  const targetMeta = KEYBOARD_META[selectedTo.toLowerCase()];
+function buildFingerTransitionItems(focusKey: string, diagnostics: KeystrokeDiagnostics) {
+  const targetMeta = KEYBOARD_META[focusKey.toLowerCase()];
   const isLeft = targetMeta ? targetMeta.hand === "L" : true;
   const { ratios } = diagnostics.fingerTransitions;
 
@@ -113,6 +112,89 @@ function TransitionBars({
         </div>
       ))}
     </div>
+  );
+}
+
+const CLOUD_TYPING_PHASE_LABEL: Record<CloudTypingPhase, string> = {
+  skilled: "구름타법 숙달",
+  not_applied: "미적용",
+};
+
+const CLOUD_TYPING_EFFECTIVENESS_LABEL: Record<CloudTypingEffectiveness, string> = {
+  effective: "구름타법 효과적 (속도 향상)",
+  counterproductive: "구름타법 역효과 (타건 꼬임)",
+  neutral: "상관 없음",
+};
+
+const CLOUD_TYPING_STRENGTH_LABEL: Record<CloudTypingStrength, string> = {
+  strong: "구름타법 강함",
+  moderate: "구름타법 보통",
+  weak: "구름타법 약함",
+};
+
+function CloudTypingView({
+  cloudTyping,
+}: {
+  cloudTyping: KeystrokeDiagnostics["cloudTyping"];
+}) {
+  const { key: keyStats, effectivenessCorrelation, effectiveness } = cloudTyping;
+
+  if (!keyStats) {
+    return <p className="cyl-diag__empty">이 키에서 나가는 전이 데이터가 없습니다.</p>;
+  }
+
+  const totalMs = keyStats.latencyMs > 0 ? keyStats.latencyMs : keyStats.dwellMs + keyStats.flightMs;
+  const dwellPct = totalMs > 0 ? (keyStats.dwellMs / totalMs) * 100 : 50;
+  const flightPct = 100 - dwellPct;
+
+  const statusLabel = CLOUD_TYPING_PHASE_LABEL[keyStats.phase];
+
+  const statusClass =
+    keyStats.phase === "skilled"
+      ? "text-success"
+      : "text-muted";
+
+  const strengthLabel =
+    keyStats.phase === "skilled" && keyStats.strength
+      ? CLOUD_TYPING_STRENGTH_LABEL[keyStats.strength]
+      : null;
+
+  const effectLabel = effectivenessCorrelation.isSignificant 
+    ? CLOUD_TYPING_EFFECTIVENESS_LABEL[effectiveness]
+    : "구름타법 상관 무의미";
+    
+  const effectClass = 
+    effectiveness === "effective" ? "text-success" : 
+    effectiveness === "counterproductive" ? "text-danger" : "text-muted";
+
+  return (
+    <>
+      <div className="cyl-diag__correlation-box">
+        <span className="cyl-diag__correlation-val">{(keyStats.cloudTypingRatio * 100).toFixed(0)}%</span>
+        <span className={`cyl-diag__correlation-sig ${statusClass}`}>{statusLabel}</span>
+      </div>
+      <div className="cyl-diag__cloud-pair-meta">
+        {formatKey(keyStats.key)} 키 · 나가는 전이 n={keyStats.sampleCount}
+        {` · 상관 n=${effectivenessCorrelation.sampleCount} r=${effectivenessCorrelation.pearsonR.toFixed(2)}`}
+      </div>
+      {effectivenessCorrelation.sampleCount < 5 && (
+        <div className="cyl-diag__correlation-p text-muted">
+          상관 분석에 나가는 전이 5회 이상 필요 (키 홀드 기록 포함)
+        </div>
+      )}
+      {strengthLabel && <div className="cyl-diag__correlation-p">{strengthLabel}</div>}
+      <div className={`cyl-diag__correlation-p ${effectClass}`}>{effectLabel}</div>
+      <div className="cyl-diag__dwell-flight">
+        <div className="cyl-diag__dwell-flight-bar">
+          <div className="cyl-diag__dwell-segment" style={{ width: `${dwellPct}%` }} />
+          <div className="cyl-diag__flight-segment" style={{ width: `${flightPct}%` }} />
+        </div>
+        <div className="cyl-diag__dwell-flight-labels">
+          <span>Dwell {keyStats.dwellMs.toFixed(1)} ms</span>
+          <span>Flight {keyStats.flightMs.toFixed(1)} ms</span>
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -154,17 +236,17 @@ function LatencyDistributionView({
 
 export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelProps> = ({
   events,
-  selectedTo,
-  setSelectedTo,
+  focusKey,
+  setFocusKey,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const { toKeyOptions, outcome, chartData, diagnostics } = useCylindricalDiagnostics(
     events,
-    selectedTo,
+    focusKey,
   );
 
-  const hasData = events.length > 0 && selectedTo;
+  const hasData = events.length > 0 && focusKey;
 
   const renderChart = () => {
     if (!outcome) {
@@ -298,16 +380,16 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
           {/* Panel 1: 키 진입 Dynamics */}
           <section className="cyl-drawer__col cyl-drawer__col--controls">
             <header className="cyl-panel__header">
-              <span className="cyl-panel__subtitle">Panel 1 · To-Key</span>
+              <span className="cyl-panel__subtitle">Panel 1 · Focus Key</span>
               <h2 className="cyl-panel__title">키 진입 Dynamics</h2>
             </header>
 
             <div className="cyl-drawer__select-row">
-              <span className="cyl-label-text">Target Key (To)</span>
+              <span className="cyl-label-text">Focus Key</span>
               <select
                 className="cyl-select cyl-select--wide"
-                value={selectedTo}
-                onChange={(e) => setSelectedTo(e.target.value)}
+                value={focusKey}
+                onChange={(e) => setFocusKey(e.target.value)}
               >
                 {toKeyOptions.map(([key, count]) => (
                   <option key={key} value={key}>
@@ -382,7 +464,7 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
 
                 <div className="cyl-diag__detailed-card">
                   <span className="cyl-diag__stat-lbl">어느 손가락에서 넘어오는지</span>
-                  <TransitionBars items={buildFingerTransitionItems(selectedTo, diagnostics)} />
+                  <TransitionBars items={buildFingerTransitionItems(focusKey, diagnostics)} />
                 </div>
 
                 {diagnostics.unconsciousKey !== null && (
@@ -450,7 +532,8 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
                     </span>
                   </div>
                   <p className="cyl-diag__card-desc">
-                    해당 toKey 정타 latency만으로 산출한 중앙값과 분당 타수입니다.
+                    해당 focusKey reference transition(toKey === focusKey) 정타 latency만으로
+                    산출한 중앙값과 분당 타수입니다.
                   </p>
                 </div>
 
@@ -530,7 +613,7 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
                   <span className="cyl-diag__stat-lbl">공간적 오타 거리</span>
                   {diagnostics.spatialErrorDistance ? (
                     <SpatialErrorOrbitViz
-                      centerKey={selectedTo}
+                      focusKey={focusKey}
                       data={diagnostics.spatialErrorDistance}
                     />
                   ) : (
@@ -539,56 +622,11 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
                 </div>
 
                 <div className="cyl-diag__detailed-card">
-                  <span className="cyl-diag__stat-lbl">Hold Duration 상관계수</span>
-                  <div className="cyl-diag__correlation-box">
-                    <span className="cyl-diag__correlation-val">
-                      r = {diagnostics.holdCorrelation.pearsonR.toFixed(3)}
-                    </span>
-                    <span
-                      className={`cyl-diag__correlation-sig ${diagnostics.holdCorrelation.isSignificant ? "text-warning" : "text-muted"}`}
-                    >
-                      {diagnostics.holdCorrelation.isSignificant ? "상관성 유의미" : "상관성 무관"}
-                    </span>
-                  </div>
-                  <div className="cyl-diag__correlation-p">
-                    p-value:{" "}
-                    {diagnostics.holdCorrelation.pValue < 0.001
-                      ? "< 0.001"
-                      : diagnostics.holdCorrelation.pValue.toFixed(3)}
-                    {diagnostics.holdCorrelation.sampleCount > 0 &&
-                      ` (n=${diagnostics.holdCorrelation.sampleCount})`}
-                  </div>
+                  <span className="cyl-diag__stat-lbl">구름타법 · Dwell / Flight</span>
+                  <CloudTypingView cloudTyping={diagnostics.cloudTyping} />
                   <p className="cyl-diag__card-desc">
-                    키 누름 지속 시간과 latency 간 피어슨 상관. 구름타법 여부 진단의 기초 지표입니다.
-                  </p>
-                </div>
-
-                <div className="cyl-diag__detailed-card cyl-diag__detailed-card--optional">
-                  <span className="cyl-diag__stat-lbl">
-                    Dwell · Flight 분리 <ComingSoonTag />
-                  </span>
-                  <div className="cyl-diag__dwell-flight">
-                    <div className="cyl-diag__dwell-flight-bar">
-                      <div
-                        className="cyl-diag__dwell-segment"
-                        style={{
-                          width: `${(PLACEHOLDER.dwellFlight.dwellMs / (PLACEHOLDER.dwellFlight.dwellMs + PLACEHOLDER.dwellFlight.flightMs)) * 100}%`,
-                        }}
-                      />
-                      <div
-                        className="cyl-diag__flight-segment"
-                        style={{
-                          width: `${(PLACEHOLDER.dwellFlight.flightMs / (PLACEHOLDER.dwellFlight.dwellMs + PLACEHOLDER.dwellFlight.flightMs)) * 100}%`,
-                        }}
-                      />
-                    </div>
-                    <div className="cyl-diag__dwell-flight-labels">
-                      <span>Dwell {PLACEHOLDER.dwellFlight.dwellMs} ms</span>
-                      <span>Flight {PLACEHOLDER.dwellFlight.flightMs} ms</span>
-                    </div>
-                  </div>
-                  <p className="cyl-diag__card-desc">
-                    누름 시간(Dwell)과 이동 시간(Flight)을 분리해 구름타법 패턴을 분석합니다.
+                    outgoing transition(fromKey === focusKey) 전체. dwell은 focusKey 홀드,
+                    ND≤0.3면 롤오버. 비율은 숙달/미적용, r은 효과성(양의 상관=속도와 맞물림).
                   </p>
                 </div>
 
