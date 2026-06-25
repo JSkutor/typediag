@@ -51,8 +51,8 @@ export function PiecewiseChart({
   const { points, regressionSamples, xMax, domainYMin, domainYMax, yTickValues } = chartData;
 
   const WIDTH = 320;
-  const HEIGHT = 180;
-  const PAD = { top: 16, right: 12, bottom: 24, left: 32 };
+  const HEIGHT = 120;
+  const PAD = { top: 12, right: 8, bottom: 18, left: 32 };
   const plotWidth = WIDTH - PAD.left - PAD.right;
   const plotHeight = HEIGHT - PAD.top - PAD.bottom;
 

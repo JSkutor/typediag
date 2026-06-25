@@ -34,11 +34,11 @@ export function FatalNgramViz({ entry }: { entry: FatalNgramEntry }) {
           </React.Fragment>
         ))}
       </div>
-      <div className="cyl-diag__optional-item" style={{ fontSize: "0.82rem", marginTop: "4px" }}>
-        <span className="cyl-diag__error-rate text-danger" style={{ fontWeight: 600 }}>
-          오타율 {entry.errorRate.toFixed(1)}%
+      <div className="cyl-diag__optional-item">
+        <span className="cyl-diag__error-rate text-danger">
+          {entry.errorRate.toFixed(1)}%
         </span>
-        <span className="cyl-diag__count"> (총 {entry.totalCount}회 진입)</span>
+        <span className="cyl-diag__count">n={entry.totalCount}</span>
       </div>
     </div>
   );

@@ -26,9 +26,7 @@ export function LatencyDistributionView({
   if (!consistency) {
     return (
       <div className="cyl-diag__dist-preview">
-        <span className="cyl-diag__relative-val text-muted" style={{ fontSize: "0.82rem" }}>
-          정답 타건 5회 이상 필요
-        </span>
+        <span className="cyl-diag__relative-val text-muted">—</span>
       </div>
     );
   }
@@ -46,8 +44,8 @@ export function LatencyDistributionView({
         <span className={`cyl-diag__dist-badge ${LATENCY_LEVEL_BADGE[consistency.level]}`}>
           {LATENCY_LEVEL_LABEL[consistency.level]}
         </span>
-        <span className="cyl-diag__dist-cv">
-          MAD = {consistency.madMs.toFixed(1)} ms · rMAD = {consistency.relativeMad.toFixed(2)}
+        <span className="cyl-diag__dist-cv" style={{ color: "var(--text-secondary)", fontSize: "0.75rem", fontFamily: "var(--font-mono)" }}>
+          평균 편차: <strong>{consistency.madMs.toFixed(1)} ms</strong>
         </span>
       </div>
     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useId, useMemo } from "react";
 import { buildLayout } from "@/lib/skdm/layout";
 import {
   classifySpatialTypoDistance,
@@ -10,12 +10,12 @@ import type { SpatialErrorDistanceResult } from "@/utils/cylindricalStats";
 import type { KeyPosition } from "@/lib/skdm/types";
 
 const VIEW_W = 340;
-const VIEW_H = 118;
+const VIEW_H = 132;
 const HALF_KEY_U = 0.5;
-const VIEW_PAD = 0.015;
-const KEY_GAP_RATIO = 0.08;
-const TYPO_DOT_MIN_RATIO = 0.26;
-const TYPO_DOT_MAX_RATIO = 0.4;
+const VIEW_PAD = 0.02;
+const KEY_GAP_RATIO = 0.06;
+const TYPO_DOT_MIN_RATIO = 0.34;
+const TYPO_DOT_MAX_RATIO = 0.52;
 
 function isAlphaKey(key: string) {
   return /^[a-z]$/.test(key);
@@ -43,6 +43,7 @@ interface SpatialErrorOrbitVizProps {
 }
 
 export function SpatialErrorOrbitViz({ focusKey, data }: SpatialErrorOrbitVizProps) {
+  const typoGlowId = useId().replace(/:/g, "");
   const viz = useMemo(() => {
     const layout = buildLayout();
     const focus = focusKey.toLowerCase();
@@ -63,8 +64,7 @@ export function SpatialErrorOrbitViz({ focusKey, data }: SpatialErrorOrbitVizPro
     );
     const keySizePx = unitPx * (1 - KEY_GAP_RATIO);
     const keyRadiusPx = Math.max(2.5, keySizePx * 0.2);
-    const labelFontPx = Math.max(8, Math.min(13, keySizePx * 0.44));
-    const labelBaselineOffset = keySizePx * 0.18;
+    const labelFontPx = Math.max(9.5, Math.min(14.5, keySizePx * 0.56));
 
     const toSvg = (lx: number, ly: number) => ({
       x: VIEW_W / 2 + (lx - keyboardCenterX) * unitPx,
@@ -91,7 +91,6 @@ export function SpatialErrorOrbitViz({ focusKey, data }: SpatialErrorOrbitVizPro
       keySizePx,
       keyRadiusPx,
       labelFontPx,
-      labelBaselineOffset,
       medianU,
       typoClass,
       keys: alphaKeys.map((k) => {
@@ -106,7 +105,7 @@ export function SpatialErrorOrbitViz({ focusKey, data }: SpatialErrorOrbitVizPro
       typoMarkers: typoMarkers.map((m) => ({
         ...m,
         r: minDotR + (m.count / maxTypoCount) * (maxDotR - minDotR),
-        opacity: 0.55 + (m.count / maxTypoCount) * 0.35,
+        opacity: 0.82 + (m.count / maxTypoCount) * 0.18,
       })),
     };
   }, [focusKey, data]);
@@ -121,6 +120,15 @@ export function SpatialErrorOrbitViz({ focusKey, data }: SpatialErrorOrbitVizPro
         role="img"
         aria-label={`${focusKey.toUpperCase()} 키 공간적 오타 분포`}
       >
+        <defs>
+          <radialGradient id={typoGlowId} cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#ef5b5b" stopOpacity="0.88" />
+            <stop offset="42%" stopColor="#ef5b5b" stopOpacity="0.42" />
+            <stop offset="78%" stopColor="#ef5b5b" stopOpacity="0.12" />
+            <stop offset="100%" stopColor="#ef5b5b" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+
         <g className="cyl-diag__spatial-keys">
           {viz.keys.map((k) => (
             <rect
@@ -135,15 +143,16 @@ export function SpatialErrorOrbitViz({ focusKey, data }: SpatialErrorOrbitVizPro
           ))}
         </g>
 
-        <g className="cyl-diag__spatial-typo-layer">
+        <g className="cyl-diag__spatial-typo-halos">
           {viz.typoMarkers.map((m) => (
             <circle
-              key={m.key}
-              className="cyl-diag__spatial-typo-dot"
+              key={`halo-${m.key}`}
+              className="cyl-diag__spatial-typo-halo"
               cx={m.x}
               cy={m.y}
               r={m.r}
-              fillOpacity={m.opacity}
+              fill={`url(#${typoGlowId})`}
+              opacity={m.opacity}
             />
           ))}
         </g>
@@ -154,8 +163,9 @@ export function SpatialErrorOrbitViz({ focusKey, data }: SpatialErrorOrbitVizPro
               key={k.key}
               className={`cyl-diag__spatial-key-label${k.isTarget ? " cyl-diag__spatial-key-label--center" : ""}`}
               x={k.x + viz.keySizePx / 2}
-              y={k.y + viz.keySizePx / 2 + viz.labelBaselineOffset}
+              y={k.y + viz.keySizePx / 2}
               textAnchor="middle"
+              dominantBaseline="middle"
               fontSize={viz.labelFontPx}
             >
               {k.key.toUpperCase()}
@@ -166,9 +176,8 @@ export function SpatialErrorOrbitViz({ focusKey, data }: SpatialErrorOrbitVizPro
 
       <div className="cyl-diag__spatial-summary">
         <span className="cyl-diag__spatial-summary-metric">
-          중앙값 거리{" "}
-          <strong>{viz.medianU.toFixed(2)} U</strong>
-          <span className="cyl-diag__spatial-summary-sub"> (n={data.sampleCount})</span>
+          중앙값 <strong>{viz.medianU.toFixed(2)} U</strong>
+          <span className="cyl-diag__spatial-summary-sub">n={data.sampleCount}</span>
         </span>
         <span
           className={`cyl-diag__spatial-summary-badge cyl-diag__spatial-summary-badge--${viz.typoClass}`}
@@ -176,10 +185,6 @@ export function SpatialErrorOrbitViz({ focusKey, data }: SpatialErrorOrbitVizPro
           {SPATIAL_TYPO_CLASS_LABEL[viz.typoClass]}
         </span>
       </div>
-
-      <p className="cyl-diag__card-desc cyl-diag__spatial-orbit-caption">
-        정답 {focusKey.toUpperCase()} 대신 누른 키 — 핑크 원 크기 = 오타 빈도
-      </p>
     </div>
   );
 }

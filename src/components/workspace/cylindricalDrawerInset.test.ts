@@ -15,6 +15,12 @@ describe("cylindricalDrawerInset", () => {
     it("centers content in the remaining viewport when body is expanded", () => {
       expect(computeDrawerContentShiftPx(1000)).toBe((CYL_DRAWER_TOGGLE_WIDTH_PX + 1000) / 2);
     });
+
+    it("reaches 0 continuously as the body collapses (no toggle-width snap)", () => {
+      expect(computeDrawerContentShiftPx(48)).toBe(48);
+      expect(computeDrawerContentShiftPx(1)).toBe(1);
+      expect(computeDrawerContentShiftPx(0)).toBe(0);
+    });
   });
 
   describe("screenPxToWorldPan", () => {

@@ -1,5 +1,4 @@
 import type { CloudTypingEffectiveness, CloudTypingLevel, KeystrokeDiagnostics } from "@/utils/cylindricalStats";
-import { formatKey } from "./formatKey";
 
 const CLOUD_TYPING_LEVEL_LABEL: Record<CloudTypingLevel, string> = {
   not_applied: "미적용",
@@ -23,15 +22,11 @@ export function CloudTypingView({
     cloudTyping;
 
   if (insufficientSample) {
-    return (
-      <p className="cyl-diag__empty">
-        표본 부족 (outgoing transition n={analysisPoolCount}, 11회 이상 필요)
-      </p>
-    );
+    return <p className="cyl-diag__empty">데이터 부족</p>;
   }
 
   if (!keyStats) {
-    return <p className="cyl-diag__empty">이 focusKey의 outgoing transition 데이터가 없습니다.</p>;
+    return <p className="cyl-diag__empty">—</p>;
   }
 
   const barScale = Math.max(keyStats.latencyMs, keyStats.holdMs, 1);
@@ -66,18 +61,15 @@ export function CloudTypingView({
           <span className="cyl-diag__cloud-dual-val">{effectLabel}</span>
         </div>
       </div>
-      <div className="cyl-diag__cloud-pair-meta">
-        {formatKey(keyStats.key)} · outgoing transition n={keyStats.sampleCount}
-        {` · 상관 n=${effectivenessCorrelation.sampleCount} r=${effectivenessCorrelation.pearsonR.toFixed(2)}`}
+      {/* 
+      <div className="cyl-diag__cloud-stats">
+        <span>n={keyStats.sampleCount}</span>
+        <span>r={effectivenessCorrelation.pearsonR.toFixed(2)}</span>
       </div>
-      {effectivenessCorrelation.sampleCount < 5 && (
-        <div className="cyl-diag__correlation-p text-muted">
-          상관 분석에 outgoing transition 5회 이상 필요 (reference hold 기록 포함)
-        </div>
-      )}
+      */}
       <div className="cyl-diag__metric-bars">
         <div className="cyl-diag__metric-bar-row">
-          <span className="cyl-diag__metric-bar-label">Latency (L)</span>
+          <span className="cyl-diag__metric-bar-label">지연</span>
           <div className="cyl-diag__metric-bar-track">
             <div
               className="cyl-diag__metric-bar-fill cyl-diag__metric-bar-fill--latency"
@@ -87,7 +79,7 @@ export function CloudTypingView({
           <span className="cyl-diag__metric-bar-value">{keyStats.latencyMs.toFixed(1)} ms</span>
         </div>
         <div className="cyl-diag__metric-bar-row">
-          <span className="cyl-diag__metric-bar-label">Hold (D)</span>
+          <span className="cyl-diag__metric-bar-label">눌림</span>
           <div className="cyl-diag__metric-bar-track">
             <div
               className="cyl-diag__metric-bar-fill cyl-diag__metric-bar-fill--hold"

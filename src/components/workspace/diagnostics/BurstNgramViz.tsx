@@ -29,11 +29,9 @@ export function BurstNgramViz({ entry, rank }: { entry: BurstNgram; rank: number
           </React.Fragment>
         ))}
       </div>
-      <div className="cyl-diag__optional-item" style={{ fontSize: "0.82rem", marginTop: "4px" }}>
-        <span className="text-success" style={{ fontWeight: 600 }}>
-          평균 {entry.avgLatencyMs.toFixed(1)} ms
-        </span>
-        <span className="cyl-diag__count"> ({entry.count}회 달성)</span>
+      <div className="cyl-diag__optional-item">
+        <span className="text-success">{entry.avgLatencyMs.toFixed(1)} ms</span>
+        <span className="cyl-diag__count">n={entry.count}</span>
       </div>
     </div>
   );

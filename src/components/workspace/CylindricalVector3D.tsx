@@ -120,6 +120,7 @@ function CylindricalVector3DInner({
         <CylindricalDiagnosticsPanel
           events={events}
           focusKey={focusKey}
+          fromKey={selectedFrom}
           setFocusKey={setFocusKey}
           onDrawerShiftPx={handleDrawerShiftPx}
         />

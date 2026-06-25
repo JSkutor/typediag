@@ -249,8 +249,8 @@ export class Cylindrical3DManager {
    * `shiftPx` should track the drawer body width via ResizeObserver for CSS sync.
    */
   public setDrawerShiftPx(shiftPx: number): void {
-    const next = Math.max(0, Math.round(shiftPx));
-    if (next === this.drawerShiftPx) return;
+    const next = Math.max(0, shiftPx);
+    if (Math.abs(next - this.drawerShiftPx) < 0.25) return;
     this.drawerShiftPx = next;
     this.applyDrawerViewOffset();
     this.needsRender = true;
@@ -590,13 +590,8 @@ export class Cylindrical3DManager {
    * Uses setViewOffset — camera / OrbitControls stay untouched (no jitter).
    */
   private applyDrawerViewOffset(): void {
-    if (this.drawerShiftPx <= 0) {
-      if (this.camera.view) this.camera.clearViewOffset();
-      else this.camera.updateProjectionMatrix();
-      return;
-    }
-
     // Negative offsetX moves scene right on screen (drawer eats left side).
+    // Always use setViewOffset (even at 0) so the projection path stays consistent.
     this.camera.setViewOffset(
       this.width,
       this.height,
