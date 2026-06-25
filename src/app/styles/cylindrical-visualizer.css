@@ -43,13 +43,13 @@
   left: 0;
   z-index: 1;
   display: none;
-  padding: 2px 5px;
+  padding: 3px 6px;
   border: none;
-  border-radius: 3px;
+  border-radius: 4px;
   background: rgba(30, 32, 36, 0.32);
   color: #f0f2f5;
   font-family: var(--font-mono);
-  font-size: 0.875rem;
+  font-size: 1.0rem;
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: 0.04em;
@@ -70,7 +70,7 @@
 
 .cyl-panel__subtitle {
   color: var(--accent);
-  font-size: 0.72rem;
+  font-size: 0.82rem;
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -78,7 +78,7 @@
 
 .cyl-diag__empty {
   color: var(--text-secondary);
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   font-style: normal;
 }
 
@@ -242,7 +242,7 @@
   border-radius: 20px;
   color: var(--text-secondary);
   font-family: var(--font-mono);
-  font-size: 0.65rem;
+  font-size: 0.72rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
@@ -288,7 +288,7 @@
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 4px;
   color: var(--text-muted);
-  font-size: 0.55rem;
+  font-size: 0.625rem;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -341,7 +341,7 @@
   top: 0;
   transform: translateX(-50%);
   color: var(--text-muted);
-  font-size: 0.62rem;
+  font-size: 0.7rem;
   font-family: var(--font-mono);
   line-height: 1;
   white-space: nowrap;
@@ -362,7 +362,7 @@
 }
 
 .cyl-diag__dist-badge {
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   font-weight: 700;
   padding: 3px 8px;
   border-radius: 4px;
@@ -372,7 +372,7 @@
 .cyl-diag__dist-cv {
   color: var(--text-secondary);
   font-family: var(--font-mono);
-  font-size: 0.78rem;
+  font-size: 0.85rem;
   font-weight: 500;
 }
 
@@ -407,7 +407,7 @@
   align-items: baseline;
   gap: 12px;
   color: var(--text-secondary);
-  font-size: 0.82rem;
+  font-size: 0.9rem;
 }
 
 .cyl-diag__spatial-summary-median {
@@ -419,7 +419,7 @@
 .cyl-diag__spatial-summary-metric strong {
   color: var(--text-primary);
   font-family: var(--font-mono);
-  font-size: 0.95rem;
+  font-size: 1.05rem;
   font-weight: 700;
 }
 
@@ -428,7 +428,7 @@
   width: fit-content;
   padding: 3px 8px;
   border-radius: 4px;
-  font-size: 0.65rem;
+  font-size: 0.72rem;
   font-weight: 600;
 }
 
@@ -500,7 +500,7 @@
 
 .cyl-diag__metric-bar-label {
   color: var(--text-secondary);
-  font-size: 0.78rem;
+  font-size: 0.85rem;
   font-weight: 600;
   font-family: var(--font-mono);
 }
@@ -528,7 +528,7 @@
 .cyl-diag__metric-bar-value {
   color: var(--text-primary);
   font-family: var(--font-mono);
-  font-size: 0.78rem;
+  font-size: 0.85rem;
   font-weight: 600;
   text-align: right;
 }
@@ -553,7 +553,7 @@
 
 .cyl-diag__stat-lbl {
   color: var(--text-muted);
-  font-size: 0.72rem;
+  font-size: 0.82rem;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: none;
@@ -581,7 +581,7 @@
 }
 
 .cyl-diag__penalty-count {
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: var(--text-secondary);
   font-family: var(--font-mono);
@@ -661,7 +661,7 @@
 
 .cyl-diag__finger-hand-lbl {
   fill: var(--text-secondary);
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 600;
   letter-spacing: 0.04em;
 }
@@ -672,7 +672,7 @@
 
 .cyl-diag__finger-pct {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
@@ -680,14 +680,14 @@
 .cyl-diag__finger-opposite-pct {
   fill: var(--text-primary);
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
 
 .cyl-diag__finger-other-center {
   fill: var(--text-muted);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.02em;
 }
@@ -695,7 +695,7 @@
 .cyl-diag__finger-other-val {
   fill: var(--text-secondary);
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
 }
 
@@ -721,7 +721,7 @@
 }
 
 .cyl-diag__cpm-val {
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: 600;
   color: var(--accent);
   font-family: var(--font-mono);
@@ -773,7 +773,7 @@
   margin-top: 2px;
   color: var(--text-secondary);
   font-family: var(--font-mono);
-  font-size: 0.78rem;
+  font-size: 0.85rem;
   font-weight: 500;
 }
 
@@ -784,7 +784,7 @@
 }
 
 .cyl-diag__hesitation-badge {
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 700;
   padding: 3px 8px;
   border-radius: 4px;
@@ -818,7 +818,7 @@
   color: var(--accent);
   font-weight: 700;
   font-family: var(--font-mono);
-  font-size: 0.78rem;
+  font-size: 0.85rem;
 }
 
 .cyl-diag__ngram-key {
@@ -828,7 +828,7 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: var(--text-primary);
   font-family: var(--font-mono);
-  font-size: 0.78rem;
+  font-size: 0.85rem;
 }
 
 .cyl-diag__ngram-key--fatal-last {

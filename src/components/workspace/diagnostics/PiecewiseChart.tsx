@@ -79,7 +79,7 @@ export function PiecewiseChart({
               y={toSvgY(tick) + 3}
               textAnchor="end"
               fill="var(--text-muted)"
-              fontSize={9}
+              fontSize={10}
               fontFamily="var(--font-mono)"
               opacity={0.8}
             >

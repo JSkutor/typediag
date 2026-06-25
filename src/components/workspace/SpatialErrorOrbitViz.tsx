@@ -64,7 +64,7 @@ export function SpatialErrorOrbitViz({ focusKey, data }: SpatialErrorOrbitVizPro
     );
     const keySizePx = unitPx * (1 - KEY_GAP_RATIO);
     const keyRadiusPx = Math.max(2.5, keySizePx * 0.2);
-    const labelFontPx = Math.max(9.5, Math.min(14.5, keySizePx * 0.56));
+    const labelFontPx = Math.max(10.5, Math.min(15.5, keySizePx * 0.58));
 
     const toSvg = (lx: number, ly: number) => ({
       x: VIEW_W / 2 + (lx - keyboardCenterX) * unitPx,

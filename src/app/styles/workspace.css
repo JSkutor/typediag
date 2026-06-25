@@ -79,7 +79,9 @@
   padding-top: 5rem;
   font-family: var(--font-mono);
   font-size: 1.875rem;
+  font-weight: 500;
   line-height: 1.625;
+  letter-spacing: 0.02em;
   text-align: center;
   transition: all 0.7s;
 }

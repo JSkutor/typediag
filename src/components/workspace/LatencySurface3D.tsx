@@ -1,13 +1,12 @@
 "use client";
 
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import { KeyResult } from "@/lib/skdm";
 
-import { Surface3DManager, LATENCY_POWER } from "./Surface3DManager";
-import { SURFACE_Y_OFFSET } from "./geometryUtils";
+import { Surface3DManager } from "./Surface3DManager";
 import { useWorkspaceStore } from "@/store/useWorkspaceStore";
 import { useThreeManager } from "@/hooks/useThreeManager";
-import { useCallback } from "react";
+import { offsetHudLabelsFromAnchor } from "./cylindricalPetalGeometry";
 
 interface LatencySurface3DProps {
   keyStats: Record<string, KeyResult>;
@@ -33,17 +32,13 @@ export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
   const [shouldRenderThree, setShouldRenderThree] = useState(false);
   const labelRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // Delay Three.js initialization until the initial heavy frames of the CSS transition complete
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (isActivated) {
-      // Transition is 0.55s. Starting initialization at 350ms allows the browser
-      // to execute the initial rapid transition frames smoothly without GPU/main-thread blocking.
       timer = setTimeout(() => {
         setShouldRenderThree(true);
       }, 350);
     } else {
-      // Use setTimeout to avoid synchronous setState inside useEffect
       timer = setTimeout(() => {
         setShouldRenderThree(false);
       }, 0);
@@ -53,45 +48,38 @@ export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
     };
   }, [isActivated]);
 
-  // Initialize and dispose manager
   const handleInit = useCallback(
     (manager: Surface3DManager) => {
       manager.isLanding = isLanding;
       if (disableControls) manager.lockControls();
-      manager.onUpdateHUD = (
-        surfaceKeys,
-        elevationScale,
-        camera,
-        opacity,
-        managerWidth,
-        managerHeight,
-      ) => {
-        if (!labelsContainerRef.current || !mountRef.current) return;
-        const TARGET_ELEVATION_SCALE = 180;
+      manager.onLabelsUpdate = (projected, opacity, anchorX, anchorY) => {
+        if (!labelsContainerRef.current) return;
 
-        surfaceKeys.forEach((k) => {
-          const vec = manager.get3DPos(k, elevationScale);
-          const scaleRatio = elevationScale / TARGET_ELEVATION_SCALE;
-          const amplifiedZ =
-            k.key.toLowerCase() === "_dummy_comma" ? 0 : Math.pow(k.zSmoothed, LATENCY_POWER);
-          vec.y += SURFACE_Y_OFFSET + (10 + amplifiedZ * 5) * scaleRatio;
+        const labels = offsetHudLabelsFromAnchor(
+          projected.map((p) => ({
+            fromKey: p.key,
+            x: p.x,
+            y: p.y,
+            visible: p.visible,
+          })),
+          anchorX,
+          anchorY,
+          22,
+        );
 
-          vec.project(camera);
+        for (const item of labels) {
+          const el = labelRefs.current[item.fromKey];
+          if (!el) continue;
 
-          const x = (vec.x * 0.5 + 0.5) * managerWidth;
-          const y = (vec.y * -0.5 + 0.5) * managerHeight;
-
-          const el = labelRefs.current[k.key];
-          if (el) {
-            if (vec.z > 1) {
-              el.style.display = "none";
-            } else {
-              el.style.display = "block";
-              el.style.transform = `translate3d(-50%, -50%, 0) translate3d(${x}px, ${y}px, 0)`;
-              el.style.opacity = `${opacity}`;
-            }
+          if (!item.visible) {
+            el.style.display = "none";
+            continue;
           }
-        });
+
+          el.style.display = "block";
+          el.style.transform = `translate3d(-50%, -50%, 0) translate3d(${item.x}px, ${item.y}px, 0)`;
+          el.style.opacity = `${opacity}`;
+        }
       };
     },
     [disableControls, isLanding],
@@ -99,20 +87,18 @@ export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
 
   const managerRef = useThreeManager(Surface3DManager, mountRef, shouldRenderThree, handleInit);
 
-  // Update geometry/layout when data changes or Three.js is initialized
   useEffect(() => {
     if (shouldRenderThree && managerRef.current && Object.keys(keyStats).length > 0) {
       managerRef.current.updateData(keyStats);
       setKeys(managerRef.current.getSurfaceKeys());
     }
-  }, [keyStats, shouldRenderThree]);
+  }, [keyStats, shouldRenderThree, managerRef]);
 
-  // Handle activation timeline
   useEffect(() => {
     if (shouldRenderThree && managerRef.current) {
       managerRef.current.setActivated(isActivated);
     }
-  }, [isActivated, shouldRenderThree]);
+  }, [isActivated, shouldRenderThree, managerRef]);
 
   const handleTouch = (e: React.TouchEvent) => {
     e.preventDefault();
@@ -157,7 +143,7 @@ export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
                 labelRefs.current[k.key] = el;
               }}
               id={`hud-label-${k.key}`}
-              className="hud-label-btn"
+              className="cyl-key-label"
               onClick={
                 isLanding
                   ? undefined
@@ -167,34 +153,15 @@ export const LatencySurface3D: React.FC<LatencySurface3DProps> = ({
                       setFocusedKey(k.key);
                     }
               }
+              onMouseDown={(e) => e.preventDefault()}
               style={{
                 position: "absolute",
                 top: 0,
                 left: 0,
-                color: "rgba(228, 230, 235, 0.9)",
-                fontFamily: "var(--font-mono, monospace)",
-                fontWeight: "bold",
-                fontSize: "13px",
-                textShadow: "0 2px 4px rgba(0,0,0,0.5)",
                 willChange: "transform, opacity",
                 opacity: 0,
                 cursor: isLanding ? "default" : "pointer",
                 pointerEvents: isLanding ? "none" : "auto",
-                background: "rgba(30, 41, 59, 0.4)",
-                border: "1px solid rgba(99, 102, 241, 0.3)",
-                padding: "2px 6px",
-                borderRadius: "4px",
-                transition: "border-color 0.2s, background-color 0.2s, color 0.2s",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = "rgba(99, 102, 241, 0.8)";
-                e.currentTarget.style.backgroundColor = "rgba(99, 102, 241, 0.2)";
-                e.currentTarget.style.color = "#ffffff";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = "rgba(99, 102, 241, 0.3)";
-                e.currentTarget.style.backgroundColor = "rgba(30, 41, 59, 0.4)";
-                e.currentTarget.style.color = "rgba(228, 230, 235, 0.9)";
               }}
             >
               {label}

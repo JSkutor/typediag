@@ -18,23 +18,20 @@ export function useDiagnosticsTransition() {
       await typingStore.saveCurrentPage();
     }
 
-    const currentRunId = useTypingStore.getState().currentRunId;
     let eventsToAnalyze: KeyEvent[] = [];
 
-    if (currentRunId) {
-      try {
-        const res = await fetch(`/api/session?action=analysis&runId=${currentRunId}`, {
-          headers: getGuestAuthHeaders(),
-        });
-        if (!res.ok) {
-          throw new Error("Failed to fetch session analysis events");
-        }
-        const data = await res.json();
-        applyGuestTokenFromResponse(data);
-        eventsToAnalyze = data.events || [];
-      } catch (err) {
-        console.error("Failed to compile run stats:", err);
+    try {
+      const res = await fetch("/api/session?action=analysis", {
+        headers: getGuestAuthHeaders(),
+      });
+      if (!res.ok) {
+        throw new Error("Failed to fetch session analysis events");
       }
+      const data = await res.json();
+      applyGuestTokenFromResponse(data);
+      eventsToAnalyze = data.events || [];
+    } catch (err) {
+      console.error("Failed to compile run stats:", err);
     }
 
     // Fallback to currently active typing events if the run has no pages

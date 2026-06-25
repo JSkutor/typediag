@@ -41,6 +41,7 @@ function CylindricalVector3DInner({
 
   const [focusKey, setFocusKey] = useState(initialFocusKey ?? "");
   const [selectedFrom, setSelectedFrom] = useState("");
+  const [shouldRenderThree, setShouldRenderThree] = useState(false);
   const [managerReady, setManagerReady] = useState(false);
   const labelRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [toggles] = useState<CylindricalToggles>({
@@ -59,6 +60,23 @@ function CylindricalVector3DInner({
     () => (focusKey ? buildCylindricalVectors(events, focusKey, globalMax) : []),
     [events, focusKey, globalMax],
   );
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (isActivated) {
+      timer = setTimeout(() => {
+        setShouldRenderThree(true);
+      }, 350);
+    } else {
+      timer = setTimeout(() => {
+        setShouldRenderThree(false);
+        setManagerReady(false);
+      }, 0);
+    }
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [isActivated]);
 
   useEffect(() => {
     if (!defaultSelection) return;
@@ -97,19 +115,23 @@ function CylindricalVector3DInner({
     [disableControls],
   );
 
-  const managerRef = useThreeManager(Cylindrical3DManager, mountRef, isActivated, handleInit);
+  const managerRef = useThreeManager(Cylindrical3DManager, mountRef, shouldRenderThree, handleInit);
 
   const handleDrawerShiftPx = useCallback((shiftPx: number) => {
     managerRef.current?.setDrawerShiftPx(shiftPx);
   }, [managerRef]);
 
   useEffect(() => {
-    managerRef.current?.updateScene(vectors, selectedFrom);
-  }, [vectors, selectedFrom, managerReady]);
+    if (shouldRenderThree && managerReady && managerRef.current) {
+      managerRef.current.updateScene(vectors, selectedFrom);
+    }
+  }, [vectors, selectedFrom, managerReady, shouldRenderThree, managerRef]);
 
   useEffect(() => {
-    managerRef.current?.setToggles(toggles);
-  }, [toggles]);
+    if (shouldRenderThree && managerRef.current) {
+      managerRef.current.setToggles(toggles);
+    }
+  }, [toggles, shouldRenderThree, managerRef]);
 
   if (!isActivated) return null;
 

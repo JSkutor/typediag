@@ -9,15 +9,34 @@ import {
   SURFACE_GAP,
   SURFACE_SCALE,
   SURFACE_Y_OFFSET,
+  CYL_COLORS,
   generateSurfaceLayout,
   calculateSurfaceBorders,
 } from "./geometryUtils";
+import {
+  LATENCY_POWER,
+  TARGET_ELEVATION_SCALE,
+  buildInnerBorderLinePoints,
+  buildMergedDropLines,
+  computeZRange,
+  getRelativeZ,
+  subdivideSurfaceMesh,
+  surfaceVertexColor,
+  SURFACE_BORDER_COLOR,
+} from "./surfaceGeometry";
+
+export { LATENCY_POWER, TARGET_ELEVATION_SCALE };
 
 const { layoutMap: KEY_LAYOUT, centerX, centerZ } = generateSurfaceLayout();
 const { innerBorderPoints: _innerBorderPoints, outerBorderPoints: _outerBorderPoints } =
   calculateSurfaceBorders(KEY_LAYOUT);
 
-export const LATENCY_POWER = 1.3;
+export interface SurfaceLabelProjection {
+  key: string;
+  x: number;
+  y: number;
+  visible: boolean;
+}
 
 export class Surface3DManager {
   private container: HTMLElement;
@@ -26,10 +45,8 @@ export class Surface3DManager {
   private renderer: THREE.WebGLRenderer;
   private controls: OrbitControls;
 
+  private floorGroup = new THREE.Group();
   private surfaceGroup: THREE.Group = new THREE.Group();
-  private geometry: THREE.BufferGeometry;
-  private dropLineGeometries: THREE.BufferGeometry[] = [];
-  private positions: Float32Array = new Float32Array();
   private surfaceKeys: KeyResult[] = [];
   private innerBorderPoints: Array<[number, number]> = [];
   private outerBorderPoints: Array<[number, number]> = [];
@@ -44,7 +61,6 @@ export class Surface3DManager {
   private height: number;
   private dist: number;
 
-  // Animation state
   public animState = {
     elevationScale: 0,
     camX: 0,
@@ -72,14 +88,11 @@ export class Surface3DManager {
   private isActivated: boolean = false;
   private isDisposed: boolean = false;
 
-  // Callback for updating HUD labels
-  public onUpdateHUD?: (
-    surfaceKeys: KeyResult[],
-    elevationScale: number,
-    camera: THREE.Camera,
+  public onLabelsUpdate?: (
+    labels: SurfaceLabelProjection[],
     opacity: number,
-    width: number,
-    height: number,
+    anchorX: number,
+    anchorY: number,
   ) => void;
 
   constructor(container: HTMLElement, width: number, height: number) {
@@ -88,8 +101,8 @@ export class Surface3DManager {
     this.height = height;
 
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x1e2024);
-    this.scene.fog = new THREE.FogExp2(0x1e2024, 0.001);
+    this.scene.background = new THREE.Color(CYL_COLORS.sceneBg);
+    this.scene.fog = new THREE.FogExp2(CYL_COLORS.sceneBg, 0.001);
 
     this.camera = new THREE.PerspectiveCamera(45, width / height, 1, 3000);
 
@@ -108,24 +121,27 @@ export class Surface3DManager {
     });
     this.renderer.setSize(width, height);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.shadowMap.enabled = false;
     this.container.appendChild(this.renderer.domElement);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    const ambientLight = new THREE.AmbientLight(0x1a1d24, 1.5);
     this.scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0x4dc6e8, 2.5);
-    directionalLight.position.set(100, 200, 50);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    directionalLight.position.set(150, 300, 100);
     this.scene.add(directionalLight);
 
-    const directionalLight2 = new THREE.DirectionalLight(0xffffff, 1.2);
-    directionalLight2.position.set(-100, 150, -50);
+    const directionalLight2 = new THREE.DirectionalLight(0x4dc6e8, 0.6);
+    directionalLight2.position.set(-150, 200, -100);
     this.scene.add(directionalLight2);
 
-    const gridHelper = new THREE.GridHelper(1000, 40, 0x323640, 0x262930);
+    const gridHelper = new THREE.GridHelper(1000, 20, 0x323640, 0x262930);
     gridHelper.position.y = -10;
-    this.scene.add(gridHelper);
+    gridHelper.renderOrder = -2;
+    this.floorGroup.add(gridHelper);
+    this.floorGroup.renderOrder = -2;
+    this.scene.add(this.floorGroup);
 
-    this.geometry = new THREE.BufferGeometry();
     this.innerBorderPoints = _innerBorderPoints;
     this.outerBorderPoints = _outerBorderPoints;
 
@@ -134,6 +150,7 @@ export class Surface3DManager {
     this.controls.dampingFactor = 0.05;
     this.controls.rotateSpeed = 1.2;
     this.controls.zoomSpeed = 1.2;
+    this.controls.enablePan = false;
     this.controls.panSpeed = 1.2;
     this.controls.maxPolarAngle = Math.PI / 2 - 0.05;
 
@@ -148,11 +165,37 @@ export class Surface3DManager {
     this.reqId = requestAnimationFrame(this.renderLoop);
   }
 
-  /** Disable all user interactions (rotation, zoom, pan). Used on landing page. */
   public lockControls(): void {
     this.controls.enableRotate = false;
     this.controls.enableZoom = false;
     this.controls.enablePan = false;
+  }
+
+  private disposeObject3D(obj: THREE.Object3D): void {
+    obj.traverse((child) => {
+      if (
+        child instanceof THREE.Mesh ||
+        child instanceof THREE.Line ||
+        child instanceof THREE.LineSegments
+      ) {
+        child.geometry?.dispose();
+        if (child.material) {
+          if (Array.isArray(child.material)) {
+            child.material.forEach((m) => m.dispose());
+          } else {
+            child.material.dispose();
+          }
+        }
+      }
+    });
+  }
+
+  private clearSurfaceGroup(): void {
+    while (this.surfaceGroup.children.length > 0) {
+      const child = this.surfaceGroup.children[0];
+      this.surfaceGroup.remove(child);
+      this.disposeObject3D(child);
+    }
   }
 
   public updateData(keyStats: Record<string, KeyResult>) {
@@ -160,105 +203,65 @@ export class Surface3DManager {
     this.surfaceKeys = keyArray.filter((k) => IS_SURFACE_KEY(k.key));
     if (this.surfaceKeys.length === 0) return;
 
-    // Compute dynamic range (excluding dummy key)
-    const activeKeysForRange = this.surfaceKeys.filter(
-      (k) => k.key.toLowerCase() !== "_dummy_comma",
-    );
-    const zValues = activeKeysForRange.map((k) => k.zSmoothed);
-    this.minZ = zValues.length > 0 ? Math.min(...zValues) : 0;
-    this.maxZ = zValues.length > 0 ? Math.max(...zValues) : 1;
-    this.zRange = this.maxZ - this.minZ;
+    const range = computeZRange(this.surfaceKeys);
+    this.minZ = range.minZ;
+    this.maxZ = range.maxZ;
+    this.zRange = range.zRange;
+
+    this.clearSurfaceGroup();
 
     const N = this.surfaceKeys.length;
     const M1 = this.innerBorderPoints.length;
     const M2 = this.outerBorderPoints.length;
     const totalVertices = N + M1 + M2;
 
-    this.positions = new Float32Array(totalVertices * 3);
+    const positions = new Float32Array(totalVertices * 3);
     const colors = new Float32Array(totalVertices * 3);
 
-    // Clear previous meshes inside the group
-    this.surfaceGroup.clear();
-    this.scene.children = this.scene.children.filter(
-      (c) => c instanceof THREE.Light || c instanceof THREE.GridHelper || c === this.surfaceGroup,
-    );
-
-    this.dropLineGeometries = [];
-
-    const tempColor = new THREE.Color();
     const maxConfidence =
       this.surfaceKeys.length > 0 ? Math.max(...this.surfaceKeys.map((k) => k.confidence), 1) : 1;
 
-    // Define a neutral, slightly faded blue base for boundaries
-    const boundaryColor = new THREE.Color().setHSL(227 / 360, 0.4, 0.3);
+    const boundaryColor = new THREE.Color().setHSL(227 / 360, 0.35, 0.28);
+    const topPositions = new Map<string, THREE.Vector3>();
 
-    const TARGET_ELEVATION_SCALE = 180;
-
-    // Recreate geometry and materials
-    // 1. Fill active key positions and colors (build at full target elevation)
     this.surfaceKeys.forEach((k, i) => {
       const pos = this.get3DPos(k, TARGET_ELEVATION_SCALE);
-      this.positions[i * 3] = pos.x;
-      this.positions[i * 3 + 1] = pos.y;
-      this.positions[i * 3 + 2] = pos.z;
+      topPositions.set(k.key.toLowerCase(), pos.clone());
+      positions[i * 3] = pos.x;
+      positions[i * 3 + 1] = pos.y;
+      positions[i * 3 + 2] = pos.z;
 
-      const isDummy = k.key.toLowerCase() === "_dummy_comma";
-      const relativeZ = isDummy
-        ? 0
-        : this.zRange > 0
-          ? (k.zSmoothed - this.minZ) / this.zRange
-          : 0.5;
-      const amplifiedZ = Math.pow(relativeZ, LATENCY_POWER);
+      const { relativeZ } = getRelativeZ(k, this.minZ, this.zRange);
       const normConf = maxConfidence > 0 ? Math.sqrt(k.confidence / maxConfidence) : 0;
-
-      // Hue: 227 (Blue) -> 345 (Magenta/Red)
-      const hueStart = 227 / 360;
-      const hueEnd = 345 / 360;
-      const h = hueStart + (hueEnd - hueStart) * amplifiedZ;
-
-      // Saturation: High confidence = 1.0 (vibrant), Low confidence = 0.2 (faded)
-      const s = 0.2 + 0.8 * normConf;
-
-      // Lightness: High confidence = 0.6 (bright), Low confidence = 0.25 (dark)
-      const l = 0.25 + 0.35 * normConf;
-
-      tempColor.setHSL(h, s, l);
-      colors[i * 3] = tempColor.r;
-      colors[i * 3 + 1] = tempColor.g;
-      colors[i * 3 + 2] = tempColor.b;
+      const col = surfaceVertexColor(relativeZ, normConf);
+      colors[i * 3] = col.r;
+      colors[i * 3 + 1] = col.g;
+      colors[i * 3 + 2] = col.b;
     });
 
-    // 2. Fill inner boundary positions and colors (always y = 0, neutral color)
     this.innerBorderPoints.forEach((bp, i) => {
       const idx = (N + i) * 3;
-      this.positions[idx] = bp[0];
-      this.positions[idx + 1] = 0;
-      this.positions[idx + 2] = bp[1];
-
+      positions[idx] = bp[0];
+      positions[idx + 1] = 0;
+      positions[idx + 2] = bp[1];
       colors[idx] = boundaryColor.r;
       colors[idx + 1] = boundaryColor.g;
       colors[idx + 2] = boundaryColor.b;
     });
 
-    // 3. Fill outer boundary positions and colors (always y = 0, neutral color)
     this.outerBorderPoints.forEach((bp, i) => {
       const idx = (N + M1 + i) * 3;
-      this.positions[idx] = bp[0];
-      this.positions[idx + 1] = 0;
-      this.positions[idx + 2] = bp[1];
-
+      positions[idx] = bp[0];
+      positions[idx + 1] = 0;
+      positions[idx + 2] = bp[1];
       colors[idx] = boundaryColor.r;
       colors[idx + 1] = boundaryColor.g;
       colors[idx + 2] = boundaryColor.b;
     });
 
-    this.geometry = new THREE.BufferGeometry();
-    this.geometry.setAttribute("position", new THREE.BufferAttribute(this.positions, 3));
-    this.geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
-
+    let indices: number[] = [];
     if (N >= 3) {
       const points: Array<[number, number]> = [];
-      // Add active keys
       this.surfaceKeys.forEach((k) => {
         const layout = KEY_LAYOUT[k.key.toLowerCase()];
         if (layout) {
@@ -269,126 +272,99 @@ export class Surface3DManager {
           points.push([x, z]);
         }
       });
-      // Add inner boundary points
-      this.innerBorderPoints.forEach((bp) => {
-        points.push([bp[0], bp[1]]);
-      });
-      // Add outer boundary points
-      this.outerBorderPoints.forEach((bp) => {
-        points.push([bp[0], bp[1]]);
-      });
-
-      const delaunay = Delaunay.from(points);
-      this.geometry.setIndex(Array.from(delaunay.triangles));
-      this.geometry.computeVertexNormals();
+      this.innerBorderPoints.forEach((bp) => points.push([bp[0], bp[1]]));
+      this.outerBorderPoints.forEach((bp) => points.push([bp[0], bp[1]]));
+      indices = Array.from(Delaunay.from(points).triangles);
     }
 
-    // Material Selection: lightweight StandardMaterial for landing, PhysicalMaterial for workspace
-    const surfaceMaterial = this.isLanding
-      ? new THREE.MeshStandardMaterial({
-          vertexColors: true,
-          metalness: 0.2,
-          roughness: 0.4,
-          transparent: true,
-          opacity: 0.85,
-          side: THREE.DoubleSide,
-        })
-      : new THREE.MeshPhysicalMaterial({
-          vertexColors: true,
-          metalness: 0.1,
-          roughness: 0.2,
-          transmission: 0.6,
-          thickness: 1.5,
-          transparent: true,
-          opacity: 0.85,
-          side: THREE.DoubleSide,
-          clearcoat: 0.5,
-          clearcoatRoughness: 0.1,
-        });
-    surfaceMaterial.userData = { baseOpacity: 0.85 };
+    let meshPositions: Float32Array = positions;
+    let meshColors: Float32Array = colors;
+    if (indices.length >= 3) {
+      const subdivided = subdivideSurfaceMesh(positions, colors, indices);
+      meshPositions = subdivided.positions;
+      meshColors = subdivided.colors;
+      indices = subdivided.indices;
+    }
 
-    const mesh = new THREE.Mesh(this.geometry, surfaceMaterial);
-    this.surfaceGroup.add(mesh);
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.BufferAttribute(meshPositions, 3));
+    geometry.setAttribute("color", new THREE.BufferAttribute(meshColors, 3));
+    if (indices.length > 0) {
+      const IndexArray = indices.length > 65535 ? Uint32Array : Uint16Array;
+      geometry.setIndex(Array.from(new IndexArray(indices)));
+      geometry.computeVertexNormals();
+    }
 
-    const wireframeMaterial = new THREE.MeshBasicMaterial({
-      color: 0x6dd4f0,
-      wireframe: true,
-      transparent: true,
-      opacity: 0.4,
-    });
-    wireframeMaterial.userData = { baseOpacity: 0.4 };
-
-    const wireframeMesh = new THREE.Mesh(this.geometry, wireframeMaterial);
-    wireframeMesh.position.y += 0.1;
-    this.surfaceGroup.add(wireframeMesh);
-
-    const lineMaterial = new THREE.LineBasicMaterial({
+    const surfaceOpacity = this.isLanding ? 0.60 : 0.42;
+    const surfaceMaterial = new THREE.MeshPhongMaterial({
       vertexColors: true,
       transparent: true,
-      opacity: 0.5,
+      opacity: surfaceOpacity,
+      side: THREE.FrontSide,
+      shininess: 20,
+      specular: new THREE.Color(0x4dc6e8),
+      emissive: new THREE.Color(0x122e3f),
+      flatShading: false,
+      depthWrite: true,
     });
-    lineMaterial.userData = { baseOpacity: 0.5 };
+    surfaceMaterial.userData = { baseOpacity: surfaceOpacity };
 
-    const keycapMaterial = new THREE.MeshStandardMaterial({
-      color: 0x323640,
-      roughness: 0.6,
-      metalness: 0.2,
+    const mesh = new THREE.Mesh(geometry, surfaceMaterial);
+    mesh.renderOrder = 1;
+    this.surfaceGroup.add(mesh);
+
+    // Holographic wireframe grid overlay
+    const wireframeMaterial = new THREE.MeshBasicMaterial({
+      color: new THREE.Color(0x4dc6e8),
+      wireframe: true,
+      transparent: true,
+      opacity: 0.12,
+      depthWrite: false,
     });
+    wireframeMaterial.userData = { baseOpacity: 0.12 };
 
-    this.surfaceKeys.forEach((k) => {
-      const pTop = this.get3DPos(k, TARGET_ELEVATION_SCALE);
-      const pBase = new THREE.Vector3(pTop.x, 0, pTop.z);
-      const lineGeom = new THREE.BufferGeometry().setFromPoints([pTop, pBase]);
+    const wireframeMesh = new THREE.Mesh(geometry, wireframeMaterial);
+    wireframeMesh.renderOrder = 2;
+    this.surfaceGroup.add(wireframeMesh);
 
-      // Calculate key-specific HSL color to match the node
-      const isDummy = k.key.toLowerCase() === "_dummy_comma";
-      const relativeZ = isDummy
-        ? 0
-        : this.zRange > 0
-          ? (k.zSmoothed - this.minZ) / this.zRange
-          : 0.5;
-      const amplifiedZ = Math.pow(relativeZ, LATENCY_POWER);
-      const normConf = maxConfidence > 0 ? Math.sqrt(k.confidence / maxConfidence) : 0;
+    const borderPoints = buildInnerBorderLinePoints(this.innerBorderPoints);
+    if (borderPoints.length > 1) {
+      const borderGeom = new THREE.BufferGeometry().setFromPoints(borderPoints);
+      const borderMat = new THREE.LineBasicMaterial({
+        color: SURFACE_BORDER_COLOR,
+        transparent: true,
+        opacity: 0.55,
+        depthWrite: false,
+      });
+      borderMat.userData = { baseOpacity: 0.55 };
+      const borderLine = new THREE.Line(borderGeom, borderMat);
+      borderLine.renderOrder = 1;
+      this.surfaceGroup.add(borderLine);
+    }
 
-      const hueStart = 227 / 360;
-      const hueEnd = 345 / 360;
-      const h = hueStart + (hueEnd - hueStart) * amplifiedZ;
-      const s = 0.2 + 0.8 * normConf;
-      const l = 0.25 + 0.35 * normConf;
+    const dropLines = buildMergedDropLines(
+      this.surfaceKeys,
+      topPositions,
+      this.minZ,
+      this.zRange,
+      maxConfidence,
+    );
+    if (dropLines) {
+      const dropGeom = new THREE.BufferGeometry();
+      dropGeom.setAttribute("position", new THREE.BufferAttribute(dropLines.positions, 3));
+      dropGeom.setAttribute("color", new THREE.BufferAttribute(dropLines.colors, 3));
+      const dropMat = new THREE.LineBasicMaterial({
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.45,
+        depthWrite: false,
+      });
+      dropMat.userData = { baseOpacity: 0.45 };
+      const dropMesh = new THREE.LineSegments(dropGeom, dropMat);
+      dropMesh.renderOrder = 0;
+      this.surfaceGroup.add(dropMesh);
+    }
 
-      const col = new THREE.Color().setHSL(h, s, l);
-      const lineColors = new Float32Array([
-        col.r,
-        col.g,
-        col.b, // top point
-        col.r,
-        col.g,
-        col.b, // bottom point
-      ]);
-      lineGeom.setAttribute("color", new THREE.BufferAttribute(lineColors, 3));
-
-      const line = new THREE.Line(lineGeom, lineMaterial);
-      if (k.key !== "_dummy_comma") {
-        this.surfaceGroup.add(line);
-      }
-      this.dropLineGeometries.push(lineGeom);
-    });
-
-    this.surfaceKeys.forEach((k) => {
-      if (k.key === "_dummy_comma") return;
-      const layout = KEY_LAYOUT[k.key.toLowerCase()];
-      if (!layout) return;
-
-      const boxW = layout.w - SURFACE_GAP * SURFACE_SCALE;
-      const boxD = layout.h - SURFACE_GAP * SURFACE_SCALE;
-      const boxGeom = new THREE.BoxGeometry(boxW, 10, boxD);
-      const boxMesh = new THREE.Mesh(boxGeom, keycapMaterial);
-      // y=0 is the top of the keycaps (base level), so center y at -5
-      boxMesh.position.set(layout.x, -5, layout.z);
-      this.scene.add(boxMesh);
-    });
-
-    // Apply current animState to geometry
     this.applyAnimState(false);
   }
 
@@ -400,19 +376,23 @@ export class Surface3DManager {
     const keyName = k.key.toLowerCase();
     const layout = KEY_LAYOUT[keyName];
 
+    const { amplifiedZ } = getRelativeZ(k, this.minZ, this.zRange);
     const isDummy = keyName === "_dummy_comma";
-    const relativeZ = isDummy ? 0 : this.zRange > 0 ? (k.zSmoothed - this.minZ) / this.zRange : 0.5;
-    const amplifiedZ = Math.pow(relativeZ, LATENCY_POWER);
     const keyElevation = isDummy ? 0 : (0.15 + amplifiedZ) * elevationScale;
 
     if (layout) {
       return new THREE.Vector3(layout.x, keyElevation, layout.z);
     }
 
-    // Fallback: apply same transformation as KEY_LAYOUT
     const x = (k.x - centerX) * SURFACE_SCALE;
     const z = ((2.0 - k.y) * (1 + SURFACE_GAP) - centerZ) * SURFACE_SCALE;
     return new THREE.Vector3(x, keyElevation, z);
+  }
+
+  public getLabelWorldPos(k: KeyResult, elevationScale: number): THREE.Vector3 {
+    const local = this.get3DPos(k, TARGET_ELEVATION_SCALE);
+    const scaleY = elevationScale / TARGET_ELEVATION_SCALE;
+    return new THREE.Vector3(local.x, SURFACE_Y_OFFSET + local.y * scaleY, local.z);
   }
 
   public resize(w: number, h: number): void {
@@ -421,6 +401,7 @@ export class Surface3DManager {
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h);
+    this.needsRender = true;
   }
 
   public setActivated(activated: boolean) {
@@ -433,27 +414,24 @@ export class Surface3DManager {
     }
 
     if (activated) {
-      // 1. Set warp close-up starting state
       this.animState.elevationScale = 0;
       this.animState.opacity = 0;
 
       if (this.isLanding) {
-        // Option A: Dynamic cinematic angle - starting from side and back
         this.animState.camX = 600;
         this.animState.camY = 150;
         this.animState.camZ = -600;
         this.animState.fov = 60;
       } else {
         this.animState.camX = 0;
-        this.animState.camY = 250; // Raised from 80 to prevent clipping
-        this.animState.camZ = -500; // Pushed back from -350
-        this.animState.fov = 60; // Moderated from 75 for comfortable perspective
+        this.animState.camY = 250;
+        this.animState.camZ = -500;
+        this.animState.fov = 60;
       }
 
       this.applyAnimState(true);
       this.controls.enabled = false;
 
-      // Defer transition by 1 frame to let Three.js load/render initial frames smoothly
       requestAnimationFrame(() => {
         if (this.isDisposed || !this.isActivated) return;
 
@@ -469,22 +447,18 @@ export class Surface3DManager {
           },
         });
 
-        const TARGET_ELEVATION_SCALE = 180;
-
         let targetCamX = 0;
         let targetCamY = 480;
         let targetCamZ = 480;
         let duration = 0.8;
 
         if (this.isLanding) {
-          // Option A Target: isometric perspective angle (x: 400, y: 350, z: 400), 1.2s smooth ease
           targetCamX = 400;
           targetCamY = 350;
           targetCamZ = 400;
           duration = 1.2;
         }
 
-        // 2. Cinematic dive transition (0.8s or 1.2s) - smooth power2.out
         this.timeline.to(
           this.animState,
           {
@@ -492,20 +466,19 @@ export class Surface3DManager {
             camY: targetCamY,
             camZ: targetCamZ,
             fov: 45,
-            duration: duration,
+            duration,
             ease: "power2.out",
           },
           0,
         );
 
-        // 3. Elastic mesh rise (starts at 0.15s, finishes at 0.65s)
         this.timeline.to(
           this.animState,
           {
             elevationScale: TARGET_ELEVATION_SCALE,
             opacity: 1,
             duration: 0.5,
-            ease: "back.out(1.2)", // Gentler bounce
+            ease: "back.out(1.2)",
           },
           0.15,
         );
@@ -515,7 +488,6 @@ export class Surface3DManager {
         });
       });
     } else {
-      // Reset immediately
       this.animState.elevationScale = 0;
       this.animState.camX = 0;
       this.animState.camY = this.dist;
@@ -535,24 +507,21 @@ export class Surface3DManager {
     }
 
     if (this.surfaceGroup) {
-      const TARGET_ELEVATION_SCALE = 180;
       const scaleY = this.animState.elevationScale / TARGET_ELEVATION_SCALE;
       this.surfaceGroup.scale.set(1, scaleY, 1);
 
-      // Traversal for smooth opacity transition based on baseOpacity in userData
       this.surfaceGroup.traverse((child) => {
-        if (child instanceof THREE.Mesh || child instanceof THREE.Line) {
+        if (
+          child instanceof THREE.Mesh ||
+          child instanceof THREE.Line ||
+          child instanceof THREE.LineSegments
+        ) {
           const mat = child.material;
-          if (mat) {
-            if (Array.isArray(mat)) {
-              mat.forEach((m) => {
-                m.transparent = true;
-                m.opacity = this.animState.opacity * (m.userData.baseOpacity ?? 0.85);
-              });
-            } else {
-              mat.transparent = true;
-              mat.opacity = this.animState.opacity * (mat.userData.baseOpacity ?? 0.85);
-            }
+          if (!mat) return;
+          const materials = Array.isArray(mat) ? mat : [mat];
+          for (const m of materials) {
+            m.transparent = true;
+            m.opacity = this.animState.opacity * (m.userData.baseOpacity ?? 0.62);
           }
         }
       });
@@ -561,16 +530,36 @@ export class Surface3DManager {
     this.needsRender = true;
   }
 
+  private projectLabels(): SurfaceLabelProjection[] {
+    const wh = this.width / 2;
+    const hh = this.height / 2;
+    const labels: SurfaceLabelProjection[] = [];
+
+    for (const k of this.surfaceKeys) {
+      if (k.key.toLowerCase() === "_dummy_comma") continue;
+
+      const world = this.getLabelWorldPos(k, this.animState.elevationScale);
+      const projected = world.project(this.camera);
+      labels.push({
+        key: k.key,
+        x: projected.x * wh + wh,
+        y: -projected.y * hh + hh,
+        visible: projected.z <= 1,
+      });
+    }
+
+    return labels;
+  }
+
   private renderLoop() {
     if (this.isDisposed) return;
     this.reqId = requestAnimationFrame(this.renderLoop);
 
-    // Only update orbit controls if entrance is done
-    if (this.timeline && !this.timeline.isActive() && this.isActivated) {
-      this.controls.update();
-    }
+    const timelineActive = this.timeline?.isActive() ?? false;
+    const controlsActive = this.isActivated && !timelineActive && this.controls.enabled;
+    const controlsChanged = controlsActive ? this.controls.update() : false;
 
-    if (this.timeline && this.timeline.isActive()) {
+    if (timelineActive || controlsChanged) {
       this.needsRender = true;
     }
 
@@ -578,14 +567,15 @@ export class Surface3DManager {
 
     this.renderer.render(this.scene, this.camera);
 
-    if (this.onUpdateHUD) {
-      this.onUpdateHUD(
-        this.surfaceKeys,
-        this.animState.elevationScale,
-        this.camera,
+    if (this.onLabelsUpdate) {
+      const wh = this.width / 2;
+      const hh = this.height / 2;
+      const anchor = new THREE.Vector3(0, SURFACE_Y_OFFSET, 0).project(this.camera);
+      this.onLabelsUpdate(
+        this.projectLabels(),
         this.animState.opacity,
-        this.width,
-        this.height,
+        anchor.x * wh + wh,
+        -anchor.y * hh + hh,
       );
     }
 
@@ -594,12 +584,13 @@ export class Surface3DManager {
 
   public dispose() {
     this.isDisposed = true;
-    this.onUpdateHUD = undefined;
+    this.onLabelsUpdate = undefined;
     cancelAnimationFrame(this.reqId);
     if (this.timeline) {
       this.timeline.kill();
       this.timeline = null;
     }
+    this.clearSurfaceGroup();
     this.controls.dispose();
     if (this.container.contains(this.renderer.domElement)) {
       this.container.removeChild(this.renderer.domElement);

@@ -35,22 +35,45 @@ describe("useDiagnosticsTransition", () => {
       const action = urlObj.searchParams.get("action");
       const runId = urlObj.searchParams.get("runId");
 
-      if (action === "analysis" && runId) {
-        const pages = await db.getPagesForRun(runId);
+      if (action === "analysis") {
         let events: any[] = [];
-        if (pages.length > 0) {
-          const keyEventsByPage = await Promise.all(pages.map((p) => db.getKeyEventsForPage(p.id)));
-          events = keyEventsByPage.flatMap((pageEvents) =>
-            pageEvents.map((ev) => ({
-              fromKey: ev.fromKey,
-              toKey: ev.toKey,
-              latencyMs: ev.latency,
-              keyChar: ev.keyChar || undefined,
-              holdDurationMs: ev.holdDurationMs,
-              isCorrect: ev.isCorrect,
-              expectedChar: ev.expectedChar,
-            })),
-          );
+        if (runId && runId !== "all") {
+          const pages = await db.getPagesForRun(runId);
+          if (pages.length > 0) {
+            const keyEventsByPage = await Promise.all(pages.map((p) => db.getKeyEventsForPage(p.id)));
+            events = keyEventsByPage.flatMap((pageEvents) =>
+              pageEvents.map((ev) => ({
+                fromKey: ev.fromKey,
+                toKey: ev.toKey,
+                latencyMs: ev.latency,
+                keyChar: ev.keyChar || undefined,
+                holdDurationMs: ev.holdDurationMs,
+                isCorrect: ev.isCorrect,
+                expectedChar: ev.expectedChar,
+              })),
+            );
+          }
+        } else {
+          // Query events from all runs to mock user-wide events fetch
+          const allRuns = await db.getAllRuns();
+          const allEvents: any[] = [];
+          for (const run of allRuns) {
+            const pages = await db.getPagesForRun(run.id);
+            const keyEventsByPage = await Promise.all(pages.map((p) => db.getKeyEventsForPage(p.id)));
+            const evs = keyEventsByPage.flatMap((pageEvents) =>
+              pageEvents.map((ev) => ({
+                fromKey: ev.fromKey,
+                toKey: ev.toKey,
+                latencyMs: ev.latency,
+                keyChar: ev.keyChar || undefined,
+                holdDurationMs: ev.holdDurationMs,
+                isCorrect: ev.isCorrect,
+                expectedChar: ev.expectedChar,
+              })),
+            );
+            allEvents.push(...evs);
+          }
+          events = allEvents;
         }
         return {
           ok: true,

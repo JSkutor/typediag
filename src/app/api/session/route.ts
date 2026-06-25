@@ -102,32 +102,41 @@ export async function GET(request: NextRequest) {
 
     if (action === "analysis") {
       const runId = searchParams.get("runId");
-      if (!runId) {
-        return NextResponse.json({ error: "Missing runId" }, { status: 400 });
-      }
-
-      const run = await db.getRun(runId);
-      if (!run || run.userId !== dbUserId) {
-        return NextResponse.json({ error: "Unauthorized or Run not found" }, { status: 403 });
-      }
-
-      const pages = await db.getPagesForRun(runId);
       let eventsToAnalyze: KeyEvent[] = [];
 
-      if (pages.length > 0) {
-        const keyEventsByPage = await Promise.all(pages.map((p) => db.getKeyEventsForPage(p.id)));
+      if (runId && runId !== "all") {
+        const run = await db.getRun(runId);
+        if (!run || run.userId !== dbUserId) {
+          return NextResponse.json({ error: "Unauthorized or Run not found" }, { status: 403 });
+        }
 
-        eventsToAnalyze = keyEventsByPage.flatMap((pageEvents) =>
-          pageEvents.map((ev) => ({
-            fromKey: ev.fromKey,
-            toKey: ev.toKey,
-            latencyMs: ev.latency,
-            keyChar: ev.keyChar || undefined,
-            holdDurationMs: ev.holdDurationMs,
-            isCorrect: ev.isCorrect,
-            expectedChar: ev.expectedChar,
-          })),
-        );
+        const pages = await db.getPagesForRun(runId);
+        if (pages.length > 0) {
+          const keyEventsByPage = await Promise.all(pages.map((p) => db.getKeyEventsForPage(p.id)));
+
+          eventsToAnalyze = keyEventsByPage.flatMap((pageEvents) =>
+            pageEvents.map((ev) => ({
+              fromKey: ev.fromKey,
+              toKey: ev.toKey,
+              latencyMs: ev.latency,
+              keyChar: ev.keyChar || undefined,
+              holdDurationMs: ev.holdDurationMs,
+              isCorrect: ev.isCorrect,
+              expectedChar: ev.expectedChar,
+            })),
+          );
+        }
+      } else {
+        const userEvents = await db.getKeyEventsForUser(dbUserId);
+        eventsToAnalyze = userEvents.map((ev) => ({
+          fromKey: ev.fromKey,
+          toKey: ev.toKey,
+          latencyMs: ev.latency,
+          keyChar: ev.keyChar || undefined,
+          holdDurationMs: ev.holdDurationMs,
+          isCorrect: ev.isCorrect,
+          expectedChar: ev.expectedChar,
+        }));
       }
 
       return NextResponse.json(withGuestToken({ events: eventsToAnalyze }, issueGuestToken));

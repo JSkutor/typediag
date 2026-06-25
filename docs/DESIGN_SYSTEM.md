@@ -15,16 +15,16 @@
 
 ### 2.2. Typography
 
-- `--text-primary`: **`#8ca6b5`** (기본 텍스트 - 눈이 편안한 실버 블루 그레이 톤)
-- `--text-secondary`: **`#5e697a`** (보조 텍스트 - 부연 설명, 메타 정보 등)
-- `--text-muted`: **`#4a5360`** (더 낮은 대비의 보조 텍스트)
+- `--text-primary`: **`#d0deeb`** (기본 텍스트 - 가독성이 대폭 개선된 밝은 코발트 실버 블루 그레이)
+- `--text-secondary`: **`#8ca6b5`** (보조 텍스트 - 부연 설명, 메타 정보 등)
+- `--text-muted`: **`#73869c`** (더 낮은 대비의 보조 텍스트)
 
 ### 2.3. Keycap (Virtual Keyboard)
 
 - `--keycap-face` / `--key-alpha-bg`: **`#323640`** (입력창 및 버튼/일반 문자 키 배경)
-- `--key-alpha-text`: **`#8ca6b5`** (일반 문자 키 텍스트)
+- `--key-alpha-text`: **`#d0deeb`** (일반 문자 키 텍스트)
 - `--key-mod-bg`: **`#262930`** (특수/기능 키 배경)
-- `--key-mod-text`: **`#5e697a`** (특수/기능 키 텍스트)
+- `--key-mod-text`: **`#8ca6b5`** (특수/기능 키 텍스트)
 
 ### 2.4. Accents & Highlights
 

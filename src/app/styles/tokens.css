@@ -22,9 +22,9 @@
   --border-color: var(--border-subtle);
 
   /* Text */
-  --text-primary: #8ca6b5;
-  --text-secondary: #5e697a;
-  --text-muted: #4a5360;
+  --text-primary: #d0deeb;
+  --text-secondary: #8ca6b5;
+  --text-muted: #73869c;
   --text-inverse: #1e2024;
 
   /* Accent */

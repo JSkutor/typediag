@@ -253,20 +253,22 @@ vz = normR × CYLINDRICAL_MAX_RADIUS × sin(θ)
 2. `relativeZ = (zSmoothed - minZ) / zRange` (dummy는 0)
 3. `amplifiedZ = relativeZ ** LATENCY_POWER` (`LATENCY_POWER = 1.3`)
 4. Y 높이에 `amplifiedZ` 반영 (`get3DPos`)
-5. HSL:
-   - Hue: `227°` (빠름) → `345°` (느림), `amplifiedZ`에 비례
-   - `normConf = sqrt(confidence / maxConfidence)`
-   - Saturation: `0.2 + 0.8 × normConf`
-   - Lightness: `0.25 + 0.35 × normConf`
+5. 색상 (`surfaceVertexColor` — 꽃잎 `latencyVertexColor`와 동일 cyan 팔레트):
+   - `relativeZ ** LATENCY_POWER`로 fast cyan(`#6dd4f0`) → slow cyan(`#4dc6e8`) 보간
+   - `normConf = sqrt(confidence / maxConfidence)` — 낮은 confidence는 `multiplyScalar(0.35 + 0.65 × normConf)`로 dim
 
 **경계 정점**: inner/outer border는 `y = SURFACE_Y_OFFSET`, 고정 HSL `(227°, S=0.4, L=0.3)`.
 
-**Drop-line**: 각 키 정점 색과 동일한 vertex color로 수직 가이드 라인.
+**Drop-line**: `buildMergedDropLines` — 키별 `Line` 대신 단일 `LineSegments` draw call.
+
+**표면 스무딩**: Delaunay 후 `subdivideSurfaceMesh` 1패스 (삼각형 4분할 보간).
+
+**재질**: `MeshPhongMaterial`, `depthWrite: false`, wireframe 대신 inner border `Line` (`petalBorder` 색).
 
 ### 6.3. `LatencySurface3D`
 
 `Surface3DManager`를 `useThreeManager`로 마운트. `keyStats` 변경 시 `updateData` 호출.  
-HUD 라벨 Y 오프셋은 `zSmoothed ** LATENCY_POWER`를 별도 사용 (메시 정점 높이 계산과 분리).
+HUD는 `getLabelWorldPos` + `offsetHudLabelsFromAnchor`(키보드 중심 anchor)로 메시 정점과 동기화.
 
 ### 6.4. UI 흐름 (`DiagnosticsLayer`)
 

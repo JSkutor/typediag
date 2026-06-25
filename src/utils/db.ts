@@ -368,6 +368,31 @@ export const db = {
   },
 
   /**
+   * Get all key events for a specific user across all runs and pages.
+   */
+  async getKeyEventsForUser(userId: string) {
+    return drizzleDb
+      .select({
+        id: keyEvents.id,
+        pageId: keyEvents.pageId,
+        seq: keyEvents.seq,
+        fromKey: keyEvents.fromKey,
+        toKey: keyEvents.toKey,
+        keyChar: keyEvents.keyChar,
+        latency: keyEvents.latency,
+        holdDurationMs: keyEvents.holdDurationMs,
+        isCorrect: keyEvents.isCorrect,
+        expectedChar: keyEvents.expectedChar,
+        createdAt: keyEvents.createdAt,
+      })
+      .from(keyEvents)
+      .innerJoin(pages, eq(keyEvents.pageId, pages.id))
+      .innerJoin(runs, eq(pages.runId, runs.id))
+      .where(eq(runs.userId, userId))
+      .orderBy(runs.startedAt, pages.orderIndex, keyEvents.seq);
+  },
+
+  /**
    * Finalize a run by compiling metrics from all its pages.
    */
   async finalizeRun(runId: string, finishedAtStr?: string): Promise<Run | null> {
