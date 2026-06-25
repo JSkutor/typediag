@@ -53,9 +53,9 @@ flowchart TD
 
 **`DiagnosticsAccumulator`**: `correctByKey`, `pairCounts`, `keyStats`, `shiftLatencies`/`nonShiftLatencies`, `totalErrorStartsCount`, `perKey`.
 
-**`PerKeyAccumulator`**: `referenceLatencies`, `fingerCounts`, `outgoingSamples`, `errorInducementCount`, `lateKeystrokeCount`, `spatialErrors`.
+**`PerKeyAccumulator`**: `referenceLatencies`, `fingerCounts`, `outgoingSamples`, `errorInducementCount`, `lateKeystrokeCount`, `spatialErrors`, `contextualTypos` (3-Gram 누산).
 
-훅 반환: `focusKeyOptions`, `outcome`(분절회귀), `chartData`, `diagnostics`(`KeystrokeDiagnostics`).
+훅 반환: `focusKeyOptions`, `outcome`(분절회귀), `chartData`, `diagnostics`(`KeystrokeDiagnostics` — `fatalNgrams` 포함).
 
 ---
 
@@ -90,7 +90,7 @@ UI는 3열 그리드 (`cylindrical-visualizer.css`). SSOT: `CylindricalDiagnosti
 | :--- | :--- | :--- |
 | 공간적 오타 거리 | 정답↔실제 키 거리 Q1·Q2·Q3 궤도 | `spatialErrorDistance` |
 | Dwell · Flight (구름타법) | 롤오버 %, dwell/flight 바, 효과성 r | §3 |
-| N단계 전이 오타 패턴 | — | **미구현** |
+| N단계 전이 오타 패턴 | K₁✓ K₂✓ → focusKey, 오타율 >20%, 10회↑ | `fatalNgrams` (optional) · §4 |
 | 버스트 쌍 | — | **미구현** |
 
 신규 지표는 `buildDiagnosticsAccumulator` 루프에 수집 단계를 추가한 뒤 `finalizeKeystrokeDiagnostics`에서 소비합니다.
@@ -149,6 +149,119 @@ SSOT: 집계 `cylindricalStats.ts`, dev 산점도 `cloudTypingDev.ts`. 테스트
 
 ---
 
+## 4. Contextual 3-Gram — 치명적 오타 맥락
+
+Panel 3 **「치명적 3-Gram 오타 맥락」**. `finalizeKeystrokeDiagnostics`가 선택한 **focusKey**를 K₃로 두고, **연속 알파 스트림**에서 K₁·K₂가 모두 정타인 직후에 focusKey를 시도한 횟수·오타율을 집계합니다.
+
+### 한 줄 정의
+
+> **K₁(정타) → K₂(정타) → K₃(focusKey)** 연속 알파 3타마다 `total` +1. K₃ 오타면 `error` +1.
+
+인접 3-gram만 셉니다. 이벤트 전체에서 임의의 (i, j, k) 삼중 조합을 열거하지 않습니다.
+
+### 용어
+
+| 용어 | 정의 |
+| :--- | :--- |
+| **3-Gram 패턴** | `[K₁, K₂, focusKey]` — K₁·K₂ 정타 뒤 focusKey 시도 |
+| **K₁, K₂** | `window3Gram`에 쌓인 **직전 2연속 알파 `toKey`**. 각각 `isCorrect === true` 여야 집계 |
+| **K₃** | 현재 이벤트. 누산 시 `targetKey`로 해석 — 정타면 `toKey`, 오타면 `charToLayoutKey(expectedChar)` |
+| **focusKey** | UI·`finalizeKeystrokeDiagnostics` pivot. K₃의 `targetKey`와 같을 때만 해당 키의 `ngrams` Map에서 조회 |
+| **total** | K₃ **정타 + 오타** 모두 (focusKey 시도 1회) |
+| **error** | K₃ `isCorrect === false` 만 |
+| **오타율** | `error / total × 100` |
+| **치명적 맥락** | `total ≥ FATAL_NGRAM_MIN_SAMPLES` **그리고** `오타율 > FATAL_NGRAM_ERROR_RATE_THRESHOLD` |
+
+### 복잡도
+
+| 단계 | 시간 | 설명 |
+| :--- | :--- | :--- |
+| `buildDiagnosticsAccumulator` §10 | **O(N)** | events 1회 순회. `window3Gram` 길이 ≤ 2, 이벤트당 Map get/set 1회 |
+| `selectFatalNgrams` | **O(k log k)** | k = focusKey에 등장한 distinct `K₁→K₂` 패턴 수 (키보드 알파 조합 상한 ≪ N) |
+| 전체 | **O(N + k log k) ≈ O(N)** | O(N²)가 아님 — 과거 이벤트 쌍·삼중을 재탐색하지 않음 |
+
+1패스 누산 중 **모든** `targetKey`에 대해 `perKey[targetKey].contextualTypos.ngrams`를 갱신합니다. `focusKey` 변경 시 events 재순회 없이 `perKey.get(focusKey)`만 읽습니다 (`useCylindricalDiagnostics`).
+
+### 수집 알고리즘 (`buildDiagnosticsAccumulator` §10)
+
+전역 `window3Gram: { key, isCorrect }[]` (최대 길이 2)를 유지합니다.
+
+**이벤트당 처리 순서** (코드 순서와 동일):
+
+1. 현재 이벤트를 K₃로 보고, `window3Gram`의 K₁·K₂로 집계 (윈도우 갱신 **전**)
+2. 현재 이벤트 `toKey`로 `window3Gram` push 또는 clear
+
+```mermaid
+flowchart TD
+    E["event i (K₃ 후보)"]
+    E --> Q{"window3Gram: K₁✓ K₂✓?"}
+    Q -->|yes| T["resolve targetKey\n정타→toKey\n오타→charToLayoutKey(expectedChar)"]
+    T --> F{"targetKey alpha\n& not excluded?"}
+    F -->|yes| R["perKey[targetKey].ngrams[K₁→K₂]: total++\nerror++ if K₃✗"]
+    F -->|no| W
+    Q -->|no| W
+    R --> W{"toKey 연속 alpha?"}
+    W -->|yes| P["push {key, isCorrect}, shift(max 2)"]
+    W -->|no| X["window3Gram.length = 0"]
+```
+
+**K₃ `targetKey`**
+
+- `isCorrect === true` → `toKey`
+- `isCorrect === false` + `expectedChar` → `charToLayoutKey(expectedChar)`
+- 오타인데 `expectedChar` 없음 → 집계 안 함
+- `targetKey`가 `[a-zA-Z]`가 아니거나 제외키 → 집계 안 함
+
+**맥락 조건**
+
+1. `window3Gram.length ≥ 2`, K₁·K₂ 모두 `isCorrect === true`
+2. K₁→K₂→K₃ 사이에 비알파·제외 `toKey`가 없음 (연속 알파 스트림만 윈도우에 유지)
+
+**window 갱신** (집계 직후, 동일 이벤트)
+
+| 현재 `toKey` | 동작 |
+| :--- | :--- |
+| `[a-zA-Z]` 이고 `ACCUMULATOR_EXCLUDE_KEYS` 아님 | `{ key: toKey, isCorrect: isCorrect===true }` push, 길이 > 2면 shift |
+| 그 외 (space, backspace, enter, shift 등) | `window3Gram.length = 0` |
+
+제외키 (`ACCUMULATOR_EXCLUDE_KEYS`): `shift_l`, `shift_r`, `backspace`, `enter`.
+
+`backspace`·`enter`는 윈도우만 끊고, 그 이전에 이미 누적된 ngram 통계는 되돌리지 않습니다.
+
+### 예시 (focusKey = `k`)
+
+| 시퀀스 | `perKey[k].ngrams` | 비고 |
+| :--- | :--- | :--- |
+| `s✓ → d✓ → k✓` | `s→d`: total +1 | |
+| `s✓ → d✓ → k✗ (expected k)` | `s→d`: total +1, error +1 | 오타도 `targetKey=k`로 귀속 |
+| `s✗ → d✓ → k✗` | — | K₁ 오타 → 윈도우에 isCorrect=false, 집계 스킵 |
+| `s✓ → d✗ → k✗` | — | K₂ 오타 → 동일 |
+| `s✓ → d✓ → space → k✗` | — | space가 윈도우 초기화 |
+| `s✓ → d✓ → f✓ → backspace → s✓ → d✓ → k✗` | `s→d`: total +1, error +1 | backspace 이후 맥락은 새 3-gram |
+
+### focusKey 집계 (`finalizeKeystrokeDiagnostics`)
+
+`KeystrokeDiagnostics.fatalNgrams` ← `perKey.get(focusKey).contextualTypos.ngrams`.
+
+Map 키: `K₁→K₂` (문자열). 값: `{ total, error }`.
+
+`selectFatalNgrams(ngrams, focusKey)` (export, 단위 테스트 가능):
+
+1. `total >= FATAL_NGRAM_MIN_SAMPLES` (10)
+2. `errorRate > FATAL_NGRAM_ERROR_RATE_THRESHOLD` (20%) — **초과**, 20.0% 정확히는 제외
+3. 오타율 내림차순 → 동률이면 `total` 내림차순
+4. `{ sequence: [K₁, K₂, focusKey], errorRate, totalCount }[]` — **조건 통과 패턴 전부** (상위 1개만 아님)
+
+### UI (`CylindricalDiagnosticsPanel`)
+
+- `diagnostics.fatalNgrams.length > 0`일 때만 카드 렌더 (미달 시 Panel 3에서 숨김)
+- 각 패턴: `FatalNgramViz` — K₁→K₂→focusKey 키캡, 오타율, 총 진입 횟수
+- 카드 하단 설명에 `FATAL_NGRAM_ERROR_RATE_THRESHOLD`, `FATAL_NGRAM_MIN_SAMPLES` 상수 표기
+
+SSOT: `cylindricalStats.ts` (`FatalNgramEntry`, `buildDiagnosticsAccumulator` §10, `selectFatalNgrams`). 테스트: `fatalNgram.test.ts`.
+
+---
+
 ## 부록 · 상수
 
 | 상수 | 값 |
@@ -157,6 +270,8 @@ SSOT: 집계 `cylindricalStats.ts`, dev 산점도 `cloudTypingDev.ts`. 테스트
 | `CLOUD_TYPING_ND_MAX` | 0.25 |
 | `CLOUD_TYPING_MIN_SAMPLES` | 10 |
 | `CLOUD_TYPING_LEVEL_WEAK` / `MODERATE` / `STRONG` | 0.7 / 0.8 / 0.9 |
+| `FATAL_NGRAM_MIN_SAMPLES` | 10 |
+| `FATAL_NGRAM_ERROR_RATE_THRESHOLD` | 20 (%) |
 | `CLOUD_TYPING_CORRELATION_R_THRESHOLD` | 0.3 |
 | `CLOUD_TYPING_CORRELATION_P_THRESHOLD` | 0.05 |
 | `CLOUD_TYPING_CORRELATION_MIN_SAMPLES` | 5 |

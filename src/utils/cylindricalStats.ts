@@ -85,7 +85,19 @@ export interface KeystrokeDiagnostics {
     quartilesU: { q1: number; q2: number; q3: number };
     typoCounts: Record<string, number>;
   } | null;
+  fatalNgrams: FatalNgramEntry[];
 }
+
+export interface FatalNgramEntry {
+  sequence: string[];
+  errorRate: number;
+  totalCount: number;
+}
+
+/** 3-Gram 맥락 오타: 최소 진입 횟수 */
+export const FATAL_NGRAM_MIN_SAMPLES = 10;
+/** 3-Gram 맥락 오타: 오타율 하한(%) */
+export const FATAL_NGRAM_ERROR_RATE_THRESHOLD = 20;
 
 const LATENCY_CONSISTENCY_MIN_SAMPLES = 5;
 const LATENCY_HISTOGRAM_BINS = 12;
@@ -437,6 +449,9 @@ export interface PerKeyAccumulator {
     distancesU: number[];
     typoCounts: Record<string, number>;
   };
+  contextualTypos: {
+    ngrams: Map<string, { total: number; error: number }>;
+  };
 }
 
 /** 단일 O(N) 순회로 수집한 전역·키별 누산 데이터 */
@@ -481,6 +496,7 @@ function getOrCreatePerKey(
       errorInducementCount: 0,
       lateKeystrokeCount: 0,
       spatialErrors: { distancesU: [], typoCounts: {} },
+      contextualTypos: { ngrams: new Map() },
     };
     perKey.set(key, entry);
   }
@@ -501,6 +517,7 @@ export function buildDiagnosticsAccumulator(events: KeyEvent[]): DiagnosticsAccu
   let totalErrorStartsCount = 0;
   const shiftLatencies: number[] = [];
   const nonShiftLatencies: number[] = [];
+  const window3Gram: Array<{ key: string; isCorrect: boolean }> = [];
 
   const layout = buildLayout();
 
@@ -635,6 +652,35 @@ export function buildDiagnosticsAccumulator(events: KeyEvent[]): DiagnosticsAccu
         }
       }
     }
+
+    // 10. Contextual Typos (3-Gram)
+    // K₁·K₂ 정타 뒤 K₃(focusKey) 시도: total=정타+오타, error=오타만
+    if (window3Gram.length >= 2 && window3Gram[0].isCorrect && window3Gram[1].isCorrect) {
+      let targetKey: string | null = null;
+      if (event.isCorrect === true) {
+        targetKey = event.toKey;
+      } else if (event.isCorrect === false && event.expectedChar) {
+        targetKey = charToLayoutKey(event.expectedChar);
+      }
+
+      if (targetKey && ALPHA_KEY_REGEX.test(targetKey) && !ACCUMULATOR_EXCLUDE_KEYS.has(targetKey)) {
+        const seq = `${window3Gram[0].key}→${window3Gram[1].key}`;
+        const keyEntry = getOrCreatePerKey(perKey, targetKey);
+        const ngramMap = keyEntry.contextualTypos.ngrams;
+        const stat = ngramMap.get(seq) ?? { total: 0, error: 0 };
+        stat.total++;
+        if (event.isCorrect === false) stat.error++;
+        ngramMap.set(seq, stat);
+      }
+    }
+
+    if (event.toKey && ALPHA_KEY_REGEX.test(event.toKey) && !ACCUMULATOR_EXCLUDE_KEYS.has(event.toKey)) {
+      window3Gram.push({ key: event.toKey, isCorrect: event.isCorrect === true });
+      if (window3Gram.length > 2) window3Gram.shift();
+    } else {
+      // 알파벳이 아니거나 특수·제외 키가 끼면 연속 맥락 끊김
+      window3Gram.length = 0;
+    }
   }
 
   return {
@@ -687,6 +733,7 @@ export function finalizeKeystrokeDiagnostics(
     relativeSpeed: { speedDiffMs: 0, handMedianMs: 0 },
     latencyConsistency: null,
     spatialErrorDistance: null,
+    fatalNgrams: [],
   };
 
   if (!focusKey) return defaultDiagnostics;
@@ -771,6 +818,12 @@ export function finalizeKeystrokeDiagnostics(
     focusKey,
   );
 
+  // --- Contextual Typos (3-Gram) ---
+  const fatalNgrams =
+    keyEntry && keyEntry.contextualTypos.ngrams.size > 0
+      ? selectFatalNgrams(keyEntry.contextualTypos.ngrams, focusKey)
+      : [];
+
   // --- Reference transition 정답 기반 상세 통계 ---
   const latencies = keyEntry?.referenceLatencies ?? [];
 
@@ -788,6 +841,7 @@ export function finalizeKeystrokeDiagnostics(
       shiftPenalty,
       spatialErrorDistance,
       cloudTyping,
+      fatalNgrams,
     };
   }
 
@@ -864,7 +918,30 @@ export function finalizeKeystrokeDiagnostics(
     },
     latencyConsistency,
     spatialErrorDistance,
+    fatalNgrams,
   };
+}
+
+export function selectFatalNgrams(
+  ngrams: Map<string, { total: number; error: number }>,
+  focusKey: string,
+): FatalNgramEntry[] {
+  return Array.from(ngrams.entries())
+    .map(([seq, stat]) => ({
+      seq,
+      errorRate: stat.total > 0 ? (stat.error / stat.total) * 100 : 0,
+      total: stat.total,
+    }))
+    .filter(
+      (c) =>
+        c.total >= FATAL_NGRAM_MIN_SAMPLES && c.errorRate > FATAL_NGRAM_ERROR_RATE_THRESHOLD,
+    )
+    .sort((a, b) => b.errorRate - a.errorRate || b.total - a.total)
+    .map((top) => ({
+      sequence: [...top.seq.split("→"), focusKey],
+      errorRate: top.errorRate,
+      totalCount: top.total,
+    }));
 }
 
 export interface ChartData {

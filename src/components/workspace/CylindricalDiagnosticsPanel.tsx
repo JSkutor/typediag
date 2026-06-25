@@ -6,7 +6,14 @@ import { useCylindricalDiagnostics } from "@/hooks/useCylindricalDiagnostics";
 import { KEYBOARD_META } from "@/lib/skdm/keyboardMeta";
 import { type PiecewiseFitSuccess, type PiecewiseFitFailure } from "@/utils/piecewiseRegression";
 import { PIECEWISE_FAILURE_LABEL } from "@/lib/dev/piecewiseDev";
-import type { CloudTypingLevel, CloudTypingEffectiveness, KeystrokeDiagnostics } from "@/utils/cylindricalStats";
+import {
+  FATAL_NGRAM_ERROR_RATE_THRESHOLD,
+  FATAL_NGRAM_MIN_SAMPLES,
+  type CloudTypingLevel,
+  type CloudTypingEffectiveness,
+  type FatalNgramEntry,
+  type KeystrokeDiagnostics,
+} from "@/utils/cylindricalStats";
 import { SpatialErrorOrbitViz } from "@/components/workspace/SpatialErrorOrbitViz";
 
 interface CylindricalDiagnosticsPanelProps {
@@ -19,6 +26,48 @@ const KEY_LABEL: Record<string, string> = { space: "␣", ",": ",", ".": "." };
 
 function formatKey(key: string) {
   return KEY_LABEL[key] ?? key.toUpperCase();
+}
+
+function FatalNgramViz({ entry }: { entry: FatalNgramEntry }) {
+  return (
+    <div className="cyl-diag__ngram-entry">
+      <div
+        className="cyl-diag__ngram-viz"
+        style={{ display: "flex", alignItems: "center", gap: "6px", margin: "12px 0" }}
+      >
+        {entry.sequence.map((key, i, arr) => (
+          <React.Fragment key={i}>
+            <kbd
+              className="cyl-diag__ngram-key"
+              style={{
+                padding: "4px 8px",
+                borderRadius: "4px",
+                background:
+                  i === arr.length - 1
+                    ? "rgba(239, 68, 68, 0.1)"
+                    : "rgba(255, 255, 255, 0.05)",
+                border:
+                  i === arr.length - 1
+                    ? "1px solid rgba(239, 68, 68, 0.3)"
+                    : "1px solid rgba(255, 255, 255, 0.1)",
+                color: i === arr.length - 1 ? "var(--danger)" : "var(--text-primary)",
+                fontFamily: "var(--font-mono)",
+              }}
+            >
+              {formatKey(key)}
+            </kbd>
+            {i < arr.length - 1 && <span style={{ color: "var(--text-muted)" }}>→</span>}
+          </React.Fragment>
+        ))}
+      </div>
+      <div className="cyl-diag__optional-item" style={{ fontSize: "0.82rem", marginTop: "4px" }}>
+        <span className="cyl-diag__error-rate text-danger" style={{ fontWeight: 600 }}>
+          오타율 {entry.errorRate.toFixed(1)}%
+        </span>
+        <span className="cyl-diag__count"> (총 {entry.totalCount}회 진입)</span>
+      </div>
+    </div>
+  );
 }
 
 function isSuccess(
@@ -49,11 +98,6 @@ function ComingSoonTag() {
 
 /** 미구현 항목 전용 — 실데이터 연동 전 UI 스켈레톤 */
 const PLACEHOLDER = {
-  nStepTransition: [
-    { step: 1, pattern: "g→b", prob: 0.18 },
-    { step: 2, pattern: "g→g→b", prob: 0.09 },
-    { step: 3, pattern: "b→g→b", prob: 0.05 },
-  ],
   burstPair: { included: true, burstId: "#12", pairLabel: "s→k" },
 } as const;
 
@@ -653,20 +697,23 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
                   </p>
                 </div>
 
-                <div className="cyl-diag__detailed-card cyl-diag__detailed-card--optional">
-                  <span className="cyl-diag__stat-lbl">
-                    N단계 전이 오타 패턴 <OptionalTag /> <ComingSoonTag />
-                  </span>
-                  <div className="cyl-diag__nstep-list">
-                    {PLACEHOLDER.nStepTransition.map((row) => (
-                      <div key={row.step} className="cyl-diag__nstep-row">
-                        <span className="cyl-diag__rank-num">{row.step}-step</span>
-                        <span className="cyl-diag__pair-text">{row.pattern}</span>
-                        <span className="cyl-diag__transition-val">{(row.prob * 100).toFixed(1)}%</span>
-                      </div>
+                {diagnostics.fatalNgrams.length > 0 && (
+                  <div className="cyl-diag__detailed-card cyl-diag__detailed-card--optional">
+                    <span className="cyl-diag__stat-lbl">
+                      치명적 3-Gram 오타 맥락 <OptionalTag />
+                    </span>
+
+                    {diagnostics.fatalNgrams.map((entry, index) => (
+                      <FatalNgramViz key={`${entry.sequence.join("→")}-${index}`} entry={entry} />
                     ))}
+
+                    <p className="cyl-diag__card-desc">
+                      K₁·K₂ 정타 뒤 focusKey 시도(정타·오타 모두 분모) 중 오타율이{" "}
+                      {FATAL_NGRAM_ERROR_RATE_THRESHOLD}% 초과이고 {FATAL_NGRAM_MIN_SAMPLES}회 이상인
+                      연속 알파 3타 맥락입니다.
+                    </p>
                   </div>
-                </div>
+                )}
 
                 <div className="cyl-diag__detailed-card cyl-diag__detailed-card--optional">
                   <span className="cyl-diag__stat-lbl">
