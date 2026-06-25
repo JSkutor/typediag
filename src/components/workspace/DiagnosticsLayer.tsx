@@ -11,8 +11,6 @@ export const DiagnosticsLayer: React.FC = () => {
   const focusedKey = useWorkspaceStore((state) => state.focusedKey);
   const keyStats = useWorkspaceStore((state) => state.keyStats);
   const triangles = useWorkspaceStore((state) => state.triangles);
-  const setDiagnosticMode = useWorkspaceStore((state) => state.setDiagnosticMode);
-  const setFocusedKey = useWorkspaceStore((state) => state.setFocusedKey);
   const setUiState = useWorkspaceStore((state) => state.setUiState);
 
   const isVisible = uiState !== "practice" && uiState !== "measuring";
@@ -50,20 +48,11 @@ export const DiagnosticsLayer: React.FC = () => {
           <CylindricalVector3D
             isActivated={isDiag && diagnosticMode === "cylindrical"}
             initialFocusKey={focusedKey ?? undefined}
-            onClose={() => {
-              setDiagnosticMode("surface");
-              setFocusedKey(null);
-            }}
           />
         )}
 
-        {/* Dashboard Panel (non-cylindrical, non-surface — cylindrical has its own panel) */}
         {diagnosticMode !== "cylindrical" && diagnosticMode !== "surface" && (
-          <DashboardPanel
-            mode={isDiag ? "diagnostics" : "practice"}
-            diagnosticMode={diagnosticMode}
-            focusedKey={focusedKey}
-          />
+          <DashboardPanel diagnosticMode={diagnosticMode} />
         )}
       </ErrorBoundary3D>
     </div>

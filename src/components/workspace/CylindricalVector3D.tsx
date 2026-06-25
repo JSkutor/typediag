@@ -18,7 +18,6 @@ interface CylindricalVector3DProps {
   isActivated: boolean;
   /** Optionally pre-select a center key from the parent. */
   initialFocusKey?: string;
-  onClose?: () => void;
   /** Override store events for testing or landing page mock data */
   mockEvents?: KeyEvent[];
   /** Lock OrbitControls — use on landing page where the view should be static */
@@ -121,7 +120,6 @@ function CylindricalVector3DInner({
           events={events}
           focusKey={focusKey}
           fromKey={selectedFrom}
-          setFocusKey={setFocusKey}
           onDrawerShiftPx={handleDrawerShiftPx}
         />
       )}

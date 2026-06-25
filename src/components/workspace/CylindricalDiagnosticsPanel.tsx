@@ -21,7 +21,6 @@ interface CylindricalDiagnosticsPanelProps {
   events: Parameters<typeof useCylindricalDiagnostics>[0];
   focusKey: string;
   fromKey?: string;
-  setFocusKey: (key: string) => void;
   onDrawerShiftPx?: (shiftPx: number) => void;
 }
 
@@ -183,7 +182,7 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
                       무의식적으로 많이 치는 키
                     </span>
                     <div className="cyl-diag__penalty-content">
-                      <span className="cyl-diag__penalty-count" style={{ color: "var(--warning)" }}>
+                      <span className="cyl-diag__penalty-count text-warning">
                         #{diagnostics.unconsciousKey.rank}
                       </span>
                       <span className="cyl-diag__median-val cyl-diag__key-text">
@@ -272,7 +271,7 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
                       가장 많이 사용한 연결
                     </span>
                     <div className="cyl-diag__penalty-content">
-                      <span className="cyl-diag__penalty-count" style={{ color: "var(--accent)" }}>
+                      <span className="cyl-diag__penalty-count text-accent">
                         #{diagnostics.commonPair.rank}
                       </span>
                       <span className="cyl-diag__median-val">

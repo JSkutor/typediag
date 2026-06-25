@@ -8,12 +8,6 @@ mode 기능 이후에 기능 추가 없다.
 
 ## MVP
 
-### 개같은 cloud
-diag 말고 다른 곳에도 focuskey 용어 통일.
-
-ui 개선 후 문서 업데이트
-
-
 
 
 TODO: Topic API 무인증 + 비용 남용 가능
@@ -23,10 +17,11 @@ TODO: Topic API 무인증 + 비용 남용 가능
 
 TODO: surface 더 부드럽게, 키로 수직선.
 
-TODO: 그 duration이랑 latency랑 상관관계 보는거, 바로 다음 쌍의 latency도 참조하게 해.
-TODO: shift 좌우편향 통계
-
 TODO: 글씨 가독성. 색 등.
+
+TODO: BM 영역 구분해놓기
+
+TODO: latency surface 프레임 문제, 그래픽 조정
 
 
 

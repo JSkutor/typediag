@@ -21,8 +21,8 @@ export const CYL_COLORS = {
   dropLine: 0x57d68d,
   radLine: 0x8d929b,
   angleArc: 0xfbbf24,
-  gridMain: 0x323640,
-  gridSub: 0x282b30,
+  gridMain: 0x3d4450,
+  gridSub: 0x32383f,
   /** Same family as sceneBg — barely lifted so grid reads without clashing. */
   floorDisc: 0x1f2226,
   petalBorder: 0x4dc6e8,

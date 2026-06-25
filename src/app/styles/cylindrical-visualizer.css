@@ -1,6 +1,7 @@
 /* ==========================================================================
    Cylindrical Vector Visualizer
-   Styles for the SKDM 3D diagnostics HUD and data panel.
+   SKDM 3D diagnostics HUD + collapsible 3-column drawer panel.
+   Class prefix: cyl- (viewport/canvas), cyl-drawer- (shell), cyl-diag- (stats).
    ========================================================================== */
 
 .cyl-viewport {
@@ -67,54 +68,6 @@
   color: #ffffff;
 }
 
-.cyl-label {
-  position: absolute;
-  z-index: 15;
-  padding: 5px 10px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--bg-inset);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  font-weight: 600;
-  white-space: nowrap;
-  pointer-events: none;
-  transform: translate(-50%, -100%);
-  transition: opacity 0.15s ease;
-}
-
-.cyl-label--origin {
-  border-left: 3px solid #ec4899;
-  color: #fca5a5;
-}
-
-.cyl-label--target {
-  border-left: 3px solid #06b6d4;
-  color: #99f6e4;
-}
-
-.cyl-panel {
-  position: absolute;
-  top: 24px;
-  left: 24px;
-  z-index: 20;
-  width: 340px;
-  max-height: calc(100vh - 48px);
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  overflow-y: auto;
-  padding: 20px;
-  scrollbar-color: var(--border-subtle) transparent;
-  scrollbar-width: thin;
-}
-
-.cyl-panel__header {
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--border-subtle);
-}
-
 .cyl-panel__subtitle {
   color: var(--accent);
   font-size: 0.72rem;
@@ -123,353 +76,10 @@
   text-transform: uppercase;
 }
 
-.cyl-panel__title {
-  margin-top: 2px;
-  color: var(--text-primary);
-  font-size: 1.15rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-.cyl-control-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.cyl-label-text {
-  color: var(--text-muted);
-  font-size: 0.65rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
-.cyl-label-text--pink {
-  color: #ec4899;
-}
-
-.cyl-label-text--cyan {
-  color: #06b6d4;
-}
-
-.cyl-selectors {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.cyl-select {
-  width: 100%;
-  padding: 8px 10px;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  outline: none;
-  background: var(--bg-inset);
-  color: var(--text-primary);
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: border-color 0.2s;
-}
-
-.cyl-select:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-dim);
-}
-
-.cyl-key-badge {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  background: var(--bg-inset);
-}
-
-.cyl-key-badge__letter {
-  min-width: 32px;
-  color: #ec4899;
-  font-family: var(--font-mono);
-  font-size: 1.6rem;
-  font-weight: 800;
-  line-height: 1;
-  text-align: center;
-}
-
-.cyl-key-badge__meta {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  color: var(--text-secondary);
-  font-size: 0.7rem;
-}
-
-.cyl-diag-section {
-  overflow: hidden;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-}
-
-.cyl-diag-section__header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--border-subtle);
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.cyl-diag-section__icon {
-  display: inline-flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  color: var(--accent);
-}
-
-.cyl-diag-section__title {
-  color: var(--text-primary);
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.cyl-diag-section__body {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 10px 12px;
-}
-
-.cyl-diag__row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 0.72rem;
-}
-
-.cyl-diag__label {
-  color: var(--text-secondary);
-}
-
-.cyl-diag__value {
-  color: var(--text-primary);
-  font-family: var(--font-mono);
-  font-weight: 600;
-}
-
-.cyl-diag__value--error {
-  color: var(--error);
-}
-
-.cyl-diag__value--success {
-  color: var(--success);
-}
-
-.cyl-diag__value--warning {
-  color: #fbbf24;
-}
-
-.cyl-diag__count {
-  margin-left: 4px;
-  color: var(--text-secondary);
-  font-size: 0.8rem;
-  font-weight: 500;
-}
-
 .cyl-diag__empty {
   color: var(--text-secondary);
   font-size: 0.8rem;
   font-style: normal;
-}
-
-.cyl-diag__rank-list {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.cyl-diag__rank-item {
-  display: grid;
-  grid-template-columns: 16px 24px 1fr 44px;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.7rem;
-}
-
-.cyl-diag__rank-num {
-  color: var(--text-muted);
-  font-size: 0.6rem;
-  font-weight: 600;
-  text-align: right;
-}
-
-.cyl-diag__rank-key {
-  color: #06b6d4;
-  font-family: var(--font-mono);
-  font-weight: 700;
-  text-align: center;
-}
-
-.cyl-diag__rank-bar {
-  height: 4px;
-  overflow: hidden;
-  border-radius: 2px;
-  background: var(--border-subtle);
-}
-
-.cyl-diag__rank-fill {
-  display: block;
-  height: 100%;
-  border-radius: 2px;
-  background: var(--accent);
-  transition: width 0.3s ease;
-}
-
-.cyl-diag__rank-ms {
-  color: var(--text-secondary);
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
-  text-align: right;
-}
-
-.cyl-diag__compare {
-  padding: 6px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-}
-
-.cyl-diag__compare:last-child {
-  padding-bottom: 0;
-  border-bottom: none;
-}
-
-.cyl-diag__compare-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1px 0;
-  font-size: 0.7rem;
-}
-
-.cyl-diag__compare-label {
-  color: var(--text-secondary);
-}
-
-.cyl-diag__compare-val {
-  color: var(--text-primary);
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  font-weight: 600;
-}
-
-.cyl-diag__compare-diff {
-  margin-top: 2px;
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
-  font-weight: 600;
-  text-align: right;
-}
-
-.cyl-diag__shift-ratio {
-  margin-top: 6px;
-}
-
-.cyl-diag__shift-bar {
-  display: flex;
-  height: 6px;
-  overflow: hidden;
-  border-radius: 3px;
-  background: var(--border-subtle);
-}
-
-.cyl-diag__shift-left {
-  background: #06b6d4;
-  transition: width 0.3s ease;
-}
-
-.cyl-diag__shift-right {
-  background: #ec4899;
-  transition: width 0.3s ease;
-}
-
-.cyl-diag__shift-labels {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 3px;
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  font-size: 0.6rem;
-  font-weight: 600;
-}
-
-.cyl-toggles {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.cyl-toggle-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  color: var(--text-secondary);
-  font-size: 0.75rem;
-}
-
-.cyl-switch {
-  position: relative;
-  display: inline-block;
-  width: 34px;
-  height: 18px;
-}
-
-.cyl-switch input {
-  width: 0;
-  height: 0;
-  opacity: 0;
-}
-
-.cyl-slider {
-  position: absolute;
-  inset: 0;
-  border: 1px solid var(--border-subtle);
-  border-radius: 18px;
-  background-color: var(--border-strong);
-  cursor: pointer;
-  transition: 0.3s;
-}
-
-.cyl-slider::before {
-  position: absolute;
-  bottom: 2.5px;
-  left: 2.5px;
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  background-color: white;
-  content: "";
-  transition: 0.3s;
-}
-
-.cyl-switch input:checked + .cyl-slider {
-  background-color: var(--accent);
-}
-
-.cyl-switch input:checked + .cyl-slider::before {
-  transform: translateX(15px);
-}
-
-.cyl-footer-guide {
-  padding: 10px;
-  border: 1px dashed var(--border-subtle);
-  border-radius: var(--radius-sm);
-  color: var(--text-muted);
-  font-size: 0.65rem;
-  line-height: 1.4;
 }
 
 /* --------------------------------------------------------------------------
@@ -594,24 +204,6 @@
   flex-direction: column;
 }
 
-.cyl-drawer__placeholder {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 8px;
-  justify-content: flex-start;
-  min-height: 0;
-  padding: 12px;
-  border: 1px dashed var(--border-subtle);
-  border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.cyl-panel__title--compact {
-  margin-top: 2px;
-  font-size: 1rem;
-}
-
 .cyl-panel__focus-key-display {
   font-size: 2.2rem;
   font-weight: 800;
@@ -708,14 +300,6 @@
   border-bottom-color: rgba(255, 255, 255, 0.06);
 }
 
-.cyl-diag__mock-hint {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 0.62rem;
-  font-family: var(--font-mono);
-  line-height: 1.4;
-}
-
 .cyl-diag__dist-preview {
   display: flex;
   flex-direction: column;
@@ -792,33 +376,6 @@
   font-weight: 500;
 }
 
-.cyl-diag__finger-speed-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 4px;
-}
-
-.cyl-diag__finger-speed-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 0.72rem;
-}
-
-.cyl-diag__rank-list--numbered {
-  list-style: none;
-  padding: 0;
-  margin: 6px 0 0;
-}
-
-.cyl-diag__spatial-box {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 4px;
-}
-
 .cyl-diag__spatial-orbit {
   margin-top: 6px;
 }
@@ -831,10 +388,6 @@
   border-radius: var(--radius-md);
   background: rgba(0, 0, 0, 0.16);
   border: 1px solid rgba(255, 255, 255, 0.03);
-}
-
-.cyl-diag__spatial-orbit-caption {
-  margin-top: 6px;
 }
 
 .cyl-diag__spatial-summary {
@@ -868,13 +421,6 @@
   font-family: var(--font-mono);
   font-size: 0.95rem;
   font-weight: 700;
-}
-
-.cyl-diag__spatial-summary-sub {
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-  margin-left: 8px;
 }
 
 .cyl-diag__spatial-summary-badge {
@@ -932,41 +478,6 @@
   filter: drop-shadow(0 0 4px rgba(239, 91, 91, 0.35));
 }
 
-.cyl-diag__spatial-center-dot {
-  fill: var(--key-accent-text);
-  pointer-events: none;
-}
-
-.cyl-diag__spatial-metric {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.cyl-diag__spatial-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 4px;
-  margin-top: 10px;
-  padding: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: var(--radius-md);
-  background: rgba(20, 20, 22, 0.35);
-}
-
-.cyl-diag__spatial-cell {
-  aspect-ratio: 1;
-  border-radius: 3px;
-  background: var(--accent);
-}
-
-.cyl-diag__cloud-pair-meta {
-  margin-top: 4px;
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-}
-
 .cyl-diag__metric-bars {
   display: flex;
   flex-direction: column;
@@ -1022,60 +533,7 @@
   text-align: right;
 }
 
-.cyl-diag__nstep-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 4px;
-}
-
-.cyl-diag__nstep-row {
-  display: grid;
-  grid-template-columns: 52px 1fr 44px;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.72rem;
-}
-
-.cyl-diag__burst-box {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 4px;
-}
-
-/* ==========================================================================
-   2D Piecewise Regression Visualization Styles
-   ========================================================================== */
-
-.cyl-drawer__controls-group {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.cyl-drawer__select-row {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.cyl-select--wide {
-  width: 100%;
-  padding: 10px 12px;
-  background: rgba(20, 20, 22, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: var(--radius-md);
-  color: var(--text-primary);
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
-}
-
-.cyl-drawer__chart-section {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
+/* Charts & stat labels */
 
 .cyl-diag__chart-container {
   display: flex;
@@ -1093,42 +551,6 @@
   overflow: visible;
 }
 
-.cyl-diag__stats-grid--stacked {
-  grid-template-columns: 1fr;
-}
-
-.cyl-diag__optional-grid--stacked {
-  grid-template-columns: 1fr;
-}
-
-.cyl-diag__optional-grid--stacked .cyl-diag__optional-card--full {
-  grid-column: auto;
-}
-
-.cyl-diag__detailed-grid--stacked {
-  grid-template-columns: 1fr;
-}
-
-.cyl-diag__detailed-grid--stacked .cyl-diag__detailed-card--full {
-  grid-column: auto;
-}
-
-.cyl-diag__stats-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  background: rgba(255, 255, 255, 0.015);
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  border-radius: var(--radius-md);
-  padding: 12px;
-}
-
-.cyl-diag__stat-item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
 .cyl-diag__stat-lbl {
   color: var(--text-muted);
   font-size: 0.72rem;
@@ -1138,129 +560,9 @@
   opacity: 0.85;
 }
 
-.cyl-diag__stat-val {
-  color: var(--text-primary);
-  font-family: var(--font-mono);
-  font-size: 0.88rem;
-  font-weight: 700;
-}
-
-.cyl-diag__stat-desc {
-  color: var(--text-muted);
-  font-size: 0.65rem;
-  opacity: 0.65;
-  margin-top: 2px;
-  font-family: var(--font-sans);
-}
-
-/* Diagnostics summary details on the right panel */
-.cyl-drawer__summary-content {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  width: 100%;
-}
-
-.cyl-drawer__summary-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-bottom: 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-}
-
-.cyl-drawer__summary-row:last-of-type {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.cyl-drawer__summary-label {
-  color: var(--text-secondary);
-  font-size: 0.75rem;
-}
-
-.cyl-drawer__summary-val {
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
-.cyl-drawer__desc-text {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  line-height: 1.5;
-  margin-top: 8px;
-}
-
-.text-success {
-  color: #10b981;
-}
-
-.text-warning {
-  color: #fbbf24;
-}
-
-/* ==========================================================================
-   Optional Statistics Section & Cards
-   ========================================================================== */
-.cyl-drawer__optional-section {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.cyl-diag__optional-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.cyl-diag__optional-card {
-  background: rgba(255, 255, 255, 0.015);
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  border-radius: var(--radius-md);
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-height: 100px;
-}
-
-.cyl-diag__optional-card--full {
-  grid-column: span 2;
-  min-height: auto;
-}
-
-.cyl-diag__optional-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.cyl-diag__optional-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 0.85rem;
-  font-family: var(--font-mono);
-}
-
-.cyl-diag__pair-text {
-  color: var(--text-primary);
-  flex-grow: 1;
-}
-
 .cyl-diag__key-text {
   color: #06b6d4;
   font-weight: 700;
-}
-
-.cyl-diag__error-rate {
-  font-weight: 600;
 }
 
 .cyl-diag__penalty-content {
@@ -1285,26 +587,12 @@
   font-family: var(--font-mono);
 }
 
-/* ==========================================================================
-   Detailed Diagnostics Stats Layout (Column 2)
-   ========================================================================== */
-.cyl-diag__detailed-container {
-  display: flex;
-  flex-direction: column;
-  gap: 28px;
-  width: 100%;
-}
+/* Drawer column cards */
 
 .cyl-diag__detailed-content {
   display: flex;
   flex-direction: column;
   gap: 28px;
-}
-
-.cyl-diag__detailed-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
 }
 
 .cyl-diag__detailed-card {
@@ -1323,10 +611,6 @@
 .cyl-diag__detailed-card:last-child {
   border-bottom: none;
   padding-bottom: 4px;
-}
-
-.cyl-diag__detailed-card--full {
-  grid-column: span 2;
 }
 
 .cyl-diag__detailed-card--split {
@@ -1415,10 +699,8 @@
   font-weight: 700;
 }
 
-/* Stat Box Configurations */
+/* Stat value rows */
 .cyl-diag__median-box,
-.cyl-diag__relative-box,
-.cyl-diag__correlation-box,
 .cyl-diag__hesitation-box {
   display: flex;
   align-items: baseline;
@@ -1451,12 +733,6 @@
   font-family: var(--font-mono);
 }
 
-.cyl-diag__relative-sub {
-  font-size: 0.6rem;
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-}
-
 .cyl-diag__cloud-dual {
   display: flex;
   align-items: baseline;
@@ -1485,12 +761,6 @@
   line-height: 1.2;
 }
 
-.cyl-diag__cloud-dual-sep {
-  font-size: 0.9rem;
-  font-weight: 600;
-  opacity: 0.65;
-}
-
 .cyl-diag__cloud-dual-lbl {
   font-size: 1.1rem;
   font-weight: 700;
@@ -1505,25 +775,6 @@
   font-family: var(--font-mono);
   font-size: 0.78rem;
   font-weight: 500;
-}
-
-.cyl-diag__correlation-val {
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  font-family: var(--font-mono);
-}
-
-.cyl-diag__correlation-sig {
-  font-size: 0.65rem;
-  font-weight: 600;
-}
-
-.cyl-diag__correlation-p {
-  font-size: 0.62rem;
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  margin-top: 2px;
 }
 
 .cyl-diag__hesitation-val {
@@ -1541,76 +792,58 @@
   letter-spacing: 0;
 }
 
-.cyl-diag__hesitation-desc {
-  font-size: 0.62rem;
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  margin-top: 2px;
+/* --------------------------------------------------------------------------
+   N-gram sequence viz (Fatal / Burst)
+   -------------------------------------------------------------------------- */
+
+.cyl-diag__median-val--danger {
+  color: var(--error);
 }
 
-/* Badges styling */
-.badge-success {
-  background: rgba(16, 185, 129, 0.15);
-  color: #34d399;
-  border: 1px solid rgba(16, 185, 129, 0.25);
-}
-
-.badge-warning {
-  background: rgba(245, 158, 11, 0.15);
-  color: #fbbf24;
-  border: 1px solid rgba(245, 158, 11, 0.25);
-}
-
-/* Finger Transition Progress Tracker */
-.cyl-diag__transition-container {
+.cyl-diag__ngram-entry {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-top: 6px;
-  width: 100%;
+  gap: 4px;
 }
 
-.cyl-diag__transition-list {
+.cyl-diag__ngram-viz {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.cyl-diag__transition-item {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.cyl-diag__transition-meta {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  font-size: 0.8rem;
+  gap: 6px;
+  margin: 12px 0;
 }
 
-.cyl-diag__transition-lbl {
-  color: var(--text-secondary);
-  font-weight: 500;
+.cyl-diag__ngram-rank {
+  margin-right: 8px;
+  color: var(--accent);
+  font-weight: 700;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
 }
 
-.cyl-diag__transition-val {
+.cyl-diag__ngram-key {
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   color: var(--text-primary);
   font-family: var(--font-mono);
-  font-weight: 700;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
 }
 
-.cyl-diag__transition-bar-bg {
-  width: 100%;
-  height: 5px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 2px;
-  overflow: hidden;
+.cyl-diag__ngram-key--fatal-last {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: var(--error);
 }
 
-.cyl-diag__transition-bar-fill {
-  height: 100%;
-  border-radius: 2px;
-  transition: width 0.35s ease;
+.cyl-diag__ngram-key--burst {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: var(--success);
 }
+
+.cyl-diag__ngram-arrow {
+  color: var(--text-muted);
+}
+

@@ -177,7 +177,7 @@ export class Cylindrical3DManager {
         const mat = child.material;
         if (mat instanceof THREE.Material) {
           mat.transparent = true;
-          mat.opacity = 0.22;
+          mat.opacity = 0.38;
           mat.depthWrite = false;
         }
       }
