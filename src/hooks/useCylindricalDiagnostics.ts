@@ -5,10 +5,11 @@ import {
   calculateChartData,
   finalizeKeystrokeDiagnostics,
 } from "@/utils/cylindricalStats";
+import { readSkdmFinalUpperBound } from "@/lib/skdm/outlierBoundStorage";
 import { ensureFinalUpperBound } from "@/lib/dev/piecewiseDev";
 import { fitPiecewiseFromLatencies } from "@/utils/piecewiseRegression";
 
-export function useCylindricalDiagnostics(events: KeyEvent[], focusKey: string) {
+export function useCylindricalDiagnostics(events: KeyEvent[], focusKey: string, fromKey?: string) {
   // O(N) 단일 패스 — events가 바뀔 때만 재실행
   const acc = useMemo(() => buildDiagnosticsAccumulator(events), [events]);
 
@@ -34,10 +35,14 @@ export function useCylindricalDiagnostics(events: KeyEvent[], focusKey: string) 
   const chartData = useMemo(() => calculateChartData(outcome), [outcome]);
 
   // O(k) — accumulator 소비, events 재순회 없음. focusKey만 바뀌면 O(k) 재실행.
-  const diagnostics = useMemo(
-    () => finalizeKeystrokeDiagnostics(acc, focusKey),
-    [acc, focusKey],
-  );
+  const diagnostics = useMemo(() => {
+    ensureFinalUpperBound(events);
+    const bound = readSkdmFinalUpperBound();
+    return finalizeKeystrokeDiagnostics(acc, focusKey, {
+      histogramUpperBoundMs: bound?.final_upper_bound_ms,
+      fromKey,
+    });
+  }, [acc, focusKey, fromKey, events]);
 
   return {
     focusKeyOptions,

@@ -96,7 +96,7 @@ describe("cylindrical module", () => {
   });
 
   describe("getDefaultCylindricalSelection", () => {
-    it("should pick the focusKey with the most incoming reference transitions and its slowest fromKey", () => {
+    it("should pick the focusKey with the most incoming reference transitions and its richest fromKey", () => {
       const events: KeyEvent[] = [
         ...mockEvents,
         {
@@ -138,10 +138,10 @@ describe("cylindrical module", () => {
       ];
 
       const selection = getDefaultCylindricalSelection(events);
-      expect(selection).toEqual({ focusKey: "t", fromKey: "e" });
+      expect(selection).toEqual({ focusKey: "t", fromKey: "h" });
     });
 
-    it("should honor a preferred focusKey when it has data and pick highest latency fromKey", () => {
+    it("should honor a preferred focusKey when it has data and pick richest fromKey", () => {
       const selection = getDefaultCylindricalSelection(mockEvents, "e");
       expect(selection).toEqual({ focusKey: "e", fromKey: "a" });
     });

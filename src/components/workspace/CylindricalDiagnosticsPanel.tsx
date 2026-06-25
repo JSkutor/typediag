@@ -6,13 +6,16 @@ import { computeDrawerContentShiftPx } from "@/components/workspace/cylindricalD
 import { SpatialErrorOrbitViz } from "@/components/workspace/SpatialErrorOrbitViz";
 import { BurstNgramViz } from "@/components/workspace/diagnostics/BurstNgramViz";
 import { CloudTypingView } from "@/components/workspace/diagnostics/CloudTypingView";
-import { OptionalTag } from "@/components/workspace/diagnostics/DiagTags";
 import { FatalNgramViz } from "@/components/workspace/diagnostics/FatalNgramViz";
 import { LatencyDistributionView } from "@/components/workspace/diagnostics/LatencyDistributionView";
 import { PiecewiseChart } from "@/components/workspace/diagnostics/PiecewiseChart";
 import { FingerTransitionViz } from "@/components/workspace/diagnostics/FingerTransitionViz";
-import { formatKey } from "@/components/workspace/diagnostics/formatKey";
-import { DEV_MOCK_CHART_DATA, DEV_MOCK_DIAGNOSTICS, DEV_MOCK_OUTCOME } from "@/components/workspace/diagnostics/devMockData";
+import { formatKey, formatKeyJamo } from "@/components/workspace/diagnostics/formatKey";
+import {
+  DEV_MOCK_CHART_DATA,
+  DEV_MOCK_DIAGNOSTICS,
+  DEV_MOCK_OUTCOME,
+} from "@/components/workspace/diagnostics/devMockData";
 
 interface CylindricalDiagnosticsPanelProps {
   events: Parameters<typeof useCylindricalDiagnostics>[0];
@@ -39,12 +42,7 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
       const target = e.target;
       if (target instanceof HTMLElement) {
         const tag = target.tagName;
-        if (
-          tag === "INPUT" ||
-          tag === "SELECT" ||
-          tag === "TEXTAREA" ||
-          target.isContentEditable
-        ) {
+        if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA" || target.isContentEditable) {
           return;
         }
       }
@@ -86,10 +84,11 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
     };
   }, [onDrawerShiftPx]);
 
-  const { outcome: realOutcome, chartData: realChartData, diagnostics: realDiagnostics } = useCylindricalDiagnostics(
-    events,
-    focusKey,
-  );
+  const {
+    outcome: realOutcome,
+    chartData: realChartData,
+    diagnostics: realDiagnostics,
+  } = useCylindricalDiagnostics(events, focusKey, fromKey);
 
   const outcome = isDevMode ? DEV_MOCK_OUTCOME : realOutcome;
   const chartData = isDevMode ? DEV_MOCK_CHART_DATA : realChartData;
@@ -124,7 +123,7 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
           <section className="cyl-drawer__col cyl-drawer__col--controls">
             <header className="cyl-drawer__col-header">
               <div className="cyl-drawer__header-main">
-                <span className="cyl-panel__subtitle">집중 분석 대상</span>
+                <span className="cyl-panel__subtitle">Key</span>
                 <div className="cyl-panel__focus-key-display">
                   {displayFocusKey ? formatKey(displayFocusKey).toUpperCase() : "-"}
                 </div>
@@ -142,24 +141,24 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
             {hasData ? (
               <div className="cyl-diag__detailed-content">
                 <div className="cyl-diag__detailed-card">
-                  <span className="cyl-diag__stat-lbl">타건 속도 변화 흐름</span>
+                  <span className="cyl-diag__stat-lbl">지연시간 추이</span>
                   <PiecewiseChart outcome={outcome} chartData={chartData} />
                 </div>
 
                 <div className="cyl-diag__detailed-card">
-                  <span className="cyl-diag__stat-lbl">타자 일관성</span>
+                  <span className="cyl-diag__stat-lbl">속도 일관성</span>
                   <LatencyDistributionView consistency={diagnostics.latencyConsistency} />
                 </div>
 
                 <div className="cyl-diag__detailed-card cyl-diag__detailed-card--split">
                   <div className="cyl-diag__split-stat">
-                    <span className="cyl-diag__stat-lbl">오타를 유발하는 비율</span>
+                    <span className="cyl-diag__stat-lbl">오타 유발 비율</span>
                     <span className="cyl-diag__median-val">
                       {diagnostics.errorInducement.rate.toFixed(1)}%
                     </span>
                   </div>
                   <div className="cyl-diag__split-stat">
-                    <span className="cyl-diag__stat-lbl">같은 손가락 속도 비교</span>
+                    <span className="cyl-diag__stat-lbl">같은 손가락 다른 키와 비교</span>
                     {diagnostics.relativeSpeed.handMedianMs > 0 ? (
                       <span
                         className={`cyl-diag__relative-val ${diagnostics.relativeSpeed.speedDiffMs <= 0 ? "text-success" : "text-warning"}`}
@@ -174,23 +173,23 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
                 </div>
 
                 <div className="cyl-diag__detailed-card">
-                  <span className="cyl-diag__stat-lbl">이전 손가락 이동 분포</span>
+                  <span className="cyl-diag__stat-lbl">이전 타건 손가락 위치</span>
                   <FingerTransitionViz focusKey={displayFocusKey} diagnostics={diagnostics} />
                 </div>
 
                 {diagnostics.unconsciousKey !== null && (
                   <div className="cyl-diag__detailed-card cyl-diag__detailed-card--optional">
                     <span className="cyl-diag__stat-lbl">
-                      나도 모르게 틀리는 키 <OptionalTag />
+                      무의식적으로 많이 치는 키
                     </span>
-                    <div className="cyl-diag__optional-item">
-                      <span className="cyl-diag__rank-num" style={{ color: "var(--warning)" }}>
+                    <div className="cyl-diag__penalty-content">
+                      <span className="cyl-diag__penalty-count" style={{ color: "var(--warning)" }}>
                         #{diagnostics.unconsciousKey.rank}
                       </span>
-                      <span className="cyl-diag__key-text">
+                      <span className="cyl-diag__median-val cyl-diag__key-text">
                         {formatKey(diagnostics.unconsciousKey.key)}
                       </span>
-                      <span className="cyl-diag__error-rate text-warning">
+                      <span className="cyl-diag__cpm-val text-warning">
                         {diagnostics.unconsciousKey.errorRate.toFixed(1)}%
                       </span>
                     </div>
@@ -200,7 +199,7 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
                 {diagnostics.shiftPenalty !== null && (
                   <div className="cyl-diag__detailed-card cyl-diag__detailed-card--optional">
                     <span className="cyl-diag__stat-lbl">
-                      대문자 입력 지연 패널티 <OptionalTag />
+                      시프트로 생기는 추가 지연
                     </span>
                     <div className="cyl-diag__penalty-content">
                       <span className="cyl-diag__penalty-val">
@@ -220,7 +219,7 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
 
           <section className="cyl-drawer__col cyl-drawer__col--regression">
             <header className="cyl-drawer__col-header">
-              <span className="cyl-panel__subtitle">이어치기 분석 (연타)</span>
+              <span className="cyl-panel__subtitle">Flow</span>
               <div className="cyl-panel__transition-display">
                 <span>{displayFocusKey ? formatKey(displayFocusKey).toUpperCase() : "-"}</span>
                 <span className="cyl-panel__transition-arrow">←</span>
@@ -231,7 +230,7 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
             {hasData ? (
               <div className="cyl-diag__detailed-content">
                 <div className="cyl-diag__detailed-card">
-                  <span className="cyl-diag__stat-lbl">내 진짜 타자 속도 (정타 기준)</span>
+                  <span className="cyl-diag__stat-lbl">연결 속도</span>
                   <div className="cyl-diag__median-box">
                     <span className="cyl-diag__median-val">
                       {diagnostics.speedMetrics.medianLatencyMs.toFixed(1)} ms
@@ -243,7 +242,7 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
                 </div>
 
                 <div className="cyl-diag__detailed-card">
-                  <span className="cyl-diag__stat-lbl">머뭇거림 감지</span>
+                  <span className="cyl-diag__stat-lbl">머뭇거림</span>
                   <div className="cyl-diag__hesitation-box">
                     <span
                       className={`cyl-diag__hesitation-val ${diagnostics.hesitation.hasTendency ? "text-warning" : "text-success"}`}
@@ -259,7 +258,7 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
                 </div>
 
                 <div className="cyl-diag__detailed-card">
-                  <span className="cyl-diag__stat-lbl">타자 순서 꼬임 비율</span>
+                  <span className="cyl-diag__stat-lbl">타자 순서 반대</span>
                   <div className="cyl-diag__median-box">
                     <span className="cyl-diag__median-val">
                       {diagnostics.lateKeystroke.rate.toFixed(1)}%
@@ -270,16 +269,19 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
                 {diagnostics.commonPair !== null && (
                   <div className="cyl-diag__detailed-card cyl-diag__detailed-card--optional">
                     <span className="cyl-diag__stat-lbl">
-                      가장 익숙한 연결 타자 <OptionalTag />
+                      가장 많이 사용한 연결
                     </span>
-                    <div className="cyl-diag__optional-item">
-                      <span className="cyl-diag__rank-num" style={{ color: "var(--accent)" }}>
+                    <div className="cyl-diag__penalty-content">
+                      <span className="cyl-diag__penalty-count" style={{ color: "var(--accent)" }}>
                         #{diagnostics.commonPair.rank}
                       </span>
-                      <span className="cyl-diag__pair-text">
-                        {formatKey(diagnostics.commonPair.from)} → {formatKey(diagnostics.commonPair.to)}
+                      <span className="cyl-diag__median-val">
+                        {formatKeyJamo(diagnostics.commonPair.from)} →{" "}
+                        {formatKeyJamo(diagnostics.commonPair.to)}
                       </span>
-                      <span className="cyl-diag__count">{diagnostics.commonPair.count}회</span>
+                      <span className="cyl-diag__penalty-count">
+                        {diagnostics.commonPair.count}회
+                      </span>
                     </div>
                   </div>
                 )}
@@ -291,13 +293,13 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
 
           <section className="cyl-drawer__col cyl-drawer__col--diagnostics">
             <header className="cyl-drawer__col-header">
-              <span className="cyl-panel__subtitle">심층 진단 리포트</span>
+              <span className="cyl-panel__subtitle">Pro</span>
             </header>
 
             {hasData ? (
               <div className="cyl-diag__detailed-content">
                 <div className="cyl-diag__detailed-card cyl-diag__detailed-card--optional">
-                  <span className="cyl-diag__stat-lbl">키보드 위 오타 궤적</span>
+                  <span className="cyl-diag__stat-lbl">오타 위치</span>
                   {diagnostics.spatialErrorDistance ? (
                     <SpatialErrorOrbitViz
                       focusKey={displayFocusKey}
@@ -309,14 +311,14 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
                 </div>
 
                 <div className="cyl-diag__detailed-card">
-                  <span className="cyl-diag__stat-lbl">부드럽게 이어치기 (구름타법)</span>
+                  <span className="cyl-diag__stat-lbl">구름타법</span>
                   <CloudTypingView cloudTyping={diagnostics.cloudTyping} />
                 </div>
 
                 {diagnostics.fatalNgrams.length > 0 && (
                   <div className="cyl-diag__detailed-card cyl-diag__detailed-card--optional">
                     <span className="cyl-diag__stat-lbl">
-                      나를 괴롭히는 오타 패턴 <OptionalTag />
+                      취약한 흐름
                     </span>
 
                     {diagnostics.fatalNgrams.map((entry, index) => (
@@ -328,10 +330,14 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
                 {diagnostics.burstNgrams.length > 0 && (
                   <div className="cyl-diag__detailed-card cyl-diag__detailed-card--optional">
                     <span className="cyl-diag__stat-lbl">
-                      폭풍 연타 구간 <OptionalTag />
+                      초고속 구간
                     </span>
                     {diagnostics.burstNgrams.map((entry, index) => (
-                      <BurstNgramViz key={`burst-${entry.sequence.join("→")}-${index}`} entry={entry} rank={index + 1} />
+                      <BurstNgramViz
+                        key={`burst-${entry.sequence.join("→")}-${index}`}
+                        entry={entry}
+                        rank={index + 1}
+                      />
                     ))}
                   </div>
                 )}

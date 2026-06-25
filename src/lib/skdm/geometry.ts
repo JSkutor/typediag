@@ -41,8 +41,8 @@ export function keyDistanceMm(
 export type SpatialTypoClass = "adjacent" | "cognitive";
 
 export const SPATIAL_TYPO_CLASS_LABEL: Record<SpatialTypoClass, string> = {
-  adjacent: "인접 오타 (공간적 미끄러짐)",
-  cognitive: "인지적 오타 (먼 키 혼동)",
+  adjacent: "미끄러짐",
+  cognitive: "혼동",
 };
 
 /** Classify median typo distance as adjacent slip vs far-key confusion. */

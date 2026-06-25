@@ -71,6 +71,8 @@ export interface KeystrokeDiagnostics {
     sampleCount: number;
     level: "steady" | "moderate" | "erratic";
     histogram: number[];
+    /** 히스토그램 X축 상한 (SKDM final_upper_bound_ms) */
+    histogramUpperBoundMs: number;
   } | null;
   spatialErrorDistance: SpatialErrorDistanceResult | null;
   fatalNgrams: FatalNgramEntry[];
@@ -137,6 +139,8 @@ export interface OutgoingTransitionSample {
 export interface PerKeyAccumulator {
   /** reference transition 정답 latency 배열 (toKey===key, isCorrect, latencyMs>0). 시간순 보존. */
   referenceLatencies: number[];
+  /** reference transition 정답 latency — fromKey(소문자 알파)별 버킷. Flow 패널 fromKey 필터용. */
+  referenceLatenciesByFrom: Map<string, number[]>;
   /** reference transition 기준 손가락 전환 카운트 */
   fingerCounts: {
     oppositeHand: number;
@@ -151,8 +155,12 @@ export interface PerKeyAccumulator {
   outgoingSamples: OutgoingTransitionSample[];
   /** 이 키가 오타 스트릭의 시작점(toKey===key && isErrorStart)인 횟수 */
   errorInducementCount: number;
-  /** late keystroke 횟수 (expectedChar===key && nextEvent.toKey===key) */
+  /** late keystroke 횟수 (연속 오타: 직전 expected→focusKey, 현재 expected→fromKey, toKey===focusKey) */
   lateKeystrokeCount: number;
+  /** late keystroke 횟수 — reference fromKey별 (Flow 패널 fromKey 필터용) */
+  lateKeystrokeByFrom: Map<string, number>;
+  /** reference 전이(toKey, fromKey) 물리 오타 횟수 — late keystroke 분모 */
+  incorrectReferenceByFrom: Map<string, number>;
   /** 공간적 오타 거리 데이터 (expectedChar===key && isCorrect===false) */
   spatialErrors: {
     distancesU: number[];

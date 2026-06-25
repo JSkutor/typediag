@@ -10,26 +10,15 @@ import {
   countCorrectReferenceTransitions,
   selectDefaultFocusKey,
 } from "@/lib/dev/cloudTypingDev";
+import {
+  getCloudTypingEffectivenessLabel,
+} from "@/utils/cylindricalStats";
 import { useDiagnosticsTransition } from "@/hooks/useDiagnosticsTransition";
 import { useWorkspaceStore } from "@/store/useWorkspaceStore";
-import type { CloudTypingEffectiveness, CloudTypingLevel } from "@/utils/cylindricalStats";
 
 import styles from "@/app/dev/dev.module.css";
 
 const KEY_LABEL: Record<string, string> = { space: "␣", ",": ",", ".": "." };
-
-const CLOUD_TYPING_LEVEL_LABEL: Record<CloudTypingLevel, string> = {
-  not_applied: "미적용",
-  weak: "약함",
-  moderate: "보통",
-  strong: "강함",
-};
-
-const CLOUD_TYPING_EFFECTIVENESS_LABEL: Record<CloudTypingEffectiveness, string> = {
-  effective: "효과적",
-  counterproductive: "역효과",
-  neutral: "상관 없음",
-};
 
 function formatKey(key: string) {
   return KEY_LABEL[key] ?? key;
@@ -200,16 +189,13 @@ export function DevCloudTypingPanel() {
               <div className={styles.metaItem}>
                 <span className={styles.metaLabel}>구름타법 비율</span>
                 <span className={styles.metaValue}>
-                  {(keyStats.cloudTypingRatio * 100).toFixed(0)}% ·{" "}
-                  {CLOUD_TYPING_LEVEL_LABEL[keyStats.level]}
+                  {(keyStats.cloudTypingRatio * 100).toFixed(0)}% 적용
                 </span>
               </div>
               <div className={styles.metaItem}>
                 <span className={styles.metaLabel}>효과성</span>
                 <span className={styles.metaValue}>
-                  {diagnostics.effectivenessCorrelation.isSignificant
-                    ? CLOUD_TYPING_EFFECTIVENESS_LABEL[diagnostics.effectiveness]
-                    : "상관 무의미"}
+                  {getCloudTypingEffectivenessLabel(diagnostics).label}
                 </span>
               </div>
               <div className={styles.metaItem}>

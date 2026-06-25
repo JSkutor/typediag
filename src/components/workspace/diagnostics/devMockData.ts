@@ -62,13 +62,14 @@ export const DEV_MOCK_DIAGNOSTICS: KeystrokeDiagnostics = {
     thresholdMs: 180,
   },
   fingerTransitions: {
+    // finalizeKeystrokeDiagnostics: (count / total) * 100
     ratios: {
-      oppositeHand: 0.45,
-      sameHandPinky: 0.05,
-      sameHandRing: 0.1,
-      sameHandMiddle: 0.15,
-      sameHandIndex: 0.2,
-      other: 0.05,
+      oppositeHand: 45,
+      sameHandPinky: 5,
+      sameHandRing: 10,
+      sameHandMiddle: 15,
+      sameHandIndex: 20,
+      other: 5,
     },
     counts: {
       oppositeHand: 450,
@@ -90,7 +91,8 @@ export const DEV_MOCK_DIAGNOSTICS: KeystrokeDiagnostics = {
     relativeMad: 0.16,
     sampleCount: 1000,
     level: "steady",
-    histogram: [10, 45, 120, 250, 300, 180, 70, 20, 5],
+    histogram: [10, 45, 120, 250, 300, 180, 70, 20, 5, 0, 0, 0],
+    histogramUpperBoundMs: 500,
   },
   spatialErrorDistance: {
     sampleCount: 45,

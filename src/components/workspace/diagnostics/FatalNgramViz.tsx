@@ -1,6 +1,6 @@
 import React from "react";
 import type { FatalNgramEntry } from "@/utils/cylindricalStats";
-import { formatKey } from "./formatKey";
+import { formatKeyJamo } from "./formatKey";
 
 export function FatalNgramViz({ entry }: { entry: FatalNgramEntry }) {
   return (
@@ -28,17 +28,17 @@ export function FatalNgramViz({ entry }: { entry: FatalNgramEntry }) {
                 fontFamily: "var(--font-mono)",
               }}
             >
-              {formatKey(key)}
+              {formatKeyJamo(key)}
             </kbd>
             {i < arr.length - 1 && <span style={{ color: "var(--text-muted)" }}>→</span>}
           </React.Fragment>
         ))}
       </div>
-      <div className="cyl-diag__optional-item">
-        <span className="cyl-diag__error-rate text-danger">
+      <div className="cyl-diag__penalty-content">
+        <span className="cyl-diag__median-val" style={{ color: "var(--danger)" }}>
           {entry.errorRate.toFixed(1)}%
         </span>
-        <span className="cyl-diag__count">n={entry.totalCount}</span>
+        <span className="cyl-diag__penalty-count">{entry.totalCount}회</span>
       </div>
     </div>
   );

@@ -190,8 +190,8 @@ function countIncomingReferenceTransitions(events: KeyEvent[]): Map<string, numb
 /**
  * Default focusKey / fromKey selection for the cylindrical view.
  * Chooses the focusKey with the most incoming reference transitions, then the
- * fromKey with the highest mean latency (z). An optional preferred focusKey
- * is used when it has data; otherwise falls back to the richest focusKey.
+ * fromKey with the most samples (r). An optional preferred focusKey is used
+ * when it has data; otherwise falls back to the richest focusKey.
  */
 export function getDefaultCylindricalSelection(
   events: KeyEvent[],
@@ -214,9 +214,9 @@ export function getDefaultCylindricalSelection(
     return { focusKey, fromKey: vectors[0]?.fromKey ?? "" };
   }
 
-  const slowestFrom = withData.reduce((best, v) =>
-    v.z > best.z || (v.z === best.z && v.fromKey < best.fromKey) ? v : best,
+  const richestFrom = withData.reduce((best, v) =>
+    v.r > best.r || (v.r === best.r && v.fromKey < best.fromKey) ? v : best,
   );
 
-  return { focusKey, fromKey: slowestFrom.fromKey };
+  return { focusKey, fromKey: richestFrom.fromKey };
 }

@@ -12,6 +12,60 @@ import {
 import { hasValidHold } from "./cloudTyping";
 import type { DiagnosticsAccumulator, PerKeyAccumulator } from "./types";
 
+/**
+ * reference transition의 fromKey 정규화 (원통 3D·Flow 패널 SSOT).
+ * null이면 집계 대상이 아님(없음·자기전이·비알파·제외키).
+ */
+export function normalizeReferenceFromKey(
+  fromKey: string | null | undefined,
+  focusKey: string,
+): string | null {
+  if (!fromKey) return null;
+  const from = fromKey.toLowerCase();
+  const focus = focusKey.toLowerCase();
+  if (from === focus) return null;
+  if (!ALPHA_KEY_REGEX.test(from)) return null;
+  if (ACCUMULATOR_EXCLUDE_KEYS.has(from)) return null;
+  return from;
+}
+
+/** focusKey로 들어오는 reference 전이 중 샘플 수가 가장 많은 fromKey (동률 시 알파벳 우선). */
+export function pickRichestReferenceFromKey(
+  keyEntry: PerKeyAccumulator | undefined,
+): string | null {
+  if (!keyEntry) return null;
+
+  let bestFrom: string | null = null;
+  let bestCount = 0;
+
+  for (const [from, latencies] of keyEntry.referenceLatenciesByFrom) {
+    if (
+      latencies.length > bestCount ||
+      (latencies.length === bestCount && (bestFrom === null || from < bestFrom))
+    ) {
+      bestCount = latencies.length;
+      bestFrom = from;
+    }
+  }
+
+  return bestFrom;
+}
+
+/** Flow 패널용 fromKey: 명시값이 없거나 비어 있으면 샘플 최다 전이로 대체. */
+export function resolveEffectiveFlowFromKey(
+  keyEntry: PerKeyAccumulator | undefined,
+  focusKey: string,
+  fromKey?: string,
+): string | undefined {
+  const explicit = fromKey?.trim();
+  if (explicit) {
+    const norm = normalizeReferenceFromKey(explicit, focusKey);
+    if (norm) return norm;
+    return undefined;
+  }
+  return pickRichestReferenceFromKey(keyEntry) ?? undefined;
+}
+
 /** 정타→toKey, 오타→charToLayoutKey(expectedChar). 3-Gram·오타 유발율 등 semantic 귀속 SSOT. */
 function resolveAttributionLayoutKey(event: KeyEvent): string | null {
   const raw =
@@ -26,6 +80,16 @@ function resolveAttributionLayoutKey(event: KeyEvent): string | null {
   return null;
 }
 
+/** expectedChar → layout 키 (소문자 알파). late keystroke 판별용. */
+function expectedLayoutKey(expectedChar: string | null | undefined): string | null {
+  if (!expectedChar) return null;
+  const layout = charToLayoutKey(expectedChar);
+  if (!layout || !ALPHA_KEY_REGEX.test(layout) || ACCUMULATOR_EXCLUDE_KEYS.has(layout)) {
+    return null;
+  }
+  return layout.toLowerCase();
+}
+
 function getOrCreatePerKey(
   perKey: Map<string, PerKeyAccumulator>,
   key: string,
@@ -34,6 +98,7 @@ function getOrCreatePerKey(
   if (!entry) {
     entry = {
       referenceLatencies: [],
+      referenceLatenciesByFrom: new Map(),
       fingerCounts: {
         oppositeHand: 0,
         sameHandPinky: 0,
@@ -46,6 +111,8 @@ function getOrCreatePerKey(
       outgoingSamples: [],
       errorInducementCount: 0,
       lateKeystrokeCount: 0,
+      lateKeystrokeByFrom: new Map(),
+      incorrectReferenceByFrom: new Map(),
       spatialErrors: { distancesU: [], typoCounts: {} },
       contextualTypos: { ngrams: new Map() },
     };
@@ -88,7 +155,21 @@ export function buildDiagnosticsAccumulator(events: KeyEvent[]): DiagnosticsAccu
     if (!ACCUMULATOR_EXCLUDE_KEYS.has(event.toKey) && (event.isCorrect === true || event.isCorrect === false)) {
       const stat = keyStats.get(event.toKey) ?? { correct: 0, incorrect: 0 };
       if (event.isCorrect === true) stat.correct++;
-      else stat.incorrect++;
+      else {
+        stat.incorrect++;
+        const refFrom = normalizeReferenceFromKey(event.fromKey, event.toKey);
+        if (
+          refFrom &&
+          ALPHA_KEY_REGEX.test(event.toKey) &&
+          !ACCUMULATOR_EXCLUDE_KEYS.has(event.toKey)
+        ) {
+          const keyEntry = getOrCreatePerKey(perKey, event.toKey);
+          keyEntry.incorrectReferenceByFrom.set(
+            refFrom,
+            (keyEntry.incorrectReferenceByFrom.get(refFrom) ?? 0) + 1,
+          );
+        }
+      }
       keyStats.set(event.toKey, stat);
     }
 
@@ -122,22 +203,40 @@ export function buildDiagnosticsAccumulator(events: KeyEvent[]): DiagnosticsAccu
       }
     }
 
-    // 6. Late keystroke (event.expectedChar === nextEvent.toKey 동시 체크)
+    // 6. Late keystroke — reference(toKey) 기준: 직전·현재 연속 오타 + 직전 expected→toKey, 현재 expected→fromKey
     if (
-      nextEvent !== null &&
+      prevEvent !== null &&
       event.isCorrect === false &&
-      nextEvent.isCorrect === false &&
-      (prevEvent === null || prevEvent.isCorrect === true) &&
-      event.expectedChar &&
-      nextEvent.toKey === event.expectedChar
+      prevEvent.isCorrect === false &&
+      event.fromKey &&
+      ALPHA_KEY_REGEX.test(event.toKey) &&
+      !ACCUMULATOR_EXCLUDE_KEYS.has(event.toKey)
     ) {
-      getOrCreatePerKey(perKey, event.expectedChar).lateKeystrokeCount++;
+      const focusNorm = event.toKey.toLowerCase();
+      const fromNorm = normalizeReferenceFromKey(event.fromKey, event.toKey);
+      const prevExpected = expectedLayoutKey(prevEvent.expectedChar);
+      const currExpected = expectedLayoutKey(event.expectedChar);
+
+      if (fromNorm && prevExpected === focusNorm && currExpected === fromNorm) {
+        const lateEntry = getOrCreatePerKey(perKey, event.toKey);
+        lateEntry.lateKeystrokeCount++;
+        lateEntry.lateKeystrokeByFrom.set(
+          fromNorm,
+          (lateEntry.lateKeystrokeByFrom.get(fromNorm) ?? 0) + 1,
+        );
+      }
     }
 
     // 7. Reference transition (toKey === key && isCorrect && latencyMs > 0)
     if (event.isCorrect === true && event.latencyMs > 0) {
       const keyEntry = getOrCreatePerKey(perKey, event.toKey);
       keyEntry.referenceLatencies.push(event.latencyMs);
+      const refFrom = normalizeReferenceFromKey(event.fromKey, event.toKey);
+      if (refFrom) {
+        const bucket = keyEntry.referenceLatenciesByFrom.get(refFrom);
+        if (bucket) bucket.push(event.latencyMs);
+        else keyEntry.referenceLatenciesByFrom.set(refFrom, [event.latencyMs]);
+      }
 
       // 손가락 전환 분류 (fromKey → toKey 기준)
       const targetMeta = KEYBOARD_META[event.toKey.toLowerCase()];

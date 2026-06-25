@@ -34,10 +34,21 @@ export {
   computeCloudTypingDiagnostics,
 } from "./cloudTyping";
 
-export { buildDiagnosticsAccumulator } from "./accumulator";
 export {
+  getCloudTypingEffectivenessLabel,
+  cloudTypingEffectivenessToneClass,
+} from "./effectivenessLabel";
+export type {
+  CloudTypingEffectivenessLabel,
+  CloudTypingEffectivenessTone,
+} from "./effectivenessLabel";
+
+export { buildDiagnosticsAccumulator, normalizeReferenceFromKey, pickRichestReferenceFromKey, resolveEffectiveFlowFromKey } from "./accumulator";
+export {
+  buildLatencyHistogram,
   finalizeKeystrokeDiagnostics,
   selectFatalNgrams,
   selectBurstNgrams,
 } from "./finalize";
+export type { FinalizeDiagnosticsOptions } from "./finalize";
 export { calculateChartData } from "./chart";

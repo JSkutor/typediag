@@ -176,8 +176,11 @@ export function SpatialErrorOrbitViz({ focusKey, data }: SpatialErrorOrbitVizPro
 
       <div className="cyl-diag__spatial-summary">
         <span className="cyl-diag__spatial-summary-metric">
-          중앙값 <strong>{viz.medianU.toFixed(2)} U</strong>
-          <span className="cyl-diag__spatial-summary-sub">n={data.sampleCount}</span>
+          <span className="cyl-diag__spatial-summary-median">
+            <span>중앙값</span>
+            <strong>{viz.medianU.toFixed(2)} U</strong>
+          </span>
+          <span className="cyl-diag__penalty-count">{data.sampleCount}회</span>
         </span>
         <span
           className={`cyl-diag__spatial-summary-badge cyl-diag__spatial-summary-badge--${viz.typoClass}`}

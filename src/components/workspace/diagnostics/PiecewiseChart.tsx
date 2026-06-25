@@ -1,6 +1,5 @@
 import type { ChartData } from "@/utils/cylindricalStats";
 import type { PiecewiseFitFailure, PiecewiseFitSuccess } from "@/utils/piecewiseRegression";
-import { PIECEWISE_FAILURE_LABEL } from "@/lib/dev/piecewiseDev";
 
 function isSuccess(
   outcome: PiecewiseFitSuccess | PiecewiseFitFailure,
@@ -31,17 +30,7 @@ export function PiecewiseChart({
     return <p className="cyl-diag__empty">데이터가 로드되지 않았습니다.</p>;
   }
   if (!isSuccess(outcome)) {
-    return (
-      <div className="cyl-diag__failure-box">
-        <p className="cyl-diag__empty cyl-diag__empty--fail">
-          {PIECEWISE_FAILURE_LABEL[outcome.reason] ?? outcome.reason}
-        </p>
-        <div className="cyl-diag__stats-sub">
-          <span>정답 n = {outcome.rawCorrectCount}</span>
-          <span>필터 후 = {outcome.filteredCount}</span>
-        </div>
-      </div>
-    );
+    return <p className="cyl-diag__empty">데이터 부족</p>;
   }
 
   if (!chartData || chartData.points.length === 0) {

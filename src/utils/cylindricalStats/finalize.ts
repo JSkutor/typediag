@@ -1,4 +1,5 @@
 import { KEYBOARD_META, getHand } from "@/lib/skdm/keyboardMeta";
+import { OUTLIER_HARD_CUTOFF_MS } from "@/lib/skdm/config";
 import { getMAD, getMedian, getPercentile } from "@/utils/stats";
 import {
   BURST_MIN_SAMPLES,
@@ -7,13 +8,16 @@ import {
   FATAL_NGRAM_MIN_SAMPLES,
   LATENCY_CONSISTENCY_MIN_SAMPLES,
   LATENCY_HISTOGRAM_BINS,
+  UNCONSCIOUS_KEY_MIN_SAMPLES,
 } from "./constants";
 import { computeCloudTypingFromSamples } from "./cloudTyping";
+import { normalizeReferenceFromKey, resolveEffectiveFlowFromKey } from "./accumulator";
 import type {
   BurstNgram,
   DiagnosticsAccumulator,
   FatalNgramEntry,
   KeystrokeDiagnostics,
+  PerKeyAccumulator,
 } from "./types";
 
 const EMPTY_CLOUD_TYPING = {
@@ -32,19 +36,29 @@ function classifyLatencyConsistency(relativeMad: number): "steady" | "moderate" 
   return "erratic";
 }
 
-function buildLatencyHistogram(values: number[], binCount: number): number[] {
-  if (values.length === 0) return Array(binCount).fill(0);
+export interface FinalizeDiagnosticsOptions {
+  /** SKDM final_upper_bound_ms. 미지정 시 OUTLIER_HARD_CUTOFF_MS fallback */
+  histogramUpperBoundMs?: number;
+  /**
+   * Flow 패널 reference transition (fromKey → focusKey) 필터.
+   * 미지정·빈 문자열이면 focusKey로 들어오는 전이 중 샘플 최다 fromKey를 사용.
+   */
+  fromKey?: string;
+}
 
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const range = max - min;
+/** 0 ~ upperBoundMs 고정 구간으로 latency 히스토그램을 만든다 (키 간 비교 가능). */
+export function buildLatencyHistogram(
+  values: number[],
+  binCount: number,
+  upperBoundMs: number,
+): number[] {
+  if (values.length === 0 || upperBoundMs <= 0) return Array(binCount).fill(0);
+
   const counts = Array(binCount).fill(0);
 
   for (const value of values) {
-    const idx =
-      range === 0
-        ? Math.floor(binCount / 2)
-        : Math.min(binCount - 1, Math.floor(((value - min) / range) * binCount));
+    const clamped = Math.max(0, Math.min(value, upperBoundMs));
+    const idx = Math.min(binCount - 1, Math.floor((clamped / upperBoundMs) * binCount));
     counts[idx]++;
   }
 
@@ -52,7 +66,60 @@ function buildLatencyHistogram(values: number[], binCount: number): number[] {
   return counts.map((count) => Math.round((count / peak) * 100));
 }
 
-function computeLatencyConsistency(latencies: number[]) {
+function resolveCommonPair(
+  acc: DiagnosticsAccumulator,
+  focusKey: string,
+  flowFromKey: string | undefined,
+): KeystrokeDiagnostics["commonPair"] {
+  const focusNorm = focusKey.toLowerCase();
+  if (!flowFromKey) return null;
+
+  const pairsToFocus = [...acc.pairCounts.entries()]
+    .filter(([pair]) => {
+      const [, to] = pair.split("→");
+      return to.toLowerCase() === focusNorm;
+    })
+    .sort((a, b) => b[1] - a[1]);
+
+  const matchIdx = pairsToFocus.findIndex(([pair]) => {
+    const [from] = pair.split("→");
+    return from.toLowerCase() === flowFromKey;
+  });
+  if (matchIdx === -1) return null;
+
+  const [pair, count] = pairsToFocus[matchIdx]!;
+  const [from, to] = pair.split("→");
+  return { rank: matchIdx + 1, from, to, count };
+}
+
+function resolveFlowReferenceLatencies(
+  keyEntry: PerKeyAccumulator | undefined,
+  flowFromKey: string | undefined,
+): number[] {
+  if (!keyEntry || !flowFromKey) return [];
+  return keyEntry.referenceLatenciesByFrom.get(flowFromKey) ?? [];
+}
+
+function resolveLateKeystroke(
+  keyEntry: PerKeyAccumulator | undefined,
+  focusKey: string,
+  flowFromKey: string | undefined,
+): KeystrokeDiagnostics["lateKeystroke"] {
+  if (!flowFromKey) {
+    return { rate: 0, count: 0, totalErrorsCount: 0 };
+  }
+
+  const refFrom = normalizeReferenceFromKey(flowFromKey, focusKey);
+  const count = refFrom ? (keyEntry?.lateKeystrokeByFrom.get(refFrom) ?? 0) : 0;
+  const totalErrorsCount = refFrom ? (keyEntry?.incorrectReferenceByFrom.get(refFrom) ?? 0) : 0;
+  return {
+    rate: totalErrorsCount > 0 ? (count / totalErrorsCount) * 100 : 0,
+    count,
+    totalErrorsCount,
+  };
+}
+
+function computeLatencyConsistency(latencies: number[], histogramUpperBoundMs: number) {
   if (latencies.length < LATENCY_CONSISTENCY_MIN_SAMPLES) return null;
 
   const medianMs = getMedian(latencies);
@@ -65,7 +132,8 @@ function computeLatencyConsistency(latencies: number[]) {
     relativeMad,
     sampleCount: latencies.length,
     level: classifyLatencyConsistency(relativeMad),
-    histogram: buildLatencyHistogram(latencies, LATENCY_HISTOGRAM_BINS),
+    histogram: buildLatencyHistogram(latencies, LATENCY_HISTOGRAM_BINS, histogramUpperBoundMs),
+    histogramUpperBoundMs,
   };
 }
 
@@ -119,7 +187,10 @@ export function selectBurstNgrams(
 export function finalizeKeystrokeDiagnostics(
   acc: DiagnosticsAccumulator,
   focusKey: string,
+  options: FinalizeDiagnosticsOptions = {},
 ): KeystrokeDiagnostics {
+  const histogramUpperBoundMs = options.histogramUpperBoundMs ?? OUTLIER_HARD_CUTOFF_MS;
+
   const defaultDiagnostics: KeystrokeDiagnostics = {
     errorInducement: { rate: 0, count: 0, totalErrorStartsCount: 0 },
     lateKeystroke: { rate: 0, count: 0, totalErrorsCount: 0 },
@@ -158,18 +229,17 @@ export function finalizeKeystrokeDiagnostics(
   if (!focusKey) return defaultDiagnostics;
 
   const keyEntry = acc.perKey.get(focusKey);
-  const keyStat = acc.keyStats.get(focusKey) ?? { correct: 0, incorrect: 0 };
+  const flowFromKey = resolveEffectiveFlowFromKey(keyEntry, focusKey, options.fromKey);
 
   const errorInducementCount = keyEntry?.errorInducementCount ?? 0;
-  const lateKeystrokeCount = keyEntry?.lateKeystrokeCount ?? 0;
-  const totalErrorsCount = keyStat.incorrect;
 
   const errorInducementRate =
     acc.totalErrorStartsCount > 0
       ? (errorInducementCount / acc.totalErrorStartsCount) * 100
       : 0;
-  const lateKeystrokeRate =
-    totalErrorsCount > 0 ? (lateKeystrokeCount / totalErrorsCount) * 100 : 0;
+
+  const lateKeystroke = resolveLateKeystroke(keyEntry, focusKey, flowFromKey);
+  const commonPair = resolveCommonPair(acc, focusKey, flowFromKey);
 
   const spatialErrors = keyEntry?.spatialErrors;
   let spatialErrorDistance = null;
@@ -186,22 +256,13 @@ export function finalizeKeystrokeDiagnostics(
     };
   }
 
-  const allTopPairs = [...acc.pairCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
-  let commonPair = null;
-  const matchIdx = allTopPairs.findIndex(([pair]) => pair.split("→")[1] === focusKey);
-  if (matchIdx !== -1) {
-    const [pair, count] = allTopPairs[matchIdx];
-    const [from, to] = pair.split("→");
-    commonPair = { rank: matchIdx + 1, from, to, count };
-  }
-
   const unconsciousKeys = [...acc.keyStats.entries()]
     .map(([key, stat]) => {
       const total = stat.correct + stat.incorrect;
       const errorRate = total > 0 ? (stat.incorrect / total) * 100 : 0;
       return { key, errorRate, errorCount: stat.incorrect, totalCount: total };
     })
-    .filter((item) => item.errorRate > 0)
+    .filter((item) => item.errorRate > 0 && item.totalCount > UNCONSCIOUS_KEY_MIN_SAMPLES)
     .sort((a, b) => b.errorRate - a.errorRate || b.errorCount - a.errorCount)
     .slice(0, 3);
 
@@ -238,7 +299,8 @@ export function finalizeKeystrokeDiagnostics(
 
   const burstNgrams = selectBurstNgrams(acc.bursts, focusKey);
 
-  const latencies = keyEntry?.referenceLatencies ?? [];
+  const keyPanelLatencies = keyEntry?.referenceLatencies ?? [];
+  const flowLatencies = resolveFlowReferenceLatencies(keyEntry, flowFromKey);
 
   const sharedFields = {
     errorInducement: {
@@ -246,7 +308,7 @@ export function finalizeKeystrokeDiagnostics(
       count: errorInducementCount,
       totalErrorStartsCount: acc.totalErrorStartsCount,
     },
-    lateKeystroke: { rate: lateKeystrokeRate, count: lateKeystrokeCount, totalErrorsCount },
+    lateKeystroke,
     commonPair,
     unconsciousKey,
     shiftPenalty,
@@ -256,24 +318,37 @@ export function finalizeKeystrokeDiagnostics(
     burstNgrams,
   };
 
-  if (latencies.length === 0) {
-    return {
-      ...defaultDiagnostics,
-      ...sharedFields,
+  const flowMedianLatencyMs =
+    flowLatencies.length > 0 ? getMedian(flowLatencies) : 0;
+  const flowEquivalentCpm =
+    flowMedianLatencyMs > 0 ? Math.round(60000 / flowMedianLatencyMs) : 0;
+
+  let flowHesitation = defaultDiagnostics.hesitation;
+  if (flowLatencies.length > 0) {
+    const sortedFlow = [...flowLatencies].sort((a, b) => a - b);
+    const q1Flow = getPercentile(sortedFlow, 0.25);
+    const q3Flow = getPercentile(sortedFlow, 0.75);
+    const iqrFlow = q3Flow - q1Flow;
+    const flowThreshold = q3Flow + 1.5 * iqrFlow;
+    const flowHesitationCount = flowLatencies.filter((l) => l > flowThreshold).length;
+    const flowHesitationRatio = (flowHesitationCount / flowLatencies.length) * 100;
+    flowHesitation = {
+      ratio: flowHesitationRatio,
+      hasTendency: flowHesitationRatio >= 5,
+      thresholdMs: flowThreshold,
     };
   }
 
-  const medianLatencyMs = getMedian(latencies);
-  const equivalentCpm = medianLatencyMs > 0 ? Math.round(60000 / medianLatencyMs) : 0;
-  const latencyConsistency = computeLatencyConsistency(latencies);
+  if (keyPanelLatencies.length === 0) {
+    return {
+      ...defaultDiagnostics,
+      ...sharedFields,
+      speedMetrics: { medianLatencyMs: flowMedianLatencyMs, equivalentCpm: flowEquivalentCpm },
+      hesitation: flowHesitation,
+    };
+  }
 
-  const sortedLatencies = [...latencies].sort((a, b) => a - b);
-  const q1 = getPercentile(sortedLatencies, 0.25);
-  const q3Lat = getPercentile(sortedLatencies, 0.75);
-  const iqr = q3Lat - q1;
-  const iqrThreshold = q3Lat + 1.5 * iqr;
-  const hesitationCount = latencies.filter((l) => l > iqrThreshold).length;
-  const hesitationRatio = (hesitationCount / latencies.length) * 100;
+  const latencyConsistency = computeLatencyConsistency(keyPanelLatencies, histogramUpperBoundMs);
 
   const fingerCounts = keyEntry!.fingerCounts;
   const totalTransitions = fingerCounts.total || 1;
@@ -301,18 +376,14 @@ export function finalizeKeystrokeDiagnostics(
     }
     if (sameHandLatencies.length > 0) {
       comparedToMedianMs = getMedian(sameHandLatencies);
-      relativeSpeedMs = medianLatencyMs - comparedToMedianMs;
+      relativeSpeedMs = getMedian(keyPanelLatencies) - comparedToMedianMs;
     }
   }
 
   return {
     ...sharedFields,
-    speedMetrics: { medianLatencyMs, equivalentCpm },
-    hesitation: {
-      ratio: hesitationRatio,
-      hasTendency: hesitationRatio >= 5,
-      thresholdMs: iqrThreshold,
-    },
+    speedMetrics: { medianLatencyMs: flowMedianLatencyMs, equivalentCpm: flowEquivalentCpm },
+    hesitation: flowHesitation,
     fingerTransitions: {
       ratios: transitionRatios,
       counts: fingerCounts,

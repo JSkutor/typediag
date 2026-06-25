@@ -1,6 +1,6 @@
 import React from "react";
 import type { BurstNgram } from "@/utils/cylindricalStats";
-import { formatKey } from "./formatKey";
+import { formatKeyJamo } from "./formatKey";
 
 export function BurstNgramViz({ entry, rank }: { entry: BurstNgram; rank: number }) {
   return (
@@ -23,15 +23,15 @@ export function BurstNgramViz({ entry, rank }: { entry: BurstNgram; rank: number
                 fontFamily: "var(--font-mono)",
               }}
             >
-              {formatKey(key)}
+              {formatKeyJamo(key)}
             </kbd>
             {i < arr.length - 1 && <span style={{ color: "var(--text-muted)" }}>→</span>}
           </React.Fragment>
         ))}
       </div>
-      <div className="cyl-diag__optional-item">
-        <span className="text-success">{entry.avgLatencyMs.toFixed(1)} ms</span>
-        <span className="cyl-diag__count">n={entry.count}</span>
+      <div className="cyl-diag__penalty-content">
+        <span className="cyl-diag__penalty-val">{entry.avgLatencyMs.toFixed(1)} ms</span>
+        <span className="cyl-diag__penalty-count">{entry.count}회</span>
       </div>
     </div>
   );

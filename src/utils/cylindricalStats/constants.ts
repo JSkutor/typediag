@@ -6,6 +6,8 @@ export const FATAL_NGRAM_MIN_SAMPLES = 10;
 export const FATAL_NGRAM_ERROR_RATE_THRESHOLD = 20;
 
 export const LATENCY_CONSISTENCY_MIN_SAMPLES = 5;
+/** 무의식적 incorrect TopN: 키별 최소 타건 수(초과) */
+export const UNCONSCIOUS_KEY_MIN_SAMPLES = 5;
 export const LATENCY_HISTOGRAM_BINS = 12;
 
 export const CLOUD_TYPING_ND_MAX = 0.25;

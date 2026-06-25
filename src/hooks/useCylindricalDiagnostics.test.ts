@@ -84,17 +84,9 @@ describe("useCylindricalDiagnostics diagnostics", () => {
       { fromKey: "c", toKey: "b", latencyMs: 120, isCorrect: false, expectedChar: "c" },
     ];
 
-    const { result } = renderHook(() => useCylindricalDiagnostics(events, "b"));
+    const { result } = renderHook(() => useCylindricalDiagnostics(events, "b", "c"));
 
-    // toKey가 "b"인 오타 (totalErrorsCount) : c->b (isCorrect false, toKey "b") = 1개
-    // swappedErrors (count):
-    // k = 1 일 때, event = c, followingEvent = b
-    // event.isCorrect === false, followingEvent.isCorrect === false
-    // followingEvent.toKey === "b" (focusKey)
-    // event.expectedChar === "b" (focusKey)
-    // precedingEvent (events[0]): isCorrect === true
-    // 조건 일치! count = 1개
-    // 따라서 1/1 = 100%
+    // c→b (toKey "b") 오타 1건, 순서 뒤바뀜 1건 → 100%
     expect(result.current.diagnostics.lateKeystroke.totalErrorsCount).toBe(1);
     expect(result.current.diagnostics.lateKeystroke.count).toBe(1);
     expect(result.current.diagnostics.lateKeystroke.rate).toBe(100);
@@ -119,8 +111,8 @@ describe("useCylindricalDiagnostics diagnostics", () => {
         { fromKey: "a", toKey: "b", latencyMs: 100, isCorrect: true }, // repeated a->b
       ];
 
-      // focusKey "b" → a→b (Rank #1)
-      const { result: resB } = renderHook(() => useCylindricalDiagnostics(events, "b"));
+      // focusKey "b", fromKey "a" → a→b (Rank #1 among incoming pairs)
+      const { result: resB } = renderHook(() => useCylindricalDiagnostics(events, "b", "a"));
       expect(resB.current.diagnostics.commonPair).toEqual({
         rank: 1,
         from: "a",
@@ -128,51 +120,63 @@ describe("useCylindricalDiagnostics diagnostics", () => {
         count: 2,
       });
 
-      // focusKey "c" → b→c (Rank #2)
-      const { result: resC } = renderHook(() => useCylindricalDiagnostics(events, "c"));
+      // focusKey "c", fromKey "b" → b→c (Rank #1 among incoming pairs)
+      const { result: resC } = renderHook(() => useCylindricalDiagnostics(events, "c", "b"));
       expect(resC.current.diagnostics.commonPair).toEqual({
-        rank: 2,
+        rank: 1,
         from: "b",
         to: "c",
         count: 1,
       });
 
-      // focusKey "d" (not in top pairs) → null
-      const { result: resD } = renderHook(() => useCylindricalDiagnostics(events, "d"));
+      // focusKey "d", fromKey without incoming data → null
+      const { result: resD } = renderHook(() => useCylindricalDiagnostics(events, "d", "a"));
       expect(resD.current.diagnostics.commonPair).toBeNull();
     });
 
-    it("should calculate unconsciousKey correctly for focusKey and exclude 0% error keys", () => {
-      const events: KeyEvent[] = [
-        { fromKey: "a", toKey: "b", latencyMs: 100, isCorrect: false }, // error rate 100%
+    it("should calculate unconsciousKey only when totalCount > 5 and exclude 0% error keys", () => {
+      const sparseEvents: KeyEvent[] = [
+        { fromKey: "a", toKey: "b", latencyMs: 100, isCorrect: false },
         { fromKey: "b", toKey: "c", latencyMs: 100, isCorrect: false },
-        { fromKey: "c", toKey: "c", latencyMs: 100, isCorrect: true }, // error rate 50%
+        { fromKey: "c", toKey: "c", latencyMs: 100, isCorrect: true },
         { fromKey: "c", toKey: "d", latencyMs: 100, isCorrect: false },
-        { fromKey: "d", toKey: "d", latencyMs: 100, isCorrect: false }, // error rate 100% (2 total, 2 incorrect)
+        { fromKey: "d", toKey: "d", latencyMs: 100, isCorrect: false },
       ];
 
-      // focusKey "d" → Rank #1
-      const { result: resD } = renderHook(() => useCylindricalDiagnostics(events, "d"));
+      // totalCount ≤ 5 → null even at 100% error
+      const { result: resSparseD } = renderHook(() => useCylindricalDiagnostics(sparseEvents, "d"));
+      expect(resSparseD.current.diagnostics.unconsciousKey).toBeNull();
+      const { result: resSparseB } = renderHook(() => useCylindricalDiagnostics(sparseEvents, "b"));
+      expect(resSparseB.current.diagnostics.unconsciousKey).toBeNull();
+
+      const denseEvents: KeyEvent[] = [];
+      for (let i = 0; i < 6; i++) {
+        denseEvents.push({ fromKey: "c", toKey: "d", latencyMs: 100, isCorrect: false });
+      }
+      for (let i = 0; i < 3; i++) {
+        denseEvents.push({ fromKey: "x", toKey: "e", latencyMs: 100, isCorrect: true });
+        denseEvents.push({ fromKey: "x", toKey: "e", latencyMs: 100, isCorrect: false });
+      }
+
+      const { result: resD } = renderHook(() => useCylindricalDiagnostics(denseEvents, "d"));
       expect(resD.current.diagnostics.unconsciousKey).toEqual({
         rank: 1,
         key: "d",
         errorRate: 100,
-        errorCount: 2,
-        totalCount: 2,
+        errorCount: 6,
+        totalCount: 6,
       });
 
-      // focusKey "b" → Rank #2
-      const { result: resB } = renderHook(() => useCylindricalDiagnostics(events, "b"));
-      expect(resB.current.diagnostics.unconsciousKey).toEqual({
+      const { result: resE } = renderHook(() => useCylindricalDiagnostics(denseEvents, "e"));
+      expect(resE.current.diagnostics.unconsciousKey).toEqual({
         rank: 2,
-        key: "b",
-        errorRate: 100,
-        errorCount: 1,
-        totalCount: 1,
+        key: "e",
+        errorRate: 50,
+        errorCount: 3,
+        totalCount: 6,
       });
 
-      // focusKey "a" (errorRate 0%) → null
-      const { result: resA } = renderHook(() => useCylindricalDiagnostics(events, "a"));
+      const { result: resA } = renderHook(() => useCylindricalDiagnostics(sparseEvents, "a"));
       expect(resA.current.diagnostics.unconsciousKey).toBeNull();
     });
 
@@ -237,18 +241,35 @@ describe("useCylindricalDiagnostics diagnostics", () => {
       expect(result.current.diagnostics.hesitation.ratio).toBe(0);
     });
 
-    it("should calculate median latency and CPM correctly", () => {
+    it("should calculate median latency and CPM for the selected reference transition", () => {
       const events: KeyEvent[] = [
         { fromKey: "a", toKey: "f", latencyMs: 150, isCorrect: true },
         { fromKey: "a", toKey: "f", latencyMs: 250, isCorrect: true },
         { fromKey: "a", toKey: "f", latencyMs: 200, isCorrect: true },
+        { fromKey: "d", toKey: "f", latencyMs: 900, isCorrect: true },
         { fromKey: "a", toKey: "f", latencyMs: 500, isCorrect: false }, // incorrect should be ignored
       ];
-      // Median latency of [150, 200, 250] is 200ms
-      // CPM is 60000 / 200 = 300 CPM
-      const { result } = renderHook(() => useCylindricalDiagnostics(events, "f"));
+      // Median latency of a→f [150, 200, 250] is 200ms
+      const { result } = renderHook(() => useCylindricalDiagnostics(events, "f", "a"));
       expect(result.current.diagnostics.speedMetrics.medianLatencyMs).toBe(200);
       expect(result.current.diagnostics.speedMetrics.equivalentCpm).toBe(300);
+    });
+
+    it("should default Flow metrics to the richest reference fromKey when fromKey is omitted", () => {
+      const events: KeyEvent[] = [
+        { fromKey: "a", toKey: "f", latencyMs: 100, isCorrect: true },
+        { fromKey: "a", toKey: "f", latencyMs: 120, isCorrect: true },
+        { fromKey: "d", toKey: "f", latencyMs: 400, isCorrect: true },
+      ];
+
+      const { result } = renderHook(() => useCylindricalDiagnostics(events, "f"));
+      expect(result.current.diagnostics.speedMetrics.medianLatencyMs).toBe(110);
+      expect(result.current.diagnostics.commonPair).toEqual({
+        rank: 1,
+        from: "a",
+        to: "f",
+        count: 2,
+      });
     });
 
     it("should calculate hesitation ratio based on IQR threshold", () => {
@@ -266,10 +287,33 @@ describe("useCylindricalDiagnostics diagnostics", () => {
         { fromKey: "a", toKey: "f", latencyMs: 500, isCorrect: true }, // Outlier
       ];
 
-      const { result } = renderHook(() => useCylindricalDiagnostics(events, "f"));
+      const { result } = renderHook(() => useCylindricalDiagnostics(events, "f", "a"));
       // 500 should be detected as an outlier since IQR is around 45ms and Q3 + 1.5 * IQR is around 235ms.
       expect(result.current.diagnostics.hesitation.ratio).toBe(10); // 1 out of 10
       expect(result.current.diagnostics.hesitation.hasTendency).toBe(true);
+    });
+
+    it("should scope late keystroke rate to the selected reference fromKey", () => {
+      const events: KeyEvent[] = [
+        { fromKey: null, toKey: "a", latencyMs: 100, isCorrect: true, expectedChar: "a" },
+        { fromKey: "a", toKey: "c", latencyMs: 150, isCorrect: false, expectedChar: "b" },
+        { fromKey: "c", toKey: "b", latencyMs: 120, isCorrect: false, expectedChar: "c" },
+        { fromKey: "x", toKey: "b", latencyMs: 120, isCorrect: false, expectedChar: "y" },
+      ];
+
+      const { result } = renderHook(() => useCylindricalDiagnostics(events, "b", "c"));
+      expect(result.current.diagnostics.lateKeystroke).toEqual({
+        rate: 100,
+        count: 1,
+        totalErrorsCount: 1,
+      });
+
+      const { result: otherFrom } = renderHook(() => useCylindricalDiagnostics(events, "b", "a"));
+      expect(otherFrom.current.diagnostics.lateKeystroke).toEqual({
+        rate: 0,
+        count: 0,
+        totalErrorsCount: 0,
+      });
     });
 
     it("should compute finger transition ratios correctly for focusKey", () => {
