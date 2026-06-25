@@ -21,6 +21,9 @@ import {
   bigserial,
   customType,
   primaryKey,
+  serial,
+  date,
+  unique,
 } from "drizzle-orm/pg-core";
 
 // --- Custom pgvector type ---
@@ -129,3 +132,24 @@ export type Page = typeof pages.$inferSelect;
 export type NewPage = typeof pages.$inferInsert;
 export type KeyEventRow = typeof keyEvents.$inferSelect;
 export type NewKeyEvent = typeof keyEvents.$inferInsert;
+
+export const topicUsageLimits = pgTable(
+  "topic_usage_limits",
+  {
+    id: serial("id").primaryKey(),
+    userId: varchar("user_id", { length: 255 })
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    ipAddress: varchar("ip_address", { length: 45 }).notNull(),
+    actionType: varchar("action_type", { length: 20 }).notNull(), // 'search' | 'generate'
+    usageDate: date("usage_date").defaultNow().notNull(),
+    requestCount: integer("request_count").default(1).notNull(),
+  },
+  (table) => [
+    unique("topic_usage_limits_user_date_action_unique").on(table.userId, table.actionType, table.usageDate),
+  ]
+);
+
+export type TopicUsageLimit = typeof topicUsageLimits.$inferSelect;
+export type NewTopicUsageLimit = typeof topicUsageLimits.$inferInsert;
+

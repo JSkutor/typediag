@@ -17,6 +17,13 @@
       "when": 1782221992316,
       "tag": "0001_rename_subject_to_topic",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782401362871,
+      "tag": "0002_next_captain_stacy",
+      "breakpoints": true
     }
   ]
 }

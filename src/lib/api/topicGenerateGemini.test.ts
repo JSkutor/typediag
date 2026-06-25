@@ -144,8 +144,8 @@ describe("generateSentencesWithGemini", () => {
     expect(global.fetch).toHaveBeenCalledTimes(4);
     const firstCall = vi.mocked(global.fetch).mock.calls[0]?.[0];
     const lastCall = vi.mocked(global.fetch).mock.calls[3]?.[0];
-    expect(String(firstCall)).toContain("gemini-2.5-flash-lite");
-    expect(String(lastCall)).toContain("gemini-2.0-flash-lite");
+    expect(String(firstCall)).toContain("gemini-2.0-flash");
+    expect(String(lastCall)).toContain("gemini-1.5-flash");
   });
 
   it("throws retryable GeminiApiError after all models and attempts fail", async () => {

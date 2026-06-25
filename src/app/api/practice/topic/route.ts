@@ -1,18 +1,46 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { parseTopicRequest } from "@/lib/api/parseTopicRequest";
 import { drizzleDb } from "@/db";
 import { targetTexts } from "@/db/schema";
 import { sql } from "drizzle-orm";
+import { resolveApiUser, withGuestToken } from "@/lib/api/resolveApiUser";
+import { checkTopicRateLimit } from "@/lib/api/topicRateLimiter";
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
+    // 1. Parse and validate the topic request body first to avoid counting invalid requests
     const parsed = await parseTopicRequest(req);
     if (!parsed.ok) {
       return parsed.response;
     }
     const { topic } = parsed;
 
-    // 1. Upstage 임베딩 API 호출
+    // 2. Identify the user (Clerk user or Guest user)
+    let resolvedUser;
+    try {
+      resolvedUser = await resolveApiUser(req);
+    } catch (authError: unknown) {
+      const authErrorMessage = authError instanceof Error ? authError.message : "Unauthorized: Missing guest or user identification";
+      return NextResponse.json(
+        { error: authErrorMessage },
+        { status: 401 }
+      );
+    }
+    const { userId, issueGuestToken } = resolvedUser;
+
+    // 3. Check and increment search rate limit
+    const limitCheck = await checkTopicRateLimit(req, userId, "search");
+    if (!limitCheck.allowed) {
+      return NextResponse.json(
+        withGuestToken(
+          { error: "일일 검색 한도를 초과했습니다. (최대 100회)" },
+          issueGuestToken
+        ),
+        { status: 429 }
+      );
+    }
+
+    // 4. Call Upstage embedding API
     const upstageApiKey = process.env.UPSTAGE_API_KEY;
     if (!upstageApiKey) {
       throw new Error("UPSTAGE_API_KEY is not set in environment variables.");
@@ -38,9 +66,7 @@ export async function POST(req: Request) {
     const embeddingData = await embeddingRes.json();
     const queryEmbedding = embeddingData.data[0].embedding as number[];
 
-    // 2. pgvector 코사인 유사도 검색
-    // sql.raw()로 벡터 문자열을 삽입하여 Drizzle이 이를 파라미터가 아닌 리터럴로 처리하게 함.
-    // queryEmbedding은 Upstage API에서 받은 number[] 배열이므로 인젝션 위험 없음 (숫자만 포함).
+    // 5. pgvector Cosine similarity search
     const vectorLiteral = sql.raw(`'[${queryEmbedding.join(",")}]'::vector`);
 
     const results = await drizzleDb
@@ -58,13 +84,15 @@ export async function POST(req: Request) {
       .limit(100);
 
     if (!results || results.length === 0) {
-      return NextResponse.json({ error: "No matching targets found" }, { status: 404 });
+      return NextResponse.json(
+        withGuestToken({ error: "No matching targets found" }, issueGuestToken),
+        { status: 404 }
+      );
     }
 
-    return NextResponse.json({
-      success: true,
-      data: results,
-    });
+    return NextResponse.json(
+      withGuestToken({ success: true, data: results }, issueGuestToken)
+    );
   } catch (error: unknown) {
     console.error("Topic Mode Search Error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

@@ -1,9 +1,12 @@
 import prompts from "@/lib/practice/prompts.json";
 
-/** Official Gemini API paid-tier rates (USD per 1M tokens). */
+/** Gemini API paid-tier rates (USD / 1M tokens). SSOT models: `topicGenerateGemini.ts`.
+ * - gemini-2.0-flash: text/image/video input $0.10, output $0.40 (ai.google.dev/pricing). Audio input $0.70.
+ * - gemini-1.5-flash: ≤128K prompt tier $0.075 / $0.30 (Google blog 2024-08-12). Topic prompts ≪128K.
+ * Both models are deprecated on the pricing page; rates reflect last published Standard tier for text. */
 export const GEMINI_PRICING = {
-  "gemini-2.5-flash-lite": { input: 0.1, output: 0.4 },
-  "gemini-2.0-flash-lite": { input: 0.075, output: 0.3 },
+  "gemini-2.0-flash": { input: 0.1, output: 0.4 },
+  "gemini-1.5-flash": { input: 0.075, output: 0.3 },
 } as const;
 
 /** Upstage embedding API pricing (2026). */
@@ -311,7 +314,7 @@ export const DEFAULT_COST_SIMULATION: CostSimulationInput = {
 
   geminiInputTokens: Math.round((DEFAULT_TOKENS.inputMin + DEFAULT_TOKENS.inputMax) / 2),
   geminiOutputTokens: DEFAULT_TOKENS.output,
-  geminiModel: "gemini-2.5-flash-lite",
+  geminiModel: "gemini-2.0-flash",
   geminiRetryMultiplier: 1.05,
 
   upstageQueryTokens: 5,

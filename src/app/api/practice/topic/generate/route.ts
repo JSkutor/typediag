@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { parseTopicRequest } from "@/lib/api/parseTopicRequest";
 import {
   GeminiApiError,
@@ -7,6 +7,8 @@ import {
 } from "@/lib/api/topicGenerateGemini";
 import { db } from "@/utils/db";
 import crypto from "crypto";
+import { resolveApiUser, withGuestToken } from "@/lib/api/resolveApiUser";
+import { checkTopicRateLimit } from "@/lib/api/topicRateLimiter";
 
 const TOPIC_CACHE_RETRY_DELAYS_MS = [500, 1500] as const;
 
@@ -32,14 +34,41 @@ async function cacheTopicTargetsWithRetry(
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
+    // 1. Parse and validate the topic request body first to avoid counting invalid requests
     const parsed = await parseTopicRequest(req);
     if (!parsed.ok) {
       return parsed.response;
     }
     const { topic } = parsed;
 
+    // 2. Identify the user (Clerk user or Guest user)
+    let resolvedUser;
+    try {
+      resolvedUser = await resolveApiUser(req);
+    } catch (authError: unknown) {
+      const authErrorMessage = authError instanceof Error ? authError.message : "Unauthorized: Missing guest or user identification";
+      return NextResponse.json(
+        { error: authErrorMessage },
+        { status: 401 }
+      );
+    }
+    const { userId, issueGuestToken } = resolvedUser;
+
+    // 3. Check and increment generation rate limit
+    const limitCheck = await checkTopicRateLimit(req, userId, "generate");
+    if (!limitCheck.allowed) {
+      return NextResponse.json(
+        withGuestToken(
+          { error: "일일 생성 한도를 초과했습니다. (최대 15회)" },
+          issueGuestToken
+        ),
+        { status: 429 }
+      );
+    }
+
+    // 4. Generate sentences using Gemini
     const sentences = await generateSentencesWithGemini(topic);
 
     if (!sentences.sentences || sentences.sentences.length === 0) {
@@ -47,7 +76,10 @@ export async function POST(req: Request) {
         sentences.rawCount > 0
           ? "생성된 문장이 형식 요건에 맞지 않습니다. 다시 시도해 주세요."
           : "부적절한 주제이거나 문장 생성에 실패했습니다.";
-      return NextResponse.json({ error }, { status: 422 });
+      return NextResponse.json(
+        withGuestToken({ error }, issueGuestToken),
+        { status: 422 }
+      );
     }
 
     const responseData = sentences.sentences.map((content) => ({
@@ -58,12 +90,18 @@ export async function POST(req: Request) {
 
     void cacheTopicTargetsWithRetry(responseData.map((item) => ({ ...item, topic })));
 
-    return NextResponse.json({ success: true, data: responseData });
+    return NextResponse.json(
+      withGuestToken({ success: true, data: responseData }, issueGuestToken)
+    );
   } catch (error: unknown) {
     console.error("[generate/route] Error:", error);
 
+    // Dynamic error handling
     if (error instanceof GeminiApiError && error.retryable) {
-      return NextResponse.json({ error: geminiUserError(error.statusCode) }, { status: 503 });
+      return NextResponse.json(
+        { error: geminiUserError(error.statusCode) },
+        { status: 503 }
+      );
     }
 
     return NextResponse.json(

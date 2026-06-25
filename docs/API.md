@@ -155,7 +155,7 @@ Gemini로 주제 기반 문장 20개 생성.
 | 500 | 기타 오류 |
 
 환경 변수: `GEMINI_API_KEY`  
-모델 폴백: `gemini-2.5-flash-lite` → `gemini-2.0-flash-lite`  
+모델 폴백: `gemini-2.0-flash` → `gemini-1.5-flash`  
 생성 문장은 비동기로 `target_texts`에 적재됩니다 (`insertTopicGeneratedTargets`).
 
 ---

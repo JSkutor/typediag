@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { drizzleDb } from "@/db";
-import { POST } from "./route";
+
+const mockResolveApiUser = vi.fn().mockResolvedValue({ userId: "mock-user-id", issueGuestToken: undefined });
+const mockWithGuestToken = vi.fn().mockImplementation((body, token) => ({ ...body, ...(token ? { guestToken: token } : {}) }));
+const mockCheckTopicRateLimit = vi.fn().mockResolvedValue({ allowed: true, currentCount: 1, limit: 100 });
 
 vi.mock("@/db", () => ({
   drizzleDb: {
@@ -8,8 +10,21 @@ vi.mock("@/db", () => ({
   },
 }));
 
-function makeTopicRequest(topic: unknown): Request {
-  return new Request("http://localhost/api/practice/topic", {
+vi.mock("@/lib/api/resolveApiUser", () => ({
+  resolveApiUser: (...args: any[]) => mockResolveApiUser(...args),
+  withGuestToken: (...args: any[]) => mockWithGuestToken(...args),
+}));
+
+vi.mock("@/lib/api/topicRateLimiter", () => ({
+  checkTopicRateLimit: (...args: any[]) => mockCheckTopicRateLimit(...args),
+}));
+
+import { drizzleDb } from "@/db";
+import { POST } from "./route";
+import { NextRequest } from "next/server";
+
+function makeTopicRequest(topic: unknown): NextRequest {
+  return new NextRequest("http://localhost/api/practice/topic", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ topic }),
@@ -20,7 +35,9 @@ describe("/api/practice/topic route", () => {
   const originalUpstageKey = process.env.UPSTAGE_API_KEY;
 
   beforeEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
+    mockResolveApiUser.mockResolvedValue({ userId: "mock-user-id", issueGuestToken: undefined });
+    mockCheckTopicRateLimit.mockResolvedValue({ allowed: true, currentCount: 1, limit: 100 });
   });
 
   afterEach(() => {
@@ -97,4 +114,19 @@ describe("/api/practice/topic route", () => {
     expect(payload.data[0]).not.toHaveProperty("usageCount");
     expect(payload.data[0]).not.toHaveProperty("generatorModel");
   });
+
+  it("returns 429 when rate limit is exceeded", async () => {
+    mockCheckTopicRateLimit.mockResolvedValueOnce({
+      allowed: false,
+      currentCount: 100,
+      limit: 100,
+    });
+
+    const response = await POST(makeTopicRequest("타자 연습"));
+    const payload = await response.json();
+
+    expect(response.status).toBe(429);
+    expect(payload.error).toContain("한도");
+  });
 });
+

@@ -2,6 +2,7 @@ import type { StoreSlice, InputSlice } from "./types";
 import { getQwertyChar, assembleHangulWithPunctuation } from "@/utils/keyboardMap";
 import { runMvsa } from "@/utils/mvsa";
 import { validateTopic } from "@/utils/validation";
+import { getGuestAuthHeaders, applyGuestTokenFromResponse } from "@/utils/guestUser";
 
 export const TOPIC_GUIDE_TEXT = "원하는 주제를 입력하세요...";
 
@@ -36,7 +37,10 @@ export function createTopicTopicActions(set: TopicSliceSet, get: TopicSliceGet) 
       try {
         const res = await fetch("/api/practice/topic/generate", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...getGuestAuthHeaders(),
+          },
           body: JSON.stringify({ topic }),
         });
         if (!res?.ok) {
@@ -47,7 +51,9 @@ export function createTopicTopicActions(set: TopicSliceSet, get: TopicSliceGet) 
           );
           return;
         }
-        const { data } = await res.json();
+        const responseJson = await res.json();
+        applyGuestTokenFromResponse(responseJson);
+        const data = responseJson.data;
         if (Array.isArray(data) && data.length > 0) {
           set((s) => ({
             topicTargets: [...s.topicTargets, ...data].slice(0, 100),
@@ -82,23 +88,32 @@ export function createTopicTopicActions(set: TopicSliceSet, get: TopicSliceGet) 
     try {
       let res = await fetch("/api/practice/topic", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...getGuestAuthHeaders(),
+        },
         body: JSON.stringify({ topic }),
       });
 
       if (res.status === 404) {
         res = await fetch("/api/practice/topic/generate", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...getGuestAuthHeaders(),
+          },
           body: JSON.stringify({ topic }),
         });
       }
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
+        applyGuestTokenFromResponse(errorData);
         throw new Error(errorData?.error || "올바른 한글 입력이 아닙니다.");
       }
-      const { data } = await res.json();
+      const responseJson = await res.json();
+      applyGuestTokenFromResponse(responseJson);
+      const data = responseJson.data;
       if (!Array.isArray(data) || data.length === 0) {
         throw new Error("검색 결과가 없습니다.");
       }

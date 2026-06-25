@@ -14,7 +14,7 @@ const TOPIC_SENTENCE_RESPONSE_SCHEMA = {
   required: ["sentences"],
 } as const;
 
-export const GEMINI_MODELS = ["gemini-2.5-flash-lite", "gemini-2.0-flash-lite"] as const;
+export const GEMINI_MODELS = ["gemini-2.0-flash", "gemini-1.5-flash"] as const;
 export const GEMINI_RETRY_DELAYS_MS = [1000, 2000] as const;
 
 export function geminiUserError(statusCode: number): string {

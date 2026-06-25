@@ -55,7 +55,7 @@ sequenceDiagram
 
 ### 2.2. 문장 생성 파이프라인
 
-- **LLM**: `gemini-2.5-flash-lite`, 실패 시 `gemini-2.0-flash-lite` 폴백
+- **LLM**: `gemini-2.0-flash`, 실패 시 `gemini-1.5-flash` 폴백
 - **환경 변수**: `GEMINI_API_KEY`
 - **프롬프트**: `src/lib/practice/prompts.json`
 - **응답 스키마**: JSON `sentences` 배열 20개 (`responseSchema` 강제)

@@ -114,8 +114,8 @@ Topic API는 현재 **무인증** ([API.md](API.md)). Free/Pro 한도는 §7 설
 
 | 항목 | 값 |
 | :--- | :--- |
-| 모델 (우선) | `gemini-2.5-flash-lite` |
-| 폴백 | `gemini-2.0-flash-lite` |
+| 모델 (우선) | `gemini-2.0-flash` |
+| 폴백 | `gemini-1.5-flash` |
 | 생성량 | JSON `sentences` 배열 **정확히 20개** (`maxOutputTokens: 4000`) |
 | 재시도 | 429/503 시 모델·시도별 backoff (`GEMINI_RETRY_DELAYS_MS`: 1s, 2s) |
 
@@ -123,8 +123,10 @@ Topic API는 현재 **무인증** ([API.md](API.md)). Free/Pro 한도는 §7 설
 
 | 모델 | Input | Output |
 | :--- | :--- | :--- |
-| `gemini-2.5-flash-lite` | $0.10 | $0.40 |
-| `gemini-2.0-flash-lite` | $0.075 | $0.30 |
+| `gemini-2.0-flash` | $0.10 | $0.40 |
+| `gemini-1.5-flash` | $0.075 | $0.30 |
+
+> **단가 출처·주의:** `gemini-2.0-flash`는 [Gemini API pricing](https://ai.google.dev/gemini-api/docs/pricing) Standard Paid tier **text/image/video input** 기준(오디오 input $0.70/1M). `gemini-1.5-flash`는 동 페이지에서 제거됐으나, Google Developers Blog(2024-08-12) **프롬프트 ≤128K** tier와 일치. Topic 생성은 input ~400 tok·text-only이므로 위 단가 적용. 2026년 6월 1일부로 `gemini-2.0-flash-001` 모델이 공식 단종(Discontinued)되었으므로, 실제 프로덕션 운영 시에는 최신 `gemini-2.5-flash` 또는 레거시 백업인 `gemini-1.5-flash` 등을 유연하게 선택해 재검증하여 적용해야 합니다.
 
 **1회 호출 비용:**
 

@@ -171,7 +171,7 @@ export const db = {
           content: item.content,
           language: item.language,
           source: "topic",
-          generatorModel: "gemini-2.5-flash-lite",
+          generatorModel: "gemini-2.0-flash",
           topic: item.topic,
         })),
       )

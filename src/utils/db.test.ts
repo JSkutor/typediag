@@ -363,7 +363,7 @@ describe("db", () => {
     const found = await db.findTargetText({ id });
     expect(found?.content).toBe(content);
     expect(found?.source).toBe("topic");
-    expect(found?.generatorModel).toBe("gemini-2.5-flash-lite");
+    expect(found?.generatorModel).toBe("gemini-2.0-flash");
     expect(found?.topic).toBe("테스트 주제");
     expect(found?.embedding).toBeNull();
   });

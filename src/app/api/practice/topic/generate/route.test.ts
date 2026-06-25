@@ -1,12 +1,23 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { POST } from "./route";
-import { db } from "@/utils/db";
 import * as topicGenerateGemini from "@/lib/api/topicGenerateGemini";
+
+const mockResolveApiUser = vi.fn().mockResolvedValue({ userId: "mock-user-id", issueGuestToken: undefined });
+const mockWithGuestToken = vi.fn().mockImplementation((body, token) => ({ ...body, ...(token ? { guestToken: token } : {}) }));
+const mockCheckTopicRateLimit = vi.fn().mockResolvedValue({ allowed: true, currentCount: 1, limit: 15 });
 
 vi.mock("@/utils/db", () => ({
   db: {
     insertTopicGeneratedTargets: vi.fn(),
   },
+}));
+
+vi.mock("@/lib/api/resolveApiUser", () => ({
+  resolveApiUser: (...args: any[]) => mockResolveApiUser(...args),
+  withGuestToken: (...args: any[]) => mockWithGuestToken(...args),
+}));
+
+vi.mock("@/lib/api/topicRateLimiter", () => ({
+  checkTopicRateLimit: (...args: any[]) => mockCheckTopicRateLimit(...args),
 }));
 
 vi.mock("@/lib/api/topicGenerateGemini", async (importOriginal) => {
@@ -17,11 +28,16 @@ vi.mock("@/lib/api/topicGenerateGemini", async (importOriginal) => {
   };
 });
 
+import { POST } from "./route";
+import { db } from "@/utils/db";
+
 const VALID_SENTENCE =
   "요즘 들어 날씨 변화가 심해져서 출근길에 우산을 챙길지 말지 고민하는 사람이 많고, 특히 장거리 이동이 예정된 날에는 미리 예보를 확인해 준비하는 습관이 도움이 됩니다.";
 
-function makeRequest(topic: unknown): Request {
-  return new Request("http://localhost/api/practice/topic/generate", {
+import { NextRequest } from "next/server";
+
+function makeRequest(topic: unknown): NextRequest {
+  return new NextRequest("http://localhost/api/practice/topic/generate", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ topic }),
@@ -32,6 +48,8 @@ describe("/api/practice/topic/generate route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(db.insertTopicGeneratedTargets).mockResolvedValue(undefined);
+    mockResolveApiUser.mockResolvedValue({ userId: "mock-user-id", issueGuestToken: undefined });
+    mockCheckTopicRateLimit.mockResolvedValue({ allowed: true, currentCount: 1, limit: 15 });
   });
 
   afterEach(() => {
@@ -131,4 +149,19 @@ describe("/api/practice/topic/generate route", () => {
     expect(payload.success).toBe(true);
     expect(db.insertTopicGeneratedTargets).toHaveBeenCalledTimes(3);
   });
+
+  it("returns 429 when rate limit is exceeded", async () => {
+    mockCheckTopicRateLimit.mockResolvedValueOnce({
+      allowed: false,
+      currentCount: 15,
+      limit: 15,
+    });
+
+    const response = await POST(makeRequest("타자 연습"));
+    const payload = await response.json();
+
+    expect(response.status).toBe(429);
+    expect(payload.error).toContain("한도");
+  });
 });
+

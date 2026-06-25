@@ -16,6 +16,7 @@ TODO: Topic API 무인증 + 비용 남용 가능
 TODO: BM 영역 구분해놓기
 
 
+TODO: 유저 트래킹 용 통계 달기
 
 
 
