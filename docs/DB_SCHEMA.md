@@ -109,7 +109,7 @@ Clerk 인증과 연동되는 사용자 정보를 저장합니다.
 - `to_key`: 현재 입력 키값 (VARCHAR(20), Not Null)
 - `key_char`: 화면에 출력되는 글자 (VARCHAR(10), Default '')
 - `latency`: `from_key` 완료 후 `to_key`까지의 지연시간 ms (Integer, Not Null)
-- `hold_duration_ms`: 키를 누르고 있던 시간 ms (Integer, Nullable)
+- `hold_duration_ms`: `to_key`를 누르고 있는 시간 ms (Integer, Nullable) — Cloud Typing **D (hold)** 와 동일. [DIAGNOSTICS.md](DIAGNOSTICS.md) §0·§3
 - `is_correct`: 정타 여부 (Boolean, Nullable)
 - `expected_char`: 기대했던 정타 글자 (VARCHAR(10), Nullable)
 - `created_at`: 기록 생성 일시 (TimestampTZ, Not Null) **[Hypertable 파티션 키]**

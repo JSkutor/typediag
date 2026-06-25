@@ -428,10 +428,7 @@ export function DevThemesPanel() {
               <div key={rowIndex} className={styles.keyboardRow}>
                 {/* Esc / Caps Locks */}
                 {rowIndex === 0 && (
-                  <div
-                    className={`${styles.keycap} ${styles.modKey} ${styles.escKey}`}
-                    style={{ backgroundColor: "var(--accent-second)", color: "var(--bg-base)" }}
-                  >
+                  <div className={`${styles.keycap} ${styles.modKey} ${styles.escKey} ${styles.accentSecondKeycap}`}>
                     <span>Esc</span>
                   </div>
                 )}
@@ -471,9 +468,7 @@ export function DevThemesPanel() {
                           }}
                         />
                       )}
-                      <span className={styles.keyLegend} style={{ color: "var(--key-alpha-text)" }}>
-                        {key.label}
-                      </span>
+                      <span className={styles.keyLegend}>{key.label}</span>
                       {delayCount > 0 && (
                         <span className={styles.heatBadge} style={{ color: "var(--accent)" }}>
                           {delayCount}
@@ -492,14 +487,7 @@ export function DevThemesPanel() {
                   </div>
                 )}
                 {rowIndex === 1 && (
-                  <div
-                    className={`${styles.keycap} ${styles.modKey} ${styles.enterKey}`}
-                    style={{
-                      backgroundColor: "var(--accent)",
-                      color: "var(--bg-base)",
-                      fontWeight: 700,
-                    }}
-                  >
+                  <div className={`${styles.keycap} ${styles.modKey} ${styles.enterKey} ${styles.accentKeycap}`}>
                     <span>Enter</span>
                   </div>
                 )}
@@ -513,10 +501,9 @@ export function DevThemesPanel() {
             {/* Spacebar Row */}
             <div className={styles.keyboardRow}>
               <div
-                className={`${styles.keycap} ${styles.modKey} ${styles.spaceKey} ${pressedKeys["Space"] ? styles.pressed : ""}`}
-                style={{ borderColor: "var(--accent-second)" }}
+                className={`${styles.keycap} ${styles.modKey} ${styles.spaceKey} ${styles.spaceKeyAccent} ${pressedKeys["Space"] ? styles.pressed : ""}`}
               >
-                <span style={{ color: "var(--accent-second)" }}>Spacebar</span>
+                <span className={styles.spaceKeyLabel}>Spacebar</span>
               </div>
             </div>
           </div>
@@ -538,66 +525,66 @@ export function DevThemesPanel() {
               </div>
               <pre className={styles.codeContent}>
                 <code>
-                  <span style={{ color: "var(--key-mod-text)" }}>
+                  <span className={styles.codeComment}>
                     {"// TypeDiag Spatial Keystroke Dynamics Model (SKDM)"}
                   </span>
                   {"\n"}
-                  <span style={{ color: "var(--accent)" }}>import</span>
+                  <span className={styles.codeKeyword}>import</span>
                   {" { calculateKeyLatency } "}
-                  <span style={{ color: "var(--accent)" }}>from</span>{" "}
-                  <span style={{ color: "var(--key-alpha-text)" }}>{'"@/lib/skdm/model"'}</span>
+                  <span className={styles.codeKeyword}>from</span>{" "}
+                  <span className={styles.codeString}>{'"@/lib/skdm/model"'}</span>
                   {";\n\n"}
-                  <span style={{ color: "var(--accent)" }}>interface</span>{" "}
-                  <span style={{ color: "var(--accent-second)" }}>KeystrokeEvent</span>
+                  <span className={styles.codeKeyword}>interface</span>{" "}
+                  <span className={styles.codeType}>KeystrokeEvent</span>
                   {" {\n"}
                   {"  key: "}
-                  <span style={{ color: "var(--key-alpha-text)" }}>string</span>
+                  <span className={styles.codeString}>string</span>
                   {";\n"}
                   {"  pressTime: "}
-                  <span style={{ color: "var(--key-alpha-text)" }}>number</span>
+                  <span className={styles.codeString}>number</span>
                   {"; "}
-                  <span style={{ color: "var(--key-mod-text)" }}>{"// ms"}</span>
+                  <span className={styles.codeComment}>{"// ms"}</span>
                   {"\n"}
                   {"  releaseTime: "}
-                  <span style={{ color: "var(--key-alpha-text)" }}>number</span>
+                  <span className={styles.codeString}>number</span>
                   {";\n"}
                   {"}\n\n"}
-                  <span style={{ color: "var(--accent)" }}>export function</span>{" "}
-                  <span style={{ color: "var(--accent-second)" }}>analyzeSession</span>
+                  <span className={styles.codeKeyword}>export function</span>{" "}
+                  <span className={styles.codeType}>analyzeSession</span>
                   {"(events: KeystrokeEvent[]): DiagnosticResult {\n"}
                   {"  "}
-                  <span style={{ color: "var(--accent)" }}>const</span>
+                  <span className={styles.codeKeyword}>const</span>
                   {" threshold = "}
-                  <span style={{ color: "var(--accent-second)" }}>180</span>
+                  <span className={styles.codeType}>180</span>
                   {"; "}
-                  <span style={{ color: "var(--key-mod-text)" }}>{"// hesitation threshold"}</span>
+                  <span className={styles.codeComment}>{"// hesitation threshold"}</span>
                   {"\n"}
                   {"  "}
-                  <span style={{ color: "var(--accent)" }}>let</span>
+                  <span className={styles.codeKeyword}>let</span>
                   {" latencySum = "}
-                  <span style={{ color: "var(--accent-second)" }}>0</span>
+                  <span className={styles.codeType}>0</span>
                   {";\n\n"}
                   {"  "}
-                  <span style={{ color: "var(--accent)" }}>const</span>
+                  <span className={styles.codeKeyword}>const</span>
                   {" analysis = events.map(("}
-                  <span style={{ color: "var(--key-alpha-text)" }}>event</span>
+                  <span className={styles.codeString}>event</span>
                   {") => {\n"}
                   {"    "}
-                  <span style={{ color: "var(--accent)" }}>const</span>
+                  <span className={styles.codeKeyword}>const</span>
                   {" duration = event.releaseTime - event.pressTime;\n"}
                   {"    "}
-                  <span style={{ color: "var(--accent)" }}>const</span>
+                  <span className={styles.codeKeyword}>const</span>
                   {" isHesitant = duration > threshold;\n"}
                   {"    \n"}
                   {"    "}
-                  <span style={{ color: "var(--accent)" }}>return</span>
+                  <span className={styles.codeKeyword}>return</span>
                   {" {\n"}
                   {"      key: event.key,\n"}
                   {"      latency: duration,\n"}
                   {"      status: isHesitant ? "}
-                  <span style={{ color: "var(--accent-second)" }}>{'"hesitant"'}</span>
+                  <span className={styles.codeType}>{'"hesitant"'}</span>
                   {" : "}
-                  <span style={{ color: "var(--key-alpha-text)" }}>{'"stable"'}</span>
+                  <span className={styles.codeString}>{'"stable"'}</span>
                   {"\n"}
                   {"    };\n"}
                   {"  });\n"}
@@ -620,13 +607,12 @@ export function DevThemesPanel() {
                 <div className={styles.scoreHeader}>
                   <span>Diagnostic Score</span>
                   <span
-                    className={styles.scoreBadge}
-                    style={{ backgroundColor: "var(--accent-glow)", color: "var(--accent)" }}
+                    className={`${styles.scoreBadge} ${styles.scoreBadgeAccent}`}
                   >
                     Excellent
                   </span>
                 </div>
-                <div className={styles.scoreNumber} style={{ color: "var(--accent)" }}>
+                <div className={`${styles.scoreNumber} ${styles.metricValAccent}`}>
                   95.8<span className={styles.scoreUnit}>/100</span>
                 </div>
                 <p className={styles.scoreText}>
@@ -639,13 +625,13 @@ export function DevThemesPanel() {
               <div className={styles.metricGrid}>
                 <div className={styles.metricCard}>
                   <span className={styles.metricLabel}>평균 타자속도 (WPM)</span>
-                  <span className={styles.metricVal} style={{ color: "var(--accent)" }}>
+                  <span className={`${styles.metricVal} ${styles.metricValAccent}`}>
                     82 WPM
                   </span>
                 </div>
                 <div className={styles.metricCard}>
                   <span className={styles.metricLabel}>타건 정확도 (ACC)</span>
-                  <span className={styles.metricVal} style={{ color: "var(--accent-second)" }}>
+                  <span className={`${styles.metricVal} ${styles.metricValSecond}`}>
                     98.4%
                   </span>
                 </div>
@@ -655,49 +641,24 @@ export function DevThemesPanel() {
               <div className={styles.miniMap}>
                 <div className={styles.miniMapHeader}>
                   <span>Spatial Latency Terrains (SKDM Heatmap)</span>
-                  <span style={{ color: "var(--key-mod-text)", fontSize: "11px" }}>
-                    2D Delaunay Node Projections
-                  </span>
+                  <span className={styles.codeMuted}>2D Delaunay Node Projections</span>
                 </div>
                 <div className={styles.gridMap}>
                   {Array.from({ length: 15 }).map((_, i) => {
                     const isHot = i === 4 || i === 11 || i === 8;
                     const isWarm = i === 1 || i === 7 || i === 13;
-                    let cellColor = "var(--border-subtle)";
-                    let opacity = 0.03;
-                    let text = "Stable";
-                    let textColor = "var(--key-mod-text)";
-
-                    if (isHot) {
-                      cellColor = "var(--accent)";
-                      opacity = 0.15;
-                      text = "Delay";
-                      textColor = "var(--accent)";
-                    } else if (isWarm) {
-                      cellColor = "var(--accent-second)";
-                      opacity = 0.1;
-                      text = "Warn";
-                      textColor = "var(--accent-second)";
-                    }
+                    const heat = isHot ? "hot" : isWarm ? "warm" : "stable";
+                    const text = isHot ? "Delay" : isWarm ? "Warn" : "Stable";
 
                     return (
                       <div
                         key={i}
                         className={styles.mapCell}
-                        style={{
-                          backgroundColor: "var(--bg-base)",
-                          borderColor: cellColor,
-                          borderWidth: isHot || isWarm ? "1.5px" : "1px",
-                        }}
+                        data-heat={heat}
+                        style={{ backgroundColor: "var(--bg-base)" }}
                       >
-                        <span
-                          className={styles.cellFill}
-                          style={{
-                            backgroundColor: cellColor,
-                            opacity: opacity,
-                          }}
-                        />
-                        <span className={styles.cellKey} style={{ color: textColor }}>
+                        <span className={styles.cellFill} data-heat={heat} />
+                        <span className={styles.cellKey} data-heat={heat}>
                           {text}
                         </span>
                       </div>
@@ -731,7 +692,7 @@ export function DevThemesPanel() {
           </div>
           <div className={styles.codeContainer}>
             <pre className={styles.codeContent}>
-              <code style={{ color: "var(--key-alpha-text)" }}>{cssVariablesString}</code>
+              <code className={styles.exportCode}>{cssVariablesString}</code>
             </pre>
           </div>
         </section>

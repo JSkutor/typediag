@@ -1,34 +1,51 @@
 import { useMemo } from "react";
 import { KeyEvent } from "@/lib/skdm";
-import { fitPiecewiseLinearWithDiagnostics } from "@/utils/piecewiseRegression";
-import { countCorrectEventsByToKey, ensureFinalUpperBound } from "@/lib/dev/piecewiseDev";
-import { calculateKeystrokeDiagnostics, calculateChartData } from "@/utils/cylindricalStats";
+import {
+  buildDiagnosticsAccumulator,
+  calculateChartData,
+  finalizeKeystrokeDiagnostics,
+} from "@/utils/cylindricalStats";
+import { readSkdmFinalUpperBound } from "@/lib/skdm/outlierBoundStorage";
+import { ensureFinalUpperBound } from "@/lib/dev/piecewiseDev";
+import { fitPiecewiseFromLatencies } from "@/utils/piecewiseRegression";
 
-export function useCylindricalDiagnostics(events: KeyEvent[], selectedTo: string) {
-  // 1. 키별로 올바르게 입력된 이벤트 개수를 집계하여 정렬된 옵션 목록 생성
-  const toKeyOptions = useMemo(
-    () => [...countCorrectEventsByToKey(events).entries()].sort((a, b) => b[1] - a[1]),
-    [events],
+export function useCylindricalDiagnostics(events: KeyEvent[], focusKey: string, fromKey?: string) {
+  // O(N) 단일 패스 — events가 바뀔 때만 재실행
+  const acc = useMemo(() => buildDiagnosticsAccumulator(events), [events]);
+
+  // O(1) — accumulator에서 직접 파생, focusKey 변경 시에도 events 재순회 없음
+  const focusKeyOptions = useMemo(
+    () => [...acc.correctByKey.entries()].sort((a, b) => b[1] - a[1]),
+    [acc],
   );
 
-  // 2. 분절 선형 회귀(Piecewise Regression) 계산
+  // O(k) — focusKey reference latencies만 처리 (events 재순회 없음)
   const outcome = useMemo(() => {
-    if (!selectedTo || events.length === 0) return null;
+    if (!focusKey || events.length === 0) return null;
     ensureFinalUpperBound(events);
-    return fitPiecewiseLinearWithDiagnostics(events, selectedTo);
-  }, [events, selectedTo]);
+    const perKeyData = acc.perKey.get(focusKey);
+    const rawCorrectCount = acc.keyStats.get(focusKey)?.correct ?? 0;
+    return fitPiecewiseFromLatencies(
+      perKeyData?.referenceLatencies ?? [],
+      focusKey,
+      rawCorrectCount,
+    );
+  }, [acc, focusKey, events]);
 
-  // 3. 차트 렌더링에 필요한 가공 데이터 계산
   const chartData = useMemo(() => calculateChartData(outcome), [outcome]);
 
-  // 4. 단일 진단 통계 (Keystroke Diagnostics) 계산
-  const diagnostics = useMemo(
-    () => calculateKeystrokeDiagnostics(events, selectedTo),
-    [events, selectedTo],
-  );
+  // O(k) — accumulator 소비, events 재순회 없음. focusKey만 바뀌면 O(k) 재실행.
+  const diagnostics = useMemo(() => {
+    ensureFinalUpperBound(events);
+    const bound = readSkdmFinalUpperBound();
+    return finalizeKeystrokeDiagnostics(acc, focusKey, {
+      histogramUpperBoundMs: bound?.final_upper_bound_ms,
+      fromKey,
+    });
+  }, [acc, focusKey, fromKey, events]);
 
   return {
-    toKeyOptions,
+    focusKeyOptions,
     outcome,
     chartData,
     diagnostics,

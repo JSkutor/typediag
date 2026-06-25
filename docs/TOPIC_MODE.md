@@ -28,7 +28,7 @@ sequenceDiagram
     SearchAPI->>DB: cosine similarity > 0.5, limit 100
 
     alt 캐시 히트
-        SearchAPI-->>Client: 200 { data: [...] }
+        SearchAPI-->>Client: 200 JSON data array
     else 캐시 미스
         SearchAPI-->>Client: 404
         Client->>GenAPI: { topic }
@@ -61,7 +61,7 @@ sequenceDiagram
 - **응답 스키마**: JSON `sentences` 배열 20개 (`responseSchema` 강제)
 - **후처리**: `filterTopicGeneratedSentences` — 순수 한글 60~100자(공백·문장부호 제외) 등 형식 필터
 - **DB 적재**: `target_gen_<uuid>` ID로 `insertTopicGeneratedTargets` (재시도 2회)
-- **중복 완화**: 클라이언트→서버 `existingSentences` 전달은 **현재 미구현**. 캐시 재사용·DB 적재·클라이언트 풀 상한(100)으로 간접 완화.
+- **중복 완화**: 벡터 캐시 재사용·DB 적재·클라이언트 풀 상한(100).
 
 ### 2.3. 클라이언트 상태 관리 (`createTopicSlice.ts`)
 

@@ -12,10 +12,12 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import {
-  fitPiecewiseLinear,
-  fitPiecewiseLinearWithDiagnostics,
+  fitPiecewiseFromLatencies,
   aggregateToWindows,
+  type PiecewiseFitOutcome,
+  type PiecewiseResult,
 } from "./piecewiseRegression";
+import { buildDiagnosticsAccumulator } from "./cylindricalStats";
 import { KeyEvent } from "@/lib/skdm/types";
 
 // ============================================================
@@ -91,6 +93,27 @@ function generateSyntheticEvents(
   return events;
 }
 
+function fitPiecewiseFromEvents(events: KeyEvent[], focusKey: string): PiecewiseResult | null {
+  const acc = buildDiagnosticsAccumulator(events);
+  const rawCorrectCount = acc.keyStats.get(focusKey)?.correct ?? 0;
+  const outcome = fitPiecewiseFromLatencies(
+    acc.perKey.get(focusKey)?.referenceLatencies ?? [],
+    focusKey,
+    rawCorrectCount,
+  );
+  return "result" in outcome ? outcome.result : null;
+}
+
+function fitPiecewiseOutcomeFromEvents(events: KeyEvent[], focusKey: string): PiecewiseFitOutcome {
+  const acc = buildDiagnosticsAccumulator(events);
+  const rawCorrectCount = acc.keyStats.get(focusKey)?.correct ?? 0;
+  return fitPiecewiseFromLatencies(
+    acc.perKey.get(focusKey)?.referenceLatencies ?? [],
+    focusKey,
+    rawCorrectCount,
+  );
+}
+
 // ============================================================
 // 테스트 스위트
 // ============================================================
@@ -108,7 +131,7 @@ describe("piecewiseRegression", () => {
     it("finalUpperBound 레코드가 없으면 null 반환", () => {
       // localStorage에 아무것도 없는 상태
       const events = generateSyntheticEvents(100, 50, -0.5, -1.0);
-      const result = fitPiecewiseLinear(events, "a");
+      const result = fitPiecewiseFromEvents(events, "a");
       expect(result).toBeNull();
     });
 
@@ -123,7 +146,7 @@ describe("piecewiseRegression", () => {
         isCorrect: true,
       }));
 
-      const result = fitPiecewiseLinear(events, "a");
+      const result = fitPiecewiseFromEvents(events, "a");
       expect(result).toBeNull();
     });
 
@@ -134,7 +157,7 @@ describe("piecewiseRegression", () => {
       // 20개 정확히라도 계산 시도 (결과가 null이 아님을 확인)
       // (수치 문제로 null이 될 수도 있으므로 엄격하게 확인하지 않음)
       // 단, 예외가 발생하지 않아야 함
-      expect(() => fitPiecewiseLinear(events, "a")).not.toThrow();
+      expect(() => fitPiecewiseFromEvents(events, "a")).not.toThrow();
     });
 
     it("isCorrect !== true인 이벤트는 필터링됨", () => {
@@ -157,7 +180,7 @@ describe("piecewiseRegression", () => {
       ];
 
       // isCorrect: true 10개만 남아서 20개 미만 → null
-      const result = fitPiecewiseLinear(events, "a");
+      const result = fitPiecewiseFromEvents(events, "a");
       expect(result).toBeNull();
     });
 
@@ -181,22 +204,22 @@ describe("piecewiseRegression", () => {
       ];
 
       // 유효 데이터 10개 → 20개 미만 → null
-      const result = fitPiecewiseLinear(events, "a");
+      const result = fitPiecewiseFromEvents(events, "a");
       expect(result).toBeNull();
     });
 
-    it("targetToKey가 다른 이벤트는 필터링됨", () => {
+    it("target focusKey가 다른 이벤트는 필터링됨", () => {
       setFinalUpperBoundMock(1000);
 
       // 100개이지만 toKey가 'b' (target은 'a')
       const events: KeyEvent[] = Array.from({ length: 100 }, (_, i) => ({
         fromKey: null,
-        toKey: "b", // 대상 키 불일치
+        toKey: "b", // focusKey 불일치
         latencyMs: 200 + i,
         isCorrect: true,
       }));
 
-      const result = fitPiecewiseLinear(events, "a");
+      const result = fitPiecewiseFromEvents(events, "a");
       expect(result).toBeNull();
     });
   });
@@ -210,7 +233,7 @@ describe("piecewiseRegression", () => {
 
       // 명확한 V-shape 분절 데이터: 50에서 꺾임
       const events = generateSyntheticEvents(150, 75, 0.2, -0.6, 3);
-      const result = fitPiecewiseLinear(events, "a");
+      const result = fitPiecewiseFromEvents(events, "a");
 
       expect(result).not.toBeNull();
       if (result === null) return;
@@ -230,7 +253,7 @@ describe("piecewiseRegression", () => {
     it("slopeBefore = beta1, slopeAfter = beta1 + beta2 (별칭 확인)", () => {
       setFinalUpperBoundMock(2000);
       const events = generateSyntheticEvents(150, 75, 0.2, -0.6, 3);
-      const result = fitPiecewiseLinear(events, "a");
+      const result = fitPiecewiseFromEvents(events, "a");
       if (result === null) return;
 
       expect(result.slopeBefore).toBeCloseTo(result.beta1, 10);
@@ -240,7 +263,7 @@ describe("piecewiseRegression", () => {
     it("n은 균등하게 분할된 윈도우 수(20개)와 일치", () => {
       setFinalUpperBoundMock(2000);
       const events = generateSyntheticEvents(200, 100, 0.1, -0.4, 2);
-      const result = fitPiecewiseLinear(events, "a");
+      const result = fitPiecewiseFromEvents(events, "a");
       if (result === null) return;
 
       // 200개의 데이터가 들어갔으나 20개 윈도우로 압축되어 n = 20
@@ -250,7 +273,7 @@ describe("piecewiseRegression", () => {
     it("sampleDots는 MAX_SAMPLE_DOTS(40) 이하 개수", () => {
       setFinalUpperBoundMock(2000);
       const events = generateSyntheticEvents(200, 100, 0.1, -0.4, 2);
-      const result = fitPiecewiseLinear(events, "a");
+      const result = fitPiecewiseFromEvents(events, "a");
       if (result === null) return;
 
       expect(result.sampleDots.length).toBeLessThanOrEqual(40);
@@ -259,7 +282,7 @@ describe("piecewiseRegression", () => {
     it("sampleDots 점의 x, y가 숫자", () => {
       setFinalUpperBoundMock(2000);
       const events = generateSyntheticEvents(100, 50, 0.1, -0.4, 2);
-      const result = fitPiecewiseLinear(events, "a");
+      const result = fitPiecewiseFromEvents(events, "a");
       if (result === null) return;
 
       for (const dot of result.sampleDots) {
@@ -278,7 +301,7 @@ describe("piecewiseRegression", () => {
     it("분절점에서 좌우 predict 값이 연속 (불연속 점프 없음)", () => {
       setFinalUpperBoundMock(2000);
       const events = generateSyntheticEvents(150, 75, 0.1, -0.5, 2);
-      const result = fitPiecewiseLinear(events, "a");
+      const result = fitPiecewiseFromEvents(events, "a");
       if (result === null) return;
 
       const { c, predict } = result;
@@ -296,7 +319,7 @@ describe("piecewiseRegression", () => {
     it("predict(0) ≈ beta0 (x=0일 때 절편과 일치)", () => {
       setFinalUpperBoundMock(2000);
       const events = generateSyntheticEvents(150, 75, 0.1, -0.5, 2);
-      const result = fitPiecewiseLinear(events, "a");
+      const result = fitPiecewiseFromEvents(events, "a");
       if (result === null) return;
 
       // x=0이 분절점(c) 이전이면: predict(0) = beta0 + beta1*0 = beta0
@@ -311,7 +334,7 @@ describe("piecewiseRegression", () => {
       // 명확한 개선 패턴: 초반 증가, 이후 감소
       // 노이즈를 최소화하여 기울기 방향이 확실히 드러나게
       const events = generateSyntheticEvents(200, 100, 0.5, -1.5, 1);
-      const result = fitPiecewiseLinear(events, "a");
+      const result = fitPiecewiseFromEvents(events, "a");
       if (result === null) return;
 
       // slopeBefore > slopeAfter (이후에 더 빠르게 감소)
@@ -333,7 +356,7 @@ describe("piecewiseRegression", () => {
 
       // 노이즈 극소(0.5ms)로 신호 거의 완벽하게 생성
       const events = generateSyntheticEvents(n, c_true, 0.3, -1.2, 0.5);
-      const result = fitPiecewiseLinear(events, "a");
+      const result = fitPiecewiseFromEvents(events, "a");
 
       if (result === null) {
         // 수치 문제로 실패하더라도 예외 없이 null을 반환해야 함
@@ -361,7 +384,7 @@ describe("piecewiseRegression", () => {
         isCorrect: true,
       }));
 
-      const outcome = fitPiecewiseLinearWithDiagnostics(events, "d");
+      const outcome = fitPiecewiseOutcomeFromEvents(events, "d");
       expect("result" in outcome).toBe(true);
       if (!("result" in outcome)) return;
 

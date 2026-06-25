@@ -78,12 +78,6 @@ describe("useWorkspaceKeybindings", () => {
     useWorkspaceStore.setState({ uiState: "diagnostics" });
     renderHook(() => useWorkspaceKeybindings({ onTransition }));
 
-    fireKey("Space", " ");
-    expect(useWorkspaceStore.getState().diagnosticMode).toBe("space");
-
-    fireKey("ShiftLeft", "Shift");
-    expect(useWorkspaceStore.getState().diagnosticMode).toBe("shift");
-
     fireKey("Backspace", "Backspace");
     expect(useWorkspaceStore.getState().diagnosticMode).toBe("backspace");
 

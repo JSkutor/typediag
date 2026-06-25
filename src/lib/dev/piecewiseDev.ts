@@ -1,8 +1,8 @@
 import { buildLayout, runPipeline, type KeyEvent } from "@/lib/skdm";
 import { readSkdmFinalUpperBound } from "@/lib/skdm/outlierBoundStorage";
 
-/** 정답(isCorrect) 이벤트 기준 toKey별 빈도를 계산한다. */
-export function countCorrectEventsByToKey(events: KeyEvent[]): Map<string, number> {
+/** reference transition(toKey === focusKey) 정답 건수를 focusKey 후보별로 집계한다. */
+export function countCorrectReferenceTransitions(events: KeyEvent[]): Map<string, number> {
   const counts = new Map<string, number>();
   for (const event of events) {
     if (event.isCorrect !== true) continue;
@@ -11,15 +11,15 @@ export function countCorrectEventsByToKey(events: KeyEvent[]): Map<string, numbe
   return counts;
 }
 
-/** 정답 이벤트 수가 가장 많은 toKey를 반환한다. */
-export function selectTopToKey(events: KeyEvent[]): string | null {
+/** reference transition 정답 수가 가장 많은 focusKey를 반환한다. */
+export function selectDefaultFocusKey(events: KeyEvent[]): string | null {
   let topKey: string | null = null;
   let topCount = 0;
 
-  for (const [toKey, count] of countCorrectEventsByToKey(events)) {
+  for (const [focusKey, count] of countCorrectReferenceTransitions(events)) {
     if (count > topCount) {
       topCount = count;
-      topKey = toKey;
+      topKey = focusKey;
     }
   }
 
@@ -41,6 +41,6 @@ export function ensureFinalUpperBound(events: KeyEvent[]) {
 
 export const PIECEWISE_FAILURE_LABEL: Record<string, string> = {
   no_bound: "finalUpperBound 없음 (SKDM 파이프라인 미실행 또는 이벤트 50개 미만)",
-  insufficient_data: "필터 후 정답 이벤트 50개 미만",
+  insufficient_data: "필터 후 정답 이벤트 20개 미만",
   ols_failed: "OLS 역행렬 실패 (특이 행렬)",
 };

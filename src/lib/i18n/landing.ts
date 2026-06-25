@@ -253,7 +253,7 @@ const COPY: Record<LandingLang, LandingCopy> = {
       title: "One session. Actionable insight.",
       subtitle: "Not just a score — see exactly which key transitions are holding you back.",
       dimensionsLabel: "6 diagnostic views",
-      dimensions: ["Hold", "Flight", "Shift", "Hesitation", "Errors", "Finger load"],
+      dimensions: ["Hold", "Latency", "Shift", "Hesitation", "Errors", "Finger load"],
       beforeLabel: "Typical typing test",
       afterLabel: "TypeDiag",
       beforeNote: "Fast overall — but where are you actually slow?",

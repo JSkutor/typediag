@@ -358,6 +358,7 @@
 
 .keyLegend {
   z-index: 2;
+  color: var(--key-alpha-text);
   transition: color 0.2s ease;
 }
 
@@ -618,4 +619,102 @@
 
 .copyBtn:hover {
   opacity: 0.9;
+}
+
+.accentSecondKeycap {
+  background-color: var(--accent-second);
+  color: var(--bg-base);
+}
+
+.accentKeycap {
+  background-color: var(--accent);
+  color: var(--bg-base);
+  font-weight: 700;
+}
+
+.spaceKeyAccent {
+  border-color: var(--accent-second);
+}
+
+.spaceKeyLabel {
+  color: var(--accent-second);
+}
+
+.codeComment {
+  color: var(--key-mod-text);
+}
+
+.codeKeyword {
+  color: var(--accent);
+}
+
+.codeType {
+  color: var(--accent-second);
+}
+
+.codeString {
+  color: var(--key-alpha-text);
+}
+
+.codeMuted {
+  color: var(--key-mod-text);
+  font-size: 11px;
+}
+
+.scoreBadgeAccent {
+  background-color: var(--accent-glow);
+  color: var(--accent);
+}
+
+.metricValAccent {
+  color: var(--accent);
+}
+
+.metricValSecond {
+  color: var(--accent-second);
+}
+
+.exportCode {
+  color: var(--key-alpha-text);
+}
+
+.mapCell[data-heat="hot"] {
+  border-color: var(--accent);
+  border-width: 1.5px;
+}
+
+.mapCell[data-heat="warm"] {
+  border-color: var(--accent-second);
+  border-width: 1.5px;
+}
+
+.cellFill[data-heat="hot"] {
+  background-color: var(--accent);
+  opacity: 0.15;
+}
+
+.cellFill[data-heat="warm"] {
+  background-color: var(--accent-second);
+  opacity: 0.1;
+}
+
+.cellKey[data-heat="hot"] {
+  color: var(--accent);
+}
+
+.cellKey[data-heat="warm"] {
+  color: var(--accent-second);
+}
+
+.cellKey[data-heat="stable"] {
+  color: var(--key-mod-text);
+}
+
+.mapCell[data-heat="stable"] {
+  border-color: var(--border-subtle);
+}
+
+.cellFill[data-heat="stable"] {
+  background-color: var(--border-subtle);
+  opacity: 0.03;
 }

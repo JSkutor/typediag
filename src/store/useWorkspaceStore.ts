@@ -7,8 +7,6 @@ export type DiagnosticsMode =
   | "surface"
   | "cylindrical"
   | "backspace"
-  | "shift"
-  | "space"
   | "finger";
 
 interface WorkspaceState {

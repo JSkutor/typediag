@@ -5,14 +5,17 @@ import { useMemo, useState } from "react";
 
 import { PiecewiseRegressionChart } from "@/components/dev/PiecewiseRegressionChart";
 import {
-  countCorrectEventsByToKey,
+  countCorrectReferenceTransitions,
   ensureFinalUpperBound,
   PIECEWISE_FAILURE_LABEL,
-  selectTopToKey,
+  selectDefaultFocusKey,
 } from "@/lib/dev/piecewiseDev";
 import { useWorkspaceStore } from "@/store/useWorkspaceStore";
 import {
-  fitPiecewiseLinearWithDiagnostics,
+  buildDiagnosticsAccumulator,
+} from "@/utils/cylindricalStats";
+import {
+  fitPiecewiseFromLatencies,
   type PiecewiseFitFailure,
   type PiecewiseFitSuccess,
 } from "@/utils/piecewiseRegression";
@@ -33,29 +36,37 @@ function isSuccess(
 
 export function DevPiecewisePanel() {
   const analysisEvents = useWorkspaceStore((state) => state.analysisEvents);
-  const [manualToKey, setManualToKey] = useState<string | null>(null);
+  const [manualFocusKey, setManualFocusKey] = useState<string | null>(null);
 
-  const toKeyOptions = useMemo(
-    () => [...countCorrectEventsByToKey(analysisEvents).entries()].sort((a, b) => b[1] - a[1]),
+  const focusKeyOptions = useMemo(
+    () =>
+      [...countCorrectReferenceTransitions(analysisEvents).entries()].sort((a, b) => b[1] - a[1]),
     [analysisEvents],
   );
 
-  const defaultToKey = useMemo(() => selectTopToKey(analysisEvents), [analysisEvents]);
+  const defaultFocusKey = useMemo(() => selectDefaultFocusKey(analysisEvents), [analysisEvents]);
 
-  const selectedToKey = useMemo(() => {
-    if (manualToKey && toKeyOptions.some(([key]) => key === manualToKey)) {
-      return manualToKey;
+  const focusKey = useMemo(() => {
+    if (manualFocusKey && focusKeyOptions.some(([key]) => key === manualFocusKey)) {
+      return manualFocusKey;
     }
-    return defaultToKey;
-  }, [manualToKey, toKeyOptions, defaultToKey]);
+    return defaultFocusKey;
+  }, [manualFocusKey, focusKeyOptions, defaultFocusKey]);
 
   const outcome = useMemo(() => {
-    if (!selectedToKey || analysisEvents.length === 0) return null;
+    if (!focusKey || analysisEvents.length === 0) return null;
     ensureFinalUpperBound(analysisEvents);
-    return fitPiecewiseLinearWithDiagnostics(analysisEvents, selectedToKey);
-  }, [analysisEvents, selectedToKey]);
+    const acc = buildDiagnosticsAccumulator(analysisEvents);
+    const perKeyData = acc.perKey.get(focusKey);
+    const rawCorrectCount = acc.keyStats.get(focusKey)?.correct ?? 0;
+    return fitPiecewiseFromLatencies(
+      perKeyData?.referenceLatencies ?? [],
+      focusKey,
+      rawCorrectCount,
+    );
+  }, [analysisEvents, focusKey]);
 
-  const topKeyCounts = useMemo(() => toKeyOptions.slice(0, 5), [toKeyOptions]);
+  const topKeyCounts = useMemo(() => focusKeyOptions.slice(0, 5), [focusKeyOptions]);
 
   if (analysisEvents.length === 0) {
     return (
@@ -86,16 +97,16 @@ export function DevPiecewisePanel() {
       <section className={styles.panel}>
         <h2 className={styles.panelTitle}>Zustand 데이터</h2>
         <div className={styles.controlRow}>
-          <label className={styles.controlLabel} htmlFor="dev-to-key-select">
-            toKey
+          <label className={styles.controlLabel} htmlFor="dev-focus-key-select">
+            focusKey
           </label>
           <select
-            id="dev-to-key-select"
+            id="dev-focus-key-select"
             className={styles.toKeySelect}
-            value={selectedToKey ?? ""}
-            onChange={(event) => setManualToKey(event.target.value)}
+            value={focusKey ?? ""}
+            onChange={(event) => setManualFocusKey(event.target.value)}
           >
-            {toKeyOptions.map(([key, count]) => (
+            {focusKeyOptions.map(([key, count]) => (
               <option key={key} value={key}>
                 {formatKey(key)} ({count})
               </option>
@@ -108,10 +119,10 @@ export function DevPiecewisePanel() {
             <span className={styles.metaValue}>{analysisEvents.length}</span>
           </div>
           <div className={styles.metaItem}>
-            <span className={styles.metaLabel}>선택 toKey 정답 수</span>
+            <span className={styles.metaLabel}>선택 focusKey reference transition 정답 수</span>
             <span className={styles.metaValue}>
-              {selectedToKey
-                ? (toKeyOptions.find(([key]) => key === selectedToKey)?.[1] ?? "—")
+              {focusKey
+                ? (focusKeyOptions.find(([key]) => key === focusKey)?.[1] ?? "—")
                 : "—"}
             </span>
           </div>
@@ -135,7 +146,7 @@ export function DevPiecewisePanel() {
               <div className={styles.metaGrid}>
                 <div className={styles.metaItem}>
                   <span className={styles.metaLabel}>target toKey</span>
-                  <span className={styles.metaValue}>{formatKey(outcome.targetToKey)}</span>
+                  <span className={styles.metaValue}>{formatKey(outcome.focusKey)}</span>
                 </div>
                 <div className={styles.metaItem}>
                   <span className={styles.metaLabel}>정답 이벤트 (raw)</span>
@@ -165,7 +176,7 @@ export function DevPiecewisePanel() {
         <>
           <section className={styles.panel}>
             <h2 className={styles.panelTitle}>
-              분절 회귀 · {formatKey(outcome.diagnostics.targetToKey)}
+              분절 회귀 · {formatKey(outcome.diagnostics.focusKey)}
             </h2>
             <p className={styles.successNote}>
               X축은 경과 시간이 아니라, 선택된 toKey의 <strong>정답 입력 순서 인덱스</strong>

@@ -50,7 +50,7 @@ sequenceDiagram
     Browser->>SessionAPI: X-Guest-User-Id (토큰 없음 가능)
     SessionAPI->>Resolve: resolveApiUser (requireGuestToken=false)
     Resolve-->>SessionAPI: userId + issueGuestToken
-    SessionAPI-->>Browser: { runId, guestToken? }
+    SessionAPI-->>Browser: runId and optional guestToken
     Browser->>Browser: localStorage typediag_guest_token 저장
 ```
 

@@ -161,7 +161,7 @@ export function aggregatePairs(validEvents: KeyEvent[], maxClipMs: number): Map<
 // 2. Per-key summary (frequency-weighted average)
 // ---------------------------------------------------------------------------
 
-/** Summarize incoming pairs into one representative value per key. */
+/** Summarize incoming pairs (reference transitions grouped by toKey) into one representative value per key. */
 export function summarizeKeys(
   pairStats: Map<string, PairStat>,
   layout: Record<string, KeyPosition>,

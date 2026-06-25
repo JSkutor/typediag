@@ -9,6 +9,7 @@ mode 기능 이후에 기능 추가 없다.
 ## MVP
 
 
+
 TODO: Topic API 무인증 + 비용 남용 가능
 
 
@@ -16,10 +17,11 @@ TODO: Topic API 무인증 + 비용 남용 가능
 
 TODO: surface 더 부드럽게, 키로 수직선.
 
-TODO: 그 duration이랑 latency랑 상관관계 보는거, 바로 다음 쌍의 latency도 참조하게 해.
-TODO: shift 좌우편향 통계
-
 TODO: 글씨 가독성. 색 등.
+
+TODO: BM 영역 구분해놓기
+
+TODO: latency surface 프레임 문제, 그래픽 조정
 
 
 
@@ -441,6 +443,7 @@ in progree 라면:
 
 - 오타 유발율:
   tokey랑 isCorrect false 값으로 필터링 해서, 그 이전 쌍이 correct 인지 탐지.
+  - (TODO) 리듬 붕괴와 멘탈 회복성 진단 (Error Ripple Effect, N단계 전이 활용): 오타 직후 다음 키(N=1)의 지연시간 증가 및 다다음 키(N=2) 연쇄 오타 등 정상 타이밍으로 돌아오기까지 전이 확률/지연시간 측정.
 - db 탐색 잘 되면 늦게 눌러서 키 순서가 바뀌어서 오타를 낸 경우 카운트
   incorrect 두 쌍이 있고, 뒤에 쌍이 이거임.
   앞의 쌍의 target이 이 tokey임.

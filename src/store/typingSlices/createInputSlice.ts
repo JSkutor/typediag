@@ -330,10 +330,13 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => {
         let shouldFinish = !pendingTargets;
 
         const lastOp = alignments[lastInputIndex];
+        const isCorrect = lastOp ? lastOp.op === "EQUAL" || lastOp.op === "PARTIAL" : false;
         const evalResult = {
           keyChar: baseEval.keyChar,
-          isCorrect: lastOp ? lastOp.op === "EQUAL" || lastOp.op === "PARTIAL" : false,
-          expectedChar: lastOp && lastOp.op === "REPLACE" ? lastOp.targetChar || null : null,
+          isCorrect,
+          expectedChar: !isCorrect
+            ? (lastOp?.targetChar ?? baseEval.expectedChar ?? null)
+            : null,
         };
 
         set({

@@ -18,6 +18,17 @@ export function getMedian(values: number[]): number {
 }
 
 /**
+ * Median Absolute Deviation — 중앙값 기준 절대편차의 중앙값.
+ * 표준편차보다 이상치에 강건한 분산 지표입니다.
+ */
+export function getMAD(values: number[]): number {
+  if (values.length === 0) return 0;
+  const center = getMedian(values);
+  const deviations = values.map((v) => Math.abs(v - center));
+  return getMedian(deviations);
+}
+
+/**
  * 정렬된 배열의 특정 백분위수(Percentile)를 선형 보간(linear interpolation) 방식으로 계산합니다.
  */
 export function getPercentile(arr: number[], p: number): number {

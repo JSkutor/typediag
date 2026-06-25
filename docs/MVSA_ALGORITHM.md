@@ -25,7 +25,7 @@
 
 ```mermaid
 flowchart TD
-    Start([runMvsa targetText, qwertyBuffer])
+    Start(["runMvsa(targetText, qwertyBuffer)"])
     --> LangCheck{isKorean?}
     LangCheck -->|False| Eng["runEnglishFallback (1:1 매칭)"]
     LangCheck -->|True| Split["splitIntoWords (어절 단위 분할)"]
@@ -38,7 +38,7 @@ flowchart TD
     RF --> Loop
     HU --> Loop
     Loop --> Group["groupAlignResultsByVisualCharacters (시각적 그룹핑)"]
-    Group --> End([AlignResult[] 반환])
+    Group --> End(["AlignResult[] 반환"])
 ```
 
 ### 3.1. 어절 격리 (Word Isolation)

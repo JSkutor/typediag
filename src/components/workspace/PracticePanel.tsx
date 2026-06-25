@@ -3,6 +3,8 @@
 import React from "react";
 import { useTypingStore, TypingMode } from "@/store/useTypingStore";
 
+const TYPING_MODES: TypingMode[] = ["normal", "topic", "hardcore", "plain"];
+
 export const PracticePanel: React.FC = () => {
   const {
     qwertyBuffer,
@@ -82,166 +84,37 @@ export const PracticePanel: React.FC = () => {
   }, [checkCursorJump]);
 
   return (
-    <div
-      className="typing-area"
-      style={{
-        width: "100%",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "flex-start",
-        paddingTop: "5rem",
-        fontSize: "1.875rem",
-        fontFamily: "var(--font-mono)",
-        lineHeight: 1.625,
-        position: "relative",
-        minHeight: "360px",
-      }}
-    >
-      {/* Mode & Language selector segmented controls */}
-      <div
-        className="mode-selector-container"
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          gap: "16px",
-          width: "100%",
-          maxWidth: "1024px",
-          margin: "0 auto 2.5rem auto",
-          padding: "0 1rem",
-        }}
-      >
-        {/* Typing Mode Pill */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "4px",
-            backgroundColor: "rgba(255, 255, 255, 0.02)",
-            border: "1px solid var(--border-subtle, rgba(228, 230, 235, 0.08))",
-            borderRadius: "9999px",
-            padding: "4px",
-            boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.2)",
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
-          }}
-        >
-          {(["normal", "topic", "hardcore", "plain"] as TypingMode[]).map((m) => {
-            const isActive = mode === m;
-            return (
-              <button
-                key={m}
-                onClick={() => setMode(m)}
-                style={{
-                  fontSize: "0.8125rem",
-                  fontWeight: isActive ? 600 : 500,
-                  padding: "6px 16px",
-                  borderRadius: "9999px",
-                  border: "none",
-                  backgroundColor: isActive ? "var(--accent, #3861fb)" : "transparent",
-                  color: isActive
-                    ? "var(--text-inverse, #f0f2f5)"
-                    : "var(--text-secondary, #8d929b)",
-                  cursor: "pointer",
-                  outline: "none",
-                  fontFamily: "var(--font-sans)",
-                  transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-                  boxShadow: isActive ? "0 2px 8px rgba(56, 97, 251, 0.4)" : "none",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  textTransform: "capitalize",
-                }}
-                onMouseEnter={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.color = "var(--text-primary, #e4e6eb)";
-                    e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.04)";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.color = "var(--text-secondary, #8d929b)";
-                    e.currentTarget.style.backgroundColor = "transparent";
-                  }
-                }}
-              >
-                {m}
-              </button>
-            );
-          })}
+    <div className="typing-area">
+      <div className="mode-selector-container">
+        <div className="segment-pill" role="group" aria-label="Typing mode">
+          {TYPING_MODES.map((m) => (
+            <button
+              key={m}
+              type="button"
+              className={`segment-pill__btn${mode === m ? " segment-pill__btn--active" : ""}`}
+              onClick={() => setMode(m)}
+            >
+              {m}
+            </button>
+          ))}
         </div>
 
-        {/* Language Pill (KO / EN) */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "4px",
-            backgroundColor: "rgba(255, 255, 255, 0.02)",
-            border: "1px solid var(--border-subtle, rgba(228, 230, 235, 0.08))",
-            borderRadius: "9999px",
-            padding: "4px",
-            boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.2)",
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
-          }}
-        >
-          {["ko", "en"].map((lang) => {
-            const isSelected = targetLanguage === lang;
-            return (
-              <button
-                key={lang}
-                onClick={() => setTargetLanguage(lang)}
-                style={{
-                  fontSize: "0.8125rem",
-                  fontWeight: isSelected ? 600 : 500,
-                  padding: "6px 14px",
-                  borderRadius: "9999px",
-                  border: "none",
-                  backgroundColor: isSelected ? "var(--accent, #3861fb)" : "transparent",
-                  color: isSelected
-                    ? "var(--text-inverse, #f0f2f5)"
-                    : "var(--text-secondary, #8d929b)",
-                  cursor: "pointer",
-                  outline: "none",
-                  fontFamily: "var(--font-sans)",
-                  transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-                  textTransform: "uppercase",
-                }}
-                onMouseEnter={(e) => {
-                  if (!isSelected) {
-                    e.currentTarget.style.color = "var(--text-primary, #e4e6eb)";
-                    e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.04)";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isSelected) {
-                    e.currentTarget.style.color = "var(--text-secondary, #8d929b)";
-                    e.currentTarget.style.backgroundColor = "transparent";
-                  }
-                }}
-              >
-                {lang}
-              </button>
-            );
-          })}
+        <div className="segment-pill" role="group" aria-label="Language">
+          {(["ko", "en"] as const).map((lang) => (
+            <button
+              key={lang}
+              type="button"
+              className={`segment-pill__btn segment-pill__btn--lang${targetLanguage === lang ? " segment-pill__btn--active" : ""}`}
+              onClick={() => setTargetLanguage(lang)}
+            >
+              {lang}
+            </button>
+          ))}
         </div>
       </div>
 
       {mode === "topic" && !isTopicInputActive && topicTargets.length > 0 && (
-        <div
-          style={{
-            position: "absolute",
-            top: "1rem",
-            right: "1rem",
-            fontSize: "0.875rem",
-            color: "var(--text-secondary, #8d929b)",
-            backgroundColor: "rgba(255, 255, 255, 0.05)",
-            padding: "4px 12px",
-            borderRadius: "9999px",
-          }}
-        >
+        <div className="topic-remaining-badge">
           {isEn
             ? `Remaining: ${topicTargets.length - topicTargetIndex}`
             : `준비된 텍스트: ${topicTargets.length - topicTargetIndex}`}
@@ -250,56 +123,20 @@ export const PracticePanel: React.FC = () => {
 
       <div
         id="typing-text-container"
-        className="typing-text-container inline-block text-left"
-        style={{ maxWidth: "1024px", width: "100%", textAlign: "left" }}
+        className="typing-text-container"
         aria-live="polite"
         aria-atomic="true"
       >
         {mode === "hardcore" && isEn ? (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "4rem 2rem",
-              textAlign: "center",
-              width: "100%",
-              backgroundColor: "rgba(255, 255, 255, 0.01)",
-              border: "1px dashed var(--border-subtle, rgba(228, 230, 235, 0.08))",
-              borderRadius: "var(--radius-lg, 16px)",
-            }}
-          >
-            <div
-              style={{
-                fontSize: "1.5rem",
-                color: "var(--text-secondary, #8d929b)",
-                marginBottom: "0.75rem",
-              }}
-            >
-              ⚡ Hardcore Mode (English)
-            </div>
-            <div
-              style={{
-                fontSize: "1.0625rem",
-                color: "var(--text-muted, #5c6068)",
-                fontStyle: "italic",
-              }}
-            >
+          <div className="typing-placeholder-box">
+            <div className="typing-placeholder-title">⚡ Hardcore Mode (English)</div>
+            <div className="typing-placeholder-desc">
               English Hardcore mode is coming soon! Please use Korean for now.
             </div>
           </div>
         ) : mode === "topic" && isTopicLoading ? (
-          <div
-            style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem" }}
-          >
-            <div
-              style={{
-                color: "var(--text-secondary, #8d929b)",
-                fontStyle: "italic",
-                animation: "pulse 1.5s infinite",
-              }}
-            >
+          <div className="typing-loading">
+            <div className="typing-loading__text">
               {isEn
                 ? "Generating sentences for the topic..."
                 : "주제에 맞는 문장을 찾는 중입니다..."}
@@ -308,21 +145,12 @@ export const PracticePanel: React.FC = () => {
         ) : (
           <>
             {mode === "plain" && qwertyBuffer.length === 0 && (
-              <span
-                style={{
-                  fontSize: "1.5rem",
-                  color: "rgba(255, 255, 255, 0.2)",
-                  fontStyle: "italic",
-                  pointerEvents: "none",
-                  marginRight: "8px",
-                }}
-              >
+              <span className="plain-mode-hint">
                 {isEn ? "Type freely here..." : "여기에 자유롭게 입력하세요..."}
               </span>
             )}
             {diffResult.length === 0 && <span className="typing-cursor left" />}
             {(() => {
-              // Group diffResult into words (non-spaces) and spaces to implement word wrapping.
               const groups: {
                 type: "word" | "space";
                 items: { item: (typeof diffResult)[number]; index: number }[];
@@ -360,7 +188,7 @@ export const PracticePanel: React.FC = () => {
                   let highlightClass = "";
                   if (d.op === "EQUAL" || d.op === "PARTIAL") highlightClass = "text-char-primary";
                   else if (d.op === "INSERT" || d.op === "REPLACE")
-                    highlightClass = "text-char-error opacity-80";
+                    highlightClass = "text-char-error text-char-error-dim";
 
                   if (d.op === "INSERT" && d.char === " ") {
                     highlightClass += " text-char-space-error";
@@ -373,7 +201,7 @@ export const PracticePanel: React.FC = () => {
                     (cursorJumpIndex !== null && i === cursorJumpIndex);
 
                   return (
-                    <span key={i} id={`text-char-${i}`} className="text-char-container relative">
+                    <span key={i} id={`text-char-${i}`} className="text-char-container">
                       {d.op !== "INSERT" && (
                         <span className={isOmitted ? "text-char-omitted" : "text-char-muted"}>
                           {d.targetChar === " " ? "\u00A0" : d.targetChar}
@@ -385,7 +213,7 @@ export const PracticePanel: React.FC = () => {
                         d.op === "REPLACE" ||
                         d.op === "INSERT") && (
                         <span
-                          className={`${d.op !== "INSERT" ? "text-char-overlay" : ""} ${highlightClass}`}
+                          className={`${d.op !== "INSERT" ? "text-char-overlay" : ""} ${highlightClass}`.trim()}
                         >
                           {d.char === " " ? "\u00A0" : d.char}
                         </span>
@@ -399,17 +227,12 @@ export const PracticePanel: React.FC = () => {
 
                 if (group.type === "word") {
                   return (
-                    <span
-                      key={`word-${groupIdx}`}
-                      className="word-wrapper"
-                      style={{ display: "inline-block", whiteSpace: "nowrap" }}
-                    >
+                    <span key={`word-${groupIdx}`} className="word-wrapper">
                       {content}
                     </span>
                   );
-                } else {
-                  return <React.Fragment key={`space-${groupIdx}`}>{content}</React.Fragment>;
                 }
+                return <React.Fragment key={`space-${groupIdx}`}>{content}</React.Fragment>;
               });
             })()}
           </>

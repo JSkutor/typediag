@@ -86,13 +86,6 @@ export function useWorkspaceKeybindings({ onTransition }: WorkspaceKeybindingsPr
         if (code === "Backspace") {
           setDiagnosticMode("backspace");
           setFocusedKey(null);
-        } else if (code === "ShiftLeft" || code === "ShiftRight") {
-          setDiagnosticMode("shift");
-          setFocusedKey(null);
-        } else if (code === "Space") {
-          e.preventDefault(); // Prevent page scrolling
-          setDiagnosticMode("space");
-          setFocusedKey(null);
         } else {
           const mappedKey = PHYSICAL_KEY_MAP[code];
           if (mappedKey) {
