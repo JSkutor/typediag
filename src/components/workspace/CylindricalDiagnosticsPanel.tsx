@@ -12,6 +12,7 @@ import {
   type CloudTypingLevel,
   type CloudTypingEffectiveness,
   type FatalNgramEntry,
+  type BurstNgram,
   type KeystrokeDiagnostics,
 } from "@/utils/cylindricalStats";
 import { SpatialErrorOrbitViz } from "@/components/workspace/SpatialErrorOrbitViz";
@@ -70,6 +71,43 @@ function FatalNgramViz({ entry }: { entry: FatalNgramEntry }) {
   );
 }
 
+function BurstNgramViz({ entry, rank }: { entry: BurstNgram; rank: number }) {
+  return (
+    <div className="cyl-diag__ngram-entry">
+      <div
+        className="cyl-diag__ngram-viz"
+        style={{ display: "flex", alignItems: "center", gap: "6px", margin: "12px 0" }}
+      >
+        <span style={{ color: "var(--accent)", fontWeight: "bold", marginRight: "8px" }}>#{rank}</span>
+        {entry.sequence.map((key, i, arr) => (
+          <React.Fragment key={i}>
+            <kbd
+              className="cyl-diag__ngram-key"
+              style={{
+                padding: "4px 8px",
+                borderRadius: "4px",
+                background: "rgba(16, 185, 129, 0.1)",
+                border: "1px solid rgba(16, 185, 129, 0.3)",
+                color: "var(--success)",
+                fontFamily: "var(--font-mono)",
+              }}
+            >
+              {formatKey(key)}
+            </kbd>
+            {i < arr.length - 1 && <span style={{ color: "var(--text-muted)" }}>→</span>}
+          </React.Fragment>
+        ))}
+      </div>
+      <div className="cyl-diag__optional-item" style={{ fontSize: "0.82rem", marginTop: "4px" }}>
+        <span className="text-success" style={{ fontWeight: 600 }}>
+          평균 {entry.avgLatencyMs.toFixed(1)} ms
+        </span>
+        <span className="cyl-diag__count"> ({entry.count}회 달성)</span>
+      </div>
+    </div>
+  );
+}
+
 function isSuccess(
   outcome: PiecewiseFitSuccess | PiecewiseFitFailure,
 ): outcome is PiecewiseFitSuccess {
@@ -96,10 +134,7 @@ function ComingSoonTag() {
   return <span className="cyl-diag__optional-tag">coming soon</span>;
 }
 
-/** 미구현 항목 전용 — 실데이터 연동 전 UI 스켈레톤 */
-const PLACEHOLDER = {
-  burstPair: { included: true, burstId: "#12", pairLabel: "s→k" },
-} as const;
+
 
 const LATENCY_LEVEL_LABEL: Record<
   NonNullable<KeystrokeDiagnostics["latencyConsistency"]>["level"],
@@ -715,24 +750,19 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
                   </div>
                 )}
 
-                <div className="cyl-diag__detailed-card cyl-diag__detailed-card--optional">
-                  <span className="cyl-diag__stat-lbl">
-                    버스트 쌍 포함 여부 <OptionalTag /> <ComingSoonTag />
-                  </span>
-                  <div className="cyl-diag__burst-box">
-                    <span
-                      className={`cyl-diag__hesitation-badge ${PLACEHOLDER.burstPair.included ? "badge-success" : "badge-warning"}`}
-                    >
-                      {PLACEHOLDER.burstPair.included ? "포함됨" : "미포함"}
+                {diagnostics.burstNgrams?.length > 0 && (
+                  <div className="cyl-diag__detailed-card cyl-diag__detailed-card--optional">
+                    <span className="cyl-diag__stat-lbl">
+                      버스트 (고속 연타 조합) <OptionalTag />
                     </span>
-                    {PLACEHOLDER.burstPair.included && (
-                      <p className="cyl-diag__penalty-desc">
-                        Burst {PLACEHOLDER.burstPair.burstId} · {PLACEHOLDER.burstPair.pairLabel}{" "}
-                        쌍이 고속 연타 구간에 속합니다.
-                      </p>
-                    )}
+                    {diagnostics.burstNgrams.map((entry, index) => (
+                      <BurstNgramViz key={`burst-${entry.sequence.join("→")}-${index}`} entry={entry} rank={index + 1} />
+                    ))}
+                    <p className="cyl-diag__card-desc">
+                      focusKey가 포함된 키보드 입력 패턴 중 지연 시간이 연속 30ms 이하인 빠른 연타 조합 상위 3개입니다.
+                    </p>
                   </div>
-                </div>
+                )}
               </div>
             ) : (
               <p className="cyl-diag__empty">진단할 타자 데이터가 존재하지 않습니다.</p>

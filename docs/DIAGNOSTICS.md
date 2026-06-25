@@ -51,11 +51,11 @@ flowchart TD
     PW --> Panel
 ```
 
-**`DiagnosticsAccumulator`**: `correctByKey`, `pairCounts`, `keyStats`, `shiftLatencies`/`nonShiftLatencies`, `totalErrorStartsCount`, `perKey`.
+**`DiagnosticsAccumulator`**: `correctByKey`, `pairCounts`, `keyStats`, `shiftLatencies`/`nonShiftLatencies`, `totalErrorStartsCount`, `perKey`, `bursts` (고속 연타 2·3-gram).
 
 **`PerKeyAccumulator`**: `referenceLatencies`, `fingerCounts`, `outgoingSamples`, `errorInducementCount`, `lateKeystrokeCount`, `spatialErrors`, `contextualTypos` (3-Gram 누산).
 
-훅 반환: `focusKeyOptions`, `outcome`(분절회귀), `chartData`, `diagnostics`(`KeystrokeDiagnostics` — `fatalNgrams` 포함).
+훅 반환: `focusKeyOptions`, `outcome`(분절회귀), `chartData`, `diagnostics`(`KeystrokeDiagnostics` — `fatalNgrams`, `burstNgrams` 포함).
 
 ---
 
@@ -91,7 +91,7 @@ UI는 3열 그리드 (`cylindrical-visualizer.css`). SSOT: `CylindricalDiagnosti
 | 공간적 오타 거리 | 정답↔실제 키 거리 Q1·Q2·Q3 궤도 | `spatialErrorDistance` |
 | Dwell · Flight (구름타법) | 롤오버 %, dwell/flight 바, 효과성 r | §3 |
 | N단계 전이 오타 패턴 | K₁✓ K₂✓ → focusKey, 오타율 >20%, 10회↑ | `fatalNgrams` (optional) · §4 |
-| 버스트 쌍 | — | **미구현** |
+| 버스트 (고속 연타 조합) | focusKey 포함 2·3-gram, 연속 ≤30ms, 10회↑ | `burstNgrams` (optional) · §5 |
 
 신규 지표는 `buildDiagnosticsAccumulator` 루프에 수집 단계를 추가한 뒤 `finalizeKeystrokeDiagnostics`에서 소비합니다.
 
@@ -262,6 +262,92 @@ SSOT: `cylindricalStats.ts` (`FatalNgramEntry`, `buildDiagnosticsAccumulator` §
 
 ---
 
+## 5. Burst N-gram — 고속 연타 조합
+
+Panel 3 **「버스트 (고속 연타 조합)」**. `finalizeKeystrokeDiagnostics`가 전역 `bursts` Map에서 **focusKey가 포함된** 2·3-gram 패턴 중 달성 횟수 상위 3개를 반환합니다.
+
+### 한 줄 정의
+
+> **연속 정타 알파 스트림**에서 두 번째 키부터 `latencyMs ≤ 30`인 구간마다 2-gram·3-gram을 누산하고, focusKey가 끼어 있는 패턴 중 10회 이상 달성한 것을 횟수 순 상위 3개로 노출합니다.
+
+오타·비알파·제외키가 끼면 연속 맥락이 끊깁니다 (`fatalNgrams` §4와 동일한 `window3Gram` 분기).
+
+### 용어
+
+| 용어 | 정의 |
+| :--- | :--- |
+| **버스트 구간** | `windowFast`에 쌓인 연속 정타 알파 `toKey` 시퀀스. **첫 키** latency는 제한 없음, **2번째 키부터** `latencyMs ≤ BURST_LATENCY_MAX_MS` 여야 연장 |
+| **2-gram 패턴** | `K₁→K₂` — `windowFast` 길이 ≥ 2일 때 마지막 두 키 |
+| **3-gram 패턴** | `K₁→K₂→K₃` — `windowFast` 길이 ≥ 3일 때 마지막 세 키 |
+| **달성 횟수** | 해당 패턴이 버스트 구간에서 한 번 더 완성될 때마다 `count` +1 |
+| **평균 지연** | 2-gram: 마지막 키 `latencyMs` 평균. 3-gram: 마지막 두 키 latency 산술평균의 평균 |
+| **focusKey 필터** | `sequence`에 focusKey가 포함된 패턴만 `burstNgrams` 후보 |
+| **노출 조건** | `count ≥ BURST_MIN_SAMPLES` (10). 정렬: `count` 내림차순 → 동률이면 `avgLatencyMs` 오름차순. 상위 `BURST_TOP_N` (3)개 |
+
+### 복잡도
+
+| 단계 | 시간 | 설명 |
+| :--- | :--- | :--- |
+| `buildDiagnosticsAccumulator` §11 | **O(N)** | events 1회 순회. `windowFast` 길이 ≤ 3, 이벤트당 Map get/set 최대 2회 (2·3-gram) |
+| `finalizeKeystrokeDiagnostics` | **O(b log b)** | b = `bursts` Map 크기 (distinct 2·3-gram 상한 ≪ N) |
+| 전체 | **O(N + b log b) ≈ O(N)** | focusKey 변경 시 events 재순회 없음 |
+
+`bursts`는 **전역** Map — focusKey별로 분리 저장하지 않습니다. `finalize` 단계에서 `sequence.includes(focusKey)`로 필터합니다.
+
+### 수집 알고리즘 (`buildDiagnosticsAccumulator` §11)
+
+`window3Gram` 갱신과 **동일 이벤트·동일 분기**에서 `windowFast: { key, latencyMs }[]`를 유지합니다.
+
+**이벤트당 처리** (`toKey`가 연속 알파일 때):
+
+1. `isCorrect === true`:
+   - `latencyMs ≤ 30` **그리고** `windowFast.length > 0` → 현재 키 push (버스트 연장)
+   - 그 외 → `windowFast` 초기화 후 현재 키만 push (새 구간 시작)
+   - `length ≥ 2` → 마지막 2키로 2-gram `count`/`totalLatencyMs` 누산
+   - `length ≥ 3` → 마지막 3키로 3-gram 누산 (`totalLatencyMs`에 마지막 두 latency 평균 가산)
+2. `isCorrect === false` → `windowFast.length = 0`
+3. 비알파·제외 `toKey` → `window3Gram`·`windowFast` 모두 초기화
+
+```mermaid
+flowchart TD
+    E["event (정타 알파 toKey)"]
+    E --> L{"latency ≤ 30ms\n& windowFast 비어있지 않음?"}
+    L -->|yes| Ext["windowFast push"]
+    L -->|no| New["windowFast clear + push"]
+    Ext --> G2{"length ≥ 2?"}
+    New --> G2
+    G2 -->|yes| B2["bursts[K₁→K₂]: count++\ntotal += K₂.latency"]
+    G2 -->|no| G3
+    B2 --> G3{"length ≥ 3?"}
+    G3 -->|yes| B3["bursts[K₁→K₂→K₃]: count++\ntotal += avg(K₂,K₃).latency"]
+```
+
+### 예시 (focusKey = `k`)
+
+| 시퀀스 (latency) | `bursts` | 비고 |
+| :--- | :--- | :--- |
+| `s(50)✓ → d(25)✓ → k(20)✓` | `d→k` +1, `s→d→k` +1 | 첫 키 50ms — 구간 시작만, 연장은 d·k가 ≤30 |
+| `s(20)✓ → d(25)✓ → k(20)✓ → j(28)✓` | `d→k`, `k→j`, `s→d→k`, `d→k→j` 각 +1 | 4연속 버스트 |
+| `s(20)✓ → d(40)✓` | — | d latency >30 → 구간 리셋, 2-gram 미형성 |
+| `s(20)✓ → d(25)✗` | — | 오타 → `windowFast` clear |
+| `s(20)✓ → space` | — | 비알파 → 윈도우 clear |
+
+### focusKey 집계 (`finalizeKeystrokeDiagnostics`)
+
+`KeystrokeDiagnostics.burstNgrams` ← `acc.bursts`에서 `count ≥ BURST_MIN_SAMPLES` 이고 `sequence`에 focusKey 포함 → 정렬 → 상위 3.
+
+`BurstNgram`: `{ sequence: string[], avgLatencyMs, count }`.
+
+### UI (`CylindricalDiagnosticsPanel`)
+
+- `diagnostics.burstNgrams.length > 0`일 때만 카드 렌더
+- 각 패턴: `BurstNgramViz` — 순위, 키 시퀀스(초록 키캡), 평균 ms, 달성 횟수
+- 카드 설명: focusKey 포함·연속 30ms 이하·상위 3개
+
+SSOT: `cylindricalStats.ts` (`BurstNgram`, `buildDiagnosticsAccumulator` §11, `finalizeKeystrokeDiagnostics`).
+
+---
+
 ## 부록 · 상수
 
 | 상수 | 값 |
@@ -272,6 +358,9 @@ SSOT: `cylindricalStats.ts` (`FatalNgramEntry`, `buildDiagnosticsAccumulator` §
 | `CLOUD_TYPING_LEVEL_WEAK` / `MODERATE` / `STRONG` | 0.7 / 0.8 / 0.9 |
 | `FATAL_NGRAM_MIN_SAMPLES` | 10 |
 | `FATAL_NGRAM_ERROR_RATE_THRESHOLD` | 20 (%) |
+| `BURST_LATENCY_MAX_MS` | 30 (코드 리터럴) |
+| `BURST_MIN_SAMPLES` | 10 (코드 리터럴) |
+| `BURST_TOP_N` | 3 (코드 리터럴) |
 | `CLOUD_TYPING_CORRELATION_R_THRESHOLD` | 0.3 |
 | `CLOUD_TYPING_CORRELATION_P_THRESHOLD` | 0.05 |
 | `CLOUD_TYPING_CORRELATION_MIN_SAMPLES` | 5 |

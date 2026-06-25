@@ -86,6 +86,13 @@ export interface KeystrokeDiagnostics {
     typoCounts: Record<string, number>;
   } | null;
   fatalNgrams: FatalNgramEntry[];
+  burstNgrams: BurstNgram[];
+}
+
+export interface BurstNgram {
+  sequence: string[];
+  avgLatencyMs: number;
+  count: number;
 }
 
 export interface FatalNgramEntry {
@@ -470,6 +477,8 @@ export interface DiagnosticsAccumulator {
   nonShiftLatencies: number[];
   /** 키별 누산 데이터 */
   perKey: Map<string, PerKeyAccumulator>;
+  /** 버스트 패턴 누산 (latency <= 30ms 연속) */
+  bursts: Map<string, { count: number; totalLatencyMs: number }>;
 }
 
 const ACCUMULATOR_EXCLUDE_KEYS = new Set(["shift_l", "shift_r", "backspace", "enter"]);
@@ -518,6 +527,8 @@ export function buildDiagnosticsAccumulator(events: KeyEvent[]): DiagnosticsAccu
   const shiftLatencies: number[] = [];
   const nonShiftLatencies: number[] = [];
   const window3Gram: Array<{ key: string; isCorrect: boolean }> = [];
+  const windowFast: Array<{ key: string; latencyMs: number }> = [];
+  const bursts = new Map<string, { count: number; totalLatencyMs: number }>();
 
   const layout = buildLayout();
 
@@ -677,9 +688,41 @@ export function buildDiagnosticsAccumulator(events: KeyEvent[]): DiagnosticsAccu
     if (event.toKey && ALPHA_KEY_REGEX.test(event.toKey) && !ACCUMULATOR_EXCLUDE_KEYS.has(event.toKey)) {
       window3Gram.push({ key: event.toKey, isCorrect: event.isCorrect === true });
       if (window3Gram.length > 2) window3Gram.shift();
+
+      if (event.isCorrect === true) {
+        if (event.latencyMs <= 30 && windowFast.length > 0) {
+          windowFast.push({ key: event.toKey, latencyMs: event.latencyMs });
+        } else {
+          windowFast.length = 0;
+          windowFast.push({ key: event.toKey, latencyMs: event.latencyMs });
+        }
+
+        if (windowFast.length >= 2) {
+          const k1 = windowFast[windowFast.length - 2];
+          const k2 = windowFast[windowFast.length - 1];
+          const seq2 = `${k1.key}→${k2.key}`;
+          const stat2 = bursts.get(seq2) ?? { count: 0, totalLatencyMs: 0 };
+          stat2.count++;
+          stat2.totalLatencyMs += k2.latencyMs;
+          bursts.set(seq2, stat2);
+        }
+        if (windowFast.length >= 3) {
+          const k1 = windowFast[windowFast.length - 3];
+          const k2 = windowFast[windowFast.length - 2];
+          const k3 = windowFast[windowFast.length - 1];
+          const seq3 = `${k1.key}→${k2.key}→${k3.key}`;
+          const stat3 = bursts.get(seq3) ?? { count: 0, totalLatencyMs: 0 };
+          stat3.count++;
+          stat3.totalLatencyMs += ((k2.latencyMs + k3.latencyMs) / 2);
+          bursts.set(seq3, stat3);
+        }
+      } else {
+        windowFast.length = 0;
+      }
     } else {
       // 알파벳이 아니거나 특수·제외 키가 끼면 연속 맥락 끊김
       window3Gram.length = 0;
+      windowFast.length = 0;
     }
   }
 
@@ -691,6 +734,7 @@ export function buildDiagnosticsAccumulator(events: KeyEvent[]): DiagnosticsAccu
     shiftLatencies,
     nonShiftLatencies,
     perKey,
+    bursts,
   };
 }
 
@@ -734,6 +778,7 @@ export function finalizeKeystrokeDiagnostics(
     latencyConsistency: null,
     spatialErrorDistance: null,
     fatalNgrams: [],
+    burstNgrams: [],
   };
 
   if (!focusKey) return defaultDiagnostics;
@@ -891,6 +936,24 @@ export function finalizeKeystrokeDiagnostics(
     }
   }
 
+  const burstNgrams: BurstNgram[] = [];
+  if (acc.bursts) {
+    for (const [seq, stat] of acc.bursts.entries()) {
+      if (stat.count >= 10) {
+        const keys = seq.split('→');
+        if (keys.includes(focusKey)) {
+          burstNgrams.push({
+            sequence: keys,
+            avgLatencyMs: stat.totalLatencyMs / stat.count,
+            count: stat.count,
+          });
+        }
+      }
+    }
+  }
+  burstNgrams.sort((a, b) => b.count - a.count || a.avgLatencyMs - b.avgLatencyMs);
+  const topBursts = burstNgrams.slice(0, 3);
+
   return {
     errorInducement: {
       rate: errorInducementRate,
@@ -919,6 +982,7 @@ export function finalizeKeystrokeDiagnostics(
     latencyConsistency,
     spatialErrorDistance,
     fatalNgrams,
+    burstNgrams: topBursts,
   };
 }
 
