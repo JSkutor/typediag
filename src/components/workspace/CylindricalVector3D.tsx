@@ -16,7 +16,7 @@ import { KeyEvent } from "@/lib/skdm";
 interface CylindricalVector3DProps {
   isActivated: boolean;
   /** Optionally pre-select a center key from the parent. */
-  initialCenterKey?: string;
+  initialFocusKey?: string;
   onClose?: () => void;
   /** Override store events for testing or landing page mock data */
   mockEvents?: KeyEvent[];
@@ -32,14 +32,14 @@ interface CylindricalVector3DInnerProps extends Omit<CylindricalVector3DProps, "
 
 function CylindricalVector3DInner({
   isActivated,
-  initialCenterKey,
+  initialFocusKey,
   events,
   disableControls = false,
   hidePanel = false,
 }: CylindricalVector3DInnerProps) {
   const mountRef = useRef<HTMLDivElement>(null);
 
-  const [focusKey, setFocusKey] = useState(initialCenterKey ?? "");
+  const [focusKey, setFocusKey] = useState(initialFocusKey ?? "");
   const [selectedFrom, setSelectedFrom] = useState("");
   const [managerReady, setManagerReady] = useState(false);
   const labelRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -53,8 +53,8 @@ function CylindricalVector3DInner({
 
   const globalMax = useMemo(() => getGlobalCylindricalMax(events), [events]);
   const defaultSelection = useMemo(
-    () => getDefaultCylindricalSelection(events, initialCenterKey),
-    [events, initialCenterKey],
+    () => getDefaultCylindricalSelection(events, initialFocusKey),
+    [events, initialFocusKey],
   );
   const vectors = useMemo(
     () => (focusKey ? buildCylindricalVectors(events, focusKey, globalMax) : []),
@@ -64,7 +64,7 @@ function CylindricalVector3DInner({
   useEffect(() => {
     if (!defaultSelection) return;
     const timer = setTimeout(() => {
-      setFocusKey(defaultSelection.toKey);
+      setFocusKey(defaultSelection.focusKey);
       setSelectedFrom(defaultSelection.fromKey);
     }, 0);
     return () => clearTimeout(timer);

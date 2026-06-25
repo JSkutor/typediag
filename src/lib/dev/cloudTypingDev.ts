@@ -1,11 +1,11 @@
 import type { KeyEvent } from "@/lib/skdm";
 
-import { countCorrectEventsByToKey, selectTopToKey } from "./piecewiseDev";
+import { countCorrectReferenceTransitions, selectDefaultFocusKey } from "./piecewiseDev";
 
 export interface CloudTypingScatterPoint {
-  /** reference transition 행(toKey === centerKey)의 holdDurationMs */
+  /** reference transition 행(toKey === focusKey)의 holdDurationMs */
   durationMs: number;
-  /** outgoing transition(fromKey === centerKey)의 latencyMs */
+  /** outgoing transition(fromKey === focusKey)의 latencyMs */
   latencyMs: number;
   toKey: string;
 }
@@ -19,14 +19,14 @@ function hasValidHold(event: KeyEvent): event is KeyEvent & { holdDurationMs: nu
 }
 
 /**
- * centerKey(focusKey)에서 나가는 outgoing transition — effectiveness(엄격 풀)과 동일 필터.
- * - outgoingEvent.fromKey === centerKey
+ * focusKey에서 나가는 outgoing transition — effectiveness(엄격 풀)과 동일 필터.
+ * - outgoingEvent.fromKey === focusKey
  * - outgoingEvent·referenceEvent 모두 정답
- * - referenceEvent.toKey === centerKey → duration = focusKey 홀드
+ * - referenceEvent.toKey === focusKey → duration = reference transition 홀드
  */
 export function extractStrictOutgoingScatterPoints(
   events: KeyEvent[],
-  centerKey: string,
+  focusKey: string,
 ): CloudTypingScatterPoint[] {
   const points: CloudTypingScatterPoint[] = [];
 
@@ -34,9 +34,9 @@ export function extractStrictOutgoingScatterPoints(
     const outgoingEvent = events[i];
     const referenceEvent = events[i - 1];
 
-    if (outgoingEvent.fromKey !== centerKey) continue;
+    if (outgoingEvent.fromKey !== focusKey) continue;
     if (outgoingEvent.isCorrect !== true || outgoingEvent.latencyMs <= 0) continue;
-    if (referenceEvent.isCorrect !== true || referenceEvent.toKey !== centerKey) continue;
+    if (referenceEvent.isCorrect !== true || referenceEvent.toKey !== focusKey) continue;
     if (!hasValidHold(referenceEvent)) continue;
 
     points.push({
@@ -49,4 +49,4 @@ export function extractStrictOutgoingScatterPoints(
   return points;
 }
 
-export { countCorrectEventsByToKey, selectTopToKey };
+export { countCorrectReferenceTransitions, selectDefaultFocusKey };

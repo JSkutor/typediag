@@ -30,7 +30,7 @@ SKDM은 타건 이벤트 스트림 `{fromKey → toKey, latencyMs}`를 키보드
 | 뷰 | `diagnosticMode` | 데이터 소스 | 역할 |
 | :--- | :--- | :--- | :--- |
 | **Global Latency Surface** | `"surface"` | `runPipeline` → `KeyResult.zSmoothed` + Delaunay `triangles` | 키보드 전체 지연 지형 (macro) |
-| **Cylindrical Vector** | `"cylindrical"` | `buildCylindricalVectors(events, centerKey)` | 특정 To Key로 들어오는 From Key 전이 (micro) |
+| **Cylindrical Vector** | `"cylindrical"` | `buildCylindricalVectors(events, focusKey)` | focusKey로 들어오는 reference transition (micro) |
 
 Tab 등으로 진단 모드에 들어가면 `useDiagnosticsTransition`이 이벤트를 모아 `runPipeline`을 실행하고, `useWorkspaceStore.setAnalysisData(results, triangles, events)`에 결과를 넣습니다.
 
@@ -192,18 +192,18 @@ Surface 메시 인덱스용 `Uint32Array` triangles 반환.
 
 ## 5. Cylindrical Vector 모델
 
-### 5.1. `buildCylindricalVectors(events, centerKey, globalMax?)`
+### 5.1. `buildCylindricalVectors(events, focusKey, globalMax?)`
 
 전처리: `filterInterruptedTransitions` → `filterOutliers` (Surface와 동일).
 
-`toKey === centerKey`인 전이만 수집. `fromKey`는 `^[a-z]$`만 (소문자 알파벳).
+`toKey === focusKey`인 reference transition만 수집. `fromKey`는 `^[a-z]$`만 (소문자 알파벳).
 
-`theta_order.json`의 `THETA_ORDER[center]` 순서대로 벡터 생성:
+`theta_order.json`의 `THETA_ORDER[focusKey]` 순서대로 벡터 생성:
 
 | 축 | 의미 | 계산 |
 | :--- | :--- | :--- |
-| **θ** | From Key 방위 | `getTheta(center, from)` → `(idx / 25) × 2π` |
-| **r** | 전이 빈도 | 해당 from→center 이벤트 수 |
+| **θ** | fromKey 방위 | `getTheta(focusKey, fromKey)` → `(idx / 25) × 2π` |
+| **r** | 전이 빈도 | 해당 reference transition 이벤트 수 |
 | **z** | 평균 지연 | raw `latencyMs` 평균 (**sigmoid 미적용**) |
 
 `globalMax`가 있으면:
@@ -213,7 +213,7 @@ Surface 메시 인덱스용 `Uint32Array` triangles 반환.
 
 `getGlobalCylindricalMax(events)`로 세션 전체 쌍의 max 빈도·max 평균 지연 계산.
 
-`getAvailableCenterKeys(events)`: 전처리 후 `toKey`가 `^[a-z]$`인 키 목록.
+`getAvailableFocusKeys(events)`: 전처리 후 `toKey`가 `^[a-z]$`인 focusKey 후보 목록.
 
 ### 5.2. 3D 배치 (`geometryUtils.toCylindricalCartesian`)
 

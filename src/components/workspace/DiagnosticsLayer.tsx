@@ -49,7 +49,7 @@ export const DiagnosticsLayer: React.FC = () => {
         {diagnosticMode === "cylindrical" && (
           <CylindricalVector3D
             isActivated={isDiag && diagnosticMode === "cylindrical"}
-            initialCenterKey={focusedKey ?? undefined}
+            initialFocusKey={focusedKey ?? undefined}
             onClose={() => {
               setDiagnosticMode("surface");
               setFocusedKey(null);

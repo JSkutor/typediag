@@ -52,9 +52,9 @@ describe("useCylindricalDiagnostics diagnostics", () => {
     // 올바른 자소: a -> b -> c
     // 실제 입력: a(correct) -> c(incorrect, expected b) -> b(incorrect, expected c)
     // toKey가 "b"인 경우
-    // events[k] (curr): toKey "c", expectedChar "b", isCorrect false
-    // events[k+1] (next): toKey "b", expectedChar "c", isCorrect false
-    // prev: toKey "a", isCorrect true
+    // events[k] (event): toKey "c", expectedChar "b", isCorrect false
+    // events[k+1] (followingEvent): toKey "b", expectedChar "c", isCorrect false
+    // precedingEvent: toKey "a", isCorrect true
 
     const events: KeyEvent[] = [
       { fromKey: null, toKey: "a", latencyMs: 100, isCorrect: true, expectedChar: "a" },
@@ -66,11 +66,11 @@ describe("useCylindricalDiagnostics diagnostics", () => {
 
     // toKey가 "b"인 오타 (totalErrorsCount) : c->b (isCorrect false, toKey "b") = 1개
     // swappedErrors (count):
-    // k = 1 일 때, curr = c, next = b
-    // curr.isCorrect === false, next.isCorrect === false
-    // next.toKey === "b" (selectedTo)
-    // curr.expectedChar === "b" (selectedTo)
-    // prev (events[0]): isCorrect === true
+    // k = 1 일 때, event = c, followingEvent = b
+    // event.isCorrect === false, followingEvent.isCorrect === false
+    // followingEvent.toKey === "b" (focusKey)
+    // event.expectedChar === "b" (focusKey)
+    // precedingEvent (events[0]): isCorrect === true
     // 조건 일치! count = 1개
     // 따라서 1/1 = 100%
     expect(result.current.diagnostics.lateKeystroke.totalErrorsCount).toBe(1);
@@ -86,7 +86,7 @@ describe("useCylindricalDiagnostics diagnostics", () => {
       expect(result.current.diagnostics.shiftPenalty).toBeNull();
     });
 
-    it("should calculate commonPair correctly for selectedTo and filter non-alphabetic keys", () => {
+    it("should calculate commonPair correctly for focusKey and filter non-alphabetic keys", () => {
       const events: KeyEvent[] = [
         { fromKey: "a", toKey: "b", latencyMs: 100, isCorrect: true },
         { fromKey: "b", toKey: "c", latencyMs: 100, isCorrect: true },
@@ -97,7 +97,7 @@ describe("useCylindricalDiagnostics diagnostics", () => {
         { fromKey: "a", toKey: "b", latencyMs: 100, isCorrect: true }, // repeated a->b
       ];
 
-      // If selectedTo is "b", it should match a->b (Rank #1)
+      // focusKey "b" → a→b (Rank #1)
       const { result: resB } = renderHook(() => useCylindricalDiagnostics(events, "b"));
       expect(resB.current.diagnostics.commonPair).toEqual({
         rank: 1,
@@ -106,7 +106,7 @@ describe("useCylindricalDiagnostics diagnostics", () => {
         count: 2,
       });
 
-      // If selectedTo is "c", it should match b->c (Rank #2)
+      // focusKey "c" → b→c (Rank #2)
       const { result: resC } = renderHook(() => useCylindricalDiagnostics(events, "c"));
       expect(resC.current.diagnostics.commonPair).toEqual({
         rank: 2,
@@ -115,12 +115,12 @@ describe("useCylindricalDiagnostics diagnostics", () => {
         count: 1,
       });
 
-      // If selectedTo is "d" (not in top pairs), it should return null
+      // focusKey "d" (not in top pairs) → null
       const { result: resD } = renderHook(() => useCylindricalDiagnostics(events, "d"));
       expect(resD.current.diagnostics.commonPair).toBeNull();
     });
 
-    it("should calculate unconsciousKey correctly for selectedTo and exclude 0% error keys", () => {
+    it("should calculate unconsciousKey correctly for focusKey and exclude 0% error keys", () => {
       const events: KeyEvent[] = [
         { fromKey: "a", toKey: "b", latencyMs: 100, isCorrect: false }, // error rate 100%
         { fromKey: "b", toKey: "c", latencyMs: 100, isCorrect: false },
@@ -129,7 +129,7 @@ describe("useCylindricalDiagnostics diagnostics", () => {
         { fromKey: "d", toKey: "d", latencyMs: 100, isCorrect: false }, // error rate 100% (2 total, 2 incorrect)
       ];
 
-      // If selectedTo is "d", it should match Rank #1
+      // focusKey "d" → Rank #1
       const { result: resD } = renderHook(() => useCylindricalDiagnostics(events, "d"));
       expect(resD.current.diagnostics.unconsciousKey).toEqual({
         rank: 1,
@@ -139,7 +139,7 @@ describe("useCylindricalDiagnostics diagnostics", () => {
         totalCount: 2,
       });
 
-      // If selectedTo is "b", it should match Rank #2
+      // focusKey "b" → Rank #2
       const { result: resB } = renderHook(() => useCylindricalDiagnostics(events, "b"));
       expect(resB.current.diagnostics.unconsciousKey).toEqual({
         rank: 2,
@@ -149,7 +149,7 @@ describe("useCylindricalDiagnostics diagnostics", () => {
         totalCount: 1,
       });
 
-      // If selectedTo is "a" (not in unconscious keys, errorRate 0%), it should return null
+      // focusKey "a" (errorRate 0%) → null
       const { result: resA } = renderHook(() => useCylindricalDiagnostics(events, "a"));
       expect(resA.current.diagnostics.unconsciousKey).toBeNull();
     });

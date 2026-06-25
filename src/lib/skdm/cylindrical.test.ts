@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   buildCylindricalVectors,
-  getAvailableCenterKeys,
+  getAvailableFocusKeys,
   getDefaultCylindricalSelection,
   getGlobalCylindricalMax,
 } from "./cylindrical";
@@ -74,9 +74,9 @@ describe("cylindrical module", () => {
     }, // Non-alphabetic toKey
   ];
 
-  describe("getAvailableCenterKeys", () => {
-    it("should extract unique alphabetic center keys", () => {
-      const keys = getAvailableCenterKeys(mockEvents);
+  describe("getAvailableFocusKeys", () => {
+    it("should extract unique alphabetic focusKey candidates", () => {
+      const keys = getAvailableFocusKeys(mockEvents);
       // 'e' and 'shift_l' are the toKeys. 'shift_l' is non-alphabetic so it's excluded.
       expect(keys).toEqual(["e"]);
     });
@@ -95,7 +95,7 @@ describe("cylindrical module", () => {
   });
 
   describe("getDefaultCylindricalSelection", () => {
-    it("should pick the To key with the most incoming data and its slowest From key", () => {
+    it("should pick the focusKey with the most incoming reference transitions and its slowest fromKey", () => {
       const events: KeyEvent[] = [
         ...mockEvents,
         {
@@ -137,15 +137,15 @@ describe("cylindrical module", () => {
       ];
 
       const selection = getDefaultCylindricalSelection(events);
-      expect(selection).toEqual({ toKey: "t", fromKey: "e" });
+      expect(selection).toEqual({ focusKey: "t", fromKey: "e" });
     });
 
-    it("should honor a preferred To key when it has data and pick highest latency From key", () => {
+    it("should honor a preferred focusKey when it has data and pick highest latency fromKey", () => {
       const selection = getDefaultCylindricalSelection(mockEvents, "e");
-      expect(selection).toEqual({ toKey: "e", fromKey: "a" });
+      expect(selection).toEqual({ focusKey: "e", fromKey: "a" });
     });
 
-    it("should fall back to the richest To key when preferred key has no data", () => {
+    it("should fall back to the richest focusKey when preferred key has no data", () => {
       const events: KeyEvent[] = [
         ...mockEvents,
         {
@@ -160,13 +160,13 @@ describe("cylindrical module", () => {
       ];
 
       const selection = getDefaultCylindricalSelection(events, "z");
-      expect(selection?.toKey).toBe("e");
+      expect(selection?.focusKey).toBe("e");
       expect(selection?.fromKey).toBe("a");
     });
   });
 
   describe("buildCylindricalVectors", () => {
-    it("should build correct vectors for a given center key", () => {
+    it("should build correct vectors for a given focusKey", () => {
       const vectors = buildCylindricalVectors(mockEvents, "e");
 
       // Verify that vectors for 'a' and 'b' have expected data

@@ -134,7 +134,7 @@ export interface CloudTypingDiagnostics {
 
 /**
  * 전이 샘플 한 건: outgoing(또는 일반 transition) 행의 latency + fromKey reference transition 행의 hold.
- * hold는 「이전 쌍」이 아니라 fromKey(focusKey)를 누른 keypress 이벤트(toKey === fromKey)에 붙는다.
+ * hold는 reference transition 행(toKey === focusKey)의 holdDurationMs에 붙는다.
  */
 export interface TransitionDwellSample {
   fromKey: string;
@@ -320,34 +320,36 @@ export function calculateKeystrokeDiagnostics(
   let lateKeystrokeCount = 0;
 
   for (let i = 0; i < events.length; i++) {
-    const ev = events[i];
-    const prevEv = i > 0 ? events[i - 1] : null;
-    const isErrorStart = ev.isCorrect === false && (prevEv === null || prevEv.isCorrect === true);
+    const event = events[i];
+    const precedingEvent = i > 0 ? events[i - 1] : null;
+    const isErrorStart =
+      event.isCorrect === false &&
+      (precedingEvent === null || precedingEvent.isCorrect === true);
 
     if (isErrorStart) {
       totalErrorStartsCount++;
-      if (ev.toKey === focusKey) {
+      if (event.toKey === focusKey) {
         errorInducementCount++;
       }
     }
 
-    if (ev.toKey === focusKey && ev.isCorrect === false) {
+    if (event.toKey === focusKey && event.isCorrect === false) {
       totalErrorsCount++;
     }
   }
 
   for (let k = 0; k < events.length - 1; k++) {
-    const prev = k > 0 ? events[k - 1] : null;
-    const curr = events[k];
-    const next = events[k + 1];
-    const isPrevCorrect = prev ? prev.isCorrect === true : true;
+    const precedingEvent = k > 0 ? events[k - 1] : null;
+    const event = events[k];
+    const followingEvent = events[k + 1];
+    const precedingWasCorrect = precedingEvent ? precedingEvent.isCorrect === true : true;
 
     if (
-      curr.isCorrect === false &&
-      next.isCorrect === false &&
-      isPrevCorrect &&
-      next.toKey === focusKey &&
-      curr.expectedChar === focusKey
+      event.isCorrect === false &&
+      followingEvent.isCorrect === false &&
+      precedingWasCorrect &&
+      followingEvent.toKey === focusKey &&
+      event.expectedChar === focusKey
     ) {
       lateKeystrokeCount++;
     }
@@ -366,16 +368,16 @@ export function calculateKeystrokeDiagnostics(
 
   // (1) 빈번 순서쌍 top5
   const pairCounts = new Map<string, number>();
-  for (const ev of events) {
+  for (const event of events) {
     if (
-      ev.isCorrect === true &&
-      ev.fromKey &&
-      ev.toKey &&
-      isAlphaKey(ev.toKey) &&
-      !EXCLUDE_KEYS.has(ev.fromKey) &&
-      !EXCLUDE_KEYS.has(ev.toKey)
+      event.isCorrect === true &&
+      event.fromKey &&
+      event.toKey &&
+      isAlphaKey(event.toKey) &&
+      !EXCLUDE_KEYS.has(event.fromKey) &&
+      !EXCLUDE_KEYS.has(event.toKey)
     ) {
-      const pairKey = `${ev.fromKey}→${ev.toKey}`;
+      const pairKey = `${event.fromKey}→${event.toKey}`;
       pairCounts.set(pairKey, (pairCounts.get(pairKey) || 0) + 1);
     }
   }
@@ -391,15 +393,15 @@ export function calculateKeystrokeDiagnostics(
 
   // (2) 무의식적 오타 키 top3
   const keyStats = new Map<string, { correct: number; incorrect: number }>();
-  for (const ev of events) {
-    if (ev.isCorrect === true || ev.isCorrect === false) {
-      const key = ev.toKey;
+  for (const event of events) {
+    if (event.isCorrect === true || event.isCorrect === false) {
+      const key = event.toKey;
       if (EXCLUDE_KEYS.has(key)) continue;
       if (!keyStats.has(key)) {
         keyStats.set(key, { correct: 0, incorrect: 0 });
       }
       const stat = keyStats.get(key)!;
-      if (ev.isCorrect === true) {
+      if (event.isCorrect === true) {
         stat.correct++;
       } else {
         stat.incorrect++;
@@ -423,17 +425,17 @@ export function calculateKeystrokeDiagnostics(
   }
 
   // (3) 시프트 지연 패널티
-  const correctEvents = events.filter((ev) => ev.isCorrect === true);
+  const correctEvents = events.filter((event) => event.isCorrect === true);
   const shiftLatencies: number[] = [];
   const nonShiftLatencies: number[] = [];
 
-  for (const ev of correctEvents) {
-    if (EXCLUDE_KEYS.has(ev.toKey)) continue;
-    const char = ev.expectedChar || ev.keyChar;
+  for (const event of correctEvents) {
+    if (EXCLUDE_KEYS.has(event.toKey)) continue;
+    const char = event.expectedChar || event.keyChar;
     if (needsShift(char)) {
-      shiftLatencies.push(ev.latencyMs);
+      shiftLatencies.push(event.latencyMs);
     } else {
-      nonShiftLatencies.push(ev.latencyMs);
+      nonShiftLatencies.push(event.latencyMs);
     }
   }
 
@@ -456,7 +458,7 @@ export function calculateKeystrokeDiagnostics(
 
   // 3) 상세 통계 (detailedStats 대응) — reference transition(toKey === focusKey) 정답
   const targetCorrectEvents = events.filter(
-    (ev) => ev.toKey === focusKey && ev.isCorrect === true,
+    (event) => event.toKey === focusKey && event.isCorrect === true,
   );
   if (targetCorrectEvents.length === 0) {
     return {
@@ -476,7 +478,7 @@ export function calculateKeystrokeDiagnostics(
   }
 
   // 반응 속도 및 CPM
-  const latencies = targetCorrectEvents.map((ev) => ev.latencyMs);
+  const latencies = targetCorrectEvents.map((event) => event.latencyMs);
   const medianLatencyMs = getMedian(latencies);
   const equivalentCpm = medianLatencyMs > 0 ? Math.round(60000 / medianLatencyMs) : 0;
   const latencyConsistency = computeLatencyConsistency(latencies);
@@ -507,14 +509,14 @@ export function calculateKeystrokeDiagnostics(
   if (targetMeta) {
     const targetHand = targetMeta.hand;
 
-    for (const ev of targetCorrectEvents) {
-      if (!ev.fromKey) {
+    for (const event of targetCorrectEvents) {
+      if (!event.fromKey) {
         transitionCounts.other++;
         transitionCounts.total++;
         continue;
       }
 
-      const fromKeyLower = ev.fromKey.toLowerCase();
+      const fromKeyLower = event.fromKey.toLowerCase();
       const fromMeta = KEYBOARD_META[fromKeyLower];
 
       if (!fromMeta) {
@@ -549,10 +551,12 @@ export function calculateKeystrokeDiagnostics(
     const targetHand = targetMeta.hand;
     const otherKeysSameHandLatencies = events
       .filter(
-        (ev) =>
-          ev.isCorrect === true && ev.toKey !== focusKey && getHand(ev.toKey) === targetHand,
+        (event) =>
+          event.isCorrect === true &&
+          event.toKey !== focusKey &&
+          getHand(event.toKey) === targetHand,
       )
-      .map((ev) => ev.latencyMs);
+      .map((event) => event.latencyMs);
 
     if (otherKeysSameHandLatencies.length > 0) {
       comparedToMedianMs = getMedian(otherKeysSameHandLatencies);

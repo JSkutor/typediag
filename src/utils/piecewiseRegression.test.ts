@@ -185,7 +185,7 @@ describe("piecewiseRegression", () => {
       expect(result).toBeNull();
     });
 
-    it("targetToKey가 다른 이벤트는 필터링됨", () => {
+    it("target focusKey가 다른 이벤트는 필터링됨", () => {
       setFinalUpperBoundMock(1000);
 
       // 100개이지만 toKey가 'b' (target은 'a')

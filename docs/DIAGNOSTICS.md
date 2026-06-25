@@ -395,7 +395,7 @@ UI SSOT: `src/components/workspace/CylindricalDiagnosticsPanel.tsx`
 
 | 블록 | SSOT | 스캔 범위 |
 | :--- | :--- | :--- |
-| `toKeyOptions` | `countCorrectEventsByToKey` | O(N) |
+| `focusKeyOptions` | `countCorrectReferenceTransitions` | O(N) |
 | 분절회귀 | `fitPiecewiseLinearWithDiagnostics` | O(N) 필터 + 고정 20윈도우 회귀 |
 | Keystroke 통계 | `calculateKeystrokeDiagnostics` | O(N) 다중 패스 + `.filter()` 할당 |
 
@@ -432,7 +432,7 @@ flowchart TD
 
 **1패스 Accumulator가 모으는 것 (예정)**
 
-- **전역**: `toKeyOptions`, 순서쌍 빈도, 키별 correct/incorrect, 오타 유발·순서 뒤바뀜 카운트
+- **전역**: `focusKeyOptions`, 순서쌍 빈도, 키별 correct/incorrect, 오타 유발·순서 뒤바뀜 카운트
 - **focusKey 전용** (순서 유지): reference transition 정답, latency 시퀀스, holdDuration 쌍, 손가락 전환, 동일 손 타 키 latency
 
 **분절회귀 입력 경로 (예정)**

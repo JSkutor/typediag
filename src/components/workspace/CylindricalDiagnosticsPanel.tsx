@@ -241,7 +241,7 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const { toKeyOptions, outcome, chartData, diagnostics } = useCylindricalDiagnostics(
+  const { focusKeyOptions, outcome, chartData, diagnostics } = useCylindricalDiagnostics(
     events,
     focusKey,
   );
@@ -391,7 +391,7 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
                 value={focusKey}
                 onChange={(e) => setFocusKey(e.target.value)}
               >
-                {toKeyOptions.map(([key, count]) => (
+                {focusKeyOptions.map(([key, count]) => (
                   <option key={key} value={key}>
                     {formatKey(key)} ({count}회 입력)
                   </option>
@@ -431,7 +431,8 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
                     </span>
                   </div>
                   <p className="cyl-diag__card-desc">
-                    전체 키 중 이 toKey 직전 정답 쌍에서 처음 오타를 유발한 비율입니다.
+                    오타 스트릭 시작 중 focusKey(reference transition) 직전이 정답이던
+                    경우의 기여 비율입니다.
                   </p>
                 </div>
 
@@ -484,7 +485,7 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
                       </span>
                     </div>
                     <p className="cyl-diag__card-desc">
-                      오타율 상위 3개 키에 현재 toKey가 포함될 때 표시됩니다.
+                      키별 오타율 상위 3에 focusKey가 포함될 때 표시됩니다.
                     </p>
                   </div>
                 )}
@@ -590,7 +591,8 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
                       <span className="cyl-diag__count">({diagnostics.commonPair.count}회)</span>
                     </div>
                     <p className="cyl-diag__card-desc">
-                      전체 상위 5개 빈번한 입력 쌍에 현재 toKey 쌍이 포함될 때 표시됩니다.
+                      빈번한 transition 상위 5에 focusKey가 toKey인 쌍이 포함될 때
+                      표시됩니다.
                     </p>
                   </div>
                 )}
@@ -625,7 +627,8 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
                   <span className="cyl-diag__stat-lbl">구름타법 · Dwell / Flight</span>
                   <CloudTypingView cloudTyping={diagnostics.cloudTyping} />
                   <p className="cyl-diag__card-desc">
-                    outgoing transition(fromKey === focusKey) 전체. dwell은 focusKey 홀드,
+                    outgoing transition(fromKey === focusKey) 전체. dwell은 reference
+                    transition 홀드,
                     ND≤0.3면 롤오버. 비율은 숙달/미적용, r은 효과성(양의 상관=속도와 맞물림).
                   </p>
                 </div>

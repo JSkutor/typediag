@@ -335,7 +335,7 @@ export type PiecewiseFailureReason = "no_bound" | "insufficient_data" | "ols_fai
 
 /** fitPiecewiseLinearWithDiagnostics가 함께 반환하는 내부 파이프라인 메타데이터 */
 export interface PiecewiseFitDiagnostics {
-  targetToKey: string;
+  focusKey: string;
   boundRecord: SkdmFinalUpperBoundRecord;
   upperBoundMs: number;
   rawCorrectCount: number;
@@ -353,7 +353,7 @@ export interface PiecewiseFitSuccess {
 
 export interface PiecewiseFitFailure {
   reason: PiecewiseFailureReason;
-  targetToKey: string;
+  focusKey: string;
   boundRecord: SkdmFinalUpperBoundRecord | null;
   rawCorrectCount: number;
   excludedByBoundCount: number;
@@ -424,16 +424,16 @@ export function aggregateToWindows(
  */
 export function fitPiecewiseLinearWithDiagnostics(
   events: KeyEvent[],
-  targetToKey: string,
+  focusKey: string,
 ): PiecewiseFitOutcome {
   const boundRecord = readSkdmFinalUpperBound();
   if (boundRecord === null) {
     const rawCorrectCount = events.filter(
-      (e) => e.toKey === targetToKey && e.isCorrect === true,
+      (e) => e.toKey === focusKey && e.isCorrect === true,
     ).length;
     return {
       reason: "no_bound",
-      targetToKey,
+      focusKey,
       boundRecord: null,
       rawCorrectCount,
       excludedByBoundCount: 0,
@@ -442,7 +442,7 @@ export function fitPiecewiseLinearWithDiagnostics(
   }
 
   const upperBoundMs = boundRecord.final_upper_bound_ms;
-  const rawCorrect = events.filter((e) => e.toKey === targetToKey && e.isCorrect === true);
+  const rawCorrect = events.filter((e) => e.toKey === focusKey && e.isCorrect === true);
   const rawCorrectCount = rawCorrect.length;
   const filtered = rawCorrect.filter((e) => e.latencyMs > 0 && e.latencyMs <= upperBoundMs);
   const excludedByBoundCount = rawCorrectCount - filtered.length;
@@ -450,7 +450,7 @@ export function fitPiecewiseLinearWithDiagnostics(
   if (filtered.length < 20) {
     return {
       reason: "insufficient_data",
-      targetToKey,
+      focusKey,
       boundRecord,
       rawCorrectCount,
       excludedByBoundCount,
@@ -476,7 +476,7 @@ export function fitPiecewiseLinearWithDiagnostics(
   if (beta === null) {
     return {
       reason: "ols_failed",
-      targetToKey,
+      focusKey,
       boundRecord,
       rawCorrectCount,
       excludedByBoundCount,
@@ -500,7 +500,7 @@ export function fitPiecewiseLinearWithDiagnostics(
       sampleDots: buildSampleDots(xs, Y, n),
     },
     diagnostics: {
-      targetToKey,
+      focusKey,
       boundRecord,
       upperBoundMs,
       rawCorrectCount,
@@ -515,7 +515,7 @@ export function fitPiecewiseLinearWithDiagnostics(
  * 특정 키에 대한 분절 선형 회귀를 수행하고 방정식을 반환.
  *
  * @param events      KeyEvent 배열 (전체 세션 데이터)
- * @param targetToKey 분석 focusKey (reference transition의 toKey, 예: "a", "ㄱ")
+ * @param focusKey 분석 초점 키 (reference transition: toKey === focusKey)
  * @returns           PiecewiseResult 또는 null
  *                    - null 반환 조건:
  *                      1) localStorage에 finalUpperBound 레코드가 없을 때
@@ -524,9 +524,9 @@ export function fitPiecewiseLinearWithDiagnostics(
  */
 export function fitPiecewiseLinear(
   events: KeyEvent[],
-  targetToKey: string,
+  focusKey: string,
 ): PiecewiseResult | null {
-  const outcome = fitPiecewiseLinearWithDiagnostics(events, targetToKey);
+  const outcome = fitPiecewiseLinearWithDiagnostics(events, focusKey);
   if ("result" in outcome) {
     return outcome.result;
   }

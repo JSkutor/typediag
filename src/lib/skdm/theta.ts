@@ -5,16 +5,16 @@ export type ThetaOrderData = Record<string, string[]>;
 export const THETA_ORDER: ThetaOrderData = resolveJsonDefault<ThetaOrderData>(thetaOrderJson);
 
 /**
- * Returns the angular position (theta in radians) of `fromKey` relative to `centerKey`.
+ * Returns the angular position (theta in radians) of `fromKey` relative to `focusKey`.
  * Uses the pre-calculated sequence from `theta_order.json` which normalizes angles
  * to be evenly distributed from 0 to 2PI avoiding overlaps.
  */
-export function getTheta(centerKey: string, fromKey: string): number {
-  const center = centerKey.toLowerCase();
+export function getTheta(focusKey: string, fromKey: string): number {
+  const focus = focusKey.toLowerCase();
   const from = fromKey.toLowerCase();
 
-  const order = THETA_ORDER[center];
-  if (!order) return 0; // Fallback if center key is not in map
+  const order = THETA_ORDER[focus];
+  if (!order) return 0; // Fallback if focusKey is not in map
 
   const idx = order.indexOf(from);
   if (idx === -1) return 0; // Not found in order, fallback to 0

@@ -22,7 +22,7 @@ const DEV_TOOLS = [
   {
     href: "/dev/cloud-typing",
     title: "Cloud Typing Scatter",
-    description: "center outgoing (holdDurationMs, latencyMs) 산점도.",
+    description: "focusKey outgoing transition (holdDurationMs, latencyMs) 산점도.",
   },
   {
     href: "/dev/themes",

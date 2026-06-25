@@ -1,13 +1,13 @@
 import { useMemo } from "react";
 import { KeyEvent } from "@/lib/skdm";
+import { calculateChartData, calculateKeystrokeDiagnostics } from "@/utils/cylindricalStats";
+import { countCorrectReferenceTransitions, ensureFinalUpperBound } from "@/lib/dev/piecewiseDev";
 import { fitPiecewiseLinearWithDiagnostics } from "@/utils/piecewiseRegression";
-import { countCorrectEventsByToKey, ensureFinalUpperBound } from "@/lib/dev/piecewiseDev";
-import { calculateKeystrokeDiagnostics, calculateChartData } from "@/utils/cylindricalStats";
 
 export function useCylindricalDiagnostics(events: KeyEvent[], focusKey: string) {
-  // 1. 키별로 올바르게 입력된 이벤트 개수를 집계하여 정렬된 옵션 목록 생성
-  const toKeyOptions = useMemo(
-    () => [...countCorrectEventsByToKey(events).entries()].sort((a, b) => b[1] - a[1]),
+  // 1. focusKey 후보별 reference transition 정답 수 → 선택 옵션
+  const focusKeyOptions = useMemo(
+    () => [...countCorrectReferenceTransitions(events).entries()].sort((a, b) => b[1] - a[1]),
     [events],
   );
 
@@ -18,17 +18,15 @@ export function useCylindricalDiagnostics(events: KeyEvent[], focusKey: string) 
     return fitPiecewiseLinearWithDiagnostics(events, focusKey);
   }, [events, focusKey]);
 
-  // 3. 차트 렌더링에 필요한 가공 데이터 계산
   const chartData = useMemo(() => calculateChartData(outcome), [outcome]);
 
-  // 4. 단일 진단 통계 (Keystroke Diagnostics) 계산
   const diagnostics = useMemo(
     () => calculateKeystrokeDiagnostics(events, focusKey),
     [events, focusKey],
   );
 
   return {
-    toKeyOptions,
+    focusKeyOptions,
     outcome,
     chartData,
     diagnostics,

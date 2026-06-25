@@ -5,9 +5,9 @@ import { useMemo, useState } from "react";
 
 import { DevCloudTypingScatterChart } from "@/components/dev/DevCloudTypingScatterChart";
 import {
-  countCorrectEventsByToKey,
+  countCorrectReferenceTransitions,
   extractStrictOutgoingScatterPoints,
-  selectTopToKey,
+  selectDefaultFocusKey,
 } from "@/lib/dev/cloudTypingDev";
 import { useDiagnosticsTransition } from "@/hooks/useDiagnosticsTransition";
 import { useWorkspaceStore } from "@/store/useWorkspaceStore";
@@ -23,26 +23,27 @@ function formatKey(key: string) {
 export function DevCloudTypingPanel() {
   const analysisEvents = useWorkspaceStore((state) => state.analysisEvents);
   const { loadMockAnalysisData, isMockLoading } = useDiagnosticsTransition();
-  const [manualCenterKey, setManualCenterKey] = useState<string | null>(null);
+  const [manualFocusKey, setManualFocusKey] = useState<string | null>(null);
 
-  const toKeyOptions = useMemo(
-    () => [...countCorrectEventsByToKey(analysisEvents).entries()].sort((a, b) => b[1] - a[1]),
+  const focusKeyOptions = useMemo(
+    () =>
+      [...countCorrectReferenceTransitions(analysisEvents).entries()].sort((a, b) => b[1] - a[1]),
     [analysisEvents],
   );
 
-  const defaultCenterKey = useMemo(() => selectTopToKey(analysisEvents), [analysisEvents]);
+  const defaultFocusKey = useMemo(() => selectDefaultFocusKey(analysisEvents), [analysisEvents]);
 
-  const centerKey = useMemo(() => {
-    if (manualCenterKey && toKeyOptions.some(([key]) => key === manualCenterKey)) {
-      return manualCenterKey;
+  const focusKey = useMemo(() => {
+    if (manualFocusKey && focusKeyOptions.some(([key]) => key === manualFocusKey)) {
+      return manualFocusKey;
     }
-    return defaultCenterKey;
-  }, [manualCenterKey, toKeyOptions, defaultCenterKey]);
+    return defaultFocusKey;
+  }, [manualFocusKey, focusKeyOptions, defaultFocusKey]);
 
   const scatterPoints = useMemo(() => {
-    if (!centerKey) return [];
-    return extractStrictOutgoingScatterPoints(analysisEvents, centerKey);
-  }, [analysisEvents, centerKey]);
+    if (!focusKey) return [];
+    return extractStrictOutgoingScatterPoints(analysisEvents, focusKey);
+  }, [analysisEvents, focusKey]);
 
   if (analysisEvents.length === 0) {
     return (
@@ -87,21 +88,22 @@ export function DevCloudTypingPanel() {
       <section className={styles.panel}>
         <h2 className={styles.panelTitle}>필터</h2>
         <p className={styles.successNote}>
-          center = toKey 빈도 1위(기본). 기준 쌍 = <code>fromKey=center</code> outgoing 전이.
-          duration은 <strong>직전 행(center toKey)</strong>의 <code>holdDurationMs</code>, latency는
-          기준 쌍의 <code>latencyMs</code>. 둘 다 <code>isCorrect=true</code>만 포함.
+          focusKey 기본값 = reference transition 정답 수 1위. X축 hold는 reference
+          transition(<code>toKey === focusKey</code>)의 <code>holdDurationMs</code>, Y축 latency는
+          outgoing transition(<code>fromKey === focusKey</code>)의 <code>latencyMs</code>. 둘 다{" "}
+          <code>isCorrect=true</code>만 포함.
         </p>
         <div className={styles.controlRow}>
-          <label className={styles.controlLabel} htmlFor="dev-cloud-center-select">
-            centerKey
+          <label className={styles.controlLabel} htmlFor="dev-cloud-focus-select">
+            focusKey
           </label>
           <select
-            id="dev-cloud-center-select"
+            id="dev-cloud-focus-select"
             className={styles.toKeySelect}
-            value={centerKey ?? ""}
-            onChange={(event) => setManualCenterKey(event.target.value)}
+            value={focusKey ?? ""}
+            onChange={(event) => setManualFocusKey(event.target.value)}
           >
-            {toKeyOptions.map(([key, count]) => (
+            {focusKeyOptions.map(([key, count]) => (
               <option key={key} value={key}>
                 {formatKey(key)} ({count})
               </option>
@@ -114,23 +116,24 @@ export function DevCloudTypingPanel() {
             <span className={styles.metaValue}>{scatterPoints.length}</span>
           </div>
           <div className={styles.metaItem}>
-            <span className={styles.metaLabel}>center (fromKey)</span>
-            <span className={styles.metaValue}>{centerKey ? formatKey(centerKey) : "—"}</span>
+            <span className={styles.metaLabel}>focusKey</span>
+            <span className={styles.metaValue}>{focusKey ? formatKey(focusKey) : "—"}</span>
           </div>
         </div>
       </section>
 
       <section className={styles.panel}>
         <h2 className={styles.panelTitle}>
-          hold vs latency · {centerKey ? formatKey(centerKey) : "—"} outgoing
+          hold vs latency · {focusKey ? formatKey(focusKey) : "—"} outgoing transition
         </h2>
         {scatterPoints.length === 0 ? (
           <p className={styles.emptyState}>
-            조건을 만족하는 기준 쌍이 없습니다 (center 정답 + hold 기록 + outgoing 정답 필요).
+            조건을 만족하는 transition 쌍이 없습니다 (reference transition 정답 + hold 기록 +
+            outgoing transition 정답 필요).
           </p>
         ) : (
           <div className={styles.chartWrap}>
-            <DevCloudTypingScatterChart points={scatterPoints} centerKey={centerKey ?? ""} />
+            <DevCloudTypingScatterChart points={scatterPoints} focusKey={focusKey ?? ""} />
           </div>
         )}
       </section>

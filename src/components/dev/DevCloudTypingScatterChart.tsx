@@ -4,7 +4,7 @@ import type { CloudTypingScatterPoint } from "@/lib/dev/cloudTypingDev";
 
 interface DevCloudTypingScatterChartProps {
   points: CloudTypingScatterPoint[];
-  centerKey: string;
+  focusKey: string;
 }
 
 const WIDTH = 720;
@@ -23,7 +23,7 @@ function scaleLinear(
   return rangeMin + t * (rangeMax - rangeMin);
 }
 
-export function DevCloudTypingScatterChart({ points, centerKey }: DevCloudTypingScatterChartProps) {
+export function DevCloudTypingScatterChart({ points, focusKey }: DevCloudTypingScatterChartProps) {
   const plotWidth = WIDTH - PAD.left - PAD.right;
   const plotHeight = HEIGHT - PAD.top - PAD.bottom;
 
@@ -52,7 +52,7 @@ export function DevCloudTypingScatterChart({ points, centerKey }: DevCloudTyping
       className="cloud-typing-scatter-chart"
       viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
       role="img"
-      aria-label={`${centerKey} outgoing hold vs latency scatter`}
+      aria-label={`${focusKey} outgoing transition hold vs latency scatter`}
     >
       <rect x={0} y={0} width={WIDTH} height={HEIGHT} fill="var(--bg-inset)" rx={12} />
 
@@ -137,7 +137,8 @@ export function DevCloudTypingScatterChart({ points, centerKey }: DevCloudTyping
           opacity={0.82}
         >
           <title>
-            {centerKey}→{point.toKey}: hold={point.durationMs}ms, latency={point.latencyMs}ms
+            {focusKey}→{point.toKey}: reference hold={point.durationMs}ms, outgoing latency=
+            {point.latencyMs}ms
           </title>
         </circle>
       ))}
@@ -149,7 +150,7 @@ export function DevCloudTypingScatterChart({ points, centerKey }: DevCloudTyping
         fill="var(--text-secondary)"
         fontSize={12}
       >
-        X: center({centerKey}) holdDurationMs · Y: 기준 쌍 latencyMs
+        X: reference transition holdDurationMs · Y: outgoing transition latencyMs
       </text>
     </svg>
   );
