@@ -58,9 +58,9 @@ graphify-ts mcp 명령을 사용해 구조를 파악하라.
 | **Topic API**           | `src/app/api/practice/topic/`    | 토픽 모드 벡터 검색(`route.ts`) 및 LLM 생성(`generate/route.ts`) 라우트 SSOT. Gemini 호출·재시도·응답 파싱은 `src/lib/api/topicGenerateGemini.ts`. |
 | **Topic 클라이언트 상태** | `src/store/typingSlices/createTopicSlice.ts` | Topic 모드 Zustand slice. `docs/TOPIC_MODE.md`와 싱크 필요. |
 | **BM·단위경제** | `docs/BUSINESS_MODEL.md` | 비용·수익 발생 지점, 단가, 월간 산식 SSOT. 수치 구현: `src/lib/dev/costSimulation.ts`, `revenueSimulation.ts`, `platformScaling.ts`. |
-| **Cylindrical Diagnostics** | `docs/DIAGNOSTICS.md` §0 | **focusKey** / **reference·outgoing transition** 용어 SSOT. 1패스 누산: `buildDiagnosticsAccumulator` → `finalizeKeystrokeDiagnostics` (`src/utils/cylindricalStats.ts`). 훅: `useCylindricalDiagnostics.ts`. UI: `CylindricalDiagnosticsPanel.tsx`. |
+| **Cylindrical Diagnostics** | `docs/DIAGNOSTICS.md` §0 | **focusKey** / **reference·outgoing transition** 용어 SSOT. 1패스 누산: `buildDiagnosticsAccumulator` → `finalizeKeystrokeDiagnostics` (`src/utils/cylindricalStats/`). 훅: `useCylindricalDiagnostics.ts`. UI: `CylindricalDiagnosticsPanel.tsx`. |
 | **원통 SKDM 좌표** | `src/lib/skdm/cylindrical.ts` | `buildCylindricalVectors(events, focusKey)` |
-| **Cloud Typing (dev·집계)** | `src/lib/dev/cloudTypingDev.ts`, `cylindricalStats.ts` | ND = \|L−D\|/max(L+D,M). 명세: `docs/DIAGNOSTICS.md` §3. |
+| **Cloud Typing (dev·집계)** | `src/lib/dev/cloudTypingDev.ts`, `src/utils/cylindricalStats/cloudTyping.ts` | ND = \|L−D\|/max(L+D,M). 명세: `docs/DIAGNOSTICS.md` §3. |
 
 ---
 

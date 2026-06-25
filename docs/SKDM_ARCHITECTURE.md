@@ -11,7 +11,7 @@ SKDM은 타건 이벤트 스트림 `{fromKey → toKey, latencyMs}`를 키보드
 | 통계 헬퍼 | `src/lib/skdm/stats.ts` — NumPy 호환 mean/median/std/percentile |
 | 원통 좌표 | `src/lib/skdm/cylindrical.ts`, `src/lib/skdm/theta.ts`, `theta_order.json` |
 | 키 메타 (손·손가락) | `src/lib/skdm/keyboardMeta.ts` |
-| Cylindrical 통계·UI | [DIAGNOSTICS.md](DIAGNOSTICS.md) — `cylindricalStats.ts`, `useCylindricalDiagnostics` |
+| Cylindrical 통계·UI | [DIAGNOSTICS.md](DIAGNOSTICS.md) — `cylindricalStats/`, `useCylindricalDiagnostics` |
 | Python 레거시 | `skdm/model.py`, `skdm/config.py`, `skdm/layout.py` |
 | 패리티 검증 | `src/lib/skdm/model.parity.test.ts`, `__fixtures__/python-reference.json` |
 | 이벤트 수집 | `src/store/typingSlices/createKeystrokeSlice.ts` |

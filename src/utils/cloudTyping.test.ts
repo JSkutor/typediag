@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { KeyEvent } from "@/lib/skdm";
 import {
+  buildDiagnosticsAccumulator,
   computeCloudTypingDiagnostics,
   computeNormalizedDifference,
   extractOutgoingSamples,
@@ -157,5 +158,14 @@ describe("computeCloudTypingDiagnostics", () => {
 
     expect(result.key?.cloudTypingRatio).toBe(0);
     expect(result.key?.level).toBe("not_applied");
+  });
+
+  it("accumulator outgoing samples match extractOutgoingSamples", () => {
+    const events = buildFocusOutgoingEvents("f", 5, { holdMs: 80, latencyMs: 70 });
+    const acc = buildDiagnosticsAccumulator(events);
+    const fromAccumulator = acc.perKey.get("f")?.outgoingSamples ?? [];
+    const fromExtractor = extractOutgoingSamples(events, "f");
+
+    expect(fromAccumulator).toEqual(fromExtractor);
   });
 });

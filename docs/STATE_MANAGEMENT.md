@@ -146,7 +146,7 @@ SKDM latency surface는 `latencyMs`만 사용. `holdDurationMs`는 DB 영속화 
 | :--- | :--- |
 | 이벤트 소스 | `useDiagnosticsTransition` → `analysisEvents` (DB run 병합 또는 live `events`) |
 | 통계 훅 | `src/hooks/useCylindricalDiagnostics.ts` |
-| 1패스 누산 | `buildDiagnosticsAccumulator` (`src/utils/cylindricalStats.ts`) |
+| 1패스 누산 | `buildDiagnosticsAccumulator` (`src/utils/cylindricalStats/accumulator.ts`) |
 | focusKey별 집계 | `finalizeKeystrokeDiagnostics(acc, focusKey)` |
 | 분절회귀 | `fitPiecewiseFromLatencies` (`piecewiseRegression.ts`) |
 | UI | `CylindricalDiagnosticsPanel.tsx` — `focusKey` 셀렉터, `focusKeyOptions` |

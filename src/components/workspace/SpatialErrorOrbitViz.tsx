@@ -6,7 +6,7 @@ import {
   classifySpatialTypoDistance,
   SPATIAL_TYPO_CLASS_LABEL,
 } from "@/lib/skdm/geometry";
-import type { SpatialErrorDistanceResult } from "@/lib/skdm/diagnostics";
+import type { SpatialErrorDistanceResult } from "@/utils/cylindricalStats";
 import type { KeyPosition } from "@/lib/skdm/types";
 
 const VIEW_W = 340;

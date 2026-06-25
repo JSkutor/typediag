@@ -1,336 +1,28 @@
 "use client";
 
 import React, { useState } from "react";
-import { KeyEvent } from "@/lib/skdm";
 import { useCylindricalDiagnostics } from "@/hooks/useCylindricalDiagnostics";
-import { KEYBOARD_META } from "@/lib/skdm/keyboardMeta";
-import { type PiecewiseFitSuccess, type PiecewiseFitFailure } from "@/utils/piecewiseRegression";
-import { PIECEWISE_FAILURE_LABEL } from "@/lib/dev/piecewiseDev";
 import {
   FATAL_NGRAM_ERROR_RATE_THRESHOLD,
   FATAL_NGRAM_MIN_SAMPLES,
-  type CloudTypingLevel,
-  type CloudTypingEffectiveness,
-  type FatalNgramEntry,
-  type BurstNgram,
-  type KeystrokeDiagnostics,
 } from "@/utils/cylindricalStats";
 import { SpatialErrorOrbitViz } from "@/components/workspace/SpatialErrorOrbitViz";
+import { BurstNgramViz } from "@/components/workspace/diagnostics/BurstNgramViz";
+import { CloudTypingView } from "@/components/workspace/diagnostics/CloudTypingView";
+import { OptionalTag } from "@/components/workspace/diagnostics/DiagTags";
+import { FatalNgramViz } from "@/components/workspace/diagnostics/FatalNgramViz";
+import { LatencyDistributionView } from "@/components/workspace/diagnostics/LatencyDistributionView";
+import { PiecewiseChart } from "@/components/workspace/diagnostics/PiecewiseChart";
+import {
+  buildFingerTransitionItems,
+  TransitionBars,
+} from "@/components/workspace/diagnostics/TransitionBars";
+import { formatKey } from "@/components/workspace/diagnostics/formatKey";
 
 interface CylindricalDiagnosticsPanelProps {
-  events: KeyEvent[];
+  events: Parameters<typeof useCylindricalDiagnostics>[0];
   focusKey: string;
   setFocusKey: (key: string) => void;
-}
-
-const KEY_LABEL: Record<string, string> = { space: "␣", ",": ",", ".": "." };
-
-function formatKey(key: string) {
-  return KEY_LABEL[key] ?? key.toUpperCase();
-}
-
-function FatalNgramViz({ entry }: { entry: FatalNgramEntry }) {
-  return (
-    <div className="cyl-diag__ngram-entry">
-      <div
-        className="cyl-diag__ngram-viz"
-        style={{ display: "flex", alignItems: "center", gap: "6px", margin: "12px 0" }}
-      >
-        {entry.sequence.map((key, i, arr) => (
-          <React.Fragment key={i}>
-            <kbd
-              className="cyl-diag__ngram-key"
-              style={{
-                padding: "4px 8px",
-                borderRadius: "4px",
-                background:
-                  i === arr.length - 1
-                    ? "rgba(239, 68, 68, 0.1)"
-                    : "rgba(255, 255, 255, 0.05)",
-                border:
-                  i === arr.length - 1
-                    ? "1px solid rgba(239, 68, 68, 0.3)"
-                    : "1px solid rgba(255, 255, 255, 0.1)",
-                color: i === arr.length - 1 ? "var(--danger)" : "var(--text-primary)",
-                fontFamily: "var(--font-mono)",
-              }}
-            >
-              {formatKey(key)}
-            </kbd>
-            {i < arr.length - 1 && <span style={{ color: "var(--text-muted)" }}>→</span>}
-          </React.Fragment>
-        ))}
-      </div>
-      <div className="cyl-diag__optional-item" style={{ fontSize: "0.82rem", marginTop: "4px" }}>
-        <span className="cyl-diag__error-rate text-danger" style={{ fontWeight: 600 }}>
-          오타율 {entry.errorRate.toFixed(1)}%
-        </span>
-        <span className="cyl-diag__count"> (총 {entry.totalCount}회 진입)</span>
-      </div>
-    </div>
-  );
-}
-
-function BurstNgramViz({ entry, rank }: { entry: BurstNgram; rank: number }) {
-  return (
-    <div className="cyl-diag__ngram-entry">
-      <div
-        className="cyl-diag__ngram-viz"
-        style={{ display: "flex", alignItems: "center", gap: "6px", margin: "12px 0" }}
-      >
-        <span style={{ color: "var(--accent)", fontWeight: "bold", marginRight: "8px" }}>#{rank}</span>
-        {entry.sequence.map((key, i, arr) => (
-          <React.Fragment key={i}>
-            <kbd
-              className="cyl-diag__ngram-key"
-              style={{
-                padding: "4px 8px",
-                borderRadius: "4px",
-                background: "rgba(16, 185, 129, 0.1)",
-                border: "1px solid rgba(16, 185, 129, 0.3)",
-                color: "var(--success)",
-                fontFamily: "var(--font-mono)",
-              }}
-            >
-              {formatKey(key)}
-            </kbd>
-            {i < arr.length - 1 && <span style={{ color: "var(--text-muted)" }}>→</span>}
-          </React.Fragment>
-        ))}
-      </div>
-      <div className="cyl-diag__optional-item" style={{ fontSize: "0.82rem", marginTop: "4px" }}>
-        <span className="text-success" style={{ fontWeight: 600 }}>
-          평균 {entry.avgLatencyMs.toFixed(1)} ms
-        </span>
-        <span className="cyl-diag__count"> ({entry.count}회 달성)</span>
-      </div>
-    </div>
-  );
-}
-
-function isSuccess(
-  outcome: PiecewiseFitSuccess | PiecewiseFitFailure,
-): outcome is PiecewiseFitSuccess {
-  return "result" in outcome;
-}
-
-function scaleLinear(
-  value: number,
-  domainMin: number,
-  domainMax: number,
-  rangeMin: number,
-  rangeMax: number,
-) {
-  if (domainMax === domainMin) return (rangeMin + rangeMax) / 2;
-  const t = (value - domainMin) / (domainMax - domainMin);
-  return rangeMin + t * (rangeMax - rangeMin);
-}
-
-function OptionalTag() {
-  return <span className="cyl-diag__optional-tag">optional</span>;
-}
-
-function ComingSoonTag() {
-  return <span className="cyl-diag__optional-tag">coming soon</span>;
-}
-
-
-
-const LATENCY_LEVEL_LABEL: Record<
-  NonNullable<KeystrokeDiagnostics["latencyConsistency"]>["level"],
-  string
-> = {
-  steady: "일정",
-  moderate: "보통",
-  erratic: "오락가락",
-};
-
-const LATENCY_LEVEL_BADGE: Record<
-  NonNullable<KeystrokeDiagnostics["latencyConsistency"]>["level"],
-  string
-> = {
-  steady: "badge-success",
-  moderate: "badge-warning",
-  erratic: "badge-warning",
-};
-
-function buildFingerTransitionItems(focusKey: string, diagnostics: KeystrokeDiagnostics) {
-  const targetMeta = KEYBOARD_META[focusKey.toLowerCase()];
-  const isLeft = targetMeta ? targetMeta.hand === "L" : true;
-  const { ratios } = diagnostics.fingerTransitions;
-
-  return [
-    { label: isLeft ? "오른손 전체" : "왼손 전체", value: ratios.oppositeHand, color: "var(--accent)" },
-    { label: isLeft ? "왼 소지" : "오른 소지", value: ratios.sameHandPinky, color: "#a855f7" },
-    { label: isLeft ? "왼 약지" : "오른 약지", value: ratios.sameHandRing, color: "#3b82f6" },
-    { label: isLeft ? "왼 중지" : "오른 중지", value: ratios.sameHandMiddle, color: "#10b981" },
-    { label: isLeft ? "왼 검지" : "오른 검지", value: ratios.sameHandIndex, color: "#ec4899" },
-    { label: "기타 (스페이스 등)", value: ratios.other, color: "var(--text-muted)" },
-  ];
-}
-
-function TransitionBars({
-  items,
-}: {
-  items: ReadonlyArray<{ label: string; value: number; color: string }>;
-}) {
-  return (
-    <div className="cyl-diag__transition-list">
-      {items.map((item) => (
-        <div key={item.label} className="cyl-diag__transition-item">
-          <div className="cyl-diag__transition-meta">
-            <span className="cyl-diag__transition-lbl">{item.label}</span>
-            <span className="cyl-diag__transition-val">{item.value.toFixed(1)}%</span>
-          </div>
-          <div className="cyl-diag__transition-bar-bg">
-            <div
-              className="cyl-diag__transition-bar-fill"
-              style={{ width: `${item.value}%`, backgroundColor: item.color }}
-            />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-const CLOUD_TYPING_LEVEL_LABEL: Record<CloudTypingLevel, string> = {
-  not_applied: "미적용",
-  weak: "약함",
-  moderate: "보통",
-  strong: "강함",
-};
-
-const CLOUD_TYPING_EFFECTIVENESS_LABEL: Record<CloudTypingEffectiveness, string> = {
-  effective: "효과적",
-  counterproductive: "역효과",
-  neutral: "상관 없음",
-};
-
-function CloudTypingView({
-  cloudTyping,
-}: {
-  cloudTyping: KeystrokeDiagnostics["cloudTyping"];
-}) {
-  const { key: keyStats, effectivenessCorrelation, effectiveness, insufficientSample, analysisPoolCount } =
-    cloudTyping;
-
-  if (insufficientSample) {
-    return (
-      <p className="cyl-diag__empty">
-        표본 부족 (나가는 전이 n={analysisPoolCount}, 11회 이상 필요)
-      </p>
-    );
-  }
-
-  if (!keyStats) {
-    return <p className="cyl-diag__empty">이 키에서 나가는 전이 데이터가 없습니다.</p>;
-  }
-
-  const barScale = Math.max(keyStats.latencyMs, keyStats.dwellMs, 1);
-  const latencyPct = (keyStats.latencyMs / barScale) * 100;
-  const dwellPct = (keyStats.dwellMs / barScale) * 100;
-
-  const ratioPct = (keyStats.cloudTypingRatio * 100).toFixed(0);
-  const levelLabel = CLOUD_TYPING_LEVEL_LABEL[keyStats.level];
-
-  const ratioClass =
-    keyStats.level === "not_applied"
-      ? "text-muted"
-      : "text-success";
-
-  const effectLabel = effectivenessCorrelation.isSignificant
-    ? CLOUD_TYPING_EFFECTIVENESS_LABEL[effectiveness]
-    : "상관 무의미";
-
-  const effectClass =
-    effectiveness === "effective"
-      ? "text-success"
-      : effectiveness === "counterproductive"
-        ? "text-danger"
-        : "text-muted";
-
-  return (
-    <>
-      <div className="cyl-diag__cloud-dual">
-        <div className={`cyl-diag__cloud-dual-col ${ratioClass}`}>
-          <span className="cyl-diag__cloud-dual-val">{ratioPct}%</span>
-          <span className="cyl-diag__cloud-dual-sep">·</span>
-          <span className="cyl-diag__cloud-dual-lbl">{levelLabel}</span>
-        </div>
-        <div className={`cyl-diag__cloud-dual-col cyl-diag__cloud-dual-col--end ${effectClass}`}>
-          <span className="cyl-diag__cloud-dual-val">{effectLabel}</span>
-        </div>
-      </div>
-      <div className="cyl-diag__cloud-pair-meta">
-        {formatKey(keyStats.key)} 키 · 나가는 전이 n={keyStats.sampleCount}
-        {` · 상관 n=${effectivenessCorrelation.sampleCount} r=${effectivenessCorrelation.pearsonR.toFixed(2)}`}
-      </div>
-      {effectivenessCorrelation.sampleCount < 5 && (
-        <div className="cyl-diag__correlation-p text-muted">
-          상관 분석에 나가는 전이 5회 이상 필요 (키 홀드 기록 포함)
-        </div>
-      )}
-      <div className="cyl-diag__metric-bars">
-        <div className="cyl-diag__metric-bar-row">
-          <span className="cyl-diag__metric-bar-label">Latency</span>
-          <div className="cyl-diag__metric-bar-track">
-            <div
-              className="cyl-diag__metric-bar-fill cyl-diag__metric-bar-fill--latency"
-              style={{ width: `${latencyPct}%` }}
-            />
-          </div>
-          <span className="cyl-diag__metric-bar-value">{keyStats.latencyMs.toFixed(1)} ms</span>
-        </div>
-        <div className="cyl-diag__metric-bar-row">
-          <span className="cyl-diag__metric-bar-label">Dwell</span>
-          <div className="cyl-diag__metric-bar-track">
-            <div
-              className="cyl-diag__metric-bar-fill cyl-diag__metric-bar-fill--dwell"
-              style={{ width: `${dwellPct}%` }}
-            />
-          </div>
-          <span className="cyl-diag__metric-bar-value">{keyStats.dwellMs.toFixed(1)} ms</span>
-        </div>
-      </div>
-    </>
-  );
-}
-
-function LatencyDistributionView({
-  consistency,
-}: {
-  consistency: KeystrokeDiagnostics["latencyConsistency"];
-}) {
-  if (!consistency) {
-    return (
-      <div className="cyl-diag__dist-preview">
-        <span className="cyl-diag__relative-val text-muted" style={{ fontSize: "0.82rem" }}>
-          정답 타건 5회 이상 필요
-        </span>
-      </div>
-    );
-  }
-
-  const max = Math.max(...consistency.histogram, 1);
-
-  return (
-    <div className="cyl-diag__dist-preview">
-      <div className="cyl-diag__dist-bars" aria-hidden="true">
-        {consistency.histogram.map((h, i) => (
-          <div key={i} className="cyl-diag__dist-bar" style={{ height: `${(h / max) * 100}%` }} />
-        ))}
-      </div>
-      <div className="cyl-diag__dist-meta">
-        <span className={`cyl-diag__dist-badge ${LATENCY_LEVEL_BADGE[consistency.level]}`}>
-          {LATENCY_LEVEL_LABEL[consistency.level]}
-        </span>
-        <span className="cyl-diag__dist-cv">
-          MAD = {consistency.madMs.toFixed(1)} ms · rMAD = {consistency.relativeMad.toFixed(2)}
-        </span>
-      </div>
-    </div>
-  );
 }
 
 export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelProps> = ({
@@ -346,118 +38,6 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
   );
 
   const hasData = events.length > 0 && focusKey;
-
-  const renderChart = () => {
-    if (!outcome) {
-      return <p className="cyl-diag__empty">데이터가 로드되지 않았습니다.</p>;
-    }
-    if (!isSuccess(outcome)) {
-      return (
-        <div className="cyl-diag__failure-box">
-          <p className="cyl-diag__empty cyl-diag__empty--fail">
-            {PIECEWISE_FAILURE_LABEL[outcome.reason] ?? outcome.reason}
-          </p>
-          <div className="cyl-diag__stats-sub">
-            <span>정답 n = {outcome.rawCorrectCount}</span>
-            <span>필터 후 = {outcome.filteredCount}</span>
-          </div>
-        </div>
-      );
-    }
-
-    if (!chartData || chartData.points.length === 0) {
-      return <p className="cyl-diag__empty">시각화할 수 있는 데이터 포인트가 없습니다.</p>;
-    }
-
-    const { points, regressionSamples, xMax, domainYMin, domainYMax, yTickValues } = chartData;
-
-    const WIDTH = 320;
-    const HEIGHT = 180;
-    const PAD = { top: 16, right: 12, bottom: 24, left: 32 };
-    const plotWidth = WIDTH - PAD.left - PAD.right;
-    const plotHeight = HEIGHT - PAD.top - PAD.bottom;
-
-    const toSvgX = (x: number) => scaleLinear(x, 0, xMax, PAD.left, PAD.left + plotWidth);
-    const toSvgY = (y: number) =>
-      scaleLinear(y, domainYMin, domainYMax, PAD.top + plotHeight, PAD.top);
-
-    const regressionPath = regressionSamples
-      .map(
-        (point, index) =>
-          `${index === 0 ? "M" : "L"} ${toSvgX(point.x).toFixed(1)} ${toSvgY(point.y).toFixed(1)}`,
-      )
-      .join(" ");
-
-    return (
-      <div className="cyl-diag__chart-container">
-        <svg
-          viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-          className="cyl-diag__svg"
-          role="img"
-          aria-label="모래시계 분절회귀 차트"
-        >
-          {yTickValues.map((tick) => (
-            <g key={tick}>
-              <line
-                x1={PAD.left}
-                x2={PAD.left + plotWidth}
-                y1={toSvgY(tick)}
-                y2={toSvgY(tick)}
-                stroke="rgba(255, 255, 255, 0.03)"
-                strokeWidth={1}
-              />
-              <text
-                x={PAD.left - 8}
-                y={toSvgY(tick) + 3}
-                textAnchor="end"
-                fill="var(--text-muted)"
-                fontSize={9}
-                fontFamily="var(--font-mono)"
-                opacity={0.8}
-              >
-                {Math.round(tick)}
-              </text>
-            </g>
-          ))}
-          <line
-            x1={PAD.left}
-            x2={PAD.left + plotWidth}
-            y1={PAD.top + plotHeight}
-            y2={PAD.top + plotHeight}
-            stroke="var(--border-subtle)"
-            opacity={0.3}
-            strokeWidth={1}
-          />
-          <line
-            x1={PAD.left}
-            x2={PAD.left}
-            y1={PAD.top}
-            y2={PAD.top + plotHeight}
-            stroke="var(--border-subtle)"
-            opacity={0.3}
-            strokeWidth={1}
-          />
-          {points.map((point, index) => (
-            <circle
-              key={index}
-              cx={toSvgX(point.x)}
-              cy={toSvgY(point.y)}
-              r={1.8}
-              fill="var(--text-secondary)"
-              opacity={0.45}
-            />
-          ))}
-          <path
-            d={regressionPath}
-            fill="none"
-            stroke="var(--accent)"
-            strokeWidth={2}
-            strokeLinecap="round"
-          />
-        </svg>
-      </div>
-    );
-  };
 
   return (
     <div className={`cyl-drawer ${isOpen ? "cyl-drawer--open" : ""}`}>
@@ -476,7 +56,6 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
 
       <div id="cyl-drawer-panel" className="cyl-drawer__body" aria-hidden={!isOpen}>
         <div className="cyl-drawer__grid">
-          {/* Panel 1: 키 진입 Dynamics */}
           <section className="cyl-drawer__col cyl-drawer__col--controls">
             <header className="cyl-panel__header">
               <span className="cyl-panel__subtitle">Panel 1 · Focus Key</span>
@@ -502,7 +81,7 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
               <div className="cyl-diag__detailed-content">
                 <div className="cyl-diag__detailed-card">
                   <span className="cyl-diag__stat-lbl">모래시계 분절회귀</span>
-                  {renderChart()}
+                  <PiecewiseChart outcome={outcome} chartData={chartData} />
                   <p className="cyl-diag__card-desc">
                     정답(g)→정답 / 오타(b) 구간별 기울기. breakpoint 전후 개선·악화 추세를
                     분절회귀로 추정합니다.
@@ -612,7 +191,6 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
             )}
           </section>
 
-          {/* Panel 2: 타이밍 & 오타 */}
           <section className="cyl-drawer__col cyl-drawer__col--regression">
             <header className="cyl-drawer__col-header">
               <span className="cyl-label-text">Panel 2 · Timing</span>
@@ -701,7 +279,6 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
             )}
           </section>
 
-          {/* Panel 3: 공간 & 패턴 */}
           <section className="cyl-drawer__col cyl-drawer__col--diagnostics">
             <header className="cyl-drawer__col-header">
               <span className="cyl-label-text">Panel 3 · Spatial</span>
@@ -750,7 +327,7 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
                   </div>
                 )}
 
-                {diagnostics.burstNgrams?.length > 0 && (
+                {diagnostics.burstNgrams.length > 0 && (
                   <div className="cyl-diag__detailed-card cyl-diag__detailed-card--optional">
                     <span className="cyl-diag__stat-lbl">
                       버스트 (고속 연타 조합) <OptionalTag />
@@ -765,7 +342,7 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
                 )}
               </div>
             ) : (
-              <p className="cyl-diag__empty">진단할 타자 데이터가 존재하지 않습니다.</p>
+              <p className="cyl-diag__empty">진단할 타자 데이터가 없습니다.</p>
             )}
           </section>
         </div>
