@@ -9,7 +9,7 @@ import {
   type CloudTypingDiagnostics,
   type CloudTypingEffectiveness,
   type CloudTypingLevel,
-  type TransitionDwellSample,
+  type OutgoingTransitionSample,
 } from "@/utils/cylindricalStats";
 import { getMedian } from "@/utils/stats";
 
@@ -146,12 +146,12 @@ export function traceDevCloudBandPolygon(
   return points;
 }
 
-function sampleKey(sample: TransitionDwellSample): string {
+function sampleKey(sample: OutgoingTransitionSample): string {
   return `${sample.toKey}:${sample.latencyMs}:${sample.fromHoldMs}`;
 }
 
 export function computeDevCloudTypingDiagnostics(
-  analysisPool: TransitionDwellSample[],
+  analysisPool: OutgoingTransitionSample[],
   focusKey: string,
   minDenomMs: number,
 ): CloudTypingDiagnostics {
@@ -172,9 +172,6 @@ export function computeDevCloudTypingDiagnostics(
   );
   const latencies = analysisPool.map((sample) => sample.latencyMs);
   const holds = analysisPool.map((sample) => sample.fromHoldMs);
-  const flights = analysisPool.map((sample) =>
-    Math.max(0, sample.latencyMs - sample.fromHoldMs),
-  );
 
   const strokeCount = analysisPool.filter((sample) =>
     isDevCloudTypingStroke(
@@ -200,8 +197,7 @@ export function computeDevCloudTypingDiagnostics(
     analysisPoolCount: analysisPool.length,
     key: {
       key: focusKey,
-      dwellMs: getMedian(holds),
-      flightMs: getMedian(flights),
+      holdMs: getMedian(holds),
       latencyMs: getMedian(latencies),
       normalizedDifference: getMedian(ndValues),
       cloudTypingRatio,
@@ -212,7 +208,7 @@ export function computeDevCloudTypingDiagnostics(
 }
 
 function toScatterPoint(
-  sample: TransitionDwellSample,
+  sample: OutgoingTransitionSample,
   inAnalysisPool: boolean,
   minDenomMs: number,
 ): CloudTypingScatterPoint {

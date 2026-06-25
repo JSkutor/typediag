@@ -45,9 +45,9 @@ interface SpatialErrorOrbitVizProps {
 export function SpatialErrorOrbitViz({ focusKey, data }: SpatialErrorOrbitVizProps) {
   const viz = useMemo(() => {
     const layout = buildLayout();
-    const targetKey = focusKey.toLowerCase();
-    const targetPos = layout[targetKey];
-    if (!targetPos) return null;
+    const focus = focusKey.toLowerCase();
+    const focusPos = layout[focus];
+    if (!focusPos) return null;
 
     const alphaKeys = Object.values(layout).filter((k) => isAlphaKey(k.key));
     const kbBounds = layoutBounds(alphaKeys);
@@ -98,7 +98,7 @@ export function SpatialErrorOrbitViz({ focusKey, data }: SpatialErrorOrbitVizPro
         const svg = toSvg(k.x, k.y);
         return {
           key: k.key,
-          isTarget: k.key === targetKey,
+          isTarget: k.key === focus,
           x: svg.x - keySizePx / 2,
           y: svg.y - keySizePx / 2,
         };

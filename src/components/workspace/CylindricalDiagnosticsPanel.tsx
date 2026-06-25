@@ -109,8 +109,8 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
                     </span>
                   </div>
                   <p className="cyl-diag__card-desc">
-                    오타 스트릭 시작 중 focusKey(reference transition) 직전이 정답이던
-                    경우의 기여 비율입니다.
+                    오타 스트릭 시작 시 의도한 키(expectedChar → layout)가 focusKey인
+                    경우의 비율입니다.
                   </p>
                 </div>
 
@@ -268,7 +268,7 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
                       <span className="cyl-diag__count">({diagnostics.commonPair.count}회)</span>
                     </div>
                     <p className="cyl-diag__card-desc">
-                      빈번한 transition 상위 5에 focusKey가 toKey인 쌍이 포함될 때
+                      빈번한 reference transition 상위 5에 focusKey가 toKey인 쌍이 포함될 때
                       표시됩니다.
                     </p>
                   </div>
@@ -300,11 +300,11 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
                 </div>
 
                 <div className="cyl-diag__detailed-card">
-                  <span className="cyl-diag__stat-lbl">구름타법 · Dwell / Flight</span>
+                  <span className="cyl-diag__stat-lbl">구름타법 · Hold / Latency</span>
                   <CloudTypingView cloudTyping={diagnostics.cloudTyping} />
                   <p className="cyl-diag__card-desc">
-                    outgoing transition(fromKey === focusKey) 전체. dwell은 reference
-                    transition 홀드,
+                    outgoing transition(fromKey === focusKey) 전체. D는 reference
+                    transition hold,
                     |ND|≤0.25면 롤오버. 분석 풀 11회 이상일 때만 집계.
                   </p>
                 </div>

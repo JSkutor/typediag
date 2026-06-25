@@ -214,7 +214,7 @@ describe("piecewiseRegression", () => {
       // 100개이지만 toKey가 'b' (target은 'a')
       const events: KeyEvent[] = Array.from({ length: 100 }, (_, i) => ({
         fromKey: null,
-        toKey: "b", // 대상 키 불일치
+        toKey: "b", // focusKey 불일치
         latencyMs: 200 + i,
         isCorrect: true,
       }));

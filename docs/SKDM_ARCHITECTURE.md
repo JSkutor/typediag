@@ -147,7 +147,7 @@ Python `filter_backspaces`와 동일 로직. **스택 기반이 아님.**
 
 레이아웃의 각 키(단, `EXCLUDE_ROWS`에 포함된 row 제외 — 기본값 row `0` 숫자열)에 대해:
 
-**들어오는 쌍이 없을 때**
+**들어오는 쌍이 없을 때** (`toKey`로 들어오는 reference transition — [DIAGNOSTICS.md](DIAGNOSTICS.md) 용어)
 
 - `z` = 세션 전체 pair `z`의 median (`sessionMedianZ`)
 - `confidence` = 0
@@ -156,7 +156,7 @@ Python `filter_backspaces`와 동일 로직. **스택 기반이 아님.**
 **들어오는 쌍이 있을 때**
 
 - `z` = 빈도 가중 평균: `weight = frequency ** FREQUENCY_WEIGHT_POWER` (기본 `P = 1.0`)
-- `confidence` = 들어오는 쌍 frequency 합
+- `confidence` = 들어오는 쌍(reference transition) frequency 합
 - `stdev` = 해당 `toKey`로 들어온 raw `latencyMs`의 표준편차 (샘플 ≥ 2), 아니면 `sessionMedianStdev`
 
 초기 `zSmoothed`, `stdevSmoothed`는 0 — `smooth`에서 채움.
@@ -284,7 +284,7 @@ export interface KeyResult {
   x: number;
   y: number;
   z: number;              // sigmoid 스케일, 스무딩 전 대표 지연
-  confidence: number;     // 들어오는 전이 빈도 합
+  confidence: number;     // 들어오는 reference transition 빈도 합
   stdev: number;          // raw ms 표준편차
   zSmoothed: number;      // Laplacian 후 — Surface 높이·색의 기준
   stdevSmoothed: number;
@@ -306,7 +306,7 @@ TypeScript `model.ts`는 `skdm/model.py` 직접 포트. `stats.ts`는 NumPy perc
 | `pipeline.test.ts` | end-to-end `runPipeline` + `triangulate` |
 | `cylindrical.test.ts` | `buildCylindricalVectors`, `getGlobalCylindricalMax` |
 | `theta.test.ts` | `getTheta` |
-| `diagnostics.test.ts` | shift overhead 등 |
+| `useCylindricalDiagnostics.test.ts`, `cloudTyping.test.ts`, `burstNgram.test.ts`, `fatalNgram.test.ts` | Cylindrical Diagnostics·구름타법·n-gram |
 | `stats.test.ts` | percentile/median/std |
 
 ---

@@ -425,7 +425,7 @@ export function aggregateToWindows(
  * 사전에 필터링된 배열을 받아 events 재순회를 제거합니다.
  *
  * @param orderedLatencies - isCorrect && latencyMs > 0 필터를 통과한 latency 배열 (시간순)
- * @param focusKey         - 분석 대상 키 (diagnostics 출력용)
+ * @param focusKey         - 분석 초점 키 (focusKey, diagnostics 출력용)
  * @param rawCorrectCount  - isCorrect 조건만 통과한 총 개수 (latencyMs=0 포함, diagnostics용)
  */
 export function fitPiecewiseFromLatencies(

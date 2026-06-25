@@ -833,7 +833,7 @@
   background: #ec4899;
 }
 
-.cyl-diag__metric-bar-fill--dwell {
+.cyl-diag__metric-bar-fill--hold {
   background: #06b6d4;
 }
 
@@ -842,37 +842,6 @@
   font-family: var(--font-mono);
   font-size: 0.62rem;
   text-align: right;
-}
-
-.cyl-diag__dwell-flight {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 4px;
-}
-
-.cyl-diag__dwell-flight-bar {
-  display: flex;
-  height: 8px;
-  overflow: hidden;
-  border-radius: 4px;
-  background: var(--border-subtle);
-}
-
-.cyl-diag__dwell-segment {
-  background: #06b6d4;
-}
-
-.cyl-diag__flight-segment {
-  background: #ec4899;
-}
-
-.cyl-diag__dwell-flight-labels {
-  display: flex;
-  justify-content: space-between;
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
 }
 
 .cyl-diag__nstep-list {

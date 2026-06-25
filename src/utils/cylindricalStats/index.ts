@@ -17,7 +17,7 @@ export type {
   HoldCorrelationResult,
   CloudTypingKeyResult,
   CloudTypingDiagnostics,
-  TransitionDwellSample,
+  OutgoingTransitionSample,
   PerKeyAccumulator,
   DiagnosticsAccumulator,
   SpatialErrorDistanceResult,

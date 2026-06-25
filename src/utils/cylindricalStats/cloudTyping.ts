@@ -17,7 +17,7 @@ import type {
   CloudTypingEffectiveness,
   CloudTypingLevel,
   HoldCorrelationResult,
-  TransitionDwellSample,
+  OutgoingTransitionSample,
 } from "./types";
 
 export function hasValidHold(event: KeyEvent): event is KeyEvent & { holdDurationMs: number } {
@@ -51,8 +51,8 @@ export function computeNormalizedDifference(
 export function extractOutgoingSamples(
   events: KeyEvent[],
   focusKey: string,
-): TransitionDwellSample[] {
-  const samples: TransitionDwellSample[] = [];
+): OutgoingTransitionSample[] {
+  const samples: OutgoingTransitionSample[] = [];
 
   for (let i = 1; i < events.length; i++) {
     const outgoingEvent = events[i];
@@ -76,8 +76,8 @@ export function extractOutgoingSamples(
 }
 
 export function filterOutgoingHesitation(
-  samples: TransitionDwellSample[],
-): TransitionDwellSample[] {
+  samples: OutgoingTransitionSample[],
+): OutgoingTransitionSample[] {
   if (samples.length === 0) return [];
 
   const latencies = samples.map((sample) => sample.latencyMs);
@@ -170,7 +170,7 @@ export function computePearsonCorrelation(
 
 /** 이미 추출된 rawSamples를 받아 cloud typing 집계를 수행합니다 (events 재순회 없음). */
 export function computeCloudTypingFromSamples(
-  rawSamples: TransitionDwellSample[],
+  rawSamples: OutgoingTransitionSample[],
   focusKey: string,
 ): CloudTypingDiagnostics {
   const analysisPool = filterOutgoingHesitation(rawSamples);
@@ -192,9 +192,6 @@ export function computeCloudTypingFromSamples(
   );
   const latencies = analysisPool.map((sample) => sample.latencyMs);
   const holds = analysisPool.map((sample) => sample.fromHoldMs);
-  const flights = analysisPool.map((sample) =>
-    Math.max(0, sample.latencyMs - sample.fromHoldMs),
-  );
 
   const strokeCount = analysisPool.filter((sample) =>
     isCloudTypingStroke(sample.fromHoldMs, sample.latencyMs),
@@ -215,8 +212,7 @@ export function computeCloudTypingFromSamples(
     analysisPoolCount: analysisPool.length,
     key: {
       key: focusKey,
-      dwellMs: getMedian(holds),
-      flightMs: getMedian(flights),
+      holdMs: getMedian(holds),
       latencyMs: getMedian(latencies),
       normalizedDifference: getMedian(ndValues),
       cloudTypingRatio,

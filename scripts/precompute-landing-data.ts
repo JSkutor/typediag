@@ -137,7 +137,7 @@ function main() {
       e.fromKey.toLowerCase() !== e.toKey.toLowerCase(),
   );
 
-  // Find the "best" toKey that has the most unique incoming fromKeys
+  // focusKey 후보: reference transition(toKey)별 고유 fromKey 수가 가장 많은 키
   const toKeyFromSetMap = new Map<string, Set<string>>();
   for (const ev of validTransitions) {
     const from = ev.fromKey!.toLowerCase();
@@ -150,27 +150,27 @@ function main() {
     set.add(from);
   }
 
-  let bestToKey = "";
+  let bestFocusKey = "";
   let maxUniqueFrom = -1;
   for (const [to, set] of toKeyFromSetMap.entries()) {
     if (set.size > maxUniqueFrom) {
       maxUniqueFrom = set.size;
-      bestToKey = to;
+      bestFocusKey = to;
     }
   }
 
   console.log(
-    `Best toKey for cylindrical visualization is "${bestToKey}" with ${maxUniqueFrom} unique fromKeys.`,
+    `Best focusKey for cylindrical visualization is "${bestFocusKey}" with ${maxUniqueFrom} unique reference fromKeys.`,
   );
 
-  // Gather all transition events that land on this bestToKey (cap at 10 events per fromKey pair)
+  // Gather reference transitions into bestFocusKey (cap at 10 events per fromKey pair)
   const selectedCylindricalEvents: KeyEvent[] = [];
   const transCountMap = new Map<string, number>();
 
   for (const ev of validTransitions) {
-    if (ev.toKey.toLowerCase() === bestToKey) {
+    if (ev.toKey.toLowerCase() === bestFocusKey) {
       const from = ev.fromKey!.toLowerCase();
-      const key = `${from}->${bestToKey}`;
+      const key = `${from}->${bestFocusKey}`;
       const currentCount = transCountMap.get(key) || 0;
       if (currentCount < 10) {
         transCountMap.set(key, currentCount + 1);
@@ -187,18 +187,18 @@ function main() {
   const forcedFromKeys = ["b", "y", "z"];
   for (const from of forcedFromKeys) {
     const hasTransition = selectedCylindricalEvents.some(
-      (e) => e.fromKey?.toLowerCase() === from && e.toKey.toLowerCase() === bestToKey,
+      (e) => e.fromKey?.toLowerCase() === from && e.toKey.toLowerCase() === bestFocusKey,
     );
     if (!hasTransition) {
       // Add a couple of mock transitions with realistic random latency
       selectedCylindricalEvents.push({
         fromKey: from,
-        toKey: bestToKey,
+        toKey: bestFocusKey,
         latencyMs: 175 + Math.random() * 45,
       });
       selectedCylindricalEvents.push({
         fromKey: from,
-        toKey: bestToKey,
+        toKey: bestFocusKey,
         latencyMs: 190 + Math.random() * 35,
       });
     }

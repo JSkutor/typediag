@@ -136,7 +136,7 @@ describe("computeCloudTypingDiagnostics", () => {
     expect(result.key?.sampleCount).toBe(11);
     expect(result.key?.cloudTypingRatio).toBe(1);
     expect(result.key?.level).toBe("strong");
-    expect(result.key?.dwellMs).toBe(80);
+    expect(result.key?.holdMs).toBe(80);
     expect(result.key?.latencyMs).toBe(70);
   });
 

@@ -102,9 +102,9 @@ export interface HoldCorrelationResult {
 /** outgoing transition(fromKey === focusKey) 집계 결과 */
 export interface CloudTypingKeyResult {
   key: string;
-  dwellMs: number;
-  flightMs: number;
-  /** 전이 latency 중앙값 (dwell+flight 바 비율의 분모) */
+  /** reference transition hold (D) 중앙값 */
+  holdMs: number;
+  /** outgoing transition latency (L) 중앙값 */
   latencyMs: number;
   normalizedDifference: number;
   cloudTypingRatio: number;
@@ -126,7 +126,7 @@ export interface CloudTypingDiagnostics {
  * 전이 샘플 한 건: outgoing(또는 일반 transition) 행의 latency + fromKey reference transition 행의 hold.
  * hold는 reference transition 행(toKey === focusKey)의 holdDurationMs에 붙는다.
  */
-export interface TransitionDwellSample {
+export interface OutgoingTransitionSample {
   fromKey: string;
   toKey: string;
   latencyMs: number;
@@ -148,7 +148,7 @@ export interface PerKeyAccumulator {
     total: number;
   };
   /** outgoing transition 샘플 (fromKey===key). cloud typing 집계용. */
-  outgoingSamples: TransitionDwellSample[];
+  outgoingSamples: OutgoingTransitionSample[];
   /** 이 키가 오타 스트릭의 시작점(toKey===key && isErrorStart)인 횟수 */
   errorInducementCount: number;
   /** late keystroke 횟수 (expectedChar===key && nextEvent.toKey===key) */

@@ -3,7 +3,7 @@ import {
   computeCloudTypingFromSamples,
   computePearsonCorrelation,
 } from "./cylindricalStats";
-import type { TransitionDwellSample } from "./cylindricalStats";
+import type { OutgoingTransitionSample } from "./cylindricalStats";
 
 describe("computePearsonCorrelation", () => {
   it("returns defaults when sample count is below minimum", () => {
@@ -45,7 +45,7 @@ describe("computePearsonCorrelation", () => {
 describe("computeCloudTypingFromSamples · effectiveness", () => {
   function makeSamples(
     pairs: Array<{ holdMs: number; latencyMs: number }>,
-  ): TransitionDwellSample[] {
+  ): OutgoingTransitionSample[] {
     return pairs.map((pair, index) => ({
       fromKey: "f",
       toKey: `t${index}`,

@@ -42,7 +42,7 @@ export interface KeyResult {
   y: number;
   /** Compressed representative latency (sigmoid scale, pre-smoothing). */
   z: number;
-  /** Total incoming frequency = confidence. */
+  /** Total incoming (reference transition) frequency = confidence. */
   confidence: number;
   /** Latency standard deviation (raw ms scale). */
   stdev: number;

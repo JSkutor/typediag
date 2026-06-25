@@ -190,10 +190,10 @@ export function DevCloudTypingPanel() {
         <h2 className={styles.panelTitle}>진단 지표 (M={minDenomMs}ms)</h2>
         {diagnostics?.insufficientSample ? (
           <p className={styles.emptyState}>
-            표본 부족 (나가는 전이 n={diagnostics.analysisPoolCount}, 11회 이상 필요)
+            표본 부족 (outgoing transition n={diagnostics.analysisPoolCount}, 11회 이상 필요)
           </p>
         ) : !keyStats || !diagnostics ? (
-          <p className={styles.emptyState}>이 키에서 나가는 전이 데이터가 없습니다.</p>
+          <p className={styles.emptyState}>이 focusKey의 outgoing transition 데이터가 없습니다.</p>
         ) : (
           <>
             <div className={styles.metaGrid}>
@@ -217,12 +217,8 @@ export function DevCloudTypingPanel() {
                 <span className={styles.metaValue}>{keyStats.latencyMs.toFixed(1)} ms</span>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>median dwell</span>
-                <span className={styles.metaValue}>{keyStats.dwellMs.toFixed(1)} ms</span>
-              </div>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>median flight</span>
-                <span className={styles.metaValue}>{keyStats.flightMs.toFixed(1)} ms</span>
+                <span className={styles.metaLabel}>median hold (D)</span>
+                <span className={styles.metaValue}>{keyStats.holdMs.toFixed(1)} ms</span>
               </div>
               <div className={styles.metaItem}>
                 <span className={styles.metaLabel}>median ND</span>
@@ -239,7 +235,7 @@ export function DevCloudTypingPanel() {
               </div>
             </div>
             <p className={styles.helpText}>
-              {formatKey(keyStats.key)} 키 · 나가는 전이 n={keyStats.sampleCount} — 비율·median
+              {formatKey(keyStats.key)} · outgoing transition n={keyStats.sampleCount} — 비율·median
               ND·상관 r은 위 M 값을 반영해 집계합니다.
             </p>
           </>

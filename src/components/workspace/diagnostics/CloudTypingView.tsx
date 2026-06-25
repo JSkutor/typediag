@@ -25,18 +25,18 @@ export function CloudTypingView({
   if (insufficientSample) {
     return (
       <p className="cyl-diag__empty">
-        표본 부족 (나가는 전이 n={analysisPoolCount}, 11회 이상 필요)
+        표본 부족 (outgoing transition n={analysisPoolCount}, 11회 이상 필요)
       </p>
     );
   }
 
   if (!keyStats) {
-    return <p className="cyl-diag__empty">이 키에서 나가는 전이 데이터가 없습니다.</p>;
+    return <p className="cyl-diag__empty">이 focusKey의 outgoing transition 데이터가 없습니다.</p>;
   }
 
-  const barScale = Math.max(keyStats.latencyMs, keyStats.dwellMs, 1);
+  const barScale = Math.max(keyStats.latencyMs, keyStats.holdMs, 1);
   const latencyPct = (keyStats.latencyMs / barScale) * 100;
-  const dwellPct = (keyStats.dwellMs / barScale) * 100;
+  const holdPct = (keyStats.holdMs / barScale) * 100;
 
   const ratioPct = (keyStats.cloudTypingRatio * 100).toFixed(0);
   const levelLabel = CLOUD_TYPING_LEVEL_LABEL[keyStats.level];
@@ -67,17 +67,17 @@ export function CloudTypingView({
         </div>
       </div>
       <div className="cyl-diag__cloud-pair-meta">
-        {formatKey(keyStats.key)} 키 · 나가는 전이 n={keyStats.sampleCount}
+        {formatKey(keyStats.key)} · outgoing transition n={keyStats.sampleCount}
         {` · 상관 n=${effectivenessCorrelation.sampleCount} r=${effectivenessCorrelation.pearsonR.toFixed(2)}`}
       </div>
       {effectivenessCorrelation.sampleCount < 5 && (
         <div className="cyl-diag__correlation-p text-muted">
-          상관 분석에 나가는 전이 5회 이상 필요 (키 홀드 기록 포함)
+          상관 분석에 outgoing transition 5회 이상 필요 (reference hold 기록 포함)
         </div>
       )}
       <div className="cyl-diag__metric-bars">
         <div className="cyl-diag__metric-bar-row">
-          <span className="cyl-diag__metric-bar-label">Latency</span>
+          <span className="cyl-diag__metric-bar-label">Latency (L)</span>
           <div className="cyl-diag__metric-bar-track">
             <div
               className="cyl-diag__metric-bar-fill cyl-diag__metric-bar-fill--latency"
@@ -87,14 +87,14 @@ export function CloudTypingView({
           <span className="cyl-diag__metric-bar-value">{keyStats.latencyMs.toFixed(1)} ms</span>
         </div>
         <div className="cyl-diag__metric-bar-row">
-          <span className="cyl-diag__metric-bar-label">Dwell</span>
+          <span className="cyl-diag__metric-bar-label">Hold (D)</span>
           <div className="cyl-diag__metric-bar-track">
             <div
-              className="cyl-diag__metric-bar-fill cyl-diag__metric-bar-fill--dwell"
-              style={{ width: `${dwellPct}%` }}
+              className="cyl-diag__metric-bar-fill cyl-diag__metric-bar-fill--hold"
+              style={{ width: `${holdPct}%` }}
             />
           </div>
-          <span className="cyl-diag__metric-bar-value">{keyStats.dwellMs.toFixed(1)} ms</span>
+          <span className="cyl-diag__metric-bar-value">{keyStats.holdMs.toFixed(1)} ms</span>
         </div>
       </div>
     </>

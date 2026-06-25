@@ -19,32 +19,54 @@ describe("useCylindricalDiagnostics diagnostics", () => {
     });
   });
 
-  it("should calculate errorInducement rate correctly", () => {
-    // 0. x->a (isCorrect: true) -> 정타
-    // 1. y->b (isCorrect: true) -> 정타
-    // 2. b->a (isCorrect: false) -> 오타 시작점! (이전 y->b가 정타이므로). toKey가 "a"이므로 오타 유발 대상.
-    // 3. a->a (isCorrect: false) -> 오타 시작점 아님! (이전 b->a가 오타이므로).
-    // 4. a->c (isCorrect: false) -> 오타 시작점 아님! (이전 a->a가 오타이므로).
-    // 5. c->d (isCorrect: true) -> 정타
-    // 6. d->e (isCorrect: false) -> 오타 시작점! (이전 c->d가 정타이므로). toKey가 "e"이므로 "a"와 매칭되지 않음.
+  it("should calculate errorInducement rate correctly (expectedChar attribution)", () => {
+    // 0. x->a (correct)
+    // 1. y->b (correct)
+    // 2. b->g (incorrect, expected a) -> streak start, attributed to layout key "a"
+    // 3. g->a (incorrect) -> not a streak start
+    // 4. a->c (incorrect) -> not a streak start
+    // 5. c->d (correct)
+    // 6. d->x (incorrect, expected e) -> streak start, attributed to "e" (not focusKey "a")
     const events: KeyEvent[] = [
       { fromKey: "x", toKey: "a", latencyMs: 100, isCorrect: true },
       { fromKey: "y", toKey: "b", latencyMs: 100, isCorrect: true },
-      { fromKey: "b", toKey: "a", latencyMs: 100, isCorrect: false }, // 오타 시작점 (1) - toKey: "a"
-      { fromKey: "a", toKey: "a", latencyMs: 100, isCorrect: false },
-      { fromKey: "a", toKey: "c", latencyMs: 100, isCorrect: false },
+      {
+        fromKey: "b",
+        toKey: "g",
+        latencyMs: 100,
+        isCorrect: false,
+        expectedChar: "a",
+      },
+      { fromKey: "g", toKey: "a", latencyMs: 100, isCorrect: false, expectedChar: "a" },
+      { fromKey: "a", toKey: "c", latencyMs: 100, isCorrect: false, expectedChar: "c" },
       { fromKey: "c", toKey: "d", latencyMs: 100, isCorrect: true },
-      { fromKey: "d", toKey: "e", latencyMs: 100, isCorrect: false }, // 오타 시작점 (2) - toKey: "e"
+      {
+        fromKey: "d",
+        toKey: "x",
+        latencyMs: 100,
+        isCorrect: false,
+        expectedChar: "e",
+      },
     ];
 
     const { result } = renderHook(() => useCylindricalDiagnostics(events, "a"));
 
-    // totalErrorStartsCount: 2개 (b->a, d->e)
-    // count: 1개 (b->a)
-    // 따라서 1/2 = 50%
     expect(result.current.diagnostics.errorInducement.totalErrorStartsCount).toBe(2);
     expect(result.current.diagnostics.errorInducement.count).toBe(1);
     expect(result.current.diagnostics.errorInducement.rate).toBe(50);
+  });
+
+  it("should attribute errorInducement by expectedChar when physical toKey differs", () => {
+    const events: KeyEvent[] = [
+      { fromKey: null, toKey: "a", latencyMs: 0, isCorrect: true },
+      { fromKey: "a", toKey: "g", latencyMs: 100, isCorrect: false, expectedChar: "f" },
+    ];
+
+    const { result } = renderHook(() => useCylindricalDiagnostics(events, "f"));
+
+    expect(result.current.diagnostics.errorInducement.totalErrorStartsCount).toBe(1);
+    expect(result.current.diagnostics.errorInducement.count).toBe(1);
+    expect(result.current.diagnostics.errorInducement.rate).toBe(100);
   });
 
   it("should calculate lateKeystroke (key swap error) correctly", () => {
@@ -250,8 +272,8 @@ describe("useCylindricalDiagnostics diagnostics", () => {
       expect(result.current.diagnostics.hesitation.hasTendency).toBe(true);
     });
 
-    it("should compute transition ratios correctly for a target key", () => {
-      // target key "f" (Left hand, Index finger)
+    it("should compute finger transition ratios correctly for focusKey", () => {
+      // focusKey "f" (Left hand, Index finger)
       // fromKeys:
       // - "y" (Right hand, Index finger) -> oppositeHand
       // - "a" (Left hand, Pinky) -> sameHandPinky

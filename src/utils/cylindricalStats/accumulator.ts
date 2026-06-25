@@ -12,6 +12,20 @@ import {
 import { hasValidHold } from "./cloudTyping";
 import type { DiagnosticsAccumulator, PerKeyAccumulator } from "./types";
 
+/** 정타→toKey, 오타→charToLayoutKey(expectedChar). 3-Gram·오타 유발율 등 semantic 귀속 SSOT. */
+function resolveAttributionLayoutKey(event: KeyEvent): string | null {
+  const raw =
+    event.isCorrect === true
+      ? event.toKey
+      : event.expectedChar
+        ? charToLayoutKey(event.expectedChar)
+        : null;
+  if (raw && ALPHA_KEY_REGEX.test(raw) && !ACCUMULATOR_EXCLUDE_KEYS.has(raw)) {
+    return raw;
+  }
+  return null;
+}
+
 function getOrCreatePerKey(
   perKey: Map<string, PerKeyAccumulator>,
   key: string,
@@ -97,12 +111,15 @@ export function buildDiagnosticsAccumulator(events: KeyEvent[]): DiagnosticsAccu
       else nonShiftLatencies.push(event.latencyMs);
     }
 
-    // 5. 오타 스트릭 시작 → errorInducementCount
+    // 5. 오타 스트릭 시작 → errorInducementCount (의도 키 expectedChar 기준, 3-Gram K₃와 동일)
     const isErrorStart =
       event.isCorrect === false && (prevEvent === null || prevEvent.isCorrect === true);
     if (isErrorStart) {
       totalErrorStartsCount++;
-      getOrCreatePerKey(perKey, event.toKey).errorInducementCount++;
+      const inducementKey = resolveAttributionLayoutKey(event);
+      if (inducementKey) {
+        getOrCreatePerKey(perKey, inducementKey).errorInducementCount++;
+      }
     }
 
     // 6. Late keystroke (event.expectedChar === nextEvent.toKey 동시 체크)
@@ -194,14 +211,9 @@ export function buildDiagnosticsAccumulator(events: KeyEvent[]): DiagnosticsAccu
 
     // 10. Contextual Typos (3-Gram)
     if (window3Gram.length >= 2 && window3Gram[0].isCorrect && window3Gram[1].isCorrect) {
-      let targetKey: string | null = null;
-      if (event.isCorrect === true) {
-        targetKey = event.toKey;
-      } else if (event.isCorrect === false && event.expectedChar) {
-        targetKey = charToLayoutKey(event.expectedChar);
-      }
+      const targetKey = resolveAttributionLayoutKey(event);
 
-      if (targetKey && ALPHA_KEY_REGEX.test(targetKey) && !ACCUMULATOR_EXCLUDE_KEYS.has(targetKey)) {
+      if (targetKey) {
         const seq = `${window3Gram[0].key}→${window3Gram[1].key}`;
         const keyEntry = getOrCreatePerKey(perKey, targetKey);
         const ngramMap = keyEntry.contextualTypos.ngrams;
