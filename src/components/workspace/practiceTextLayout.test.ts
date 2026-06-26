@@ -4,6 +4,7 @@ import {
   findLineStartSpaceIndices,
   formatPracticeChar,
   isVisualLineStart,
+  lineStartIndicesEqual,
   LINE_WRAP_LEFT_THRESHOLD,
   LINE_WRAP_TOP_THRESHOLD,
   buildPracticeWordGroups,
@@ -80,6 +81,13 @@ describe("practiceTextLayout", () => {
     expect(formatPracticeChar(" ", true)).toBe("");
     expect(formatPracticeChar(" ", false)).toBe("\u00A0");
     expect(formatPracticeChar("가", true)).toBe("가");
+  });
+
+  it("compares line-start index sets by value", () => {
+    expect(lineStartIndicesEqual(new Set([2, 5]), [2, 5])).toBe(true);
+    expect(lineStartIndicesEqual(new Set([2]), [2, 5])).toBe(false);
+    expect(lineStartIndicesEqual(new Set([2, 5]), [5, 2])).toBe(true);
+    expect(lineStartIndicesEqual(new Set(), [])).toBe(true);
   });
 
   it("keeps inter-word spaces attached to the preceding word group", () => {

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="TypeDiag">
+  <defs>
+    <linearGradient id="keycap-top" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#383c47" />
+      <stop offset="100%" stop-color="#323640" />
+    </linearGradient>
+  </defs>
+  <rect x="2" y="4" width="28" height="25" rx="7" fill="rgba(12, 14, 16, 0.35)" />
+  <rect
+    x="2"
+    y="3"
+    width="28"
+    height="26"
+    rx="7"
+    fill="url(#keycap-top)"
+    stroke="rgba(140, 166, 181, 0.2)"
+    stroke-width="0.75"
+  />
+  <rect x="3.5" y="4.5" width="25" height="5" rx="2.5" fill="#ffffff" opacity="0.06" />
+  <text
+    x="16"
+    y="21.5"
+    text-anchor="middle"
+    font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+    font-weight="700"
+    font-size="15"
+    fill="#4dc6e8"
+  >
+    T
+  </text>
+</svg>

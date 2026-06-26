@@ -4,23 +4,35 @@ import { useEffect, useState } from "react";
 import { TOPIC_LOADING_DELAYED_AFTER_MS, type TopicLoadingPhase } from "@/lib/practice/topicLoading";
 
 export function useTopicLoadingPhase(isActive: boolean): TopicLoadingPhase {
-  const [phase, setPhase] = useState<TopicLoadingPhase>("idle");
+  const [activePhase, setActivePhase] = useState<"loading" | "delayed">("loading");
 
   useEffect(() => {
     if (!isActive) {
-      setPhase("idle");
       return;
     }
 
-    setPhase("loading");
+    let cancelled = false;
+    const loadingId = requestAnimationFrame(() => {
+      if (!cancelled) {
+        setActivePhase("loading");
+      }
+    });
     const delayedTimer = window.setTimeout(() => {
-      setPhase("delayed");
+      if (!cancelled) {
+        setActivePhase("delayed");
+      }
     }, TOPIC_LOADING_DELAYED_AFTER_MS);
 
     return () => {
+      cancelled = true;
+      cancelAnimationFrame(loadingId);
       window.clearTimeout(delayedTimer);
     };
   }, [isActive]);
 
-  return phase;
+  if (!isActive) {
+    return "idle";
+  }
+
+  return activePhase;
 }

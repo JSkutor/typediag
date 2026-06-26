@@ -6,19 +6,28 @@ import { formatDbErrorForClient, logDbError } from "@/utils/dbErrors";
 import { GuestAuthError } from "@/utils/guestAuth";
 import { isDevOnlyEnabled } from "@/lib/api/isDevOnlyRoute";
 import { resolveApiUser, withGuestToken } from "@/lib/api/resolveApiUser";
+import { SessionPostPayloadSchema } from "@/lib/api/sessionSchemas";
 import fs from "fs";
 import path from "path";
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { action } = body;
+    const rawBody = await request.json();
+    const parsed = SessionPostPayloadSchema.safeParse(rawBody);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid payload", details: parsed.error.format() },
+        { status: 400 },
+      );
+    }
+
+    const body = parsed.data;
     const { userId: dbUserId, issueGuestToken } = await resolveApiUser(request);
 
-    switch (action) {
+    switch (body.action) {
       case "start": {
-        const { now } = body;
-        const runId = await sessionService.startPage(dbUserId, new Date(now));
+        const runId = await sessionService.startPage(dbUserId, new Date(body.now));
         return NextResponse.json(withGuestToken({ runId }, issueGuestToken));
       }
       case "finish": {
@@ -29,7 +38,7 @@ export async function POST(request: NextRequest) {
           runId,
           targetText,
           typedText,
-          events,
+          events as KeyEvent[],
           startedAt,
           finishedAt,
           targetId,
@@ -41,8 +50,10 @@ export async function POST(request: NextRequest) {
         await db.syncSessionOnMount(dbUserId);
         return NextResponse.json(withGuestToken({ success: true }, issueGuestToken));
       }
-      default:
-        return NextResponse.json({ error: `Invalid action: ${action}` }, { status: 400 });
+      default: {
+        const _exhaustive: never = body;
+        return NextResponse.json({ error: `Invalid action: ${String(_exhaustive)}` }, { status: 400 });
+      }
     }
   } catch (err: unknown) {
     if (err instanceof GuestAuthError) {

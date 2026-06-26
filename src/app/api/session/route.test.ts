@@ -33,6 +33,31 @@ describe("/api/session route", () => {
     expect(data.guestToken).toBe(signGuestToken(guestId));
   });
 
+  it("rejects invalid finish payload before auth", async () => {
+    const request = new NextRequest("http://localhost/api/session", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-guest-user-id": guestId,
+      },
+      body: JSON.stringify({
+        action: "finish",
+        runId: "not-a-uuid",
+        targetText: "hello",
+        typedText: "hello",
+        events: [],
+        startedAt: 2000,
+        finishedAt: 1000,
+      }),
+    });
+
+    const response = await POST(request);
+    expect(response.status).toBe(400);
+
+    const data = await response.json();
+    expect(data.error).toBe("Invalid payload");
+  });
+
   it("rejects analysis GET without guest token", async () => {
     const request = new NextRequest(
       "http://localhost/api/session?action=analysis&runId=00000000-0000-0000-0000-000000000001",

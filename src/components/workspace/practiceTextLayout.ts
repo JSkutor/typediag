@@ -81,6 +81,17 @@ export type PracticeWordGroup = {
  * Groups characters so each inter-word space stays attached to the preceding word.
  * Line breaks then occur between word wrappers, not before orphaned spaces.
  */
+export function lineStartIndicesEqual(
+  current: ReadonlySet<number>,
+  next: readonly number[],
+): boolean {
+  if (current.size !== next.length) return false;
+  for (const index of next) {
+    if (!current.has(index)) return false;
+  }
+  return true;
+}
+
 export function buildPracticeWordGroups(
   diffResult: readonly AlignmentLike[],
 ): PracticeWordGroup[] {
