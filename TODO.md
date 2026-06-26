@@ -8,16 +8,13 @@ mode 기능 이후에 기능 추가 없다.
 
 ## MVP
 
-
-
-TODO: Topic API 무인증 + 비용 남용 가능
-
-
 TODO: BM 영역 구분해놓기
 
+TODO: cron 붙이기(임베딩 봇)
 
 TODO: 유저 트래킹 용 통계 달기
 
+TODO: api 컨택스트 캐싱
 
 
 ## after MVP

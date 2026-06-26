@@ -9,7 +9,7 @@
  * minimal changes.
  */
 
-import { eq, desc, sql, inArray } from "drizzle-orm";
+import { eq, desc, sql, inArray, and, ne } from "drizzle-orm";
 import { drizzleDb } from "@/db";
 import {
   users,
@@ -21,6 +21,7 @@ import {
   type Page,
   type NewKeyEvent,
 } from "@/db/schema";
+import { OPENAI_TOPIC_MODEL } from "@/lib/api/topicGenerateOpenAI";
 
 // --- Row type re-exports for consumers ---
 
@@ -132,6 +133,29 @@ export const db = {
   },
 
   /**
+   * Pick one random target text for Normal mode practice.
+   */
+  async getRandomTargetText(language: string, excludeId?: string) {
+    const conditions = [eq(targetTexts.language, language)];
+    if (excludeId) {
+      conditions.push(ne(targetTexts.id, excludeId));
+    }
+
+    const result = await drizzleDb
+      .select({
+        id: targetTexts.id,
+        content: targetTexts.content,
+        language: targetTexts.language,
+      })
+      .from(targetTexts)
+      .where(and(...conditions))
+      .orderBy(sql`RANDOM()`)
+      .limit(1);
+
+    return result[0] ?? null;
+  },
+
+  /**
    * Find a target text by its ID or content.
    */
   async findTargetText(query: { id?: string; content?: string }) {
@@ -171,7 +195,7 @@ export const db = {
           content: item.content,
           language: item.language,
           source: "topic",
-          generatorModel: "gemini-2.0-flash",
+          generatorModel: OPENAI_TOPIC_MODEL,
           topic: item.topic,
         })),
       )

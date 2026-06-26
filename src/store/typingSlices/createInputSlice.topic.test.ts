@@ -6,9 +6,9 @@ import { act } from "@testing-library/react";
 global.fetch = vi.fn();
 
 describe("createInputSlice - Topic Mode", () => {
-  beforeEach(() => {
-    useTypingStore.getState().reset();
-    useTypingStore.getState().setMode("topic");
+  beforeEach(async () => {
+    await useTypingStore.getState().reset();
+    await useTypingStore.getState().setMode("topic");
     vi.clearAllMocks();
   });
 
@@ -43,7 +43,7 @@ describe("createInputSlice - Topic Mode", () => {
     expect(state.targetText).toBe("문장 1");
   });
 
-  it("should fall back to Gemini generate when vector search returns 404", async () => {
+  it("should fall back to OpenAI generate when vector search returns 404", async () => {
     const generatedData = [
       { id: "gen-1", content: "생성 문장 1", language: "ko" },
       { id: "gen-2", content: "생성 문장 2", language: "ko" },
@@ -68,6 +68,7 @@ describe("createInputSlice - Topic Mode", () => {
 
     const state = useTypingStore.getState();
     expect(global.fetch).toHaveBeenCalledTimes(2);
+    expect(String((global.fetch as any).mock.calls[1][0])).toContain("/api/practice/topic/generate");
     expect(state.topicTargets).toHaveLength(3);
     expect(state.targetText).toBe("생성 문장 1");
     expect(state.isTopicInputActive).toBe(false);
@@ -85,9 +86,40 @@ describe("createInputSlice - Topic Mode", () => {
 
     const state = useTypingStore.getState();
     expect(state.isTopicInputActive).toBe(true);
-    // targetText should display the error message as intended for now (fallback)
-    expect(state.targetText).toBe("에러 발생");
+    expect(state.targetText).toBe("원하는 주제를 입력하세요...");
+    expect(state.topicGenerateError).toBe("searchFailed");
     expect(state.topicTargets).toHaveLength(0);
+  });
+
+  it("allows typing but blocks Enter while a fatal topic error is active", async () => {
+    (global.fetch as any).mockResolvedValueOnce({
+      ok: false,
+      json: async () => ({ error: "에러 발생" }),
+    });
+
+    await act(async () => {
+      await useTypingStore.getState().setTargetLanguage("en");
+      await useTypingStore.getState().fetchTopicTarget("실패 주제");
+    });
+
+    expect(useTypingStore.getState().topicGenerateError).toBe("searchFailed");
+
+    await act(async () => {
+      useTypingStore.getState().handlePhysicalKeyPress("KeyT", false, Date.now());
+    });
+
+    let state = useTypingStore.getState();
+    expect(state.topicGenerateError).toBe("searchFailed");
+    expect(state.typedText).toBe("t");
+
+    (global.fetch as any).mockClear();
+    await act(async () => {
+      useTypingStore.getState().handlePhysicalKeyPress("Enter", false, Date.now());
+    });
+
+    state = useTypingStore.getState();
+    expect(state.topicGenerateError).toBe("searchFailed");
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it("should cycle through topicTargets and prefetch more when low on targets", async () => {
@@ -150,9 +182,10 @@ describe("createInputSlice - Topic Mode", () => {
       await useTypingStore.getState().fetchTopicTarget("테스트 주제");
     });
 
-    // Mock failing prefetch
-    (global.fetch as any).mockResolvedValueOnce({
+    // Mock failing prefetch (non-retryable)
+    (global.fetch as any).mockResolvedValue({
       ok: false,
+      status: 422,
       json: async () => ({ error: "백그라운드 에러" }),
     });
 
@@ -162,12 +195,58 @@ describe("createInputSlice - Topic Mode", () => {
     });
 
     // Wait for the async prefetch to reject/resolve
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
 
     const state = useTypingStore.getState();
     // It should NOT append the error message to topicTargets
     expect(state.topicTargets).toHaveLength(4);
     expect(state.isTopicGenerating).toBe(false);
+  });
+
+  it("retries background prefetch on 503", async () => {
+    vi.useFakeTimers();
+    const initialData = [
+      { id: "1", content: "문장 1", language: "ko" },
+      { id: "2", content: "문장 2", language: "ko" },
+      { id: "3", content: "문장 3", language: "ko" },
+      { id: "4", content: "문장 4", language: "ko" },
+    ];
+
+    (global.fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ success: true, data: initialData }),
+    });
+
+    await act(async () => {
+      await useTypingStore.getState().fetchTopicTarget("테스트 주제");
+    });
+
+    (global.fetch as any)
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 503,
+        json: async () => ({ error: "busy" }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: [{ id: "5", content: "문장 5", language: "ko" }] }),
+      });
+
+    await act(async () => {
+      useTypingStore.getState().nextTarget();
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2500);
+      await Promise.resolve();
+    });
+
+    const state = useTypingStore.getState();
+    expect(global.fetch).toHaveBeenCalledTimes(3);
+    expect(state.topicTargets).toHaveLength(5);
+    vi.useRealTimers();
   });
 
   it("should cycle through topicTargets and support full cyclic ArrowLeft history", async () => {

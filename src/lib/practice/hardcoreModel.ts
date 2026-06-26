@@ -280,7 +280,7 @@ export function applyStaticBiases(logits: number[]): number[] {
 
   // 2. 특정 대문자(O, P)에 페널티 부여 (분리)
   const opPenaltyChars = ["O", "P"];
-  const opPenaltyValue = -15.0;
+  const opPenaltyValue = -18.0;
 
   for (const char of opPenaltyChars) {
     const id = vocab.indexOf(char);

@@ -4,6 +4,7 @@ import {
   generateSurfaceLayout,
   calculateSurfaceBorders,
   generateBoxPoints,
+  getSurfaceLogoAnchor,
   CYLINDRICAL_MAX_RADIUS,
   CYLINDRICAL_MAX_HEIGHT,
 } from "./geometryUtils";
@@ -44,6 +45,14 @@ describe("geometryUtils", () => {
 
       expect(Array.isArray(outerBorderPoints)).toBe(true);
       expect(outerBorderPoints.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("getSurfaceLogoAnchor", () => {
+    it("places logo anchor in the bottom-right empty corner", () => {
+      const anchor = getSurfaceLogoAnchor();
+      expect(anchor.x).toBeGreaterThan(0);
+      expect(anchor.z).toBeGreaterThan(0);
     });
   });
 

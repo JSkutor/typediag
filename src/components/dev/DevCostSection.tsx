@@ -4,14 +4,14 @@ import Link from "next/link";
 
 import {
   DEFAULT_SIMILARITY_THRESHOLD,
-  GEMINI_PRICING,
+  OPENAI_PRICING,
   ORACLE_FREE_TIER,
   TOPIC_POOL_REFILL_THRESHOLD,
   estimateCacheHitRate,
   formatUsd,
   type CostSimulationInput,
   type CostSimulationResult,
-  type GeminiTokenEstimate,
+  type TopicLlmTokenEstimate,
 } from "@/lib/dev/costSimulation";
 import type { DbCostStats } from "@/lib/dev/costStats";
 
@@ -36,7 +36,7 @@ interface DevCostSectionProps {
   result: CostSimulationResult;
   dbStats: DbCostStats | null;
   dbError: string | null;
-  tokenEstimate: GeminiTokenEstimate;
+  tokenEstimate: TopicLlmTokenEstimate;
   onPatch: (partial: Partial<CostSimulationInput>) => void;
   onPatchShared: (partial: Pick<CostSimulationInput, "loginRate">) => void;
 }
@@ -70,12 +70,12 @@ export function DevCostSection({
 
   const applySsotTokens = () => {
     onPatch({
-      geminiInputTokens: Math.round((tokenEstimate.inputMin + tokenEstimate.inputMax) / 2),
-      geminiOutputTokens: tokenEstimate.output,
+      topicLlmInputTokens: Math.round((tokenEstimate.inputMin + tokenEstimate.inputMax) / 2),
+      topicLlmOutputTokens: tokenEstimate.output,
     });
   };
 
-  const geminiUsd = result.items.find((i) => i.id === "gemini")?.usd ?? 0;
+  const topicLlmUsd = result.items.find((i) => i.id === "openai")?.usd ?? 0;
   const d = result.derived;
 
   return (
@@ -227,7 +227,7 @@ export function DevCostSection({
             max={1}
             step={0.01}
             format={(v) => `${Math.round(v * 100)}%`}
-            hint="벡터 검색 404 → Gemini fallback"
+            hint="벡터 검색 404 → OpenAI fallback"
             onChange={(manualCacheMissRate) => onPatch({ manualCacheMissRate })}
           />
         )}
@@ -240,7 +240,7 @@ export function DevCostSection({
       <section className={styles.section}>
         <h3 className={styles.sectionTitle}>검색 풀 품질</h3>
         <p className={devStyles.helpText}>
-          SSOT: 검색 결과 &lt; {input.minUsablePoolSize}문장이면 즉시 Gemini 보충 (
+          SSOT: 검색 결과 &lt; {input.minUsablePoolSize}문장이면 즉시 OpenAI 보충 (
           <code>createTopicSlice</code>). 세션 중 풀 보충은 remaining ≤{" "}
           {TOPIC_POOL_REFILL_THRESHOLD} 고정. batch 코퍼스는 보통 1문장이라 매칭돼도 생성 비용 발생.
         </p>
@@ -281,7 +281,7 @@ export function DevCostSection({
             onChange={(minUsablePoolSize) => onPatch({ minUsablePoolSize })}
           />
           <SliderField
-            label="Gemini 1회 생성 문장"
+            label="OpenAI 1회 생성 문장"
             value={input.sentencesPerGenerate}
             min={5}
             max={30}
@@ -299,8 +299,8 @@ export function DevCostSection({
           />
         </div>
         <p className={styles.fieldHint}>
-          검색당 Gemini {d.avgGeneratesPerSearch.toFixed(2)}회 · 월{" "}
-          {Math.round(d.geminiCallsPerMonth).toLocaleString()} calls · {formatUsd(geminiUsd)}/mo
+          검색당 OpenAI {d.avgGeneratesPerSearch.toFixed(2)}회 · 월{" "}
+          {Math.round(d.topicLlmCallsPerMonth).toLocaleString()} calls · {formatUsd(topicLlmUsd)}/mo
         </p>
       </section>
 
@@ -326,7 +326,7 @@ export function DevCostSection({
             onChange={(freeTopicSearchCapPerMauMonth) => onPatch({ freeTopicSearchCapPerMauMonth })}
           />
           <SliderField
-            label="무료 Gemini 생성 한도 / MAU·월"
+            label="무료 OpenAI 생성 한도 / MAU·월"
             value={input.freeGeminiCapPerMauMonth}
             min={0}
             max={50}
@@ -419,42 +419,34 @@ export function DevCostSection({
       <section className={styles.section}>
         <h3 className={styles.sectionTitle}>API · 인프라 단가</h3>
         <div className={styles.fieldGrid}>
-          <div className={styles.modeToggle}>
-            {(Object.keys(GEMINI_PRICING) as Array<keyof typeof GEMINI_PRICING>).map((model) => (
-              <button
-                key={model}
-                type="button"
-                className={`${styles.modeButton} ${input.geminiModel === model ? styles.modeButtonActive : ""}`}
-                onClick={() => onPatch({ geminiModel: model })}
-              >
-                {model.replace("gemini-", "")}
-              </button>
-            ))}
-          </div>
+          <p className={devStyles.helpText}>
+            OpenAI 모델: <code>{input.topicLlmModel}</code> — input ${OPENAI_PRICING[input.topicLlmModel].input}
+            /1M · output ${OPENAI_PRICING[input.topicLlmModel].output}/1M tokens
+          </p>
           <NumberField
-            label="Gemini input tok"
-            value={input.geminiInputTokens}
+            label="OpenAI input tok"
+            value={input.topicLlmInputTokens}
             min={100}
             max={2000}
-            hint={`out ${input.geminiOutputTokens} · SSOT ~${tokenEstimate.inputMin}/${tokenEstimate.inputMax}`}
-            onChange={(geminiInputTokens) => onPatch({ geminiInputTokens })}
+            hint={`out ${input.topicLlmOutputTokens} · SSOT ~${tokenEstimate.inputMin}/${tokenEstimate.inputMax}`}
+            onChange={(topicLlmInputTokens) => onPatch({ topicLlmInputTokens })}
           />
           <NumberField
-            label="Gemini output tok"
-            value={input.geminiOutputTokens}
+            label="OpenAI output tok"
+            value={input.topicLlmOutputTokens}
             min={100}
             max={3000}
-            onChange={(geminiOutputTokens) => onPatch({ geminiOutputTokens })}
+            onChange={(topicLlmOutputTokens) => onPatch({ topicLlmOutputTokens })}
           />
           <SliderField
-            label="Gemini 재시도 배율"
-            value={input.geminiRetryMultiplier}
+            label="OpenAI 재시도 배율"
+            value={input.topicLlmRetryMultiplier}
             min={1}
             max={1.3}
             step={0.01}
             format={(v) => `${v.toFixed(2)}×`}
             hint="429 backoff 등"
-            onChange={(geminiRetryMultiplier) => onPatch({ geminiRetryMultiplier })}
+            onChange={(topicLlmRetryMultiplier) => onPatch({ topicLlmRetryMultiplier })}
           />
           <NumberField
             label="Upstage $/1M tok"

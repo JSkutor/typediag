@@ -1,5 +1,6 @@
 import { StateCreator } from "zustand";
 import type { KeyEvent } from "@/lib/skdm";
+import type { TopicErrorKey } from "@/lib/practice/topicLoading";
 import type { MvsaCache, AlignResult } from "@/utils/mvsa";
 
 export type SessionStatus = "idle" | "running" | "done";
@@ -10,10 +11,16 @@ export interface InputSlice {
   isTopicInputActive: boolean;
   isTopicLoading: boolean;
   isTopicGenerating: boolean; // LLM 문장 생성 중 여부
+  isTopicWaitingForGenerate: boolean; // 다음 문장 대기 중 (생성 완료 전)
+  topicGenerateError: TopicErrorKey | null;
   currentTopic: string; // 현재 입력된 주제 (생성 API 호출용)
   fetchTopicTarget: (topic: string) => Promise<void>;
+  resetTopicToGuideScreen: () => void;
   topicTargets: { id: string; content: string; language: string }[];
   topicTargetIndex: number;
+
+  normalPreviousTarget: { id: string; content: string; language: string } | null;
+  fetchInitialNormalTarget: (language?: string) => Promise<void>;
 
   targetText: string;
   targetLanguage: string;
@@ -24,12 +31,12 @@ export interface InputSlice {
   mvsaCache: MvsaCache;
   alignments: AlignResult[];
   mode: TypingMode;
-  setMode: (mode: TypingMode) => void;
-  setTargetLanguage: (lang: string) => void;
+  setMode: (mode: TypingMode) => void | Promise<void>;
+  setTargetLanguage: (lang: string) => void | Promise<void>;
   setTarget: (
     target: string | { id: string; content: string; language: string; embedding?: number[] },
-  ) => void;
-  nextTarget: () => void;
+  ) => void | Promise<void>;
+  nextTarget: () => void | Promise<void>;
   setTypedText: (value: string) => void;
   handlePhysicalKeyPress: (code: string, shiftKey: boolean, timestamp: number) => void;
 }
@@ -54,9 +61,10 @@ export interface SessionSlice {
   currentRunId: string | null;
   runInitPromise: Promise<string> | null;
   finish: (timestamp?: number) => void;
+  flushPendingPageSave: () => Promise<void>;
   saveCurrentPage: () => Promise<void>;
-  reset: () => void;
-  startNewRun: () => void;
+  reset: () => void | Promise<void>;
+  startNewRun: () => void | Promise<void>;
   startPage: (now: Date) => Promise<string>;
 }
 

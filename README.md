@@ -10,14 +10,14 @@ Instead of stopping at WPM/accuracy, it builds a **Spatial Keystroke Dynamics Mo
   - **Global Latency Surface** (macro latency terrain via triangulation)
   - **Cylindrical Vector View** (micro transition patterns into a focused key)
 - **Session lifecycle**: managed by `SessionService` (3-minute idle run split, 5-minute intra-page gap split).
-- **Topic Mode**: semantic caching (pgvector) + Gemini fallback for custom practice sentences.
+- **Topic Mode**: semantic caching (pgvector) + OpenAI fallback for custom practice sentences.
 - **Auth**: Clerk login or anonymous guest sessions with HMAC token bootstrap.
 
 ## Tech
 
 Next.js (App Router), React, Zustand (slice pattern), Three.js, Vitest, Vanilla CSS.
 Database & Vector Search: PostgreSQL (TimescaleDB), Drizzle ORM, pgvector.
-AI & APIs: Upstage Embedding API, Gemini 2.5 Flash-Lite.
+AI & APIs: Upstage Embedding API, OpenAI GPT-4.1-nano.
 Auth: Clerk + guest HMAC (`GUEST_TOKEN_SECRET`).
 
 ## Run locally
@@ -42,7 +42,7 @@ Fill in at minimum:
 | `NEXT_PUBLIC_CLERK_*`, `CLERK_SECRET_KEY` | Sign-in (optional for guest-only use) |
 | `GUEST_TOKEN_SECRET` | Guest API in production (dev has fallback) |
 | `UPSTAGE_API_KEY` | Topic Mode vector search |
-| `GEMINI_API_KEY` | Topic Mode LLM generation |
+| `OPENAI_API_KEY` | Topic Mode LLM generation |
 
 ### 3. Database
 

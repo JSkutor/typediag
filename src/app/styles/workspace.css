@@ -192,6 +192,10 @@
   font-style: italic;
 }
 
+.typing-text-container--waiting {
+  min-height: 12rem;
+}
+
 .typing-loading {
   display: flex;
   flex-direction: column;
@@ -203,6 +207,25 @@
   color: var(--text-secondary);
   font-style: italic;
   animation: practice-pulse 1.5s ease-in-out infinite;
+}
+
+.typing-loading__hint {
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+  font-style: italic;
+  text-align: center;
+  max-width: 28rem;
+  line-height: 1.5;
+}
+
+.typing-loading--overlay {
+  display: flex;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  justify-content: center;
+  background: rgba(10, 12, 18, 0.72);
+  backdrop-filter: blur(2px);
 }
 
 .plain-mode-hint {
@@ -375,6 +398,18 @@
 .text-char-space-error {
   text-decoration: underline var(--error) 2px;
   text-underline-offset: 2px;
+}
+
+.text-char-space-wrap-hidden {
+  display: inline-block;
+  width: 0;
+  max-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  vertical-align: bottom;
+  pointer-events: none;
+  font-size: 0;
+  letter-spacing: 0;
 }
 
 @keyframes typing-cursor-blink {

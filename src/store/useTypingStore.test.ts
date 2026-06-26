@@ -1,9 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { useTypingStore } from "./useTypingStore";
-import targets from "@/data/targets_client.json";
+
+const mockFetchRandomNormalTarget = vi.fn();
+
+vi.mock("@/lib/practice/normalTargetClient", () => ({
+  fetchRandomNormalTarget: (...args: unknown[]) => mockFetchRandomNormalTarget(...args),
+}));
 
 describe("useTypingStore", () => {
   beforeEach(() => {
+    mockFetchRandomNormalTarget.mockReset();
     // Reset store before each test
     useTypingStore.setState({
       targetText: "hello",
@@ -157,9 +163,9 @@ describe("useTypingStore", () => {
     });
   });
 
-  it("should handle Korean backspace correctly (deleting full character when correct, and jamo when incorrect)", () => {
+  it("should handle Korean backspace correctly (deleting full character when correct, and jamo when incorrect)", async () => {
     const store = useTypingStore.getState();
-    store.setTarget("한글");
+    await store.setTarget("한글");
 
     // Type '한' (gks)
     store.handlePhysicalKeyPress("KeyG", false, 1000);
@@ -305,9 +311,9 @@ describe("useTypingStore", () => {
     });
   });
 
-  it("should mark status as done when targetText is fully typed", () => {
+  it("should mark status as done when targetText is fully typed", async () => {
     const store = useTypingStore.getState();
-    store.setTarget("he"); // Target is 'he'
+    await store.setTarget("he"); // Target is 'he'
 
     store.handlePhysicalKeyPress("KeyH", false, 1000);
     expect(useTypingStore.getState().status).toBe("running");
@@ -317,9 +323,9 @@ describe("useTypingStore", () => {
     expect(typeof useTypingStore.getState().finishedAt).toBe("number");
   });
 
-  it("should NOT mark status as done when Korean input is only a partial match (e.g. typing ㄱ for 가)", () => {
+  it("should NOT mark status as done when Korean input is only a partial match (e.g. typing ㄱ for 가)", async () => {
     const store = useTypingStore.getState();
-    store.setTarget("가"); // Target is '가'
+    await store.setTarget("가"); // Target is '가'
 
     // Type 'ㄱ' (r)
     store.handlePhysicalKeyPress("KeyR", false, 1000);
@@ -332,71 +338,40 @@ describe("useTypingStore", () => {
     expect(useTypingStore.getState().status).toBe("done");
   });
 
-  it("should clear events and reset status on reset", () => {
+  it("should clear events and reset status on reset", async () => {
     const store = useTypingStore.getState();
     store.handlePhysicalKeyPress("KeyH", false, 1000);
     store.handlePhysicalKeyPress("KeyE", false, 1100);
 
     expect(useTypingStore.getState().events).toHaveLength(2);
 
-    useTypingStore.getState().reset();
+    await useTypingStore.getState().reset();
 
     expect(useTypingStore.getState().typedText).toBe("");
     expect(useTypingStore.getState().events).toHaveLength(0);
     expect(useTypingStore.getState().status).toBe("idle");
   });
 
-  it("should cycle through targets using nextTarget", () => {
-    const enTargets = targets.filter((t) => t.language === "en");
-    // If targetText is not in targets, should go to index 0
-    useTypingStore.setState({ targetText: "not-in-targets" });
-    useTypingStore.getState().nextTarget();
-    expect(useTypingStore.getState().targetText).toBe(enTargets[0].content);
+  it("should transition to next target when Space or Enter is pressed when done", async () => {
+    const mockTarget = {
+      id: "target_done_next",
+      content: "완료 후 다음 문장입니다.",
+      language: "ko",
+    };
+    mockFetchRandomNormalTarget.mockResolvedValueOnce(mockTarget);
 
-    // If targetText is first target, should go to index 1
-    useTypingStore.getState().nextTarget();
-    expect(useTypingStore.getState().targetText).toBe(enTargets[1].content);
-
-    // If targetText is last target, should cycle back to index 0
-    useTypingStore.setState({ targetText: enTargets[enTargets.length - 1].content });
-    useTypingStore.getState().nextTarget();
-    expect(useTypingStore.getState().targetText).toBe(enTargets[0].content);
-  });
-
-  it("should transition to next target when ArrowRight is pressed", () => {
-    const enTargets = targets.filter((t) => t.language === "en");
     const store = useTypingStore.getState();
-    useTypingStore.setState({ targetText: enTargets[0].content });
-
-    store.handlePhysicalKeyPress("ArrowRight", false, 1000);
-    expect(useTypingStore.getState().targetText).toBe(enTargets[1].content);
-  });
-
-  it("should transition to previous target when ArrowLeft is pressed", () => {
-    const enTargets = targets.filter((t) => t.language === "en");
-    const store = useTypingStore.getState();
-    useTypingStore.setState({ targetText: enTargets[1].content });
-
-    store.handlePhysicalKeyPress("ArrowLeft", false, 1000);
-    expect(useTypingStore.getState().targetText).toBe(enTargets[0].content);
-
-    // Test cycling backwards
-    useTypingStore.setState({ targetText: enTargets[0].content });
-    store.handlePhysicalKeyPress("ArrowLeft", false, 1000);
-    expect(useTypingStore.getState().targetText).toBe(enTargets[enTargets.length - 1].content);
-  });
-
-  it("should transition to next target when Space or Enter is pressed when done", () => {
-    const enTargets = targets.filter((t) => t.language === "en");
-    const store = useTypingStore.getState();
-    useTypingStore.setState({ targetText: "he", status: "done" });
+    useTypingStore.setState({
+      mode: "normal",
+      targetText: "he",
+      targetId: "target_old",
+      status: "done",
+    });
 
     store.handlePhysicalKeyPress("Space", false, 1000);
-    expect(useTypingStore.getState().targetText).toBe(enTargets[0].content);
-
-    useTypingStore.setState({ targetText: "he", status: "done" });
-    store.handlePhysicalKeyPress("Enter", false, 1000);
-    expect(useTypingStore.getState().targetText).toBe(enTargets[0].content);
+    await vi.waitFor(() => {
+      expect(useTypingStore.getState().targetId).toBe("target_done_next");
+    });
   });
 
   it("should NOT transition to next target when Space or Enter is pressed when not done", () => {
@@ -411,7 +386,7 @@ describe("useTypingStore", () => {
   it("should create a run and save a page to the db when typing finishes", async () => {
     const { db } = await import("@/utils/db");
     const store = useTypingStore.getState();
-    store.setTarget("he");
+    await store.setTarget("he");
 
     // Reset DB for clean test state
     if (typeof window !== "undefined") {
@@ -521,7 +496,7 @@ describe("useTypingStore", () => {
   it("should create a new run if idle for more than 3 minutes on next session typing start", async () => {
     const { db } = await import("@/utils/db");
     const store = useTypingStore.getState();
-    store.setTarget("he");
+    await store.setTarget("he");
 
     // 1. First session
     store.handlePhysicalKeyPress("KeyH", false, 1000);
@@ -540,8 +515,8 @@ describe("useTypingStore", () => {
     await db.updateRun(runId1, { status: "in_progress", finished_at: null });
 
     // Start next typing after 4 minutes (timestamp = 250,000)
-    store.reset();
-    store.setTarget("he");
+    await store.reset();
+    await store.setTarget("he");
     store.handlePhysicalKeyPress("KeyH", false, 250000);
 
     // Wait for async init run
@@ -558,7 +533,7 @@ describe("useTypingStore", () => {
   it("should split and finalize session if typing takes more than 5 minutes", async () => {
     const { db } = await import("@/utils/db");
     const store = useTypingStore.getState();
-    store.setTarget("he");
+    await store.setTarget("he");
 
     // Press 'h' at 1,000ms
     store.handlePhysicalKeyPress("KeyH", false, 1000);
@@ -586,9 +561,9 @@ describe("useTypingStore", () => {
     expect(pages[0].runId).toBe(finalRunId);
   });
 
-  it("should allow backspace in done status to revert to running status and delete the last character", () => {
+  it("should allow backspace in done status to revert to running status and delete the last character", async () => {
     const store = useTypingStore.getState();
-    store.setTarget("he");
+    await store.setTarget("he");
 
     // Type 'h'
     store.handlePhysicalKeyPress("KeyH", false, 1000);

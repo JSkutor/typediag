@@ -24,6 +24,7 @@ import {
   surfaceVertexColor,
   SURFACE_BORDER_COLOR,
 } from "./surfaceGeometry";
+import { buildSurfaceBrandLogo } from "./surfaceBrandLogo";
 
 export { LATENCY_POWER, TARGET_ELEVATION_SCALE };
 
@@ -124,7 +125,7 @@ export class Surface3DManager {
     this.renderer.shadowMap.enabled = false;
     this.container.appendChild(this.renderer.domElement);
 
-    const ambientLight = new THREE.AmbientLight(0x1a1d24, 1.5);
+    const ambientLight = new THREE.AmbientLight(0x252830, 1.6);
     this.scene.add(ambientLight);
 
     const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
@@ -295,7 +296,7 @@ export class Surface3DManager {
       geometry.computeVertexNormals();
     }
 
-    const surfaceOpacity = this.isLanding ? 0.60 : 0.42;
+    const surfaceOpacity = this.isLanding ? 0.64 : 0.48;
     const surfaceMaterial = new THREE.MeshPhongMaterial({
       vertexColors: true,
       transparent: true,
@@ -303,7 +304,8 @@ export class Surface3DManager {
       side: THREE.FrontSide,
       shininess: 20,
       specular: new THREE.Color(0x4dc6e8),
-      emissive: new THREE.Color(0x122e3f),
+      emissive: new THREE.Color(0x1a4055),
+      emissiveIntensity: 0.35,
       flatShading: false,
       depthWrite: true,
     });
@@ -364,6 +366,8 @@ export class Surface3DManager {
       dropMesh.renderOrder = 0;
       this.surfaceGroup.add(dropMesh);
     }
+
+    this.surfaceGroup.add(buildSurfaceBrandLogo(surfaceOpacity));
 
     this.applyAnimState(false);
   }

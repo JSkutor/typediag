@@ -12,13 +12,10 @@ import { WorkspaceControls } from "@/components/workspace/WorkspaceControls";
 import { PracticeLayer } from "@/components/workspace/PracticeLayer";
 import { DiagnosticsLayer } from "@/components/workspace/DiagnosticsLayer";
 
-import targets from "@/data/targets_client.json";
-
 export default function WorkspaceView({ lang }: { lang: string; tab: string }) {
   useResponsiveScale();
   const { startDiagnosticsTransition } = useDiagnosticsTransition();
 
-  const setTarget = useTypingStore((state) => state.setTarget);
   const setTargetLanguage = useTypingStore((state) => state.setTargetLanguage);
 
   // Initialize practice text and sync session
@@ -32,16 +29,8 @@ export default function WorkspaceView({ lang }: { lang: string; tab: string }) {
       console.error("Failed to sync session on mount:", error);
     });
 
-    // Sync target language from dynamic path param
     setTargetLanguage(lang);
-
-    const filtered = targets.filter((t) => t.language === lang);
-    if (filtered.length > 0) {
-      setTarget(filtered[0]);
-    } else if (targets.length > 0) {
-      setTarget(targets[0]);
-    }
-  }, [setTarget, setTargetLanguage, lang]);
+  }, [setTargetLanguage, lang]);
 
   useWorkspaceKeybindings({
     onTransition: startDiagnosticsTransition,

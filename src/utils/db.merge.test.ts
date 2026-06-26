@@ -1,10 +1,21 @@
-import { describe, it, expect } from "vitest";
-import { eq } from "drizzle-orm";
+import { describe, it, expect, afterEach } from "vitest";
+import { eq, or, like } from "drizzle-orm";
 import { drizzleDb } from "@/db";
 import { targetTexts, users } from "@/db/schema";
 import { db } from "./db";
 
 describe("mergeGuestData", () => {
+  afterEach(async () => {
+    await drizzleDb
+      .delete(targetTexts)
+      .where(
+        or(
+          like(targetTexts.id, "guest-target-%"),
+          like(targetTexts.content, "guest-content-%"),
+        ),
+      );
+  });
+
   it("should transfer guest runs and target texts to a member account and delete the guest row", async () => {
     const guestClerkId = `guest_${crypto.randomUUID()}`;
     const memberClerkId = `user_${crypto.randomUUID()}`;

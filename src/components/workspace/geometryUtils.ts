@@ -209,3 +209,24 @@ export function calculateSurfaceBorders(layoutMap: Record<string, SurfaceLayoutC
 
   return { innerBorderPoints, outerBorderPoints };
 }
+
+/** Bottom-right empty corner of the keyboard footprint (between keys and outer border). */
+export function getSurfaceLogoAnchor(): { x: number; z: number } {
+  const { layoutMap } = generateSurfaceLayout();
+  let maxX = -Infinity;
+  let maxZ = -Infinity;
+
+  for (const k in layoutMap) {
+    if (!IS_SURFACE_KEY(k)) continue;
+    const layout = layoutMap[k];
+    const right = layout.x + layout.w / 2;
+    const bottom = layout.z + layout.h / 2;
+    if (right > maxX) maxX = right;
+    if (bottom > maxZ) maxZ = bottom;
+  }
+
+  const inset = 0.38 * SURFACE_SCALE;
+  return { x: maxX + inset, z: maxZ + inset };
+}
+
+export const SURFACE_LOGO_ANCHOR = getSurfaceLogoAnchor();

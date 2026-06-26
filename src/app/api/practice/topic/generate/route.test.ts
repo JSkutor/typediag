@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import * as topicGenerateGemini from "@/lib/api/topicGenerateGemini";
+import * as topicGenerateOpenAI from "@/lib/api/topicGenerateOpenAI";
 
 const mockResolveApiUser = vi.fn().mockResolvedValue({ userId: "mock-user-id", issueGuestToken: undefined });
 const mockWithGuestToken = vi.fn().mockImplementation((body, token) => ({ ...body, ...(token ? { guestToken: token } : {}) }));
@@ -20,11 +20,11 @@ vi.mock("@/lib/api/topicRateLimiter", () => ({
   checkTopicRateLimit: (...args: any[]) => mockCheckTopicRateLimit(...args),
 }));
 
-vi.mock("@/lib/api/topicGenerateGemini", async (importOriginal) => {
-  const actual = await importOriginal<typeof topicGenerateGemini>();
+vi.mock("@/lib/api/topicGenerateOpenAI", async (importOriginal) => {
+  const actual = await importOriginal<typeof topicGenerateOpenAI>();
   return {
     ...actual,
-    generateSentencesWithGemini: vi.fn(),
+    generateTopicSentences: vi.fn(),
   };
 });
 
@@ -56,19 +56,21 @@ describe("/api/practice/topic/generate route", () => {
     vi.useRealTimers();
   });
 
-  it("returns 400 for invalid topic before calling Gemini", async () => {
+  it("returns 400 for invalid topic before calling OpenAI", async () => {
     const response = await POST(makeRequest("a"));
     const payload = await response.json();
 
     expect(response.status).toBe(400);
     expect(payload.error).toBe("글자수가 적습니다.");
-    expect(topicGenerateGemini.generateSentencesWithGemini).not.toHaveBeenCalled();
+    expect(topicGenerateOpenAI.generateTopicSentences).not.toHaveBeenCalled();
   });
 
   it("returns 200 with generated targets on success", async () => {
-    vi.mocked(topicGenerateGemini.generateSentencesWithGemini).mockResolvedValue({
+    vi.mocked(topicGenerateOpenAI.generateTopicSentences).mockResolvedValue({
       sentences: [VALID_SENTENCE],
       rawCount: 1,
+      truncated: false,
+      parseFailed: false,
     });
 
     const response = await POST(makeRequest("타자 연습"));
@@ -82,10 +84,12 @@ describe("/api/practice/topic/generate route", () => {
     expect(payload.data[0].id).toMatch(/^target_gen_/);
   });
 
-  it("returns 422 when all Gemini sentences fail validation", async () => {
-    vi.mocked(topicGenerateGemini.generateSentencesWithGemini).mockResolvedValue({
+  it("returns 422 when all generated sentences fail validation", async () => {
+    vi.mocked(topicGenerateOpenAI.generateTopicSentences).mockResolvedValue({
       sentences: [],
       rawCount: 3,
+      truncated: false,
+      parseFailed: false,
     });
 
     const response = await POST(makeRequest("타자 연습"));
@@ -95,10 +99,27 @@ describe("/api/practice/topic/generate route", () => {
     expect(payload.error).toBe("생성된 문장이 형식 요건에 맞지 않습니다. 다시 시도해 주세요.");
   });
 
-  it("returns 422 when Gemini returns no sentences", async () => {
-    vi.mocked(topicGenerateGemini.generateSentencesWithGemini).mockResolvedValue({
+  it("returns 422 when response was truncated", async () => {
+    vi.mocked(topicGenerateOpenAI.generateTopicSentences).mockResolvedValue({
       sentences: [],
       rawCount: 0,
+      truncated: true,
+      parseFailed: true,
+    });
+
+    const response = await POST(makeRequest("타자 연습"));
+    const payload = await response.json();
+
+    expect(response.status).toBe(422);
+    expect(payload.error).toContain("잘렸습니다");
+  });
+
+  it("returns 422 when OpenAI returns no sentences", async () => {
+    vi.mocked(topicGenerateOpenAI.generateTopicSentences).mockResolvedValue({
+      sentences: [],
+      rawCount: 0,
+      truncated: false,
+      parseFailed: false,
     });
 
     const response = await POST(makeRequest("타자 연습"));
@@ -108,9 +129,9 @@ describe("/api/practice/topic/generate route", () => {
     expect(payload.error).toBe("부적절한 주제이거나 문장 생성에 실패했습니다.");
   });
 
-  it("returns 503 with quota message for retryable Gemini errors", async () => {
-    vi.mocked(topicGenerateGemini.generateSentencesWithGemini).mockRejectedValue(
-      new topicGenerateGemini.GeminiApiError("rate limited", 429, true),
+  it("returns 503 with quota message for retryable OpenAI errors", async () => {
+    vi.mocked(topicGenerateOpenAI.generateTopicSentences).mockRejectedValue(
+      new topicGenerateOpenAI.TopicGenerateApiError("rate limited", 429, true),
     );
 
     const response = await POST(makeRequest("타자 연습"));
@@ -121,8 +142,8 @@ describe("/api/practice/topic/generate route", () => {
   });
 
   it("returns 500 for non-retryable failures", async () => {
-    vi.mocked(topicGenerateGemini.generateSentencesWithGemini).mockRejectedValue(
-      new Error("GEMINI_API_KEY is not set in environment variables."),
+    vi.mocked(topicGenerateOpenAI.generateTopicSentences).mockRejectedValue(
+      new Error("OPENAI_API_KEY is not set in environment variables."),
     );
 
     const response = await POST(makeRequest("타자 연습"));
@@ -134,9 +155,11 @@ describe("/api/practice/topic/generate route", () => {
 
   it("still returns 200 when DB cache insert fails after retries", async () => {
     vi.useFakeTimers();
-    vi.mocked(topicGenerateGemini.generateSentencesWithGemini).mockResolvedValue({
+    vi.mocked(topicGenerateOpenAI.generateTopicSentences).mockResolvedValue({
       sentences: [VALID_SENTENCE],
       rawCount: 1,
+      truncated: false,
+      parseFailed: false,
     });
     vi.mocked(db.insertTopicGeneratedTargets).mockRejectedValue(new Error("db down"));
 
@@ -164,4 +187,3 @@ describe("/api/practice/topic/generate route", () => {
     expect(payload.error).toContain("한도");
   });
 });
-

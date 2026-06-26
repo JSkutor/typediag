@@ -1,12 +1,8 @@
 import prompts from "@/lib/practice/prompts.json";
 
-/** Gemini API paid-tier rates (USD / 1M tokens). SSOT models: `topicGenerateGemini.ts`.
- * - gemini-2.0-flash: text/image/video input $0.10, output $0.40 (ai.google.dev/pricing). Audio input $0.70.
- * - gemini-1.5-flash: ≤128K prompt tier $0.075 / $0.30 (Google blog 2024-08-12). Topic prompts ≪128K.
- * Both models are deprecated on the pricing page; rates reflect last published Standard tier for text. */
-export const GEMINI_PRICING = {
-  "gemini-2.0-flash": { input: 0.1, output: 0.4 },
-  "gemini-1.5-flash": { input: 0.075, output: 0.3 },
+/** OpenAI API rates (USD / 1M tokens). SSOT model: `topicGenerateOpenAI.ts` (`gpt-4.1-nano`). */
+export const OPENAI_PRICING = {
+  "gpt-4.1-nano": { input: 0.1, output: 0.4 },
 } as const;
 
 /** Upstage embedding API pricing (2026). */
@@ -44,7 +40,7 @@ export interface ScriptCounts {
   total: number;
 }
 
-export interface GeminiTokenEstimate {
+export interface TopicLlmTokenEstimate {
   inputMin: number;
   inputMax: number;
   output: number;
@@ -80,7 +76,7 @@ export interface CostSimulationInput {
   cachedSentenceCount: number;
   /**
    * Avg sentences returned by vector search on topic match (batch corpus ≈ 1).
-   * Below `minUsablePoolSize` triggers Gemini supplement — see `createTopicSlice`.
+   * Below `minUsablePoolSize` triggers LLM supplement — see `createTopicSlice`.
    */
   avgSentencesOnHit: number;
   /** Pool size below which client calls `/topic/generate` immediately (SSOT: 3). */
@@ -104,13 +100,13 @@ export interface CostSimulationInput {
   freeTierSearchShare: number;
   /** Max topic searches per free MAU per month (paywall). */
   freeTopicSearchCapPerMauMonth: number;
-  /** Max Gemini generate calls per free MAU per month (paywall). */
+  /** Max topic LLM generate calls per free MAU per month (paywall). */
   freeGeminiCapPerMauMonth: number;
 
-  geminiInputTokens: number;
-  geminiOutputTokens: number;
-  geminiModel: keyof typeof GEMINI_PRICING;
-  geminiRetryMultiplier: number;
+  topicLlmInputTokens: number;
+  topicLlmOutputTokens: number;
+  topicLlmModel: keyof typeof OPENAI_PRICING;
+  topicLlmRetryMultiplier: number;
 
   upstageQueryTokens: number;
   upstagePassageTokensPerBatch: number;
@@ -176,16 +172,16 @@ export interface CostSimulationResult {
     /** Vector search returns ≥1 row above similarity threshold. */
     topicMatchRate: number;
     cacheMissRate: number;
-    /** Match but pool < minUsablePoolSize → still needs Gemini at search time. */
+    /** Match but pool < minUsablePoolSize → still needs LLM at search time. */
     thinHitRate: number;
-    /** Match with enough sentences to skip immediate Gemini supplement. */
+    /** Match with enough sentences to skip immediate LLM supplement. */
     usableHitRate: number;
     effectiveTopicCoverage: number;
     avgGeneratesPerSearch: number;
     freeTopicSearchesPerMonth: number;
     proTopicSearchesPerMonth: number;
     freeGeminiBlockedPerMonth: number;
-    geminiCallsPerMonth: number;
+    topicLlmCallsPerMonth: number;
     upstageQueryCallsPerMonth: number;
     upstagePassageBatchesPerMonth: number;
     dbGrowthGbPerMonth: number;
@@ -210,7 +206,7 @@ export interface CostSimulationResult {
   perMauKrw: number;
 }
 
-const GEMINI_TOKEN_RATES = {
+const TOPIC_LLM_TOKEN_RATES = {
   latinCharsPerToken: 4,
   hangulTokensPerChar: 0.62,
   otherCharsPerToken: 4,
@@ -230,9 +226,9 @@ export function countByScript(text: string): ScriptCounts {
 
 export function estimateTokensFromScript(counts: ScriptCounts): number {
   return Math.ceil(
-    counts.latin / GEMINI_TOKEN_RATES.latinCharsPerToken +
-      counts.hangul * GEMINI_TOKEN_RATES.hangulTokensPerChar +
-      counts.other / GEMINI_TOKEN_RATES.otherCharsPerToken,
+    counts.latin / TOPIC_LLM_TOKEN_RATES.latinCharsPerToken +
+      counts.hangul * TOPIC_LLM_TOKEN_RATES.hangulTokensPerChar +
+      counts.other / TOPIC_LLM_TOKEN_RATES.otherCharsPerToken,
   );
 }
 
@@ -248,8 +244,8 @@ function buildTopicUserPrompt(topic: string, withNumbers: boolean): string {
     .replace("{allowed_punctuation}", prompts.common_rules.allowed_punctuation);
 }
 
-/** SSOT: `prompts.json` + `topicGenerateGemini.ts` system_instruction / user template. */
-export function estimateTopicGeminiTokens(): GeminiTokenEstimate {
+/** SSOT: `prompts.json` + `topicGenerateOpenAI.ts` system_instruction / user template. */
+export function estimateTopicLlmTokens(): TopicLlmTokenEstimate {
   const system = prompts.topic.system_instruction;
   const userMin = buildTopicUserPrompt("AI", false);
   const userMax = buildTopicUserPrompt("타자연습과집중력", true);
@@ -282,11 +278,11 @@ export function estimateTopicGeminiTokens(): GeminiTokenEstimate {
       userMax: userMaxCounts,
     },
     outputBreakdown,
-    rates: { ...GEMINI_TOKEN_RATES },
+    rates: { ...TOPIC_LLM_TOKEN_RATES },
   };
 }
 
-const DEFAULT_TOKENS = estimateTopicGeminiTokens();
+const DEFAULT_TOKENS = estimateTopicLlmTokens();
 
 export const DEFAULT_COST_SIMULATION: CostSimulationInput = {
   mau: 1_000,
@@ -312,10 +308,10 @@ export const DEFAULT_COST_SIMULATION: CostSimulationInput = {
   freeTopicSearchCapPerMauMonth: 30,
   freeGeminiCapPerMauMonth: 5,
 
-  geminiInputTokens: Math.round((DEFAULT_TOKENS.inputMin + DEFAULT_TOKENS.inputMax) / 2),
-  geminiOutputTokens: DEFAULT_TOKENS.output,
-  geminiModel: "gemini-2.0-flash",
-  geminiRetryMultiplier: 1.05,
+  topicLlmInputTokens: Math.round((DEFAULT_TOKENS.inputMin + DEFAULT_TOKENS.inputMax) / 2),
+  topicLlmOutputTokens: DEFAULT_TOKENS.output,
+  topicLlmModel: "gpt-4.1-nano",
+  topicLlmRetryMultiplier: 1.08,
 
   upstageQueryTokens: 5,
   upstagePassageTokensPerBatch: estimateTokensFromScript(
@@ -366,7 +362,7 @@ export function estimateCacheHitRate(
   return Math.min(0.99, Math.max(0.01, hitRate));
 }
 
-export function estimateGeminiCallsPerTopicSession(
+export function estimateTopicLlmCallsPerTopicSession(
   topicPages: number,
   initialPoolSize: number,
   sentencesPerGenerate: number,
@@ -412,14 +408,14 @@ export function estimateAvgGeneratesPerSearch(
 ): number {
   const missRate = 1 - matchRate;
   const poolOnHit = Math.min(input.maxPoolSize, Math.max(0, input.avgSentencesOnHit));
-  const onMiss = estimateGeminiCallsPerTopicSession(
+  const onMiss = estimateTopicLlmCallsPerTopicSession(
     input.pagesPerSession,
     0,
     input.sentencesPerGenerate,
     input.minUsablePoolSize,
     input.maxPoolSize,
   );
-  const onHit = estimateGeminiCallsPerTopicSession(
+  const onHit = estimateTopicLlmCallsPerTopicSession(
     input.pagesPerSession,
     poolOnHit,
     input.sentencesPerGenerate,
@@ -450,7 +446,7 @@ export function applyFreeTierCaps(
 ): {
   freeTopicSearchesPerMonth: number;
   proTopicSearchesPerMonth: number;
-  geminiCallsPerMonth: number;
+  topicLlmCallsPerMonth: number;
   freeGeminiBlockedPerMonth: number;
 } {
   const freeShare = Math.min(1, Math.max(0, input.freeTierSearchShare));
@@ -463,16 +459,16 @@ export function applyFreeTierCaps(
   const freeTopicSearchesPerMonth = Math.min(freeSearchDemand, freeSearchCap);
   const proTopicSearchesPerMonth = proSearchDemand;
 
-  const freeGeminiDemand = freeTopicSearchesPerMonth * avgGeneratesPerSearch;
-  const freeGeminiCap = freeMau * Math.max(0, input.freeGeminiCapPerMauMonth);
-  const freeGeminiCalls = Math.min(freeGeminiDemand, freeGeminiCap);
-  const freeGeminiBlockedPerMonth = Math.max(0, freeGeminiDemand - freeGeminiCalls);
-  const proGeminiCalls = proTopicSearchesPerMonth * avgGeneratesPerSearch;
+  const freeLlmDemand = freeTopicSearchesPerMonth * avgGeneratesPerSearch;
+  const freeLlmCap = freeMau * Math.max(0, input.freeGeminiCapPerMauMonth);
+  const freeLlmCalls = Math.min(freeLlmDemand, freeLlmCap);
+  const freeGeminiBlockedPerMonth = Math.max(0, freeLlmDemand - freeLlmCalls);
+  const proLlmCalls = proTopicSearchesPerMonth * avgGeneratesPerSearch;
 
   return {
     freeTopicSearchesPerMonth,
     proTopicSearchesPerMonth,
-    geminiCallsPerMonth: freeGeminiCalls + proGeminiCalls,
+    topicLlmCallsPerMonth: freeLlmCalls + proLlmCalls,
     freeGeminiBlockedPerMonth,
   };
 }
@@ -526,17 +522,17 @@ export function runCostSimulation(
   const avgGeneratesPerSearch = estimateAvgGeneratesPerSearch(input, topicMatchRate);
   const tiered = applyFreeTierCaps(input, topicSearchesPerMonth, avgGeneratesPerSearch);
   const effectiveTopicSearches = tiered.freeTopicSearchesPerMonth + tiered.proTopicSearchesPerMonth;
-  const geminiCallsPerMonth = tiered.geminiCallsPerMonth;
+  const topicLlmCallsPerMonth = tiered.topicLlmCallsPerMonth;
   const upstageQueryCallsPerMonth = effectiveTopicSearches;
-  /** db:embed always runs on new Gemini batches (passage model, 20 sentences). */
-  const upstagePassageBatchesPerMonth = geminiCallsPerMonth;
+  /** db:embed always runs on new LLM batches (passage model, 20 sentences). */
+  const upstagePassageBatchesPerMonth = topicLlmCallsPerMonth;
 
-  const pricing = GEMINI_PRICING[input.geminiModel];
-  const geminiUsd =
-    geminiCallsPerMonth *
-    input.geminiRetryMultiplier *
-    ((input.geminiInputTokens / 1_000_000) * pricing.input +
-      (input.geminiOutputTokens / 1_000_000) * pricing.output);
+  const pricing = OPENAI_PRICING[input.topicLlmModel];
+  const topicLlmUsd =
+    topicLlmCallsPerMonth *
+    input.topicLlmRetryMultiplier *
+    ((input.topicLlmInputTokens / 1_000_000) * pricing.input +
+      (input.topicLlmOutputTokens / 1_000_000) * pricing.output);
 
   const upstageQueryUsd =
     (upstageQueryCallsPerMonth * input.upstageQueryTokens * input.upstageUsdPerMillion) / 1_000_000;
@@ -588,10 +584,10 @@ export function runCostSimulation(
 
   const allItems: CostLineItem[] = [
     {
-      id: "gemini",
-      label: "Gemini",
-      usd: geminiUsd,
-      detail: `${formatNum(geminiCallsPerMonth, 0)} calls · ${input.geminiModel}`,
+      id: "openai",
+      label: "OpenAI",
+      usd: topicLlmUsd,
+      detail: `${formatNum(topicLlmCallsPerMonth, 0)} calls · ${input.topicLlmModel}`,
       bucket: "variable",
     },
     {
@@ -694,7 +690,7 @@ export function runCostSimulation(
       freeTopicSearchesPerMonth: tiered.freeTopicSearchesPerMonth,
       proTopicSearchesPerMonth: tiered.proTopicSearchesPerMonth,
       freeGeminiBlockedPerMonth: tiered.freeGeminiBlockedPerMonth,
-      geminiCallsPerMonth,
+      topicLlmCallsPerMonth,
       upstageQueryCallsPerMonth,
       upstagePassageBatchesPerMonth,
       dbGrowthGbPerMonth,

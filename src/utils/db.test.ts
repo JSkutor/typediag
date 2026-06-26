@@ -33,6 +33,8 @@ describe("db", () => {
           like(targetTexts.content, "topic-gen-%"),
           like(targetTexts.content, "topic-dup-%"),
           like(targetTexts.content, "test-content-%"),
+          like(targetTexts.id, "guest-target-%"),
+          like(targetTexts.content, "guest-content-%"),
         ),
       );
   });
@@ -363,7 +365,7 @@ describe("db", () => {
     const found = await db.findTargetText({ id });
     expect(found?.content).toBe(content);
     expect(found?.source).toBe("topic");
-    expect(found?.generatorModel).toBe("gemini-2.0-flash");
+    expect(found?.generatorModel).toBe("gpt-4.1-nano");
     expect(found?.topic).toBe("테스트 주제");
     expect(found?.embedding).toBeNull();
   });

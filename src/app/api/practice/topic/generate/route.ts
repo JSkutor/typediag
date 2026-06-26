@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseTopicRequest } from "@/lib/api/parseTopicRequest";
 import {
-  GeminiApiError,
-  geminiUserError,
-  generateSentencesWithGemini,
-} from "@/lib/api/topicGenerateGemini";
+  TopicGenerateApiError,
+  topicGenerateUserError,
+  generateTopicSentences,
+  resolveTopicGenerateError,
+  TOPIC_GENERATE_TRUNCATED_ERROR,
+} from "@/lib/api/topicGenerateOpenAI";
 import { db } from "@/utils/db";
 import crypto from "crypto";
 import { resolveApiUser, withGuestToken } from "@/lib/api/resolveApiUser";
@@ -68,14 +70,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 4. Generate sentences using Gemini
-    const sentences = await generateSentencesWithGemini(topic);
+    // 4. Generate sentences using OpenAI
+    const sentences = await generateTopicSentences(topic);
 
     if (!sentences.sentences || sentences.sentences.length === 0) {
-      const error =
-        sentences.rawCount > 0
-          ? "생성된 문장이 형식 요건에 맞지 않습니다. 다시 시도해 주세요."
-          : "부적절한 주제이거나 문장 생성에 실패했습니다.";
+      const error = resolveTopicGenerateError(sentences);
       return NextResponse.json(
         withGuestToken({ error }, issueGuestToken),
         { status: 422 }
@@ -97,9 +96,13 @@ export async function POST(req: NextRequest) {
     console.error("[generate/route] Error:", error);
 
     // Dynamic error handling
-    if (error instanceof GeminiApiError && error.retryable) {
+    if (error instanceof TopicGenerateApiError && error.retryable) {
+      const userError =
+        error.message === "OpenAI response truncated"
+          ? TOPIC_GENERATE_TRUNCATED_ERROR
+          : topicGenerateUserError(error.statusCode);
       return NextResponse.json(
-        { error: geminiUserError(error.statusCode) },
+        { error: userError },
         { status: 503 }
       );
     }

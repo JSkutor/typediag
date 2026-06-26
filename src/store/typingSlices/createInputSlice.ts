@@ -1,11 +1,12 @@
 import { StoreSlice, InputSlice } from "./types";
-import targets from "@/data/targets_client.json";
 import { generateHardcorePracticeText } from "@/lib/practice/hardcoreModel";
 import { getQwertyChar, assembleHangulWithPunctuation } from "@/utils/keyboardMap";
 import { evaluateKeystroke } from "@/utils/typingEvaluator";
 import { getKeyToken } from "./utils";
 import { runMvsa, getCharQwertyIndices } from "@/utils/mvsa";
 import { topicInitialState, createTopicTopicActions } from "./createTopicSlice";
+import { normalInitialState, createNormalModeActions } from "./createNormalModeSlice";
+import { saveCurrentPageIfDone } from "./saveIfDone";
 
 const generateHardcoreText = (): string => {
   const randomLength = 70 + Math.floor(Math.random() * 21) - 10;
@@ -14,10 +15,14 @@ const generateHardcoreText = (): string => {
 
 export const createInputSlice: StoreSlice<InputSlice> = (set, get) => {
   const topicActions = createTopicTopicActions(set, get);
+  const normalActions = createNormalModeActions(set, get);
 
   return {
     ...topicInitialState,
+    ...normalInitialState,
     fetchTopicTarget: topicActions.fetchTopicTarget,
+    resetTopicToGuideScreen: topicActions.resetTopicToGuideScreen,
+    fetchInitialNormalTarget: normalActions.fetchInitialNormalTarget,
     targetText: "",
     targetLanguage: "ko",
     targetId: "",
@@ -28,24 +33,16 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => {
     alignments: [],
     mode: "normal",
 
-    setMode: (mode) => {
-      if (get().status === "done") {
-        get().saveCurrentPage();
-      }
+    setMode: async (mode) => {
+      await saveCurrentPageIfDone(get);
       set({ mode });
       if (mode === "normal") {
-        const lang = get().targetLanguage;
-        const filtered = targets.filter((t) => t.language === lang);
-        if (filtered.length > 0) {
-          get().setTarget(filtered[0]);
-        } else {
-          get().setTarget(targets[0]);
-        }
+        await normalActions.enterNormalMode();
       } else if (mode === "topic") {
-        topicActions.applyTopicSetMode();
+        await topicActions.applyTopicSetMode();
       } else if (mode === "hardcore") {
         const text = generateHardcoreText();
-        get().setTarget({
+        await get().setTarget({
           id: "target_hardcore_mock",
           content: text,
           language: "ko",
@@ -68,26 +65,26 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => {
           lastKeyAt: null,
           runInitPromise: null,
           pressedKeys: {},
+          normalPreviousTarget: null,
         });
       }
     },
 
-    setTargetLanguage: (language) => {
+    setTargetLanguage: async (language) => {
+      await saveCurrentPageIfDone(get);
+      if (get().mode === "normal") {
+        return normalActions.onNormalLanguageChange(language);
+      }
+
       const isKorean = language === "ko";
       set((state) => {
         const nextTyped = isKorean
           ? assembleHangulWithPunctuation(state.qwertyBuffer)
           : state.qwertyBuffer;
         let nextTargetText = state.targetText;
-        let nextTargetId = state.targetId;
+        const nextTargetId = state.targetId;
 
-        if (state.mode === "normal") {
-          const filtered = targets.filter((t) => t.language === language);
-          if (filtered.length > 0) {
-            nextTargetText = filtered[0].content;
-            nextTargetId = filtered[0].id;
-          }
-        } else if (state.mode === "plain") {
+        if (state.mode === "plain") {
           nextTargetText = nextTyped;
         }
 
@@ -101,25 +98,17 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => {
       });
     },
 
-    setTarget: (target) => {
-      if (get().status === "done") {
-        get().saveCurrentPage();
-      }
+    setTarget: async (target) => {
+      await saveCurrentPageIfDone(get);
       let text = "";
       let language = "en";
       let id = "";
 
       if (typeof target === "string") {
         text = target;
-        const found = targets.find((t) => t.content === target);
-        if (found) {
-          language = found.language;
-          id = found.id;
-        } else {
-          const isKorean = /[가-힣]/.test(target);
-          language = isKorean ? "ko" : "en";
-          id = `target_custom_${Math.random().toString(36).substring(2, 9)}`;
-        }
+        const isKorean = /[가-힣]/.test(target);
+        language = isKorean ? "ko" : "en";
+        id = `target_custom_${Math.random().toString(36).substring(2, 9)}`;
       } else {
         text = target.content;
         language = target.language;
@@ -130,6 +119,7 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => {
         targetText: text,
         targetLanguage: language,
         targetId: id,
+        normalPreviousTarget: null,
         typedText: "",
         maxTypedTextLength: 0,
         qwertyBuffer: "",
@@ -147,29 +137,22 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => {
       });
     },
 
-    nextTarget: () => {
-      if (get().status === "done") {
-        get().saveCurrentPage();
-      }
+    nextTarget: async () => {
+      await saveCurrentPageIfDone(get);
       const { mode } = get();
       if (mode === "normal") {
-        const filtered = targets.filter((t) => t.language === get().targetLanguage);
-        if (filtered.length > 0) {
-          const currentIndex = filtered.findIndex((t) => t.content === get().targetText);
-          const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % filtered.length;
-          get().setTarget(filtered[nextIndex]);
-        }
+        return normalActions.normalNextTarget();
       } else if (mode === "topic") {
-        topicActions.topicNextTarget();
+        return topicActions.topicNextTarget();
       } else if (mode === "hardcore") {
         const text = generateHardcoreText();
-        get().setTarget({
+        await get().setTarget({
           id: `target_hardcore_${Date.now()}`,
           content: text,
           language: "ko",
         });
       } else if (mode === "plain") {
-        get().reset();
+        await get().reset();
       }
     },
 
@@ -197,25 +180,21 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => {
       }
 
       if (code === "ArrowRight") {
-        get().nextTarget();
+        void get().nextTarget();
         return;
       }
 
       if (code === "ArrowLeft") {
         if (state.mode === "normal") {
-          const filtered = targets.filter((t) => t.language === get().targetLanguage);
-          if (filtered.length > 0) {
-            const currentIndex = filtered.findIndex((t) => t.content === get().targetText);
-            const prevIndex =
-              currentIndex === -1 ? 0 : (currentIndex - 1 + filtered.length) % filtered.length;
-            get().setTarget(filtered[prevIndex]);
-          }
+          void normalActions.normalPrevTarget();
         } else if (state.mode === "topic") {
-          if (!topicActions.topicPrevTarget()) {
-            get().nextTarget();
-          }
+          void (async () => {
+            if (!(await topicActions.topicPrevTarget())) {
+              await get().nextTarget();
+            }
+          })();
         } else {
-          get().nextTarget();
+          void get().nextTarget();
         }
         return;
       }
@@ -225,7 +204,7 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => {
           set({ status: "running", finishedAt: null });
         } else {
           if (code === "Space" || code === "Enter") {
-            get().nextTarget();
+            void get().nextTarget();
           }
           return;
         }

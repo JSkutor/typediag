@@ -8,7 +8,7 @@ export const TARGET_ELEVATION_SCALE = 180;
 /** Latency → vertex color: 3-stage gradient (Slate Grey -> Ocean Cyan -> Neon Rose). Confidence dims low-sample keys. */
 export function surfaceVertexColor(relativeZ: number, normConf: number): THREE.Color {
   const powerT = Math.pow(Math.min(1, Math.max(0, relativeZ)), 1.8);
-  const lowColor = new THREE.Color(0x181a20); // Darker Slate Grey for high contrast
+  const lowColor = new THREE.Color(0x262a34); // Slate grey base — lifted slightly for readability
   const midColor = new THREE.Color(0x4dc6e8); // Vibrant Ocean Cyan
   const highColor = new THREE.Color(0xff2a5f); // Vivid Hot Pink / Neon Rose for peak alert
 
@@ -19,7 +19,7 @@ export function surfaceVertexColor(relativeZ: number, normConf: number): THREE.C
     col.copy(midColor).lerp(highColor, (powerT - 0.4) / 0.6);
   }
 
-  col.multiplyScalar(0.35 + 0.65 * normConf);
+  col.multiplyScalar(0.42 + 0.58 * normConf);
   return col;
 }
 

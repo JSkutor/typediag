@@ -85,7 +85,8 @@ When deleting by character, `getCharQwertyIndices(qwertyBuffer)` finds each visu
 - **Key Actions**:
   - `startPage(now)`: Resolves or triggers a new run ID via `SessionService`.
   - `finish(timestamp)`: Completes the current page (transitions status to `"done"` and sets finished timestamp) without immediately persisting to the database.
-  - `saveCurrentPage()`: Synchronously sets status to `"idle"` (to prevent duplicate saves) and asynchronously persists the current completed page to the database. Triggered during page transition actions (`nextTarget`, `setTarget`, `setMode`).
+  - `saveCurrentPage()`: Synchronously sets status to `"idle"` (to prevent duplicate saves) and asynchronously persists the current completed page to the database.
+  - `saveCurrentPageIfDone()` (`saveIfDone.ts`): Shared guard used before page transitions — calls `saveCurrentPage()` only when `status === "done"`. Used by `nextTarget`, `setTarget`, `setMode`, `setTargetLanguage`, normal/topic navigation, `reset`, and `startNewRun`.
   - `reset()`: Resets the state of the active run.
 
 ### 1.4. Keyboard Bindings (`useWorkspaceKeybindings.ts`)

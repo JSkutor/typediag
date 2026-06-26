@@ -3,14 +3,28 @@ import { getQwertyChar, assembleHangulWithPunctuation } from "@/utils/keyboardMa
 import { runMvsa } from "@/utils/mvsa";
 import { validateTopic } from "@/utils/validation";
 import { getGuestAuthHeaders, applyGuestTokenFromResponse } from "@/utils/guestUser";
+import { saveCurrentPageIfDone } from "./saveIfDone";
+import {
+  fetchTopicGenerateWithRetry,
+  TopicGenerateClientError,
+} from "@/lib/practice/topicGenerateClient";
+import {
+  getTopicGuideText,
+  getTopicLang,
+  isTopicGuideText,
+  resolveValidationError,
+  type TopicErrorKey,
+} from "@/lib/practice/topicLoading";
 
-export const TOPIC_GUIDE_TEXT = "원하는 주제를 입력하세요...";
+export { TOPIC_GUIDE_TEXT } from "@/lib/practice/topicLoading";
 
 export const topicInitialState: Pick<
   InputSlice,
   | "isTopicInputActive"
   | "isTopicLoading"
   | "isTopicGenerating"
+  | "isTopicWaitingForGenerate"
+  | "topicGenerateError"
   | "currentTopic"
   | "topicTargets"
   | "topicTargetIndex"
@@ -18,6 +32,8 @@ export const topicInitialState: Pick<
   isTopicInputActive: false,
   isTopicLoading: false,
   isTopicGenerating: false,
+  isTopicWaitingForGenerate: false,
+  topicGenerateError: null,
   currentTopic: "",
   topicTargets: [],
   topicTargetIndex: -1,
@@ -26,41 +42,60 @@ export const topicInitialState: Pick<
 type TopicSliceSet = Parameters<StoreSlice<InputSlice>>[0];
 type TopicSliceGet = Parameters<StoreSlice<InputSlice>>[1];
 
+function topicGuideScreenState(lang: ReturnType<typeof getTopicLang>) {
+  const guide = getTopicGuideText(lang);
+  const isKorean = lang === "ko";
+  return {
+    targetText: guide,
+    typedText: "",
+    qwertyBuffer: "",
+    maxTypedTextLength: 0,
+    alignments: runMvsa(guide, "", isKorean),
+    isTopicInputActive: true,
+    isTopicLoading: false,
+    isTopicGenerating: false,
+    isTopicWaitingForGenerate: false,
+    topicGenerateError: null,
+    currentTopic: "",
+    topicTargets: [],
+    topicTargetIndex: -1,
+    targetId: "",
+    events: [],
+    status: "idle" as const,
+    startedAt: null,
+    finishedAt: null,
+    lastKey: null,
+    lastKeyAt: null,
+    runInitPromise: null,
+    pressedKeys: {},
+  };
+}
+
 export function createTopicTopicActions(set: TopicSliceSet, get: TopicSliceGet) {
+  const resetTopicToGuideScreen: InputSlice["resetTopicToGuideScreen"] = () => {
+    const lang = getTopicLang(get().targetLanguage);
+    set(topicGuideScreenState(lang));
+  };
+
   const requestMoreTopicTargets = (topic: string) => {
     if (!topic || get().isTopicGenerating || get().topicTargets.length >= 100) {
       return;
     }
 
-    set({ isTopicGenerating: true });
+    set({ isTopicGenerating: true, topicGenerateError: null });
     void (async () => {
       try {
-        const res = await fetch("/api/practice/topic/generate", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...getGuestAuthHeaders(),
-          },
-          body: JSON.stringify({ topic }),
-        });
-        if (!res?.ok) {
-          const errData = await res?.json().catch(() => ({}));
-          console.warn(
-            "[createTopicSlice] Topic generate failed:",
-            errData?.error || "Unknown error",
-          );
-          return;
-        }
-        const responseJson = await res.json();
-        applyGuestTokenFromResponse(responseJson);
-        const data = responseJson.data;
-        if (Array.isArray(data) && data.length > 0) {
-          set((s) => ({
-            topicTargets: [...s.topicTargets, ...data].slice(0, 100),
-          }));
-        }
+        const data = await fetchTopicGenerateWithRetry(topic);
+        set((s) => ({
+          topicTargets: [...s.topicTargets, ...data].slice(0, 100),
+          topicGenerateError: null,
+          isTopicWaitingForGenerate: false,
+        }));
       } catch (error) {
-        console.warn("[createTopicSlice] Topic generate failed:", error);
+        const errorKey: TopicErrorKey =
+          error instanceof TopicGenerateClientError ? error.errorKey : "generateFailed";
+        console.warn("[createTopicSlice] Topic generate failed:", errorKey);
+        set((s) => (s.isTopicWaitingForGenerate ? { topicGenerateError: errorKey } : {}));
       } finally {
         set({ isTopicGenerating: false });
       }
@@ -68,15 +103,16 @@ export function createTopicTopicActions(set: TopicSliceSet, get: TopicSliceGet) 
   };
 
   const fetchTopicTarget: InputSlice["fetchTopicTarget"] = async (topic: string) => {
+    const lang = getTopicLang(get().targetLanguage);
     const validation = validateTopic(topic);
     if (!validation.isValid) {
-      const errorMsg = validation.reason || "의미가 없습니다.";
+      const errorMsg = resolveValidationError(validation.reason, lang);
       set({
         targetText: errorMsg,
         typedText: "",
         qwertyBuffer: "",
         maxTypedTextLength: 0,
-        alignments: runMvsa(errorMsg, "", true),
+        alignments: runMvsa(errorMsg, "", lang === "ko"),
         isTopicInputActive: true,
         topicTargets: [],
         topicTargetIndex: -1,
@@ -84,9 +120,11 @@ export function createTopicTopicActions(set: TopicSliceSet, get: TopicSliceGet) 
       return;
     }
 
-    set({ isTopicLoading: true });
+    set({ isTopicLoading: true, topicGenerateError: null, isTopicWaitingForGenerate: false });
     try {
-      let res = await fetch("/api/practice/topic", {
+      let data: { id: string; content: string; language: string }[] | null = null;
+
+      const searchRes = await fetch("/api/practice/topic", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -95,27 +133,29 @@ export function createTopicTopicActions(set: TopicSliceSet, get: TopicSliceGet) 
         body: JSON.stringify({ topic }),
       });
 
-      if (res.status === 404) {
-        res = await fetch("/api/practice/topic/generate", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...getGuestAuthHeaders(),
-          },
-          body: JSON.stringify({ topic }),
-        });
+      if (searchRes.status === 404) {
+        set({ isTopicGenerating: true });
+        try {
+          data = await fetchTopicGenerateWithRetry(topic);
+        } finally {
+          set({ isTopicGenerating: false });
+        }
+      } else {
+        if (!searchRes.ok) {
+          const errorData = await searchRes.json().catch(() => ({}));
+          applyGuestTokenFromResponse(errorData);
+          throw new Error("searchFailed");
+        }
+        const responseJson = await searchRes.json();
+        applyGuestTokenFromResponse(responseJson);
+        if (!Array.isArray(responseJson.data) || responseJson.data.length === 0) {
+          throw new Error("searchNoResults");
+        }
+        data = responseJson.data;
       }
 
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        applyGuestTokenFromResponse(errorData);
-        throw new Error(errorData?.error || "올바른 한글 입력이 아닙니다.");
-      }
-      const responseJson = await res.json();
-      applyGuestTokenFromResponse(responseJson);
-      const data = responseJson.data;
-      if (!Array.isArray(data) || data.length === 0) {
-        throw new Error("검색 결과가 없습니다.");
+      if (!data || data.length === 0) {
+        throw new Error("searchNoResults");
       }
       set({
         topicTargets: data,
@@ -132,51 +172,33 @@ export function createTopicTopicActions(set: TopicSliceSet, get: TopicSliceGet) 
         requestMoreTopicTargets(topic.trim());
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "올바른 한글 입력이 아닙니다.";
-      console.warn("[fetchTopicTarget]", errorMessage);
+      const errorKey: TopicErrorKey =
+        error instanceof TopicGenerateClientError
+          ? error.errorKey
+          : error instanceof Error && error.message === "searchNoResults"
+            ? "searchNoResults"
+            : "searchFailed";
+      console.warn("[fetchTopicTarget]", errorKey);
       set({
-        targetText: errorMessage,
-        typedText: "",
-        qwertyBuffer: "",
-        maxTypedTextLength: 0,
-        alignments: runMvsa(errorMessage, "", true),
-        isTopicInputActive: true,
-        topicTargets: [],
-        topicTargetIndex: -1,
+        ...topicGuideScreenState(lang),
+        topicGenerateError: errorKey,
       });
     } finally {
       set({ isTopicLoading: false });
     }
   };
 
-  const applyTopicSetMode = () => {
+  const applyTopicSetMode = async () => {
+    await saveCurrentPageIfDone(get);
     set({
-      targetText: TOPIC_GUIDE_TEXT,
+      ...topicGuideScreenState("ko"),
       targetLanguage: "ko",
-      targetId: "",
-      typedText: "",
-      maxTypedTextLength: 0,
-      qwertyBuffer: "",
       mvsaCache: new Map(),
-      alignments: runMvsa(TOPIC_GUIDE_TEXT, "", true),
-      events: [],
-      status: "idle",
-      startedAt: null,
-      finishedAt: null,
-      lastKey: null,
-      lastKeyAt: null,
-      runInitPromise: null,
-      pressedKeys: {},
-      isTopicInputActive: true,
-      isTopicLoading: false,
-      isTopicGenerating: false,
-      currentTopic: "",
-      topicTargets: [],
-      topicTargetIndex: -1,
     });
   };
 
-  const topicNextTarget = () => {
+  const topicNextTarget = async () => {
+    await saveCurrentPageIfDone(get);
     const { topicTargets, topicTargetIndex, currentTopic } = get();
     if (topicTargets.length > 0) {
       const remainingCount = topicTargets.length - 1 - topicTargetIndex;
@@ -186,42 +208,25 @@ export function createTopicTopicActions(set: TopicSliceSet, get: TopicSliceGet) 
       }
 
       if (remainingCount === 0 && get().isTopicGenerating) {
+        set({ isTopicWaitingForGenerate: true, topicGenerateError: null });
         return;
       }
 
       const nextIndex = (topicTargetIndex + 1) % topicTargets.length;
       set({ topicTargetIndex: nextIndex });
-      get().setTarget(topicTargets[nextIndex]);
+      await get().setTarget(topicTargets[nextIndex]);
       return;
     }
 
     set({
-      targetText: TOPIC_GUIDE_TEXT,
+      ...topicGuideScreenState("ko"),
       targetLanguage: "ko",
-      targetId: "",
-      typedText: "",
-      maxTypedTextLength: 0,
-      qwertyBuffer: "",
       mvsaCache: new Map(),
-      alignments: runMvsa(TOPIC_GUIDE_TEXT, "", true),
-      events: [],
-      status: "idle",
-      startedAt: null,
-      finishedAt: null,
-      lastKey: null,
-      lastKeyAt: null,
-      runInitPromise: null,
-      pressedKeys: {},
-      isTopicInputActive: true,
-      isTopicLoading: false,
-      isTopicGenerating: false,
-      currentTopic: "",
-      topicTargets: [],
-      topicTargetIndex: -1,
     });
   };
 
-  const topicPrevTarget = () => {
+  const topicPrevTarget = async () => {
+    await saveCurrentPageIfDone(get);
     const { topicTargets, topicTargetIndex } = get();
     if (topicTargets.length === 0) {
       return false;
@@ -230,7 +235,7 @@ export function createTopicTopicActions(set: TopicSliceSet, get: TopicSliceGet) 
     let prevIndex = (topicTargetIndex - 1) % topicTargets.length;
     if (prevIndex < 0) prevIndex += topicTargets.length;
     set({ topicTargetIndex: prevIndex });
-    get().setTarget(topicTargets[prevIndex]);
+    await get().setTarget(topicTargets[prevIndex]);
     return true;
   };
 
@@ -244,11 +249,16 @@ export function createTopicTopicActions(set: TopicSliceSet, get: TopicSliceGet) 
       return true;
     }
 
-    const isKorean = state.targetLanguage === "ko";
+    const lang = getTopicLang(state.targetLanguage);
+    const isKorean = lang === "ko";
+    const guide = getTopicGuideText(lang);
 
     if (code === "Enter") {
+      if (state.topicGenerateError) {
+        return true;
+      }
       const query = state.typedText.trim();
-      if (query && query !== TOPIC_GUIDE_TEXT) {
+      if (query && !isTopicGuideText(query)) {
         void get().fetchTopicTarget(query);
       }
       return true;
@@ -258,7 +268,7 @@ export function createTopicTopicActions(set: TopicSliceSet, get: TopicSliceGet) 
       if (state.qwertyBuffer.length > 0) {
         const nextBuffer = state.qwertyBuffer.slice(0, -1);
         const nextTyped = isKorean ? assembleHangulWithPunctuation(nextBuffer) : nextBuffer;
-        const nextTargetText = nextBuffer.length === 0 ? TOPIC_GUIDE_TEXT : nextTyped;
+        const nextTargetText = nextBuffer.length === 0 ? guide : nextTyped;
         const nextAlignments =
           nextBuffer.length === 0
             ? runMvsa(nextTargetText, "", isKorean, state.mvsaCache)
@@ -294,6 +304,7 @@ export function createTopicTopicActions(set: TopicSliceSet, get: TopicSliceGet) 
 
   return {
     fetchTopicTarget,
+    resetTopicToGuideScreen,
     applyTopicSetMode,
     topicNextTarget,
     topicPrevTarget,

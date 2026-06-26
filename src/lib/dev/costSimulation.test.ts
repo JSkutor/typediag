@@ -6,10 +6,10 @@ import {
   applyFreeTierCaps,
   estimateAvgGeneratesPerSearch,
   estimateCacheHitRate,
-  estimateGeminiCallsPerTopicSession,
+  estimateTopicLlmCallsPerTopicSession,
   estimateKbPerPageFromDb,
   estimateThinHitRate,
-  estimateTopicGeminiTokens,
+  estimateTopicLlmTokens,
   mauToSlider,
   runCostSimulation,
   sliderToMau,
@@ -17,8 +17,8 @@ import {
 import { HETZNER_VPS, resolveDbHostingScaled } from "./platformScaling";
 
 describe("costSimulation", () => {
-  it("estimates Gemini tokens from SSOT prompts (EN input, KO output)", () => {
-    const t = estimateTopicGeminiTokens();
+  it("estimates OpenAI tokens from SSOT prompts (EN input, KO output)", () => {
+    const t = estimateTopicLlmTokens();
     expect(t.inputBreakdown.system.hangul).toBe(0);
     expect(t.inputMin).toBeGreaterThan(350);
     expect(t.inputMax).toBeLessThan(400);
@@ -45,19 +45,19 @@ describe("costSimulation", () => {
     expect(large).toBeGreaterThan(0.9);
   });
 
-  it("treats batch hit with 1 sentence as thin — still triggers Gemini supplement", () => {
+  it("treats batch hit with 1 sentence as thin — still triggers LLM supplement", () => {
     const { thinHitRate, usableHitRate } = estimateThinHitRate(0.8, 1, 3);
     expect(thinHitRate).toBeCloseTo(0.8);
     expect(usableHitRate).toBeCloseTo(0);
 
-    const onThinHit = estimateGeminiCallsPerTopicSession(30, 1, 20, 3, 100);
-    const onRichHit = estimateGeminiCallsPerTopicSession(30, 20, 20, 3, 100);
+    const onThinHit = estimateTopicLlmCallsPerTopicSession(30, 1, 20, 3, 100);
+    const onRichHit = estimateTopicLlmCallsPerTopicSession(30, 20, 20, 3, 100);
     expect(onThinHit).toBeGreaterThan(onRichHit);
   });
 
-  it("estimates more Gemini calls on cache miss for 30-page session", () => {
-    const onMiss = estimateGeminiCallsPerTopicSession(30, 0, 20, 3, 100);
-    const onRichHit = estimateGeminiCallsPerTopicSession(30, 20, 20, 3, 100);
+  it("estimates more OpenAI calls on cache miss for 30-page session", () => {
+    const onMiss = estimateTopicLlmCallsPerTopicSession(30, 0, 20, 3, 100);
+    const onRichHit = estimateTopicLlmCallsPerTopicSession(30, 20, 20, 3, 100);
     expect(onMiss).toBeGreaterThan(onRichHit);
     expect(onMiss).toBeGreaterThanOrEqual(2);
   });
@@ -74,7 +74,7 @@ describe("costSimulation", () => {
     expect(thin).toBeGreaterThan(rich);
   });
 
-  it("caps free-tier Gemini calls using free MAU pool", () => {
+  it("caps free-tier OpenAI calls using free MAU pool", () => {
     const capped = applyFreeTierCaps(
       {
         mau: 1_000,
@@ -85,9 +85,9 @@ describe("costSimulation", () => {
       10_000,
       3,
     );
-    expect(capped.geminiCallsPerMonth).toBeLessThan(10_000 * 3);
+    expect(capped.topicLlmCallsPerMonth).toBeLessThan(10_000 * 3);
     expect(capped.freeGeminiBlockedPerMonth).toBeGreaterThan(0);
-    expect(capped.geminiCallsPerMonth).toBe(2_000);
+    expect(capped.topicLlmCallsPerMonth).toBe(2_000);
   });
 
   it("applies per-MAU caps to all free users, not topic-session subset", () => {
@@ -109,6 +109,7 @@ describe("costSimulation", () => {
     expect(result.derived.pagesPerMauMonth).toBe(300);
     expect(result.derived.thinHitRate).toBeGreaterThan(0);
     expect(result.totalUsd).toBeGreaterThan(0);
+    expect(result.items.find((i) => i.id === "openai")?.detail).toContain("gpt-4.1-nano");
   });
 
   it("zeroes DB hosting costs on Oracle Always Free", () => {

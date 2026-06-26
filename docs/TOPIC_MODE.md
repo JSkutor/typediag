@@ -20,7 +20,7 @@ sequenceDiagram
     participant GenAPI as POST /api/practice/topic/generate
     participant Upstage as Upstage Embedding API
     participant DB as pgvector (target_texts)
-    participant Gemini as Gemini Flash-Lite
+    participant OpenAI as GPT-4.1-nano
 
     Client->>SearchAPI: { topic }
     SearchAPI->>Upstage: embedding-query (4096D)
@@ -32,8 +32,8 @@ sequenceDiagram
     else 캐시 미스
         SearchAPI-->>Client: 404
         Client->>GenAPI: { topic }
-        GenAPI->>Gemini: JSON schema (20 sentences)
-        Gemini-->>GenAPI: sentences
+        GenAPI->>OpenAI: JSON schema (20 sentences)
+        OpenAI-->>GenAPI: sentences
         GenAPI->>DB: insertTopicGeneratedTargets (async)
         GenAPI-->>Client: 200 { data: [...] }
     end
@@ -55,10 +55,14 @@ sequenceDiagram
 
 ### 2.2. 문장 생성 파이프라인
 
-- **LLM**: `gemini-2.0-flash`, 실패 시 `gemini-1.5-flash` 폴백
-- **환경 변수**: `GEMINI_API_KEY`
+- **LLM**: `gpt-4.1-nano` (고정)
+- **환경 변수**: `OPENAI_API_KEY`
+- **재시도**: 429/503 시 동일 모델로 최대 4회 재시도 (`TOPIC_GENERATE_RETRY_DELAYS_MS`: 2.5s, 5s, 8s, 12s)
+- **클라이언트 재시도**: `fetchTopicGenerateWithRetry` — generate API 429/503·네트워크 오류 시 최대 4회 (2s, 4s, 6s backoff)
+- **로딩 UI**: 6.5초 이내 일반 메시지, 이후 "예상보다 시간이 걸리고 있습니다" (`TopicLoadingOverlay`)
+- **API 키**: OpenAI 호출 시 `Authorization: Bearer` 헤더 사용
 - **프롬프트**: `src/lib/practice/prompts.json`
-- **응답 스키마**: JSON `sentences` 배열 20개 (`responseSchema` 강제)
+- **응답 스키마**: JSON `sentences` 배열 20개 (`response_format.json_schema` 강제)
 - **후처리**: `filterTopicGeneratedSentences` — 순수 한글 60~100자(공백·문장부호 제외) 등 형식 필터
 - **DB 적재**: `target_gen_<uuid>` ID로 `insertTopicGeneratedTargets` (재시도 2회)
 - **중복 완화**: 벡터 캐시 재사용·DB 적재·클라이언트 풀 상한(100).
@@ -85,8 +89,9 @@ Zustand InputSlice에 병합된 topic 전용 상태·액션:
 
 - **주제어 검증**: `validateTopic` — 무의미 입력·과도한 길이 차단 (API 400)
 - **로딩 UI**: `isTopicLoading` / `isTopicGenerating` 플래그로 PracticePanel 피드백
-- **Gemini 잘림**: `filterTopicGeneratedSentences`로 파싱 가능한 문장만 반환; 전부 실패 시 422
-- **Gemini 429/503**: 모델·재시도 후 503 + 사용자 메시지
+- **치명적 에러**: 재시도 소진 후 `topicGenerateError` 오버레이 2초 표시 → `resetTopicToGuideScreen`으로 주제 입력 화면 복귀
+- **LLM 잘림**: `filterTopicGeneratedSentences`로 파싱 가능한 문장만 반환; 전부 실패 시 422
+- **OpenAI 429/503**: 모델·재시도 후 503 + 사용자 메시지
 
 ---
 
@@ -98,4 +103,4 @@ Topic Mode를 사용하려면:
 npm run db:up && npm run db:push && npm run db:seed   # pgvector extension
 ```
 
-`.env.local`에 `UPSTAGE_API_KEY`, `GEMINI_API_KEY` 설정 ([README](../README.md) 참고).
+`.env.local`에 `UPSTAGE_API_KEY`, `OPENAI_API_KEY` 설정 ([README](../README.md) 참고).

@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   DEFAULT_COST_SIMULATION,
-  estimateTopicGeminiTokens,
+  estimateTopicLlmTokens,
   formatKrw,
   formatUsd,
   mauToSlider,
@@ -36,7 +36,7 @@ export function DevUnitEconomicsPanel() {
   const [dbStats, setDbStats] = useState<DbCostStats | null>(null);
   const [dbError, setDbError] = useState<string | null>(null);
 
-  const tokenEstimate = useMemo(() => estimateTopicGeminiTokens(), []);
+  const tokenEstimate = useMemo(() => estimateTopicLlmTokens(), []);
 
   const patchCost = useCallback((partial: Partial<CostSimulationInput>) => {
     setCostInput((prev) => ({ ...prev, ...partial }));
