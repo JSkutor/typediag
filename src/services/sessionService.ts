@@ -1,5 +1,6 @@
 import { db } from "@/utils/db";
 import { calculateMetrics, calculateLatencyAfterGap } from "@/lib/practice/metrics";
+import type { FinishPageResult } from "@/lib/practice/pageMetricsFlash";
 import type { KeyEvent } from "@/lib/skdm";
 
 export class SessionService {
@@ -78,7 +79,7 @@ export class SessionService {
     finishedAt: number,
     targetId?: string,
     language?: string,
-  ): Promise<string> {
+  ): Promise<FinishPageResult> {
     let currentRunId = runId;
 
     // targetId나 language 중 하나라도 없을 때만 DB 조회 (동일 쿼리 중복 방지)
@@ -134,7 +135,11 @@ export class SessionService {
       currentRunId = await this.createNewRun(dbUserId, new Date(correctedStartTimestamp));
     }
 
-    const metrics = calculateMetrics(events, 3000);
+    const metrics = calculateMetrics(events, {
+      targetText,
+      language: finalLanguage,
+      outlierThresholdMs: 3000,
+    });
     const existingPages = await db.getPagesForRun(currentRunId);
     const order_index = existingPages.length;
 
@@ -163,7 +168,12 @@ export class SessionService {
       key_events,
     });
 
-    return currentRunId;
+    return {
+      runId: currentRunId,
+      cpm: metrics.cpm,
+      wpm: metrics.wpm,
+      accuracy: metrics.accuracy,
+    };
   }
 }
 

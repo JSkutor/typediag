@@ -1,3 +1,6 @@
+import { disassemble } from "es-hangul";
+import { getPureHangulCount } from "./targetSentence";
+
 export interface GenericKeyEvent {
   fromKey?: string | null;
   from_key?: string | null;
@@ -9,43 +12,89 @@ export interface GenericKeyEvent {
   is_correct?: boolean | null;
 }
 
+export interface CalculateMetricsOptions {
+  targetText: string;
+  language: string;
+  outlierThresholdMs?: number;
+}
+
+export function isKoreanTargetText(targetText: string, language: string): boolean {
+  return language === "ko" || /[가-힣]/.test(targetText);
+}
+
 /**
- * Calculates typing metrics (WPM, CPM, Accuracy, Elapsed Time) from key events,
- * correcting outlier latencies using the average of normal latencies.
+ * Target input steps for CPM numerator.
+ * KO: es-hangul disassemble length (spaces and punctuation in decomposed stream included).
+ * EN: targetText.length (same indexing as evaluateKeystroke).
  */
-export function calculateMetrics(events: GenericKeyEvent[], outlierThresholdMs: number = 3000) {
-  if (events.length === 0) {
+export function countTargetKeystrokes(targetText: string, language: string): number {
+  if (!targetText) return 0;
+  if (isKoreanTargetText(targetText, language)) {
+    return disassemble(targetText).length;
+  }
+  return targetText.length;
+}
+
+/**
+ * Word count for WPM numerator.
+ * KO: pure Hangul syllable blocks (가-힣), excluding spaces and punctuation.
+ * EN: whitespace-delimited tokens.
+ */
+export function countTargetWords(targetText: string, language: string): number {
+  if (!targetText) return 0;
+  if (isKoreanTargetText(targetText, language)) {
+    return getPureHangulCount(targetText);
+  }
+  const trimmed = targetText.trim();
+  if (!trimmed) return 0;
+  return trimmed.split(/\s+/).length;
+}
+
+/**
+ * Calculates typing metrics from key events and target text.
+ *
+ * CPM = countTargetKeystrokes / corrected_elapsed_minutes
+ * WPM = countTargetWords / corrected_elapsed_minutes
+ *
+ * Elapsed time is the sum of per-event latencies (not wall clock).
+ * Outliers (> outlierThresholdMs) are replaced with avg of normal latencies (latency > 0 only).
+ */
+export function calculateMetrics(
+  events: GenericKeyEvent[],
+  options: CalculateMetricsOptions,
+) {
+  const outlierThresholdMs = options.outlierThresholdMs ?? 3000;
+  const targetKeystrokes = countTargetKeystrokes(options.targetText, options.language);
+  const targetWords = countTargetWords(options.targetText, options.language);
+
+  if (events.length === 0 || targetKeystrokes === 0) {
     return { elapsed_time_ms: 0, cpm: 0, wpm: 0, accuracy: 100 };
   }
 
-  // Normalize event fields
   const normalized = events.map((e) => ({
     latency: e.latencyMs ?? e.latency ?? 0,
     isCorrect: e.isCorrect ?? e.is_correct ?? true,
   }));
 
-  // 1. Calculate accuracy
   const totalEvaluated = normalized.length;
   const correctEvents = normalized.filter((e) => e.isCorrect !== false).length;
   const accuracy = totalEvaluated > 0 ? (correctEvents / totalEvaluated) * 100 : 100;
 
-  // 2. Identify outliers and calculate corrected elapsed time
   const realLatencies = normalized.map((e) => e.latency).filter((lat) => lat > 0);
   const normalRealLatencies = realLatencies.filter((lat) => lat <= outlierThresholdMs);
 
-  // If there are transitions, but ALL transitions are outliers (> 3 seconds), it's statistically meaningless.
   if (realLatencies.length > 0 && normalRealLatencies.length === 0) {
     return { elapsed_time_ms: 0, cpm: 0, wpm: 0, accuracy };
   }
 
   const normalLatencies = normalized
     .map((e) => e.latency)
-    .filter((lat) => lat <= outlierThresholdMs);
+    .filter((lat) => lat > 0 && lat <= outlierThresholdMs);
 
   const avgNormalLatency =
     normalLatencies.length > 0
       ? normalLatencies.reduce((sum, lat) => sum + lat, 0) / normalLatencies.length
-      : 250; // default latency if all are outliers
+      : 250;
 
   let corrected_elapsed_time_ms = 0;
   for (const event of normalized) {
@@ -56,12 +105,9 @@ export function calculateMetrics(events: GenericKeyEvent[], outlierThresholdMs: 
     }
   }
 
-  // 3. Calculate CPM & WPM
-  // Note: the count of total keystrokes is equal to the number of events.
-  const keystrokes = normalized.length;
   const elapsedMinutes = corrected_elapsed_time_ms / 60000;
-  const cpm = elapsedMinutes > 0 ? Math.round(keystrokes / elapsedMinutes) : 0;
-  const wpm = Math.round(cpm / 5);
+  const cpm = elapsedMinutes > 0 ? Math.round(targetKeystrokes / elapsedMinutes) : 0;
+  const wpm = elapsedMinutes > 0 ? Math.round(targetWords / elapsedMinutes) : 0;
 
   return {
     elapsed_time_ms: Math.round(corrected_elapsed_time_ms),
@@ -77,13 +123,12 @@ export function calculateMetrics(events: GenericKeyEvent[], outlierThresholdMs: 
  */
 export function calculateLatencyAfterGap(
   events: GenericKeyEvent[],
-  gapThresholdMs: number = 180000, // 3 minutes default
+  gapThresholdMs: number = 180000,
 ): number {
   if (events.length === 0) return 0;
 
   const latencies = events.map((e) => e.latencyMs ?? e.latency ?? 0);
 
-  // Find the index of the last gap
   let lastGapIndex = -1;
   for (let i = 0; i < latencies.length; i++) {
     if (latencies[i] >= gapThresholdMs) {
@@ -92,11 +137,9 @@ export function calculateLatencyAfterGap(
   }
 
   if (lastGapIndex === -1) {
-    // No gap found, return sum of all latencies
     return latencies.reduce((sum, lat) => sum + lat, 0);
   }
 
-  // Sum latencies strictly after the last gap. Exclude the gap event's giant latency.
   let activeTime = 0;
   for (let i = lastGapIndex + 1; i < latencies.length; i++) {
     activeTime += latencies[i];

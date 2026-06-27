@@ -1,4 +1,5 @@
 import { KeyEvent } from "@/lib/skdm";
+import type { FinishPageResult } from "@/lib/practice/pageMetricsFlash";
 import { applyGuestTokenFromResponse, getGuestAuthHeaders } from "@/utils/guestUser";
 
 async function parseSessionJson(res: Response): Promise<Record<string, unknown>> {
@@ -45,7 +46,7 @@ export const sessionServiceClient = {
     finishedAt: number,
     targetId?: string,
     language?: string,
-  ): Promise<string> {
+  ): Promise<FinishPageResult> {
     const res = await fetch("/api/session", {
       method: "POST",
       headers: {
@@ -71,7 +72,12 @@ export const sessionServiceClient = {
     }
 
     const data = await parseSessionJson(res);
-    return data.runId as string;
+    return {
+      runId: data.runId as string,
+      cpm: Number(data.cpm ?? 0),
+      wpm: Number(data.wpm ?? 0),
+      accuracy: Number(data.accuracy ?? 0),
+    };
   },
 
   /**

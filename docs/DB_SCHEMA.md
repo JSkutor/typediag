@@ -90,8 +90,8 @@ Clerk 인증과 연동되는 사용자 정보를 저장합니다.
 - `order_index`: 세션 내 진행 순서 (Integer, Not Null)
 - `language`: 문장 언어 구분 (VARCHAR(10), Not Null)
 - `typed_text`: 사용자가 최종 입력한 문장 (TEXT, Not Null)
-- `wpm`: 해당 문장의 분당 단어 수 (Integer, Not Null)
-- `cpm`: 해당 문장의 분당 타수 (Integer, Not Null)
+- `wpm`: 해당 문장의 분당 **단어** 수 (Integer, Not Null) — KO: 순수 한글 음절(가-힣) 수, EN: 공백 구분 토큰 수
+- `cpm`: 해당 문장의 분당 **입력 단계** 수 (Integer, Not Null) — KO: `disassemble(targetText).length`, EN: `targetText.length`
 - `accuracy`: 해당 문장의 정확도 퍼센트 (Real, Not Null)
 - `started_at`: 문장 입력 시작 일시 (TimestampTZ, Not Null)
 - `finished_at`: 문장 입력 완료 일시 (TimestampTZ, Not Null)
@@ -131,9 +131,13 @@ Clerk 인증과 연동되는 사용자 정보를 저장합니다.
 
 ## 주요 지표 계산 및 아키텍처
 
-1. **실시간 처리 분리**: 실시간 타수(WPM, CPM) 및 정확도 계산은 모두 프론트엔드에서 처리합니다. 타건 중에는 서버 통신이 발생하지 않으며, 페이지(문장) 타이핑 완료 직후 1회의 API 호출을 통해 `pages` 요약과 `key_events` 배열 전체를 Drizzle ORM의 Bulk Insert로 DB에 적재합니다.
-2. **시계열 최적화 (TimescaleDB)**: `key_events`는 매우 빠른 속도로 누적되므로, TimescaleDB의 Hypertable 구조를 통해 시간 단위(청크) 파티셔닝을 적용하여 쓰기 병목 및 스토리지 단편화를 방지합니다.
-3. **벡터 검색 (pgvector)**: Topic 모드 등의 주제어 검색 시, 로컬 JSON을 뒤지는 대신 pgvector의 코사인 거리 연산자(`<=>`)를 활용해 DB 레벨에서 고속 시맨틱 검색을 수행합니다.
+1. **실시간 처리 분리**: WPM/CPM/정확도는 `src/lib/practice/metrics.ts`의 `calculateMetrics()`로 페이지 완료 시 계산합니다. 타건 중에는 서버 통신이 없으며, 문장 완료 직후 1회 API 호출로 **`pages` 요약 1행 + `key_events` N행** bulk insert합니다.
+2. **CPM/WPM 정의** (SSOT: `calculateMetrics`):
+   - **분모**: 모든 키 이벤트 latency 합 (벽시계 아님). `latency > 3000ms` outlier는 `latency > 0`인 정상 latency 평균으로 **대체** (0ms는 평균에서 제외, 합에는 포함).
+   - **CPM 분자**: `disassemble(targetText).length` (KO, 공백 포함) 또는 `targetText.length` (EN).
+   - **WPM 분자**: `getPureHangulCount(targetText)` (KO) 또는 공백 구분 단어 수 (EN).
+3. **시계열 최적화 (TimescaleDB)**: `key_events`는 매우 빠른 속도로 누적되므로, TimescaleDB의 Hypertable 구조를 통해 시간 단위(청크) 파티셔닝을 적용하여 쓰기 병목 및 스토리지 단편화를 방지합니다.
+4. **벡터 검색 (pgvector)**: Topic 모드 등의 주제어 검색 시, pgvector 코사인 거리 연산자(`<=>`)로 DB 레벨 시맨틱 검색.
 
 ---
 
@@ -147,6 +151,6 @@ Clerk 인증과 연동되는 사용자 정보를 저장합니다.
 | **문장 내 장시간 경과** | 5분 | `finishPage` (`finishedAt - startedAt`) | run 분리, page 시작 시각 보정 후 새 run에 저장 |
 | **마운트 정리** | 3분 | `syncSessionOnMount` | 방치된 `in_progress` run 완료 처리 |
 
-- **지표 보정**: 개별 키 latency 3초 초과는 outlier로 대체 평균을 사용합니다 (`calculateMetrics`, outlierMs=3000). 5분 gap split 시 `calculateLatencyAfterGap`으로 시작 시각을 보정합니다.
+- **지표 보정**: 개별 키 latency 3초 초과는 outlier로 대체 평균을 사용합니다 (`calculateMetrics`, `outlierThresholdMs=3000`). 5분 gap split 시 `calculateLatencyAfterGap`으로 시작 시각을 보정합니다.
 - **방향키/스킵**: 문장 중간 포기(오른쪽 방향키) 시 해당 page 이벤트를 DB에 저장하지 않고 버립니다. 재시도(왼쪽 방향키) 시 동일 문장에 대해 새로운 page를 누적 생성합니다.
 - **OnMount 동기화**: `WorkspaceView` 마운트 시 `sessionServiceClient.syncSessionOnMount()` → `POST /api/session` `action: "sync"` → `db.syncSessionOnMount(userId)`.

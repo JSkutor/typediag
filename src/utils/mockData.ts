@@ -440,7 +440,11 @@ export async function populateDummyDatabase(
       random.range(1000, 99999),
       0.02,
     );
-    const metrics = calculateMetrics(events, 3000);
+    const metrics = calculateMetrics(events, {
+      targetText: target.content,
+      language: target.language,
+      outlierThresholdMs: 3000,
+    });
 
     const pageStartedAt = new Date(pageDate);
     pageDate = new Date(pageDate.getTime() + metrics.elapsed_time_ms + 10000);
@@ -492,7 +496,11 @@ export async function populateDummyDatabase(
       random.range(1000, 99999),
       0.04,
     );
-    const metrics = calculateMetrics(events, 3000);
+    const metrics = calculateMetrics(events, {
+      targetText: target.content,
+      language: target.language,
+      outlierThresholdMs: 3000,
+    });
 
     const pageStartedAt = new Date(pageDate);
     pageDate = new Date(pageDate.getTime() + metrics.elapsed_time_ms + 8000);
@@ -544,7 +552,11 @@ export async function populateDummyDatabase(
       random.range(1000, 99999),
       0.03,
     );
-    const metrics = calculateMetrics(events, 3000);
+    const metrics = calculateMetrics(events, {
+      targetText: target.content,
+      language: target.language,
+      outlierThresholdMs: 3000,
+    });
 
     const pageStartedAt = new Date(pageDate);
     pageDate = new Date(pageDate.getTime() + metrics.elapsed_time_ms + 12000);
@@ -577,14 +589,18 @@ export async function populateDummyDatabase(
 
   // Pre-save the current page (which we loaded into the store state) to the DB
   // This allows startDiagnosticsTransition to pick it up immediately!
-  const currentMetrics = calculateMetrics(currentEvents, 3000);
-  const pageStartedAt = new Date(pageDate);
-  pageDate = new Date(pageDate.getTime() + currentMetrics.elapsed_time_ms);
-  const pageFinishedAt = new Date(pageDate);
-
   const currentTargetTextObj = targets.find((t) => t.content === currentTargetText);
   const currentTargetTextId = currentTargetTextObj ? currentTargetTextObj.id : "unknown";
   const currentLanguage = currentTargetTextObj ? currentTargetTextObj.language : "en";
+
+  const currentMetrics = calculateMetrics(currentEvents, {
+    targetText: currentTargetText,
+    language: currentLanguage,
+    outlierThresholdMs: 3000,
+  });
+  const pageStartedAt = new Date(pageDate);
+  pageDate = new Date(pageDate.getTime() + currentMetrics.elapsed_time_ms);
+  const pageFinishedAt = new Date(pageDate);
 
   await db.createPage({
     id: `page_dummy_3_current`,

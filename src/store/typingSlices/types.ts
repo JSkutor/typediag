@@ -1,6 +1,7 @@
 import { StateCreator } from "zustand";
 import type { KeyEvent } from "@/lib/skdm";
 import type { TopicErrorKey } from "@/lib/practice/topicLoading";
+import type { PageMetricsFlash } from "@/lib/practice/pageMetricsFlash";
 import type { MvsaCache, AlignResult } from "@/utils/mvsa";
 
 export type SessionStatus = "idle" | "running" | "done";
@@ -60,9 +61,11 @@ export interface SessionSlice {
   finishedAt: number | null;
   currentRunId: string | null;
   runInitPromise: Promise<string> | null;
+  pageMetricsFlash: PageMetricsFlash | null;
   finish: (timestamp?: number) => void;
   flushPendingPageSave: () => Promise<void>;
   saveCurrentPage: () => Promise<void>;
+  dismissPageMetricsFlash: () => void;
   reset: () => void | Promise<void>;
   startNewRun: () => void | Promise<void>;
   startPage: (now: Date) => Promise<string>;

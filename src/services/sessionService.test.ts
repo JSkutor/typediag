@@ -92,7 +92,7 @@ describe("SessionService", () => {
         finishedAt,
       );
 
-      expect(newRunId).toBe(runId); // Did not split
+      expect(newRunId.runId).toBe(runId); // Did not split
       const pages = await db.getPagesForRun(runId);
       expect(pages.length).toBe(1);
     });
@@ -120,15 +120,15 @@ describe("SessionService", () => {
         finishedAt,
       );
 
-      expect(newRunId).not.toBe(runId); // Split into new run
+      expect(newRunId.runId).not.toBe(runId); // Split into new run
 
       const oldRun = await db.getRun(runId);
       expect(oldRun?.status).toBe("completed");
 
-      const newRun = await db.getRun(newRunId);
+      const newRun = await db.getRun(newRunId.runId);
       expect(newRun?.status).toBe("in_progress");
 
-      const pages = await db.getPagesForRun(newRunId);
+      const pages = await db.getPagesForRun(newRunId.runId);
       expect(pages.length).toBe(1);
       // The page should be associated with the new run
     });

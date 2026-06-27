@@ -44,7 +44,17 @@ export async function POST(request: NextRequest) {
           targetId,
           language,
         );
-        return NextResponse.json(withGuestToken({ runId: newRunId }, issueGuestToken));
+        return NextResponse.json(
+          withGuestToken(
+            {
+              runId: newRunId.runId,
+              cpm: newRunId.cpm,
+              wpm: newRunId.wpm,
+              accuracy: newRunId.accuracy,
+            },
+            issueGuestToken,
+          ),
+        );
       }
       case "sync": {
         await db.syncSessionOnMount(dbUserId);

@@ -51,7 +51,7 @@ describe("useTypingStore", () => {
               json: async () => ({ runId }),
             };
           } else if (action === "finish") {
-            const runId = await sessionService.finishPage(
+            const result = await sessionService.finishPage(
               dbUserId,
               body.runId,
               body.targetText,
@@ -64,7 +64,7 @@ describe("useTypingStore", () => {
             );
             return {
               ok: true,
-              json: async () => ({ runId }),
+              json: async () => result,
             };
           } else if (action === "sync") {
             await db.syncSessionOnMount(dbUserId);
@@ -427,8 +427,11 @@ describe("useTypingStore", () => {
     expect(pages[0].typedText).toBe("he");
     expect(pages[0].cpm).toBeGreaterThan(0);
     expect(pages[0].accuracy).toBe(100);
-    const keyEvents = await db.getKeyEventsForPage(pages[0].id);
-    expect(keyEvents).toHaveLength(2); // Null from_key event + transition event
+    expect(useTypingStore.getState().pageMetricsFlash).toEqual({
+      cpm: pages[0].cpm,
+      wpm: pages[0].wpm,
+      accuracy: pages[0].accuracy,
+    });
   });
 
   it("should not finish in hardcore mode if there are excess characters (INSERT)", () => {

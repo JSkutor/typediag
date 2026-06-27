@@ -8,6 +8,7 @@ import { TopicLoadingOverlay } from "./TopicLoadingOverlay";
 import { useTopicFatalErrorReset } from "./useTopicFatalErrorReset";
 import { getTopicRemainingLabel, getTopicLang } from "@/lib/practice/topicLoading";
 import { PracticeChar } from "./PracticeChar";
+import { PageMetricsFlash } from "./PageMetricsFlash";
 import { TYPING_TEXT_CONTAINER_ID, usePracticeTextLayout } from "./usePracticeTextLayout";
 
 const TYPING_MODES: TypingMode[] = ["normal", "topic", "hardcore"];
@@ -109,6 +110,7 @@ const PracticePanelToolbar: React.FC = React.memo(function PracticePanelToolbar(
       </div>
 
       {mode === "feedback" ? <FeedbackSubmitActions /> : null}
+      <PageMetricsFlash />
     </div>
   );
 });
@@ -245,9 +247,11 @@ export const PracticePanel: React.FC = () => {
 
   return (
     <div className="typing-area">
-      <PracticePanelToolbar />
-      <TopicRemainingBadge />
-      <PracticeTextContainer />
+      <div className="practice-content-width">
+        <PracticePanelToolbar />
+        <TopicRemainingBadge />
+        <PracticeTextContainer />
+      </div>
     </div>
   );
 };

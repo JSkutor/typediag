@@ -31,10 +31,34 @@ describe("saveCurrentPage retry", () => {
     expect(useTypingStore.getState().status).toBe("done");
     expect(useTypingStore.getState().typedText).toBe("he");
 
-    finishSpy.mockResolvedValueOnce("00000000-0000-0000-0000-000000000001");
+    finishSpy.mockResolvedValueOnce({
+      runId: "00000000-0000-0000-0000-000000000001",
+      cpm: 420,
+      wpm: 84,
+      accuracy: 100,
+    });
     await useTypingStore.getState().flushPendingPageSave();
 
     expect(getPendingPageSave()).toBeNull();
+    expect(useTypingStore.getState().pageMetricsFlash).toEqual({ cpm: 420, wpm: 84, accuracy: 100 });
+    finishSpy.mockRestore();
+  });
+
+  it("sets pageMetricsFlash when save succeeds", async () => {
+    const finishSpy = vi.spyOn(
+      (await import("@/services/sessionServiceClient")).sessionServiceClient,
+      "finishPage",
+    );
+    finishSpy.mockResolvedValueOnce({
+      runId: "00000000-0000-0000-0000-000000000001",
+      cpm: 312,
+      wpm: 62,
+      accuracy: 100,
+    });
+
+    await useTypingStore.getState().saveCurrentPage();
+
+    expect(useTypingStore.getState().pageMetricsFlash).toEqual({ cpm: 312, wpm: 62, accuracy: 100 });
     finishSpy.mockRestore();
   });
 });

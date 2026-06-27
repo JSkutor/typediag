@@ -59,10 +59,10 @@ describe("sessionServiceClient", () => {
   it("finishPage posts page payload with guest headers", async () => {
     vi.mocked(global.fetch).mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ runId: "run-456" }),
+      json: async () => ({ runId: "run-456", cpm: 420, wpm: 84, accuracy: 100 }),
     } as Response);
 
-    const runId = await sessionServiceClient.finishPage(
+    const result = await sessionServiceClient.finishPage(
       "run-123",
       "타자 연습",
       "타자",
@@ -73,7 +73,12 @@ describe("sessionServiceClient", () => {
       "ko",
     );
 
-    expect(runId).toBe("run-456");
+    expect(result).toEqual({
+      runId: "run-456",
+      cpm: 420,
+      wpm: 84,
+      accuracy: 100,
+    });
     expect(global.fetch).toHaveBeenCalledWith(
       "/api/session",
       expect.objectContaining({

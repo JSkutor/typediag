@@ -10,11 +10,7 @@ mode 기능 이후에 기능 추가 없다.
 
 ## MVP
 
-TODO: plain에 피드백 경로 만들기
-작업 확인
-
-TODO: 개인정보 뭐시기
-
+TODO: batch default 다시 해야될듯. ' 제거 안됨.
 
 TODO: 유료 영역 구분해놓기
 

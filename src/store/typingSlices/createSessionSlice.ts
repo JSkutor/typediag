@@ -26,7 +26,7 @@ async function persistPageSave(
     throw new Error("runId is not available");
   }
 
-  const newRunId = await sessionService.finishPage(
+  const result = await sessionService.finishPage(
     runId,
     save.targetText,
     save.typedText,
@@ -37,9 +37,17 @@ async function persistPageSave(
     save.targetLanguage,
   );
 
-  if (newRunId !== runId) {
-    set({ currentRunId: newRunId });
+  if (result.runId !== runId) {
+    set({ currentRunId: result.runId });
   }
+
+  set({
+    pageMetricsFlash: {
+      cpm: result.cpm,
+      wpm: result.wpm,
+      accuracy: result.accuracy,
+    },
+  });
 }
 
 function restoreDoneStateFromPending(set: SessionSet, save: PendingPageSave): void {
@@ -61,6 +69,7 @@ export const createSessionSlice: StoreSlice<SessionSlice> = (set, get) => ({
   finishedAt: null,
   currentRunId: null,
   runInitPromise: null,
+  pageMetricsFlash: null,
 
   finish: (timestamp) => {
     const { status } = get();
@@ -82,6 +91,10 @@ export const createSessionSlice: StoreSlice<SessionSlice> = (set, get) => ({
     } catch (error) {
       console.error("[session] Pending page save failed:", error);
     }
+  },
+
+  dismissPageMetricsFlash: () => {
+    set({ pageMetricsFlash: null });
   },
 
   saveCurrentPage: async () => {
