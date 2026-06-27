@@ -153,6 +153,8 @@ export default async function LangLandingPage({ params }: { params: Params }) {
           </span>
           <nav className="landing-footer-links">
             <Link href={`/${lang}/practice`}>{t.footer.practice}</Link>
+            <Link href={`/${lang}/terms`}>{t.footer.terms}</Link>
+            <Link href={`/${lang}/privacy`}>{t.footer.privacy}</Link>
           </nav>
         </div>
       </footer>

@@ -62,6 +62,8 @@ export interface LandingCopy {
   };
   footer: {
     practice: string;
+    terms: string;
+    privacy: string;
     copyright: string;
   };
 }
@@ -186,6 +188,8 @@ const COPY: Record<LandingLang, LandingCopy> = {
     },
     footer: {
       practice: "연습하기",
+      terms: "이용약관",
+      privacy: "개인정보 처리방침",
       copyright: "TypeDiag. All rights reserved.",
     },
   },
@@ -308,6 +312,8 @@ const COPY: Record<LandingLang, LandingCopy> = {
     },
     footer: {
       practice: "Practice",
+      terms: "Terms of Service",
+      privacy: "Privacy Policy",
       copyright: "TypeDiag. All rights reserved.",
     },
   },

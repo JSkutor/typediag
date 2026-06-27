@@ -12,6 +12,7 @@ import { WorkspaceControls } from "@/components/workspace/WorkspaceControls";
 import { PracticeLayer } from "@/components/workspace/PracticeLayer";
 import { DiagnosticsLayer } from "@/components/workspace/DiagnosticsLayer";
 import { FeedbackButton } from "@/components/workspace/feedback/FeedbackButton";
+import { LegalInfoMenu } from "@/components/layout/LegalInfoMenu";
 
 export default function WorkspaceView({ lang }: { lang: string; tab: string }) {
   useResponsiveScale();
@@ -47,6 +48,7 @@ export default function WorkspaceView({ lang }: { lang: string; tab: string }) {
       <DiagnosticsLayer />
 
       <FeedbackButton />
+      <LegalInfoMenu lang={lang} />
     </div>
   );
 }
