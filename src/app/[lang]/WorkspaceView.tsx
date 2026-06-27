@@ -11,6 +11,7 @@ import { AuthControls } from "@/components/auth/AuthControls";
 import { WorkspaceControls } from "@/components/workspace/WorkspaceControls";
 import { PracticeLayer } from "@/components/workspace/PracticeLayer";
 import { DiagnosticsLayer } from "@/components/workspace/DiagnosticsLayer";
+import { FeedbackButton } from "@/components/workspace/feedback/FeedbackButton";
 
 export default function WorkspaceView({ lang }: { lang: string; tab: string }) {
   useResponsiveScale();
@@ -44,6 +45,8 @@ export default function WorkspaceView({ lang }: { lang: string; tab: string }) {
       <PracticeLayer />
 
       <DiagnosticsLayer />
+
+      <FeedbackButton />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { runMvsa, getCharQwertyIndices } from "@/utils/mvsa";
 import type { StoreSlice, TypingStore } from "./types";
 import type { createNormalModeActions } from "./createNormalModeSlice";
 import type { createTopicTopicActions } from "./createTopicSlice";
+import { handleFeedbackModeKeyPress } from "./feedbackModeKeyPress";
 
 type InputSet = Parameters<StoreSlice<TypingStore>>[0];
 type InputGet = Parameters<StoreSlice<TypingStore>>[1];
@@ -21,6 +22,10 @@ export function createPhysicalKeyPressHandler(
     const state = get();
 
     if (topicActions.handleTopicInputKeyPress(code, shiftKey)) {
+      return;
+    }
+
+    if (handleFeedbackModeKeyPress(set, get, code, shiftKey)) {
       return;
     }
 
@@ -121,11 +126,10 @@ export function createPhysicalKeyPressHandler(
         }
 
         const nextTyped = isKorean ? assembleHangulWithPunctuation(nextBuffer) : nextBuffer;
-        const nextTargetText = state.mode === "plain" ? nextTyped : state.targetText;
-        const nextAlignments = runMvsa(nextTargetText, nextBuffer, isKorean, state.mvsaCache);
+        const nextAlignments = runMvsa(state.targetText, nextBuffer, isKorean, state.mvsaCache);
 
         set({
-          targetText: nextTargetText,
+          targetText: state.targetText,
           qwertyBuffer: nextBuffer,
           typedText: nextTyped,
           alignments: nextAlignments,
@@ -146,9 +150,8 @@ export function createPhysicalKeyPressHandler(
       );
       const nextBuffer = state.qwertyBuffer + char;
       const nextTyped = isKorean ? assembleHangulWithPunctuation(nextBuffer) : nextBuffer;
-      const nextTargetText = state.mode === "plain" ? nextTyped : state.targetText;
 
-      const alignments = runMvsa(nextTargetText, nextBuffer, isKorean, state.mvsaCache);
+      const alignments = runMvsa(state.targetText, nextBuffer, isKorean, state.mvsaCache);
       const lastInputIndex = alignments.findLastIndex((d) => d.inputIndex !== undefined);
       const pendingTargets = alignments.slice(lastInputIndex + 1).some((d) => d.op === "PENDING");
       let shouldFinish = !pendingTargets;
@@ -164,7 +167,6 @@ export function createPhysicalKeyPressHandler(
       };
 
       set({
-        targetText: nextTargetText,
         qwertyBuffer: nextBuffer,
         typedText: nextTyped,
         maxTypedTextLength: nextTyped.length,
@@ -183,10 +185,6 @@ export function createPhysicalKeyPressHandler(
         if (hasInsert) {
           shouldFinish = false;
         }
-      }
-
-      if (state.mode === "plain") {
-        shouldFinish = false;
       }
 
       if (shouldFinish) {

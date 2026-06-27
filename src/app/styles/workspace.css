@@ -228,14 +228,6 @@
   backdrop-filter: blur(2px);
 }
 
-.plain-mode-hint {
-  margin-right: 8px;
-  color: rgba(255, 255, 255, 0.2);
-  font-size: 1.5rem;
-  font-style: italic;
-  pointer-events: none;
-}
-
 @keyframes practice-pulse {
   0%,
   100% {
@@ -475,3 +467,46 @@
   font-size: 0.7rem;
   line-height: 1.3;
 }
+
+/* --- Feedback --- */
+
+.feedback-fab {
+  position: fixed;
+  right: 32px;
+  bottom: 32px;
+  z-index: 60;
+  padding: 10px 18px;
+  border: 1px solid var(--border-strong);
+  border-radius: 9999px;
+  background-color: var(--bg-raised);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition:
+    background-color 0.2s,
+    color 0.2s,
+    border-color 0.2s;
+}
+
+.feedback-fab:hover,
+.feedback-fab[aria-pressed="true"] {
+  background-color: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.feedback-inline-status {
+  padding: 0 8px;
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+.feedback-inline-status--success {
+  color: var(--accent);
+}
+
+.feedback-inline-status--error {
+  color: #f87171;
+}
+

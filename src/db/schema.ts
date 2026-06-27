@@ -153,3 +153,17 @@ export const topicUsageLimits = pgTable(
 export type TopicUsageLimit = typeof topicUsageLimits.$inferSelect;
 export type NewTopicUsageLimit = typeof topicUsageLimits.$inferInsert;
 
+export const userFeedbacks = pgTable("user_feedbacks", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: varchar("user_id", { length: 255 })
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  message: text("message").notNull(),
+  language: varchar("language", { length: 10 }).notNull(),
+  ipAddress: varchar("ip_address", { length: 45 }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type UserFeedback = typeof userFeedbacks.$inferSelect;
+export type NewUserFeedback = typeof userFeedbacks.$inferInsert;
+

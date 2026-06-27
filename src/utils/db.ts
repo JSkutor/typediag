@@ -17,9 +17,11 @@ import {
   runs,
   pages,
   keyEvents,
+  userFeedbacks,
   type Run,
   type Page,
   type NewKeyEvent,
+  type UserFeedback,
 } from "@/db/schema";
 import { OPENAI_TOPIC_MODEL } from "@/lib/api/topicGenerateOpenAI";
 
@@ -519,5 +521,24 @@ export const db = {
     if (now - lastActiveAt > 3 * 60 * 1000) {
       await this.finalizeRun(latestRun.id, lastActiveStr);
     }
+  },
+
+  async createUserFeedback(data: {
+    user_id: string;
+    message: string;
+    language: string;
+    ip_address?: string;
+  }): Promise<UserFeedback> {
+    const [feedback] = await drizzleDb
+      .insert(userFeedbacks)
+      .values({
+        userId: data.user_id,
+        message: data.message,
+        language: data.language,
+        ipAddress: data.ip_address ?? null,
+      })
+      .returning();
+
+    return feedback;
   },
 };

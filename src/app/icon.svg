@@ -5,25 +5,26 @@
       <stop offset="100%" stop-color="#323640" />
     </linearGradient>
   </defs>
-  <rect x="2" y="4" width="28" height="25" rx="7" fill="rgba(12, 14, 16, 0.35)" />
+  <rect width="32" height="32" fill="#323640" />
+  <rect x="0" y="1" width="32" height="31" rx="7" fill="rgba(12, 14, 16, 0.35)" />
   <rect
-    x="2"
-    y="3"
-    width="28"
-    height="26"
+    x="0"
+    y="0"
+    width="32"
+    height="31"
     rx="7"
     fill="url(#keycap-top)"
     stroke="rgba(140, 166, 181, 0.2)"
     stroke-width="0.75"
   />
-  <rect x="3.5" y="4.5" width="25" height="5" rx="2.5" fill="#ffffff" opacity="0.06" />
+  <rect x="1" y="1" width="30" height="5.5" rx="2.75" fill="#ffffff" opacity="0.06" />
   <text
     x="16"
-    y="21.5"
+    y="22"
     text-anchor="middle"
     font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
     font-weight="700"
-    font-size="15"
+    font-size="19"
     fill="#4dc6e8"
   >
     T

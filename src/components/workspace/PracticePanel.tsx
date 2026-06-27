@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useTypingStore, TypingMode } from "@/store/useTypingStore";
+import { useFeedbackStore } from "@/store/useFeedbackStore";
 import { buildPracticeWordGroups } from "./practiceTextLayout";
 import { TopicLoadingOverlay } from "./TopicLoadingOverlay";
 import { useTopicFatalErrorReset } from "./useTopicFatalErrorReset";
@@ -9,13 +10,75 @@ import { getTopicRemainingLabel, getTopicLang } from "@/lib/practice/topicLoadin
 import { PracticeChar } from "./PracticeChar";
 import { TYPING_TEXT_CONTAINER_ID, usePracticeTextLayout } from "./usePracticeTextLayout";
 
-const TYPING_MODES: TypingMode[] = ["normal", "topic", "hardcore", "plain"];
+const TYPING_MODES: TypingMode[] = ["normal", "topic", "hardcore"];
+
+const FeedbackSubmitActions: React.FC = React.memo(function FeedbackSubmitActions() {
+  const typedText = useTypingStore((state) => state.typedText);
+  const targetLanguage = useTypingStore((state) => state.targetLanguage);
+  const setMode = useTypingStore((state) => state.setMode);
+  const submitStatus = useFeedbackStore((state) => state.submitStatus);
+  const submitError = useFeedbackStore((state) => state.submitError);
+  const resetSubmitStatus = useFeedbackStore((state) => state.resetSubmitStatus);
+  const submit = useFeedbackStore((state) => state.submit);
+
+  const isEn = targetLanguage === "en";
+  const isSubmitting = submitStatus === "submitting";
+  const isSuccess = submitStatus === "success";
+  const canSubmit = typedText.trim().length > 0 && !isSubmitting && !isSuccess;
+
+  if (isSuccess) {
+    return null;
+  }
+
+  return (
+    <div className="segment-pill" role="group" aria-label={isEn ? "Feedback actions" : "피드백 동작"}>
+      {submitError && (
+        <span className="feedback-inline-status feedback-inline-status--error" role="alert">
+          {submitError}
+        </span>
+      )}
+      <button
+        type="button"
+        className="segment-pill__btn"
+        onClick={() => {
+          resetSubmitStatus();
+          void setMode("normal");
+        }}
+        disabled={isSubmitting}
+      >
+        {isEn ? "cancel" : "취소"}
+      </button>
+      <button
+        type="button"
+        className="segment-pill__btn segment-pill__btn--active"
+        onClick={() => void submit()}
+        disabled={!canSubmit}
+      >
+        {isSubmitting
+          ? isEn
+            ? "sending..."
+            : "전송 중..."
+          : isEn
+            ? "send"
+            : "보내기"}
+      </button>
+    </div>
+  );
+});
 
 const PracticePanelToolbar: React.FC = React.memo(function PracticePanelToolbar() {
   const mode = useTypingStore((state) => state.mode);
   const setMode = useTypingStore((state) => state.setMode);
   const targetLanguage = useTypingStore((state) => state.targetLanguage);
   const setTargetLanguage = useTypingStore((state) => state.setTargetLanguage);
+  const resetSubmitStatus = useFeedbackStore((state) => state.resetSubmitStatus);
+
+  const handleModeChange = (nextMode: TypingMode) => {
+    if (mode === "feedback") {
+      resetSubmitStatus();
+    }
+    void setMode(nextMode);
+  };
 
   return (
     <div className="mode-selector-container">
@@ -25,7 +88,7 @@ const PracticePanelToolbar: React.FC = React.memo(function PracticePanelToolbar(
             key={m}
             type="button"
             className={`segment-pill__btn${mode === m ? " segment-pill__btn--active" : ""}`}
-            onClick={() => setMode(m)}
+            onClick={() => handleModeChange(m)}
           >
             {m}
           </button>
@@ -44,6 +107,8 @@ const PracticePanelToolbar: React.FC = React.memo(function PracticePanelToolbar(
           </button>
         ))}
       </div>
+
+      {mode === "feedback" ? <FeedbackSubmitActions /> : null}
     </div>
   );
 });
@@ -70,10 +135,6 @@ const TopicRemainingBadge: React.FC = React.memo(function TopicRemainingBadge() 
 const PracticeTypingText: React.FC = React.memo(function PracticeTypingText() {
   const diffResult = useTypingStore((state) => state.alignments);
   const qwertyBuffer = useTypingStore((state) => state.qwertyBuffer);
-  const mode = useTypingStore((state) => state.mode);
-  const targetLanguage = useTypingStore((state) => state.targetLanguage);
-
-  const isEn = targetLanguage === "en";
 
   const lastInputIndex = React.useMemo(() => {
     return diffResult.findLastIndex((d) => d.inputIndex !== undefined);
@@ -88,12 +149,6 @@ const PracticeTypingText: React.FC = React.memo(function PracticeTypingText() {
 
   return (
     <>
-      {mode === "plain" && qwertyBuffer.length === 0 && (
-        <span className="plain-mode-hint">
-          {isEn ? "Type freely here..." : "여기에 자유롭게 입력하세요..."}
-        </span>
-      )}
-      {diffResult.length === 0 && <span className="typing-cursor left" />}
       {wordGroups.map((group, groupIdx) => (
         <span key={`word-${groupIdx}`} className="word-wrapper">
           {group.items.map(({ index }) => {

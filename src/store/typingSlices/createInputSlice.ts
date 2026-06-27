@@ -6,6 +6,7 @@ import { topicInitialState, createTopicTopicActions } from "./createTopicSlice";
 import { normalInitialState, createNormalModeActions } from "./createNormalModeSlice";
 import { saveCurrentPageIfDone } from "./saveIfDone";
 import { createPhysicalKeyPressHandler } from "./physicalKeyPressHandler";
+import { buildFeedbackAlignments, buildFeedbackEmptyAlignments } from "@/lib/feedback/freeformTyping";
 
 const generateHardcoreText = (): string => {
   const randomLength = 70 + Math.floor(Math.random() * 21) - 10;
@@ -52,16 +53,15 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => {
           content: text,
           language: "ko",
         });
-      } else if (mode === "plain") {
+      } else if (mode === "feedback") {
         set({
           targetText: "",
-          targetLanguage: "ko",
-          targetId: "target_plain",
+          targetId: "feedback",
           typedText: "",
           maxTypedTextLength: 0,
           qwertyBuffer: "",
           mvsaCache: new Map(),
-          alignments: [],
+          alignments: buildFeedbackEmptyAlignments(),
           events: [],
           status: "idle",
           startedAt: null,
@@ -70,7 +70,7 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => {
           lastKeyAt: null,
           runInitPromise: null,
           pressedKeys: {},
-          normalPreviousTarget: null,
+          isTopicInputActive: false,
         });
       }
     },
@@ -81,24 +81,32 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => {
         return normalActions.onNormalLanguageChange(language);
       }
 
+      if (get().mode === "feedback") {
+        const isKorean = language === "ko";
+        set((state) => {
+          const nextTyped = isKorean
+            ? assembleHangulWithPunctuation(state.qwertyBuffer)
+            : state.qwertyBuffer;
+          return {
+            targetLanguage: language,
+            typedText: nextTyped,
+            alignments: buildFeedbackAlignments(nextTyped),
+          };
+        });
+        return;
+      }
+
       const isKorean = language === "ko";
       set((state) => {
         const nextTyped = isKorean
           ? assembleHangulWithPunctuation(state.qwertyBuffer)
           : state.qwertyBuffer;
-        let nextTargetText = state.targetText;
-        const nextTargetId = state.targetId;
-
-        if (state.mode === "plain") {
-          nextTargetText = nextTyped;
-        }
-
         return {
           targetLanguage: language,
-          targetText: nextTargetText,
-          targetId: nextTargetId,
+          targetText: state.targetText,
+          targetId: state.targetId,
           typedText: nextTyped,
-          alignments: runMvsa(nextTargetText, state.qwertyBuffer, isKorean, state.mvsaCache),
+          alignments: runMvsa(state.targetText, state.qwertyBuffer, isKorean, state.mvsaCache),
         };
       });
     },
@@ -156,8 +164,13 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => {
           content: text,
           language: "ko",
         });
-      } else if (mode === "plain") {
-        await get().reset();
+      } else if (mode === "feedback") {
+        set({
+          typedText: "",
+          maxTypedTextLength: 0,
+          qwertyBuffer: "",
+          alignments: buildFeedbackEmptyAlignments(),
+        });
       }
     },
 
@@ -167,13 +180,11 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => {
           state.targetLanguage === "ko" ||
           (state.targetLanguage === "en" && /[가-힣]/.test(state.targetText));
 
-        const targetText = state.mode === "plain" ? value : state.targetText;
         return {
-          targetText,
           typedText: value,
           qwertyBuffer: value,
           maxTypedTextLength: value.length,
-          alignments: runMvsa(targetText, value, isKorean, state.mvsaCache),
+          alignments: runMvsa(state.targetText, value, isKorean, state.mvsaCache),
         };
       }),
 

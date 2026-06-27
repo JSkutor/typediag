@@ -1,12 +1,13 @@
 import { useEffect } from "react";
 import { useTypingStore } from "@/store/useTypingStore";
 import { useWorkspaceStore } from "@/store/useWorkspaceStore";
+import { useFeedbackStore } from "@/store/useFeedbackStore";
 
 interface WorkspaceKeybindingsProps {
   onTransition: () => void;
 }
 
-// Map physical keyboard codes (e.code) to virtual keyboard keys (independent of language layout)
+// Map physical keyboard codes
 const PHYSICAL_KEY_MAP: Record<string, string> = {
   KeyQ: "q",
   KeyW: "w",
@@ -56,6 +57,27 @@ export function useWorkspaceKeybindings({ onTransition }: WorkspaceKeybindingsPr
       }
 
       if (uiState === "practice") {
+        const typingState = useTypingStore.getState();
+
+        if (typingState.mode === "feedback" && e.key === "Escape") {
+          e.preventDefault();
+          if (useFeedbackStore.getState().submitStatus !== "submitting") {
+            useFeedbackStore.getState().resetSubmitStatus();
+            void typingState.setMode("normal");
+          }
+          return;
+        }
+
+        if (
+          typingState.mode === "feedback" &&
+          e.key === "Enter" &&
+          (e.ctrlKey || e.metaKey)
+        ) {
+          e.preventDefault();
+          void useFeedbackStore.getState().submit();
+          return;
+        }
+
         if (e.repeat && e.code !== "Backspace") return;
         if (e.ctrlKey || e.metaKey || e.altKey) return;
 

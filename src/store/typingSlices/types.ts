@@ -4,7 +4,7 @@ import type { TopicErrorKey } from "@/lib/practice/topicLoading";
 import type { MvsaCache, AlignResult } from "@/utils/mvsa";
 
 export type SessionStatus = "idle" | "running" | "done";
-export type TypingMode = "normal" | "topic" | "hardcore" | "plain";
+export type TypingMode = "normal" | "topic" | "hardcore" | "feedback";
 
 export interface InputSlice {
   // Topic Mode 전용 상태

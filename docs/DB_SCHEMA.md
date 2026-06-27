@@ -114,6 +114,19 @@ Clerk 인증과 연동되는 사용자 정보를 저장합니다.
 - `expected_char`: 기대했던 정타 글자 (VARCHAR(10), Nullable)
 - `created_at`: 기록 생성 일시 (TimestampTZ, Not Null) **[Hypertable 파티션 키]**
 
+### 6. user_feedbacks (사용자 피드백)
+
+워크스페이스 피드백 오버레이에서 전송된 의견을 저장합니다. 타자 연습 `pages`/`key_events`와 분리됩니다.
+
+- `id`: 고유 식별값 (UUID, PK)
+- `user_id`: 사용자 식별값 (VARCHAR(255), FK, Not Null)
+- `message`: 피드백 본문 (TEXT, Not Null)
+- `language`: UI 언어 (`ko` \| `en`) (VARCHAR(10), Not Null)
+- `ip_address`: 요청 IP (VARCHAR(45), Nullable)
+- `created_at`: 생성 일시 (TimestampTZ, Not Null)
+
+일일 전송 한도: 유저당 10회 (`src/lib/api/feedbackRateLimiter.ts`).
+
 ---
 
 ## 주요 지표 계산 및 아키텍처

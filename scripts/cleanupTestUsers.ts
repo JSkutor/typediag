@@ -24,6 +24,7 @@ async function main() {
     DELETE FROM users
     WHERE id IN ('test_clerk_id', 'test_mock_clerk_id')
        OR id LIKE 'test_%'
+       OR id SIMILAR TO 'user_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
     RETURNING id
   `;
 

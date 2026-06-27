@@ -56,6 +56,7 @@ graphify-ts mcp 명령을 사용해 구조를 파악하라.
 | **HTTP API 명세**       | `docs/API.md`                    | 라우트 계약·상태 코드. 코드 SSOT는 `src/app/api/`.                           |
 | **MVSA 알고리즘**       | `src/utils/mvsa.ts`              | 실시간 한글 자소 대조 및 오타 판별 정렬 엔진. `docs/MVSA_ALGORITHM.md` 명세와 싱크 필요. |
 | **Topic API**           | `src/app/api/practice/topic/`    | 토픽 모드 벡터 검색(`route.ts`) 및 LLM 생성(`generate/route.ts`) 라우트 SSOT. OpenAI 호출·재시도·응답 파싱은 `src/lib/api/topicGenerateOpenAI.ts`. |
+| **피드백**              | `src/app/api/feedback/`, `src/components/workspace/feedback/`, `src/store/useFeedbackStore.ts`, `src/lib/feedback/freeformTyping.ts` | 연습 모드(`TypingMode`)와 분리. `user_feedbacks` 테이블. 일일 10회 제한: `feedbackRateLimiter.ts`. |
 | **Topic 클라이언트 상태** | `src/store/typingSlices/createTopicSlice.ts` | Topic 모드 Zustand slice. `docs/TOPIC_MODE.md`와 싱크 필요. |
 | **BM·단위경제** | `docs/BUSINESS_MODEL.md` | 비용·수익 발생 지점, 단가, 월간 산식 SSOT. 수치 구현: `src/lib/dev/costSimulation.ts`, `revenueSimulation.ts`, `platformScaling.ts`. |
 | **Cylindrical Diagnostics** | `docs/DIAGNOSTICS.md` §0 | **focusKey** / **reference·outgoing transition** 용어 SSOT. 1패스 누산: `buildDiagnosticsAccumulator` → `finalizeKeystrokeDiagnostics` (`src/utils/cylindricalStats/`). 훅: `useCylindricalDiagnostics.ts`. UI: `CylindricalDiagnosticsPanel.tsx`. |
