@@ -53,7 +53,11 @@ const FeedbackSubmitActions: React.FC = React.memo(function FeedbackSubmitAction
   }
 
   return (
-    <div className="segment-pill" role="group" aria-label={isEn ? "Feedback actions" : "피드백 동작"}>
+    <div
+      className="segment-pill"
+      role="group"
+      aria-label={isEn ? "Feedback actions" : "피드백 동작"}
+    >
       {submitError && (
         <span className="feedback-inline-status feedback-inline-status--error" role="alert">
           {submitError}
@@ -76,13 +80,7 @@ const FeedbackSubmitActions: React.FC = React.memo(function FeedbackSubmitAction
         onClick={() => void submit()}
         disabled={!canSubmit}
       >
-        {isSubmitting
-          ? isEn
-            ? "sending..."
-            : "전송 중..."
-          : isEn
-            ? "send"
-            : "보내기"}
+        {isSubmitting ? (isEn ? "sending..." : "전송 중...") : isEn ? "send" : "보내기"}
       </button>
     </div>
   );
@@ -109,15 +107,30 @@ const PracticePanelToolbar: React.FC = React.memo(function PracticePanelToolbar(
             type="button"
             className={`segment-pill__btn${mode === m ? " segment-pill__btn--active" : ""}`}
             onClick={() => handleModeChange(m)}
+            style={{ position: "relative" }}
           >
             {m}
+            {(m === "topic" || m === "hardcore") && mode === m && (
+              <span
+                style={{
+                  position: "absolute",
+                  top: "-22px",
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  fontSize: "12px",
+                  fontWeight: "bold",
+                  color: "#ff6b6b",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Beta Free
+              </span>
+            )}
           </button>
         ))}
       </div>
 
-      {EN_PUBLIC_ENABLED ? (
-        <LanguagePill />
-      ) : null}
+      {EN_PUBLIC_ENABLED ? <LanguagePill /> : null}
 
       {mode === "feedback" ? <FeedbackSubmitActions /> : null}
       <PageMetricsFlash />
@@ -216,12 +229,7 @@ const PracticeTextContainer: React.FC = React.memo(function PracticeTextContaine
     >
       {showTopicPracticeOverlay ? (
         <div className="typing-loading typing-loading--overlay">
-          <TopicLoadingOverlay
-            isActive
-            isEn={isEn}
-            variant="generate"
-            error={topicGenerateError}
-          />
+          <TopicLoadingOverlay isActive isEn={isEn} variant="generate" error={topicGenerateError} />
         </div>
       ) : null}
       {mode === "hardcore" && isEn ? (
@@ -248,10 +256,7 @@ export const PracticePanel: React.FC = () => {
   const resetTopicToGuideScreen = useTypingStore((state) => state.resetTopicToGuideScreen);
 
   const showTopicFatalError =
-    mode === "topic" &&
-    topicGenerateError != null &&
-    !isTopicLoading &&
-    !isTopicGenerating;
+    mode === "topic" && topicGenerateError != null && !isTopicLoading && !isTopicGenerating;
 
   useTopicFatalErrorReset(showTopicFatalError, resetTopicToGuideScreen);
 

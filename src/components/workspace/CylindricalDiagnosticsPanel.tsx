@@ -98,7 +98,26 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
   const displayFromKey = isDevMode && !fromKey ? "ㅏ" : fromKey;
 
   return (
-    <div className={`cyl-drawer ${isOpen ? "cyl-drawer--open" : ""}`}>
+    <div
+      className={`cyl-drawer ${isOpen ? "cyl-drawer--open" : ""}`}
+      style={{ position: "relative" }}
+    >
+      {isOpen && (
+        <span
+          style={{
+            position: "absolute",
+            top: "-28px",
+            left: "68px",
+            fontSize: "14px",
+            fontWeight: "bold",
+            color: "#ff6b6b",
+            zIndex: 100,
+            whiteSpace: "nowrap",
+          }}
+        >
+          Beta Free
+        </span>
+      )}
       <button
         type="button"
         className="cyl-drawer__toggle"
@@ -178,9 +197,7 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
 
                 {diagnostics.unconsciousKey !== null && (
                   <div className="cyl-diag__detailed-card cyl-diag__detailed-card--optional">
-                    <span className="cyl-diag__stat-lbl">
-                      무의식적으로 많이 치는 키
-                    </span>
+                    <span className="cyl-diag__stat-lbl">무의식적으로 많이 치는 키</span>
                     <div className="cyl-diag__penalty-content">
                       <span className="cyl-diag__penalty-count text-warning">
                         #{diagnostics.unconsciousKey.rank}
@@ -197,9 +214,7 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
 
                 {diagnostics.shiftPenalty !== null && (
                   <div className="cyl-diag__detailed-card cyl-diag__detailed-card--optional">
-                    <span className="cyl-diag__stat-lbl">
-                      시프트로 생기는 추가 지연
-                    </span>
+                    <span className="cyl-diag__stat-lbl">시프트로 생기는 추가 지연</span>
                     <div className="cyl-diag__penalty-content">
                       <span className="cyl-diag__penalty-val">
                         +{diagnostics.shiftPenalty.differenceMs.toFixed(1)} ms
@@ -267,9 +282,7 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
 
                 {diagnostics.commonPair !== null && (
                   <div className="cyl-diag__detailed-card cyl-diag__detailed-card--optional">
-                    <span className="cyl-diag__stat-lbl">
-                      가장 많이 사용한 연결
-                    </span>
+                    <span className="cyl-diag__stat-lbl">가장 많이 사용한 연결</span>
                     <div className="cyl-diag__penalty-content">
                       <span className="cyl-diag__penalty-count text-accent">
                         #{diagnostics.commonPair.rank}
@@ -316,9 +329,7 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
 
                 {diagnostics.fatalNgrams.length > 0 && (
                   <div className="cyl-diag__detailed-card cyl-diag__detailed-card--optional">
-                    <span className="cyl-diag__stat-lbl">
-                      취약한 흐름
-                    </span>
+                    <span className="cyl-diag__stat-lbl">취약한 흐름</span>
 
                     {diagnostics.fatalNgrams.map((entry, index) => (
                       <FatalNgramViz key={`${entry.sequence.join("→")}-${index}`} entry={entry} />
@@ -328,9 +339,7 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
 
                 {diagnostics.burstNgrams.length > 0 && (
                   <div className="cyl-diag__detailed-card cyl-diag__detailed-card--optional">
-                    <span className="cyl-diag__stat-lbl">
-                      초고속 구간
-                    </span>
+                    <span className="cyl-diag__stat-lbl">초고속 구간</span>
                     {diagnostics.burstNgrams.map((entry, index) => (
                       <BurstNgramViz
                         key={`burst-${entry.sequence.join("→")}-${index}`}

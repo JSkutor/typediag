@@ -10,34 +10,38 @@ export const WorkspaceControls: React.FC = () => {
   const showMockControls = isDevOnlyEnabled();
 
   return (
-    <div className="workspace-controls-container">
-      {showMockControls ? (
+    <>
+      {showMockControls && (
+        <div className="dev-controls-container">
+          <button
+            onClick={() => {
+              if (!isMockLoading) {
+                startMockDiagnostics();
+              }
+            }}
+            className="mock-apply-btn"
+            disabled={isMockLoading}
+          >
+            {isMockLoading ? "Loading Mock DB..." : "Apply Mock DB (local_db)"}
+          </button>
+        </div>
+      )}
+
+      <div className="workspace-controls-container">
         <button
           onClick={() => {
-            if (!isMockLoading) {
-              startMockDiagnostics();
+            if (uiState === "practice") {
+              const e = new KeyboardEvent("keydown", { key: "Tab" });
+              window.dispatchEvent(e);
+            } else {
+              setUiState("practice");
             }
           }}
-          className="mock-apply-btn"
-          disabled={isMockLoading}
+          className="mode-toggle-btn"
         >
-          {isMockLoading ? "Loading Mock DB..." : "Apply Mock DB (local_db)"}
+          {uiState === "practice" ? "Enter Diagnostics (Tab)" : "Return to Practice (Tab)"}
         </button>
-      ) : null}
-
-      <button
-        onClick={() => {
-          if (uiState === "practice") {
-            const e = new KeyboardEvent("keydown", { key: "Tab" });
-            window.dispatchEvent(e);
-          } else {
-            setUiState("practice");
-          }
-        }}
-        className="mode-toggle-btn"
-      >
-        {uiState === "practice" ? "Enter Diagnostics (Tab)" : "Return to Practice (Tab)"}
-      </button>
-    </div>
+      </div>
+    </>
   );
 };

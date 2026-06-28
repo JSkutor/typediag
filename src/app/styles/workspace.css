@@ -21,7 +21,17 @@
 .workspace-controls-container {
   position: absolute;
   top: 16px;
-  right: 32px;
+  left: 32px;
+  z-index: 50;
+  display: flex;
+  gap: 12px;
+}
+
+.dev-controls-container {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 50;
   display: flex;
   gap: 12px;
@@ -570,9 +580,9 @@
 /* --- Legal info menu --- */
 
 .legal-info-menu {
-  position: fixed;
-  left: 32px;
-  bottom: 32px;
+  position: absolute;
+  right: 32px;
+  top: 16px;
   z-index: 60;
 }
 
@@ -609,8 +619,8 @@
 
 .legal-info-dropdown {
   position: absolute;
-  left: 0;
-  bottom: calc(100% + 8px);
+  right: 0;
+  top: calc(100% + 8px);
   min-width: 180px;
   margin: 0;
   padding: 6px 0;
@@ -636,5 +646,118 @@
 .legal-info-dropdown a:hover {
   background-color: var(--bg-overlay);
   color: var(--text-primary);
+}
+
+/* --- Onboarding Guides --- */
+
+.onboarding-guide-container {
+  position: absolute;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 520px;
+  padding: 0 16px;
+}
+
+.onboarding-guide-banner {
+  background: rgba(30, 32, 36, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(140, 166, 181, 0.15);
+  border-left: 4px solid var(--accent);
+  padding: 14px 20px;
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: 0 12px 32px rgba(12, 14, 16, 0.5);
+  pointer-events: auto;
+  animation: guideSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.onboarding-guide-banner--purple {
+  border-left-color: var(--accent-secondary);
+}
+
+.onboarding-guide-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.onboarding-guide-icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+}
+
+.onboarding-guide-banner--purple .onboarding-guide-icon {
+  color: var(--accent-secondary);
+}
+
+.onboarding-guide-text {
+  font-weight: 500;
+}
+
+.onboarding-guide-kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  border: 1px solid rgba(140, 166, 181, 0.3);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 4px;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2);
+}
+
+.onboarding-guide-close {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.5rem;
+  font-weight: 300;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: color 0.15s, transform 0.15s;
+  border-radius: 4px;
+}
+
+.onboarding-guide-close:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+  transform: scale(1.05);
+}
+
+@keyframes guideSlideUp {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 16px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
 }
 
