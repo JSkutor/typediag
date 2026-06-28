@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getPostHogClient } from "@/lib/posthog-server";
 import { parseTopicRequest } from "@/lib/api/parseTopicRequest";
 import {
   TopicGenerateApiError,
@@ -50,11 +51,11 @@ export async function POST(req: NextRequest) {
     try {
       resolvedUser = await resolveApiUser(req);
     } catch (authError: unknown) {
-      const authErrorMessage = authError instanceof Error ? authError.message : "Unauthorized: Missing guest or user identification";
-      return NextResponse.json(
-        { error: authErrorMessage },
-        { status: 401 }
-      );
+      const authErrorMessage =
+        authError instanceof Error
+          ? authError.message
+          : "Unauthorized: Missing guest or user identification";
+      return NextResponse.json({ error: authErrorMessage }, { status: 401 });
     }
     const { userId, issueGuestToken } = resolvedUser;
 
@@ -62,11 +63,8 @@ export async function POST(req: NextRequest) {
     const limitCheck = await checkTopicRateLimit(req, userId, "generate");
     if (!limitCheck.allowed) {
       return NextResponse.json(
-        withGuestToken(
-          { error: "일일 생성 한도를 초과했습니다. (최대 15회)" },
-          issueGuestToken
-        ),
-        { status: 429 }
+        withGuestToken({ error: "일일 생성 한도를 초과했습니다. (최대 15회)" }, issueGuestToken),
+        { status: 429 },
       );
     }
 
@@ -75,10 +73,7 @@ export async function POST(req: NextRequest) {
 
     if (!sentences.sentences || sentences.sentences.length === 0) {
       const error = resolveTopicGenerateError(sentences);
-      return NextResponse.json(
-        withGuestToken({ error }, issueGuestToken),
-        { status: 422 }
-      );
+      return NextResponse.json(withGuestToken({ error }, issueGuestToken), { status: 422 });
     }
 
     const responseData = sentences.sentences.map((content) => ({
@@ -89,8 +84,15 @@ export async function POST(req: NextRequest) {
 
     void cacheTopicTargetsWithRetry(responseData.map((item) => ({ ...item, topic })));
 
+    const posthog = getPostHogClient();
+    posthog.capture({
+      distinctId: userId,
+      event: "topic_generated",
+      properties: { topic, sentence_count: responseData.length },
+    });
+
     return NextResponse.json(
-      withGuestToken({ success: true, data: responseData }, issueGuestToken)
+      withGuestToken({ success: true, data: responseData }, issueGuestToken),
     );
   } catch (error: unknown) {
     console.error("[generate/route] Error:", error);
@@ -101,10 +103,7 @@ export async function POST(req: NextRequest) {
         error.message === "OpenAI response truncated"
           ? TOPIC_GENERATE_TRUNCATED_ERROR
           : topicGenerateUserError(error.statusCode);
-      return NextResponse.json(
-        { error: userError },
-        { status: 503 }
-      );
+      return NextResponse.json({ error: userError }, { status: 503 });
     }
 
     return NextResponse.json(

@@ -1,3 +1,4 @@
+import posthog from "posthog-js";
 import { StoreSlice, SessionSlice } from "./types";
 import { sessionServiceClient as sessionService } from "@/services/sessionServiceClient";
 import { saveCurrentPageIfDone } from "./saveIfDone";
@@ -47,6 +48,13 @@ async function persistPageSave(
       wpm: result.wpm,
       accuracy: result.accuracy,
     },
+  });
+
+  posthog.capture("typing_page_completed", {
+    cpm: result.cpm,
+    wpm: result.wpm,
+    accuracy: result.accuracy,
+    target_language: save.targetLanguage,
   });
 }
 

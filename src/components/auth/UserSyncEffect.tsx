@@ -2,6 +2,7 @@
 
 import { useAuth } from "@clerk/nextjs";
 import { useEffect, useRef } from "react";
+import posthog from "posthog-js";
 import { clearStoredGuestId, getStoredGuestAuthHeaders } from "@/utils/guestUser";
 
 export function UserSyncEffect() {
@@ -24,12 +25,16 @@ export function UserSyncEffect() {
       method: "POST",
       headers,
     })
-      .then((response) => {
+      .then(async (response) => {
         if (!response.ok) {
           syncedRef.current = false;
           return;
         }
 
+        const data = await response.json();
+        if (data.userId) {
+          posthog.identify(data.userId);
+        }
         clearStoredGuestId();
       })
       .catch(() => {

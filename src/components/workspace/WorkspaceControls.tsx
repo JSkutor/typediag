@@ -1,4 +1,5 @@
 import React from "react";
+import posthog from "posthog-js";
 import { useWorkspaceStore } from "@/store/useWorkspaceStore";
 import { useDiagnosticsTransition } from "@/hooks/useDiagnosticsTransition";
 import { isDevOnlyEnabled } from "@/lib/api/isDevOnlyRoute";
@@ -31,6 +32,7 @@ export const WorkspaceControls: React.FC = () => {
         <button
           onClick={() => {
             if (uiState === "practice") {
+              posthog.capture("diagnostics_entered", { trigger: "button" });
               const e = new KeyboardEvent("keydown", { key: "Tab" });
               window.dispatchEvent(e);
             } else {

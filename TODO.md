@@ -10,8 +10,6 @@ mode 기능 이후에 기능 추가 없다.
 
 ## MVP
 
-TODO: 유저 트래킹 용 통계 달기
-
 TODO: 랜딩 페이지 문구들 수동 재확인
 
 TODO: batch default 다시 해야될듯. ' 제거 안됨.

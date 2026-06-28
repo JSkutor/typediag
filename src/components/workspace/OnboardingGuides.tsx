@@ -2,12 +2,13 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import posthog from "posthog-js";
 import { useWorkspaceStore } from "@/store/useWorkspaceStore";
 
 export const OnboardingGuides: React.FC = () => {
   const uiState = useWorkspaceStore((state) => state.uiState);
   const diagnosticMode = useWorkspaceStore((state) => state.diagnosticMode);
-  
+
   const [showTabGuide, setShowTabGuide] = useState(false);
   const [showLatencyClickGuide, setShowLatencyClickGuide] = useState(false);
   const [showPanelGuide, setShowPanelGuide] = useState(false);
@@ -78,16 +79,19 @@ export const OnboardingGuides: React.FC = () => {
   const dismissTabGuide = () => {
     localStorage.setItem("typediag_hide_tab_guide", "true");
     setShowTabGuide(false);
+    posthog.capture("onboarding_guide_dismissed", { guide: "tab" });
   };
 
   const dismissLatencyGuide = () => {
     localStorage.setItem("typediag_hide_latency_click_guide", "true");
     setShowLatencyClickGuide(false);
+    posthog.capture("onboarding_guide_dismissed", { guide: "latency_click" });
   };
 
   const dismissPanelGuide = () => {
     localStorage.setItem("typediag_hide_space_guide", "true");
     setShowPanelGuide(false);
+    posthog.capture("onboarding_guide_dismissed", { guide: "panel" });
   };
 
   if (!mounted) return null;
@@ -100,14 +104,11 @@ export const OnboardingGuides: React.FC = () => {
           <div className="onboarding-guide-content">
             <span className="onboarding-guide-icon">💡</span>
             <span className="onboarding-guide-text">
-              언제든지 <kbd className="onboarding-guide-kbd">Tab</kbd> 키를 누르면 3D 지연 진단(Diagnostics) 모드로 전환할 수 있습니다.
+              언제든지 <kbd className="onboarding-guide-kbd">Tab</kbd> 키를 누르면 3D 지연
+              진단(Diagnostics) 모드로 전환할 수 있습니다.
             </span>
           </div>
-          <button 
-            onClick={dismissTabGuide} 
-            className="onboarding-guide-close" 
-            aria-label="닫기"
-          >
+          <button onClick={dismissTabGuide} className="onboarding-guide-close" aria-label="닫기">
             &times;
           </button>
         </div>
@@ -122,12 +123,13 @@ export const OnboardingGuides: React.FC = () => {
           <div className="onboarding-guide-content">
             <span className="onboarding-guide-icon">💡</span>
             <span className="onboarding-guide-text">
-              3D 키보드 위에서 특정 키를 클릭하거나 해당 키를 누르면, 그 키의 3D 원통 분석(Cylindrical Diagnostics)을 볼 수 있습니다.
+              3D 키보드 위에서 특정 키를 클릭하거나 해당 키를 누르면, 그 키의 3D 원통
+              분석(Cylindrical Diagnostics)을 볼 수 있습니다.
             </span>
           </div>
-          <button 
-            onClick={dismissLatencyGuide} 
-            className="onboarding-guide-close" 
+          <button
+            onClick={dismissLatencyGuide}
+            className="onboarding-guide-close"
             aria-label="닫기"
           >
             &times;
@@ -144,14 +146,12 @@ export const OnboardingGuides: React.FC = () => {
           <div className="onboarding-guide-content">
             <span className="onboarding-guide-icon">💡</span>
             <span className="onboarding-guide-text">
-              <kbd className="onboarding-guide-kbd">Space</kbd> 키를 누르거나 우측의 <kbd className="onboarding-guide-kbd">›</kbd> 버튼을 클릭해 상세 진단 패널을 열어보세요.
+              <kbd className="onboarding-guide-kbd">Space</kbd> 키를 누르거나 우측의{" "}
+              <kbd className="onboarding-guide-kbd">›</kbd> 버튼을 클릭해 상세 진단 패널을
+              열어보세요.
             </span>
           </div>
-          <button 
-            onClick={dismissPanelGuide} 
-            className="onboarding-guide-close" 
-            aria-label="닫기"
-          >
+          <button onClick={dismissPanelGuide} className="onboarding-guide-close" aria-label="닫기">
             &times;
           </button>
         </div>

@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import posthog from "posthog-js";
 import { useTypingStore } from "@/store/useTypingStore";
 import { useWorkspaceStore } from "@/store/useWorkspaceStore";
 import { runPipeline, buildLayout, triangulate, type KeyEvent } from "@/lib/skdm";
@@ -44,6 +45,7 @@ export function useDiagnosticsTransition() {
     const { triangles } = triangulate(results);
 
     setAnalysisData(results, triangles, eventsToAnalyze);
+    posthog.capture("diagnostics_entered", { trigger: "tab", event_count: eventsToAnalyze.length });
     setUiState("diagnostics");
     setDiagnosticMode("surface");
   }, [setAnalysisData, setUiState, setDiagnosticMode]);

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getPostHogClient } from "@/lib/posthog-server";
 import { parseTopicRequest } from "@/lib/api/parseTopicRequest";
 import { drizzleDb } from "@/db";
 import { targetTexts } from "@/db/schema";
@@ -20,11 +21,11 @@ export async function POST(req: NextRequest) {
     try {
       resolvedUser = await resolveApiUser(req);
     } catch (authError: unknown) {
-      const authErrorMessage = authError instanceof Error ? authError.message : "Unauthorized: Missing guest or user identification";
-      return NextResponse.json(
-        { error: authErrorMessage },
-        { status: 401 }
-      );
+      const authErrorMessage =
+        authError instanceof Error
+          ? authError.message
+          : "Unauthorized: Missing guest or user identification";
+      return NextResponse.json({ error: authErrorMessage }, { status: 401 });
     }
     const { userId, issueGuestToken } = resolvedUser;
 
@@ -32,11 +33,8 @@ export async function POST(req: NextRequest) {
     const limitCheck = await checkTopicRateLimit(req, userId, "search");
     if (!limitCheck.allowed) {
       return NextResponse.json(
-        withGuestToken(
-          { error: "일일 검색 한도를 초과했습니다. (최대 100회)" },
-          issueGuestToken
-        ),
-        { status: 429 }
+        withGuestToken({ error: "일일 검색 한도를 초과했습니다. (최대 100회)" }, issueGuestToken),
+        { status: 429 },
       );
     }
 
@@ -86,13 +84,18 @@ export async function POST(req: NextRequest) {
     if (!results || results.length === 0) {
       return NextResponse.json(
         withGuestToken({ error: "No matching targets found" }, issueGuestToken),
-        { status: 404 }
+        { status: 404 },
       );
     }
 
-    return NextResponse.json(
-      withGuestToken({ success: true, data: results }, issueGuestToken)
-    );
+    const posthog = getPostHogClient();
+    posthog.capture({
+      distinctId: userId,
+      event: "topic_searched",
+      properties: { topic, result_count: results.length },
+    });
+
+    return NextResponse.json(withGuestToken({ success: true, data: results }, issueGuestToken));
   } catch (error: unknown) {
     console.error("Topic Mode Search Error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

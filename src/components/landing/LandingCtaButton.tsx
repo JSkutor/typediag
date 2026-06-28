@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import posthog from "posthog-js";
 import type { LandingLang } from "@/lib/i18n/lang";
 import { getLandingCopy } from "@/lib/i18n/landing";
 
@@ -34,7 +37,12 @@ export function LandingCtaButton({
   const label = getLandingCopy(lang).hero.cta;
 
   return (
-    <Link href={`/${lang}/practice`} className={className} id={id}>
+    <Link
+      href={`/${lang}/practice`}
+      className={className}
+      id={id}
+      onClick={() => posthog.capture("cta_clicked", { lang })}
+    >
       {label}
       <CtaArrowIcon />
     </Link>

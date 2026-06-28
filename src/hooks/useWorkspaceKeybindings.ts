@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import posthog from "posthog-js";
 import { useTypingStore } from "@/store/useTypingStore";
 import { useWorkspaceStore } from "@/store/useWorkspaceStore";
 import { useFeedbackStore } from "@/store/useFeedbackStore";
@@ -68,11 +69,7 @@ export function useWorkspaceKeybindings({ onTransition }: WorkspaceKeybindingsPr
           return;
         }
 
-        if (
-          typingState.mode === "feedback" &&
-          e.key === "Enter" &&
-          (e.ctrlKey || e.metaKey)
-        ) {
+        if (typingState.mode === "feedback" && e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
           e.preventDefault();
           void useFeedbackStore.getState().submit();
           return;
@@ -113,6 +110,7 @@ export function useWorkspaceKeybindings({ onTransition }: WorkspaceKeybindingsPr
           if (mappedKey) {
             setDiagnosticMode("cylindrical");
             setFocusedKey(mappedKey);
+            posthog.capture("diagnostics_key_focused", { key: mappedKey, trigger: "keyboard" });
           }
         }
       }

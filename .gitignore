@@ -53,6 +53,8 @@ __pycache__/
 # agent / tooling (regeneratable or IDE-local)
 /graphify-out/
 .cursor/
+.claude/
+posthog-setup-report.md
 
 # data generation pipeline
 scripts/data/
@@ -63,4 +65,3 @@ scripts/data/
 src/data/targets.json*
 src/data/targets_vector.json
 src/data/local_db.json
-

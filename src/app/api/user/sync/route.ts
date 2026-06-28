@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { getPostHogClient } from "@/lib/posthog-server";
 import { eq } from "drizzle-orm";
 import { drizzleDb } from "@/db";
 import { users } from "@/db/schema";
@@ -46,8 +47,18 @@ export async function POST(request: NextRequest) {
       const guestUser = guestRows[0];
       if (guestUser && guestUser.id !== user.id) {
         await db.mergeGuestData(guestUser.id, user.id);
+        const posthog = getPostHogClient();
+        posthog.capture({
+          distinctId: user.id,
+          event: "user_signed_up",
+          properties: { guest_merged: true },
+        });
+        posthog.alias({ distinctId: user.id, alias: guestUser.id });
       }
     }
+
+    const posthog = getPostHogClient();
+    posthog.identify({ distinctId: user.id });
 
     return NextResponse.json({ success: true, userId: user.id });
   } catch (err: unknown) {

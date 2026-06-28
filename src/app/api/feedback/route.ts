@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getPostHogClient } from "@/lib/posthog-server";
 import { db } from "@/utils/db";
 import { formatDbErrorForClient, logDbError } from "@/utils/dbErrors";
 import { GuestAuthError } from "@/utils/guestAuth";
@@ -38,6 +39,13 @@ export async function POST(request: NextRequest) {
       message: parsed.data.message,
       language: parsed.data.language,
       ip_address: getClientIp(request),
+    });
+
+    const posthog = getPostHogClient();
+    posthog.capture({
+      distinctId: userId,
+      event: "feedback_submitted",
+      properties: { language: parsed.data.language },
     });
 
     return NextResponse.json(withGuestToken({ success: true }, issueGuestToken));

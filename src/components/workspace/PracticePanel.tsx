@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import posthog from "posthog-js";
 import { useTypingStore, TypingMode } from "@/store/useTypingStore";
 import { useFeedbackStore } from "@/store/useFeedbackStore";
 import { buildPracticeWordGroups } from "./practiceTextLayout";
@@ -95,6 +96,7 @@ const PracticePanelToolbar: React.FC = React.memo(function PracticePanelToolbar(
     if (mode === "feedback") {
       resetSubmitStatus();
     }
+    posthog.capture("typing_mode_changed", { from_mode: mode, to_mode: nextMode });
     void setMode(nextMode);
   };
 
