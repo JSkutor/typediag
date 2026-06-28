@@ -10,8 +10,29 @@ import { getTopicRemainingLabel, getTopicLang } from "@/lib/practice/topicLoadin
 import { PracticeChar } from "./PracticeChar";
 import { PageMetricsFlash } from "./PageMetricsFlash";
 import { TYPING_TEXT_CONTAINER_ID, usePracticeTextLayout } from "./usePracticeTextLayout";
+import { EN_PUBLIC_ENABLED } from "@/lib/i18n/lang";
 
 const TYPING_MODES: TypingMode[] = ["normal", "topic", "hardcore"];
+
+const LanguagePill: React.FC = React.memo(function LanguagePill() {
+  const targetLanguage = useTypingStore((state) => state.targetLanguage);
+  const setTargetLanguage = useTypingStore((state) => state.setTargetLanguage);
+
+  return (
+    <div className="segment-pill" role="group" aria-label="Language">
+      {(["ko", "en"] as const).map((lang) => (
+        <button
+          key={lang}
+          type="button"
+          className={`segment-pill__btn segment-pill__btn--lang${targetLanguage === lang ? " segment-pill__btn--active" : ""}`}
+          onClick={() => setTargetLanguage(lang)}
+        >
+          {lang}
+        </button>
+      ))}
+    </div>
+  );
+});
 
 const FeedbackSubmitActions: React.FC = React.memo(function FeedbackSubmitActions() {
   const typedText = useTypingStore((state) => state.typedText);
@@ -70,8 +91,6 @@ const FeedbackSubmitActions: React.FC = React.memo(function FeedbackSubmitAction
 const PracticePanelToolbar: React.FC = React.memo(function PracticePanelToolbar() {
   const mode = useTypingStore((state) => state.mode);
   const setMode = useTypingStore((state) => state.setMode);
-  const targetLanguage = useTypingStore((state) => state.targetLanguage);
-  const setTargetLanguage = useTypingStore((state) => state.setTargetLanguage);
   const resetSubmitStatus = useFeedbackStore((state) => state.resetSubmitStatus);
 
   const handleModeChange = (nextMode: TypingMode) => {
@@ -96,18 +115,9 @@ const PracticePanelToolbar: React.FC = React.memo(function PracticePanelToolbar(
         ))}
       </div>
 
-      <div className="segment-pill" role="group" aria-label="Language">
-        {(["ko", "en"] as const).map((lang) => (
-          <button
-            key={lang}
-            type="button"
-            className={`segment-pill__btn segment-pill__btn--lang${targetLanguage === lang ? " segment-pill__btn--active" : ""}`}
-            onClick={() => setTargetLanguage(lang)}
-          >
-            {lang}
-          </button>
-        ))}
-      </div>
+      {EN_PUBLIC_ENABLED ? (
+        <LanguagePill />
+      ) : null}
 
       {mode === "feedback" ? <FeedbackSubmitActions /> : null}
       <PageMetricsFlash />

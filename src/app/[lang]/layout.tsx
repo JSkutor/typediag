@@ -1,12 +1,17 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
-import { SUPPORTED_LANGS, isValidLang } from "@/lib/i18n/lang";
+import {
+  EN_PUBLIC_ENABLED,
+  getPublicLangs,
+  isPublicLangRoute,
+  isValidLang,
+} from "@/lib/i18n/lang";
 import { getLandingCopy } from "@/lib/i18n/landing";
 
 type Params = Promise<{ lang: string }>;
 
 export function generateStaticParams() {
-  return SUPPORTED_LANGS.map((lang) => ({ lang }));
+  return getPublicLangs().map((lang) => ({ lang }));
 }
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
@@ -19,10 +24,14 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     title: copy.meta.title,
     description: copy.meta.description,
     alternates: {
-      languages: {
-        ko: "/ko",
-        en: "/en",
-      },
+      languages: EN_PUBLIC_ENABLED
+        ? {
+            ko: "/ko",
+            en: "/en",
+          }
+        : {
+            ko: "/ko",
+          },
     },
   };
 }
@@ -37,6 +46,9 @@ export default async function LangLayout({
   const { lang } = await params;
   if (!isValidLang(lang)) {
     notFound();
+  }
+  if (!isPublicLangRoute(lang)) {
+    redirect("/ko");
   }
   return children;
 }

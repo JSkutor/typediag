@@ -1,5 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { SUPPORTED_LANGS, isValidLang, resolveLangFromAcceptLanguage } from "@/lib/i18n/lang";
+import {
+  SUPPORTED_LANGS,
+  EN_PUBLIC_ENABLED,
+  getDefaultPublicLang,
+  getPublicLangs,
+  isPublicLangRoute,
+  isValidLang,
+  resolveLangFromAcceptLanguage,
+} from "@/lib/i18n/lang";
 import { getLandingCopy } from "@/lib/i18n/landing";
 
 describe("i18n/lang", () => {
@@ -9,6 +17,14 @@ describe("i18n/lang", () => {
     expect(isValidLang("en")).toBe(true);
     expect(isValidLang("fr")).toBe(false);
     expect(isValidLang("")).toBe(false);
+  });
+
+  it("gates public en routes behind EN_PUBLIC_ENABLED", () => {
+    expect(EN_PUBLIC_ENABLED).toBe(false);
+    expect(isPublicLangRoute("ko")).toBe(true);
+    expect(isPublicLangRoute("en")).toBe(false);
+    expect(getPublicLangs()).toEqual(["ko"]);
+    expect(getDefaultPublicLang()).toBe("ko");
   });
 
   it("resolves Accept-Language with ko preference", () => {
