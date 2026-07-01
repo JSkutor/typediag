@@ -10,6 +10,9 @@ mode 기능 이후에 기능 추가 없다.
 
 ## MVP
 
+TOFIX: [PostHog.js] [SessionRecording] "could not load recorder" {}
+
+
 TODO: 랜딩 페이지 문구들 수동 재확인
 
 TODO: batch default 다시 해야될듯. ' 제거 안됨.

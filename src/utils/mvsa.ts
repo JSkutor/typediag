@@ -262,7 +262,7 @@ export class MaximumValidSequenceAligner {
     if (tIdx < wordTarget.length) {
       for (let t = tIdx; t < wordTarget.length; t++) {
         results.push({
-          op: "PENDING",
+          op: isCompleted ? "OMIT" : "PENDING",
           char: "",
           targetChar: wordTarget[t],
           targetIndex: targetOffset + t,

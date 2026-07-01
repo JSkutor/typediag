@@ -166,4 +166,14 @@ describe("MVSA (Maximum Valid Sequence Aligner)", () => {
       { op: "INSERT", char: "c", inputIndex: 3 },
     ]);
   });
+
+  it("should mark trailing characters as OMIT when a word is completed early with space", () => {
+    // target: 학교, typed: 학 + space (gkr )
+    const result = runMvsa("학교", "gkr ", true);
+    expect(result).toEqual([
+      { op: "EQUAL", char: "학", targetChar: "학", targetIndex: 0, inputIndex: 2 },
+      { op: "OMIT", char: "", targetChar: "교", targetIndex: 1 },
+      { op: "INSERT", char: " ", inputIndex: 3 },
+    ]);
+  });
 });
