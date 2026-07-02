@@ -40,8 +40,8 @@ export function DiagnosisPreview({ lang }: DiagnosisPreviewProps) {
             <span className="diagnosis-card-label">{t.beforeLabel}</span>
             <div className="diagnosis-stat-row">
               <div className="diagnosis-stat">
-                <span className="diagnosis-stat-value">87</span>
-                <span className="diagnosis-stat-unit">WPM</span>
+                <span className="diagnosis-stat-value">{t.beforeValue}</span>
+                <span className="diagnosis-stat-unit">{t.beforeUnit}</span>
               </div>
               <div className="diagnosis-stat">
                 <span className="diagnosis-stat-value">96</span>
@@ -62,8 +62,8 @@ export function DiagnosisPreview({ lang }: DiagnosisPreviewProps) {
             </span>
 
             <div className="diagnosis-highlight">
-              <span className="diagnosis-highlight-key">R → T</span>
-              <span className="diagnosis-highlight-ms">340ms</span>
+              <span className="diagnosis-highlight-key">{t.slowTransitions[0]?.pair || "R → T"}</span>
+              <span className="diagnosis-highlight-ms">{t.slowTransitions[0]?.ms ? `${t.slowTransitions[0].ms}ms` : "340ms"}</span>
               <span className="diagnosis-highlight-tag">{t.bottleneck}</span>
             </div>
 

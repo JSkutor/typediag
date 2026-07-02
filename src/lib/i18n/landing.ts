@@ -33,6 +33,8 @@ export interface LandingCopy {
     dimensionsLabel: string;
     dimensions: string[];
     beforeLabel: string;
+    beforeValue: string;
+    beforeUnit: string;
     afterLabel: string;
     beforeNote: string;
     bottleneck: string;
@@ -71,120 +73,133 @@ export interface LandingCopy {
 const COPY: Record<LandingLang, LandingCopy> = {
   ko: {
     meta: {
-      title: "TypeDiag — 공간 타건 동역학 타자연습",
+      title: "TypeDiag — 3D 지연 지형 기반 공간 타건 동역학 타자연습",
       description:
-        "물리적 키 입력을 직접 캡처해 공간 타건 동역학(SKDM)으로 분석하는 차세대 타자연습 플랫폼.",
+        "글자 간 미세한 지연과 키 입력 습관을 3D 지형으로 시각화하여 오타와 타이핑 병목을 진단하는 차세대 타자연습 플랫폼.",
     },
     nav: { practice: "연습", dashboard: "대시보드", getStarted: "시작하기" },
     hero: {
-      eyebrow: "타자 속도가 아니라, 타자 습관",
-      headlinePrimary: "더 똑똑하게 타이핑하고,",
-      headlineAccent: "더 깊이 진단하세요.",
+      eyebrow: "단순한 CPM 측정을 넘어선 3D 공간 타건 진단",
+      headlinePrimary: "3D 지연 지형으로",
+      headlineAccent: "타이핑 병목을 진단하다",
       subtitle:
-        "TypeDiag는 얼마나 빠른지가 아니라, 어디서 막히는지 알려줍니다. 키보드 위 약점 지도로 병목을 한눈에 확인하세요.",
-      cta: "무료 진단 시작하기",
-      secondaryLink: "작동 원리 보기",
+        "TypeDiag는 단순한 타자 속도 측정을 넘어, 키보드 위에서 손가락이 머뭇거리는 지연 구간을 3D 지형으로 보여줍니다. 나만의 진짜 타이핑 병목을 눈으로 직접 확인하세요.",
+      cta: "진단 시작하기",
+      secondaryLink: "작동 원리",
       scroll: "스크롤",
     },
     problem: {
       eyebrow: "이런 경험, 있으시죠",
-      title: "속도는 괜찮은데, 왜 여기서만 막히지?",
+      title: "평균 속도는 괜찮은데, 왜 특정 키에서만 멈출까?",
       subtitle:
-        "대부분의 타자 테스트는 '얼마나 빠른지'만 알려줍니다. '어디서 막히는지'는 알려주지 않죠.",
+        "기존의 단순 타자 연습기는 '얼마나 빠른지'만 알려줍니다. 손가락이 꼬이고 머뭇거리는 '진짜 병목'은 찾아내지 못합니다.",
       pains: [
         {
-          quote: "WPM은 오르는데, 체감 속도는 그대로예요.",
-          detail: "평균 속도만 보면 놓치는 구간별 병목이 있습니다.",
+          quote: "실제 타이핑 속도가 CPM 처럼 오르지 않아요.",
+          detail: "전체 평균 뒤에 숨은 특정 입력 흐름 중의 미세한 지연 병목이 원인입니다.",
         },
         {
-          quote: "특정 키 조합에서만 자꾸 멈춰요.",
-          detail: "R→T, ㅅ→ㅎ, Shift 조합… 반복되는 약점이 있습니다.",
+          quote: "특정 키 조합에서 자꾸 버벅거려요.",
+          detail: "물리적 거리와 손가락 움직임에 따른 고유의 취약 전환 구간이 존재하기 때문입니다.",
         },
         {
-          quote: "오타 원인을 모르니 같은 실수를 반복해요.",
-          detail: "어디서 망설이는지 모르면 연습은 추측에 그칩니다.",
+          quote: "오타를 개선하기 힘들어요.",
+          detail:
+            "자신의 흔한 오타 패턴이나 키 입력 순서가 뒤바뀌는 부분이 있는 곳을 모르면 교정하기 어렵습니다.",
         },
       ],
     },
     howItWorks: {
       eyebrow: "작동 방식",
-      title: "타이핑 습관을 아는 세 단계",
-      subtitle: "설정도, 전문 용어도 필요 없습니다. 타이핑하고 어디가 막히는지 확인하세요.",
+      title: "타이핑 습관을 시각화하는 세 단계",
+      subtitle: "설정 없이 바로 타이핑을 시작하세요. 정교한 분석 파이프라인이 뒤에서 작동합니다.",
       steps: [
         {
           num: "01",
-          title: "평소처럼 타이핑",
-          desc: "평소처럼 타이핑하세요. 어떤 키를 눌렀는지, 얼마나 누르고 있었는지, 다음 키까지 얼마나 걸렸는지 모두 기록됩니다.",
+          title: "실시간 키 이벤트 수집",
+          desc: "평소대로 자연스럽게 타이핑하는 동안, 키를 누르고 떼는 타이밍과 각 키 사이의 이동 간격을 밀리초(ms) 단위로 정밀하게 기록합니다.",
         },
         {
           num: "02",
-          title: "약점 패턴 분석",
-          desc: "평균 속도가 아니라, 손가락이 막히는 지점을 분석합니다. 어떤 키 조합에서 멈추는지 패턴으로 찾아냅니다.",
+          title: "3D 공간 지연 시각화",
+          desc: "지연 데이터를 3D 키보드 지형으로 즉시 변환합니다. 타이핑 중 유독 머뭇거리거나 버벅거리는 위치가 입체적인 높낮이로 화면에 그려집니다.",
         },
         {
           num: "03",
-          title: "약점 지도로 시각화",
-          desc: "병목 구간이 키보드 위 3D 지형의 봉우리로 나타납니다. 높을수록 느린 구간 — 수식 없이 한눈에 파악할 수 있습니다.",
+          title: "다양한 타건 통계 진단",
+          desc: "키를 완전히 떼기 전에 다음 키를 누르는 물 흐르듯 흘려 누르는 구름타법 실력, 자주 꼬여서 입력되는 입력 쌍, 그리고 연속 글자 오타 패턴을 정밀하게 분석해 냅니다.",
         },
       ],
     },
     diagnosis: {
       eyebrow: "진단 리포트",
-      title: "연습 한 번이면, 이런 리포트가 나옵니다",
-      subtitle: "점수만이 아닙니다. 어떤 키 전환이 당신을 막고 있는지 정확히 보여줍니다.",
+      title: "단 한 번의 연습으로 도출되는 정밀 진단",
+      subtitle:
+        "단순한 점수를 넘어, 당신의 타이핑 흐름을 막아서는 병목 키와 지연 요인을 정확히 짚어냅니다.",
       dimensionsLabel: "6가지 진단 관점",
-      dimensions: ["누름", "이동", "Shift", "머뭇거림", "오타", "손가락 부하"],
-      beforeLabel: "일반 타자 테스트",
-      afterLabel: "TypeDiag",
-      beforeNote: "전체적으로 빠르다고요? 그럼 어디가 느린 건가요?",
+      dimensions: [
+        "키 누름",
+        "키 간 이동",
+        "시프트 지연",
+        "머뭇거림 비율",
+        "오타 유발",
+        "손가락 부하",
+      ],
+      beforeLabel: "일반 타자 연습",
+      beforeValue: "435",
+      beforeUnit: "CPM",
+      afterLabel: "TypeDiag 진단",
+      beforeNote: "평균 CPM은 빠른데, 특정 자모 전환에서는 병목이 걸리지 않나요?",
       bottleneck: "병목",
-      insight: "왼손 새끼손가락 구간에서 지연이 집중됩니다. 집중 연습을 권장합니다.",
+      insight:
+        "왼손 검지 R→T 구간과 특정 키 전환 시 미세한 지연이 발견되었습니다. 해당 구간의 3D 정밀 진단 분석을 확인하세요.",
       barsTitle: "가장 느린 키 전환",
       slowTransitions: [
         { pair: "R → T", ms: 340, bar: 92 },
-        { pair: "ㅅ → ㅎ", ms: 285, bar: 78 },
+        { pair: "O → P", ms: 285, bar: 78 },
         { pair: "Shift → P", ms: 241, bar: 66 },
         { pair: "L → ;", ms: 198, bar: 54 },
         { pair: "Space → A", ms: 176, bar: 48 },
       ],
     },
     weaknessMap: {
-      eyebrow: "약점 지도",
-      title: "손가락이 막히는 곳이 보입니다",
+      eyebrow: "지연 지형",
+      title: "손가락이 멈추는 물리적 공간의 높이",
       subtitle:
-        "3D 지형에서 봉우리가 높을수록 느린 구간입니다. 어떤 키 전환이 흐름을 막는지 직관적으로 파악하세요.",
-      pills: ["느린 키 전환 하이라이트", "손가락별 부하 보기", "타이핑 중 실시간 업데이트"],
+        "키보드 위에서 손가락이 멈칫하거나 버벅거리는 지점을 입체적인 높낮이로 시각화합니다. 봉우리가 높을수록 더 많이 지체되는 나만의 병목 구간입니다.",
+      pills: ["느린 키 전환 하이라이트", "손가락별 부하 시각화", "타이핑 실시간 3D 업데이트"],
     },
     features: {
       eyebrow: "연습 모드",
-      title: "원하는 방식으로 연습하세요",
-      subtitle: "당신만의 타건 병목을 드러내고 개선하도록 설계된 연습 모드입니다.",
+      title: "약점을 직접 공략하도록 설계된 연습 환경",
+      subtitle: "실시간 알고리즘과 신경망 모델이 당신의 분석 데이터를 토대로 연습을 지원합니다.",
       items: [
         {
           title: "토픽 모드",
-          desc: "React, 경제학, K-pop… 관심 있는 주제를 입력하면 AI가 맞춤 문장을 실시간 생성합니다. 같은 문장 반복 없음.",
+          desc: "관심 있는 주제를 입력하면 관련된 내용을 담고 있는 제시문을 AI가 즉시 생성해줍니다.",
         },
         {
           title: "하드코어 모드",
-          desc: "평소 피하는 조합만 골라 연습합니다. 손에 익지 않은 희귀한 자모 결합을 생성해 약점을 집중 단련합니다.",
+          desc: "자주 쓰이지 않거나 본인이 평소에 버벅거리고 오타를 자주 내는 취약한 글자 조합을 모아 맞춤형 훈련 문장을 생성합니다.",
         },
         {
-          title: "가입 없이 시작",
-          desc: "페이지를 열고 바로 타이핑하세요. 세션은 자동 저장되며, 원할 때 나중에 로그인해도 됩니다.",
+          title: "게스트 세션 보존",
+          desc: "가입 없이 바로 연습을 시작해도 연습 세션을 저장하고, 추후 로그인 시 안전하게 데이터를 연동합니다.",
         },
         {
-          title: "실시간 진단",
-          desc: "연습 중에도 진단 화면으로 전환할 수 있습니다. 키 전환마다 밀리초 단위로 측정되며, 약점 지도가 실시간으로 업데이트됩니다.",
+          title: "실시간 3D 진단",
+          desc: "연습 도중 화면 전환을 통해, 타이핑에 따라 실시간으로 업데이트되는 3D 지연 지형과 다양한 분석 결과를 직접 확인할 수 있습니다.",
         },
       ],
     },
     cta: {
       eyebrow: "시작할 준비가 됐나요?",
-      titleLine1: "병목을 찾아내세요.",
+      titleLine1: "병목을 찾아내고,",
       titleLine2: "한계를 돌파하세요.",
-      subtitle: "타이핑을 시작하세요. TypeDiag가 어디를 고쳐야 할지 정확히 알려드립니다.",
+      subtitle:
+        "타이핑을 시작하세요. TypeDiag가 당신의 3D 공간 타건 지연을 완벽하게 분석해 드립니다.",
       button: "무료 진단 시작하기",
-      note: "회원가입 불필요 · 브라우저에서 바로 실행 · 영원히 무료",
+      note: "회원가입, 설치 없이 무료로 시작",
     },
     footer: {
       practice: "연습하기",
@@ -195,17 +210,17 @@ const COPY: Record<LandingLang, LandingCopy> = {
   },
   en: {
     meta: {
-      title: "TypeDiag — Spatial Keystroke Dynamics Typing Practice",
+      title: "TypeDiag — 3D Visual Keystroke Dynamics & Typing Practice",
       description:
-        "A next-generation typing platform that captures physical key input and analyzes it with Spatial Keystroke Dynamics (SKDM).",
+        "A next-generation typing platform that captures physical key timing and visualizes your typing bottlenecks on a 3D keyboard landscape.",
     },
     nav: { practice: "Practice", dashboard: "Dashboard", getStarted: "Get Started" },
     hero: {
-      eyebrow: "Not WPM — typing habits",
+      eyebrow: "Beyond Speed — 3D Spatial Typing Diagnostics",
       headlinePrimary: "Type Smarter.",
       headlineAccent: "Diagnose Deeper.",
       subtitle:
-        "TypeDiag shows you where your fingers get stuck — not just how fast you type. See your weak spots on a 3D keyboard map.",
+        "TypeDiag doesn't just show average speed. It reveals your custom typing bottlenecks on a 3D keyboard landscape, showing you exactly where your fingers hesitate.",
       cta: "Start Free Diagnostics",
       secondaryLink: "See how it works",
       scroll: "scroll",
@@ -214,59 +229,65 @@ const COPY: Record<LandingLang, LandingCopy> = {
       eyebrow: "Sound Familiar?",
       title: "Speed isn't the whole story.",
       subtitle:
-        "Most typing tests tell you how fast you are. They don't tell you where you're stuck.",
+        "Most typing tests only tell you how fast you type. They completely hide the specific key transitions where you hesitate and stall.",
       pains: [
         {
-          quote: "My WPM goes up, but it doesn't feel any faster.",
-          detail: "Averages hide the specific transitions slowing you down.",
+          quote: "My average WPM goes up, but typing still feels sluggish.",
+          detail: "Averages hide micro-bottlenecks hidden inside specific typing flows.",
         },
         {
-          quote: "I keep stalling on the same key pairs.",
-          detail: "R→T, awkward jamo pairs, Shift combos — the same weak spots.",
+          quote: "I keep stalling on the exact same key pairs.",
+          detail: "Awkward key transitions, R→T, and Shift combos create unique spatial latency.",
         },
         {
           quote: "I repeat the same mistakes without knowing why.",
-          detail: "Without knowing where you hesitate, practice stays guesswork.",
+          detail:
+            "Without tracking key ordering errors, it is difficult to break old habits.",
         },
       ],
     },
     howItWorks: {
       eyebrow: "How It Works",
-      title: "Three steps to know your habits",
-      subtitle: "No setup, no jargon. Just type and see where you're stuck.",
+      title: "Three steps to map your habits",
+      subtitle:
+        "No complex setup. Just open the page, start typing, and let the diagnostic system do the rest.",
       steps: [
         {
           num: "01",
-          title: "Type as usual",
-          desc: "Every keystroke is captured — which keys you press, how long you hold them, and how long it takes to reach the next key.",
+          title: "Real-time Keystroke Collection",
+          desc: "Type naturally. We measure the precise duration of your key presses and the millisecond intervals between key transitions.",
         },
         {
           num: "02",
-          title: "Find your weak spots",
-          desc: "We analyze where your fingers hesitate — not your average speed, but the specific key pairs that slow you down.",
+          title: "3D Latency Visualization",
+          desc: "Your typing delay is mapped onto a 3D keyboard landscape. Stalling keys rise up as peaks, giving you immediate visual feedback.",
         },
         {
           num: "03",
-          title: "See it on a weakness map",
-          desc: "Your bottlenecks appear as peaks on a 3D keyboard landscape. High spots mean slow transitions — instantly obvious, no math required.",
+          title: "Custom Keystroke Diagnosis",
+          desc: "We analyze your habits of overlapping keys, detect where typing speed drops, and trace recurrent sequences of mistyped letters.",
         },
       ],
     },
     diagnosis: {
       eyebrow: "Your Report",
-      title: "One session. Actionable insight.",
-      subtitle: "Not just a score — see exactly which key transitions are holding you back.",
+      title: "One session. Actionable insights.",
+      subtitle:
+        "Go beyond a single score — see exactly which key transitions and fingers are holding you back.",
       dimensionsLabel: "6 diagnostic views",
       dimensions: ["Hold", "Latency", "Shift", "Hesitation", "Errors", "Finger load"],
       beforeLabel: "Typical typing test",
-      afterLabel: "TypeDiag",
-      beforeNote: "Fast overall — but where are you actually slow?",
+      beforeValue: "87",
+      beforeUnit: "WPM",
+      afterLabel: "TypeDiag Diagnostics",
+      beforeNote: "Fast overall WPM — but where are you actually slow?",
       bottleneck: "Bottleneck",
-      insight: "Left pinky zone shows elevated latency. Focus practice recommended.",
+      insight:
+        "Left index finger transition R→T shows elevated latency. Practice this specific transition sequence in Hardcore Mode.",
       barsTitle: "Slowest transitions",
       slowTransitions: [
         { pair: "R → T", ms: 340, bar: 92 },
-        { pair: "ㅅ → ㅎ", ms: 285, bar: 78 },
+        { pair: "O → P", ms: 285, bar: 78 },
         { pair: "Shift → P", ms: 241, bar: 66 },
         { pair: "L → ;", ms: 198, bar: 54 },
         { pair: "Space → A", ms: 176, bar: 48 },
@@ -274,31 +295,32 @@ const COPY: Record<LandingLang, LandingCopy> = {
     },
     weaknessMap: {
       eyebrow: "Weakness Map",
-      title: "See where your fingers stall",
+      title: "Visualizing physical keystroke latency",
       subtitle:
-        "Peaks on the 3D landscape mean slow transitions. The higher the peak, the more that key pair is holding you back — no formulas needed.",
+        "Peaks on the 3D keyboard landscape represent slow transitions. The higher the peak, the more that specific key pair is holding you back.",
       pills: ["Slow transition highlight", "Per-finger load view", "Live updates as you type"],
     },
     features: {
       eyebrow: "Practice Modes",
-      title: "Practice the way you want",
-      subtitle: "Modes built to surface — and fix — your specific typing bottlenecks.",
+      title: "Practice built to target your bottlenecks",
+      subtitle:
+        "Real-time algorithms dynamically customize your training material to target your weaknesses.",
       items: [
         {
           title: "Topic Mode",
-          desc: "Type about anything — React, economics, K-pop. AI generates fresh sentences matched to your interests. No repeats.",
+          desc: "Enter any topic you like. Our system instantly generates customized typing cards on the subject.",
         },
         {
           title: "Hardcore Mode",
-          desc: "Drill the transitions you avoid. Rare and awkward jamo pairs are generated to push your weak spots.",
+          desc: "Generates custom layouts focusing on rare, error-prone key transitions to push your limits (Korean only; English in progress).",
         },
         {
-          title: "No Sign-up",
-          desc: "Open the page and start typing. Your sessions are saved automatically — log in later if you want.",
+          title: "Guest Session Preservation",
+          desc: "Start typing immediately without signing up. Your sessions are saved and seamlessly merged when you create an account.",
         },
         {
-          title: "Live Diagnostics",
-          desc: "Switch to diagnostic view mid-session. Every key transition is measured in milliseconds, and your weakness map updates as you type.",
+          title: "Live 3D Diagnostics",
+          desc: "Switch to the dashboard mid-session to see real-time updates of your 3D typing landscape and transition statistics.",
         },
       ],
     },

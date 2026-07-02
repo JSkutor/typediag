@@ -24,12 +24,6 @@ export function Header() {
         </Link>
 
         <nav className={styles.nav} aria-label="Primary">
-          <Link href={`/${lang}/practice`} className={styles.navLink}>
-            {nav.practice}
-          </Link>
-          <Link href={`/${lang}/practice?tab=dashboard`} className={styles.navLink}>
-            {nav.dashboard}
-          </Link>
           <Link href={`/${lang}/practice`} className={styles.cta}>
             {nav.getStarted}
           </Link>

@@ -20,10 +20,21 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     return {};
   }
   const copy = getLandingCopy(lang);
+
+  const getBaseUrl = () => {
+    if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
+    if (process.env.NEXT_PUBLIC_VERCEL_URL) return `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`;
+    return "http://localhost:3000";
+  };
+
+  const baseUrl = getBaseUrl();
+
   return {
+    metadataBase: new URL(baseUrl),
     title: copy.meta.title,
     description: copy.meta.description,
     alternates: {
+      canonical: `/${lang}`,
       languages: EN_PUBLIC_ENABLED
         ? {
             ko: "/ko",
@@ -32,6 +43,19 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
         : {
             ko: "/ko",
           },
+    },
+    openGraph: {
+      title: copy.meta.title,
+      description: copy.meta.description,
+      url: `${baseUrl}/${lang}`,
+      siteName: "TypeDiag",
+      locale: lang === "ko" ? "ko_KR" : "en_US",
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: copy.meta.title,
+      description: copy.meta.description,
     },
   };
 }
