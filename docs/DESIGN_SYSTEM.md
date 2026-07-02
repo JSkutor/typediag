@@ -1,64 +1,105 @@
 # TypeDiag Design System
 
-본 문서는 TypeDiag 프로젝트의 핵심 비주얼 테마인 **"Space Grey & Ocean Cyan"**의 구체적인 디자인 사양(Design Specifications)을 정의합니다. 실제 런타임 CSS 변수의 SSOT는 `src/app/styles/tokens.css`이며, 본 문서는 의도와 팔레트의 기준점으로 사용됩니다.
+This document defines the core visual theme **"Space Grey & Ocean Cyan"** for the TypeDiag project. It provides specific design specifications, CSS token mappings, and logical principles behind the UI. The Single Source of Truth (SSOT) for runtime CSS variables is [`src/app/styles/tokens.css`](file:///src/app/styles/tokens.css).
+
+This guide is targeted at developers, AI agents, and the project owner to ensure a cohesive and accurate implementation of the UI components and design aesthetics.
+
+---
 
 ## 1. Theme Concept: Space Grey & Ocean Cyan
 
-애플 기기의 스페이스 그레이처럼 살짝 어두우면서도 정밀한 메탈 질감 베이스 위에, 맑고 선명한 오션 사이언(Ocean Cyan)을 하이라이트 컬러로 사용하여 높은 집중도를 유도하는 도회적이고 정교한 소프트웨어 감성입니다.
+The UI is inspired by an urban, precise software aesthetic. It combines a dark, sophisticated metal texture base (Space Grey) with clear, vibrant accents (Ocean Cyan). The goal is to provide a highly focused, distraction-free environment for typing diagnostics. 
 
-## 2. Color Palette (CSS Variables)
+- **Global Base**: The `body` uses `--bg-base` with a subtle top-center radial gradient (`radial-gradient(ellipse at 50% -10%, rgba(56, 97, 251, 0.06), transparent 65%)`) for depth.
 
-### 2.1. Backgrounds & Surfaces
+---
 
-- `--bg-base` / `--bg-color`: **`#1e2024`** (메인 배경 - 묵직하고 차분한 다크 차콜 회색)
-- `--bg-raised` / `--panel-bg`: **`#262930`** (컨테이너 및 패널 배경 - 대시보드, 네비게이션)
+## 2. Design Tokens (CSS Variables)
 
-### 2.2. Typography
+All core colors and visual properties are defined in `tokens.css`. Use these CSS variables strictly instead of hardcoding hex values.
 
-- `--text-primary`: **`#d0deeb`** (기본 텍스트 - 가독성이 대폭 개선된 밝은 코발트 실버 블루 그레이)
-- `--text-secondary`: **`#8ca6b5`** (보조 텍스트 - 부연 설명, 메타 정보 등)
-- `--text-muted`: **`#73869c`** (더 낮은 대비의 보조 텍스트)
+### 2.1. Surfaces & Backgrounds
+Defines the depth and elevation of application panels.
 
-### 2.3. Keycap (Virtual Keyboard)
+- `--bg-base`: **`#1e2024`** - The primary dark charcoal grey background for the app. (Alias: `--bg-color`)
+- `--bg-raised`: **`#262930`** - Used for floating containers, panels, and dashboards. (Alias: `--panel-bg`)
+- `--bg-overlay`: **`#323640`** - Used for elevated interactive elements and hover states.
+- `--bg-inset`: **`#151619`** - Used for sunken elements, like scrollbar tracks or deep backgrounds.
 
-- `--keycap-face` / `--key-alpha-bg`: **`#323640`** (입력창 및 버튼/일반 문자 키 배경)
-- `--key-alpha-text`: **`#d0deeb`** (일반 문자 키 텍스트)
-- `--key-mod-bg`: **`#262930`** (특수/기능 키 배경)
-- `--key-mod-text`: **`#8ca6b5`** (특수/기능 키 텍스트)
+### 2.2. Typography & Text Colors
+Optimized for readability against dark surfaces.
 
-### 2.4. Accents & Highlights
+- `--text-primary`: **`#d0deeb`** - Bright cobalt silver-blue grey for maximum readability on primary content.
+- `--text-secondary`: **`#8ca6b5`** - Used for secondary information, meta text, and subtitles.
+- `--text-muted`: **`#73869c`** - Low-contrast text for disabled states, hints, and placeholders.
+- `--text-inverse`: **`#1e2024`** - Dark text used over light or accented backgrounds (e.g., active cyan buttons).
 
-- `--accent` / `--key-accent-bg`: **`#4dc6e8`** (메인 하이라이트 - 망설임 구간 하이라이트 및 강조 요소)
-- `--key-accent-text`: **`#1e2024`** (메인 하이라이트 위 텍스트)
-- `--accent-secondary`: **`#a194b8`** (보조 하이라이트/배지 - 라벤더 퍼플)
-- `--accent-glow` / `--accent-dim`: **`rgba(77, 198, 232, 0.12)`** (Delaunay 메쉬 등 엷은 워터마크)
+### 2.3. Accents & Highlights
+Used to draw attention to critical metrics, active states, and diagnostic anomalies.
 
-### 2.5. Borders & Shadows
+- `--accent`: **`#4dc6e8`** - The primary "Ocean Cyan" highlight. Used for active typing cursors, important metrics, and hesitation outliers. (Alias: `--key-accent-bg`, `--accent-cool`)
+- `--accent-hover`: **`#6dd4f0`** - Hover state for primary accent interactive elements.
+- `--accent-secondary`: **`#a194b8`** - Lavender purple for secondary highlights or specific onboarding badges.
+- `--accent-dim`: **`rgba(77, 198, 232, 0.12)`** - A faint wash of cyan. Used for subtle glows, inactive active-states, or mesh watermarks like Delaunay triangulations. (Alias: `--accent-glow`, `--accent-cool-dim`)
 
-- `--border-subtle` / `--border-color`: **`rgba(140, 166, 181, 0.08)`** (아주 미세한 실버 경계선)
-- `--keycap-shadow` / `--shadow-color`: **`rgba(12, 14, 16, 0.35)`** (묵직한 금속 느낌을 살려주는 다크 섀도우)
+### 2.4. Feedback Colors
+Semantic colors for validation and error states.
 
-## 3. Typography Rules
+- `--success`: **`#57d68d`** - Green for perfect typing or positive feedback.
+- `--error`: **`#ef5b5b`** - Red for typos, omitted characters, and dangerous metrics.
+- `--warning`: **`#f2c94c`** - Yellow/Amber for cognitive delays or caution states.
 
-- **Primary Font (Sans-serif)**: `Outfit`, sans-serif
-  - _용도_: 헤더, 일반 UI 텍스트, 설명글. 기하학적이고 현대적인 느낌.
-- **Monospace Font**: `Fira Code`, monospace
-  - _용도_: 키보드 자판 각인, 수치 데이터, 타이핑 연습 문장. 정밀하고 개발자 친화적인 감성.
+### 2.5. Borders & Dividers
+Subtle structural delineations.
 
-## 4. UI Elements & Micro-interactions
+- `--border-subtle`: **`rgba(140, 166, 181, 0.08)`** - Very fine silver boundary lines. (Alias: `--border-color`, `--border-keycap`)
+- `--border-strong`: **`rgba(140, 166, 181, 0.16)`** - Stronger borders for active elements, inputs, and distinct panel separations.
 
-### 4.1. Keycap Rendering (기계식 키캡 디테일)
+---
 
-- **Border Radius**: `8px`
-- **Depth (Box Shadow)**: 일반 상태에서는 `0 4px 6px var(--shadow-color)`와 상단 빛 반사를 표현하는 `inset 0 1px 0 rgba(255,255,255,0.05)`를 조합하여 실제 PBT 키캡 같은 입체감을 줍니다.
-- **Active State (타건 시)**:
-  - 물리적으로 눌리는 느낌을 주기 위해 `transform: translateY(3px)` 적용.
-  - 그림자가 줄어들도록 `box-shadow: 0 1px 2px var(--shadow-color)`로 변경.
+## 3. UI Components & Elements
 
-### 4.2. Delaunay Triangulation Visual
+### 3.1. Virtual Keyboard (Keycaps)
+The visual representation of mechanical keyboard keys requires precise styling to emulate physical PBT keycaps.
 
-- 수학적 메쉬 선은 오션 사이언의 엷은 톤(`--accent-glow`)과 선 두께 `1px`을 사용하여, 데이터가 화면을 가리지 않는 은은한 **홀로그램 워터마크** 형태로 렌더링합니다.
+- **Face Color**: `--keycap-face` (`#323640`) for standard keys (Alias: `--key-alpha-bg`). Hover state: `--keycap-face-hover` (`#3b404b`).
+- **Top Lighting**: `--keycap-top` (`#383c47`) used to create a 3D bevel.
+- **Modifier Keys**: `--key-mod-bg` (`#262930`) with `--key-mod-text` (`var(--text-secondary)`).
+- **Shadows**: `--keycap-shadow` (`rgba(12, 14, 16, 0.35)`). (Alias: `--shadow-color`)
+- **Elevation states**:
+  - *Default/Idle*: `--shadow-key` (`0 4px 6px var(--keycap-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.05)`).
+  - *Active (Pressed)*: `--shadow-key-active` (`0 1px 2px var(--keycap-shadow)`). Visually pushes the key down with `transform: translateY(3px)`.
 
-### 4.3. Hesitation (망설임 시각화)
+### 3.2. Glassmorphism Panels & Dashboards
+Used in diagnostic drawers and floating UI.
 
-- 망설임이 극대화된 타건(Outlier)은 강렬한 오션 사이언 배경(`--key-accent-bg`)으로 변화시켜 시각적 경각심을 주되, 기존 테마들의 붉은색보다 눈의 피로를 덜어줍니다.
+- **Class**: `.glass-panel`
+- **Styling**: Uses translucent backgrounds (`rgba(42, 43, 46, 0.6)`), `--border-strong`, `--radius-lg`, and background blur (`backdrop-filter: blur(16px)`).
+- **Shadow**: `--shadow-panel` (`0 12px 40px rgba(12, 14, 16, 0.45)`).
+
+### 3.3. Typography Rules
+- **Primary Font (`--font-sans`)**: `Outfit`, `system-ui`, `-apple-system`, `sans-serif`.
+  - *Usage*: Headers, generic UI text, descriptions. Geometrical and modern.
+- **Monospace Font (`--font-mono`)**: `Fira Code`, `"SF Mono"`, `ui-monospace`, `monospace`.
+  - *Usage*: Keyboard key labels, metrics, numerical data, and practice typing text. Precise and developer-oriented.
+
+---
+
+## 4. Layout & Geometry
+
+- **Radii**: 
+  - `--radius-sm`: `6px`
+  - `--radius-md`: `10px`
+  - `--radius-lg`: `16px`
+- **Spacing Scale**: Follows a standard token set (`--space-1` to `--space-10` mapping to `4px` through `64px`).
+- **Container Max Width**: `--container-max` (`1120px`).
+- **Header Height**: `--header-height` (`64px`).
+
+---
+
+## 5. Micro-interactions & Visual Effects
+
+- **Typing Cursor**: A `2px` wide vertical line colored with `--accent` and a soft glow (`box-shadow: 0 0 8px var(--accent)`). Animates with a 1-second step blink.
+- **Delaunay Triangulation (3D Diagnostics)**: Rendered via canvas/SVG, using `--accent-dim` with `1px` stroke width to act as a hologram watermark without obscuring data.
+- **Hesitation Highlights**: Keys representing high hesitation dynamically shift background to `--accent` and text to `--text-inverse` to alert the user without the cognitive strain of red alerts.
+- **3D HUD Drawer (`.cyl-drawer`)**: Features a translucent `blur(24px)` background (`rgba(18, 20, 24, 0.82)`), smoothly sliding in with cubic-bezier transitions while preventing text bleed-through using `clip-path`.
