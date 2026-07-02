@@ -25,7 +25,7 @@
 - **DB 스크립트**: `npm run db:generate`, `db:push`, `db:seed`, `db:studio`
 - **에이전트 행동 제약**:
   - 새로운 외부 패키지를 임의로 추가하지 말 것. 설치가 꼭 필요한 경우 먼저 유저에게 질문할 것.
-  - 스타일링은 Vanilla CSS를 사용하며, 기존 디자인 시스템 (`docs/DESIGN_SYSTEM.md`) 팔레트를 엄격히 준수할 것.
+  - 스타일링은 Vanilla CSS를 사용하며, 기존 디자인 시스템 (`docs/DESIGN_SYSTEM.md`) 팔레트 및 `src/app/styles/tokens.css` CSS 변수를 엄격히 준수하여 하드코딩된 색상 값을 쓰지 말 것.
   - 사용자·기여자용 문서는 `README.md`, `docs/` 하위. 본 `AGENTS.md`는 AI 에이전트 전용이며 README Docs 목록에 넣지 말 것.
 
 ---
@@ -62,6 +62,10 @@ graphify-ts mcp 명령을 사용해 구조를 파악하라.
 | **Cylindrical Diagnostics** | `docs/DIAGNOSTICS.md` §0 | **focusKey** / **reference·outgoing transition** 용어 SSOT. 1패스 누산: `buildDiagnosticsAccumulator` → `finalizeKeystrokeDiagnostics` (`src/utils/cylindricalStats/`). 훅: `useCylindricalDiagnostics.ts`. UI: `CylindricalDiagnosticsPanel.tsx`. |
 | **원통 SKDM 좌표** | `src/lib/skdm/cylindrical.ts` | `buildCylindricalVectors(events, focusKey)` |
 | **Cloud Typing (dev·집계)** | `src/lib/dev/cloudTypingDev.ts`, `src/utils/cylindricalStats/cloudTyping.ts` | ND = \|L−D\|/max(L+D,M). 명세: `docs/DIAGNOSTICS.md` §3. |
+| **디자인 토큰 & 테마** | `docs/DESIGN_SYSTEM.md` | Space Grey & Ocean Cyan 테마 컨셉, 디자인 토큰 룰. 런타임 CSS 변수는 `src/app/styles/tokens.css`. |
+| **하드코어 모드** | `docs/HARDCORE_MODE.md` | 한국어 전용 MLP 신경망 다음 글자 추론 모델 룰. 구현: `src/lib/practice/hardcoreModel.ts`. |
+| **상태 관리 아키텍처** | `docs/STATE_MANAGEMENT.md` | Zustand 글로벌 스토어와 슬라이스 구조 및 세션 라이프사이클 비즈니스 룰. |
+| **SKDM 아키텍처** | `docs/SKDM_ARCHITECTURE.md` | 3D 레이턴시 토폴로지 파이프라인. Delaunay smoothing 및 log-IQR 아키텍처. |
 
 ---
 
@@ -145,6 +149,14 @@ graphify-ts mcp 명령을 사용해 구조를 파악하라.
 - Topic Mode 연동 시, pgvector의 코사인 유사도 연산(`1 - (A <=> B)`)이 0.5를 초과하는지 반드시 확인하고, 결과가 없거나 부족할 때 즉각적으로 OpenAI LLM Fallback을 호출하는 흐름을 무시하지 마라.
 - LLM 프롬프트로 문장 생성 시(gpt-4.1-nano), 반환 포맷 검증을 거치지 않은 raw text를 그대로 클라이언트에 전달하지 마라. Max Tokens 등에 의해 JSON이 잘릴 수 있음을 항상 예외 처리해라.
 - Cylindrical Diagnostics에서 `events`를 통계마다 반복 스캔하는 패턴으로 되돌리지 마라. 용어·1패스 누산 SSOT는 `docs/DIAGNOSTICS.md` §0.
+- 스타일 수정 시 하드코딩된 색상 값을 CSS에 작성하지 마십시오. 반드시 `src/app/styles/tokens.css`에 지정된 CSS 변수(예: `--accent`, `--bg-base`)를 사용하십시오.
+- 하드코어 모드 구현 시 완료 조건을 우회하여 오타(특히 초과 입력 `INSERT`)가 남아있는데 페이지 완료가 트리거되도록 수정하지 마십시오. (완벽한 타건 입력을 강제해야 함)
+- 하드코어 모드에서 사용자 취약 키를 계산하는 `getUserWeakKeys()` 함수가 임의로 동작하도록 가짜 로직을 만들지 마십시오. 현재 스텁(`[]` 반환)으로 처리되어 있으므로 사용자의 요청 시에만 정교하게 구현해야 합니다.
+- MVSA 알고리즘 수정 시 Word-Level Memoization Cache 및 세그먼트 간의 word boundary 로직을 훼손하여 $\mathcal{O}(N^2)$ 성능 저하가 발생하지 않도록 하십시오.
+- MVSA의 결과 병합 시 Operator Precedence 순서(`REPLACE (5) > INSERT (4) > PARTIAL (3) > EQUAL (2) > OMIT (1) > PENDING (0)`)를 임의로 수정하지 마십시오.
+- Topic Mode의 API rate limit 정책(일일 검색 100회, 생성 15회)이나 OpenAI API의 지수 백오프 재시도 딜레이 정책을 유저 동의 없이 변경하거나 우회하지 마십시오.
+- DB 마이그레이션 및 ORM 코드 작성 시 snake_case(DB)와 camelCase(TypeScript) 매핑 룰을 혼용하지 마십시오. 스키마 정의(`src/db/schema.ts`)의 camelCase 매핑 규칙을 철저히 따라야 합니다.
+- `key_events` 테이블 다룰 때, TimescaleDB Hypertable 제약인 `(id, created_at)` 복합 기본키 제약조건을 훼손하거나, `created_at` 파티셔닝 기준을 무력화하지 마십시오.
 
 ## 8. Learn by yourself.
 

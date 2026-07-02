@@ -65,3 +65,9 @@ scripts/data/
 src/data/targets.json*
 src/data/targets_vector.json
 src/data/local_db.json
+
+# business model docs
+docs/BUSINESS_MODEL.md
+
+# local todo
+/TODO.md
