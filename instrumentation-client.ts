@@ -1,4 +1,4 @@
-import posthog from "posthog-js";
+import posthog from "posthog-js/dist/module.full.no-external";
 
 const token = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN;
 if (token) {
@@ -8,6 +8,7 @@ if (token) {
     defaults: "2026-01-30",
     capture_exceptions: true,
     debug: process.env.NODE_ENV === "development",
+    disable_external_dependency_loading: true,
   });
 } else {
   if (process.env.NODE_ENV === "development") {
