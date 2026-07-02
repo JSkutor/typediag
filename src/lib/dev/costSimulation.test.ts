@@ -20,8 +20,8 @@ describe("costSimulation", () => {
   it("estimates OpenAI tokens from SSOT prompts (EN input, KO output)", () => {
     const t = estimateTopicLlmTokens();
     expect(t.inputBreakdown.system.hangul).toBe(0);
-    expect(t.inputMin).toBeGreaterThan(350);
-    expect(t.inputMax).toBeLessThan(400);
+    expect(t.inputMin).toBeGreaterThan(600);
+    expect(t.inputMax).toBeLessThan(900);
     expect(t.output).toBeGreaterThan(1100);
     expect(t.outputBreakdown.hangul).toBeGreaterThan(1500);
   });

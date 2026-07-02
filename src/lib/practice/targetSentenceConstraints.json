@@ -1,10 +1,10 @@
 {
   "batch": {
     "minPureHangul": 50,
-    "maxPureHangul": 110
+    "maxPureHangul": 120
   },
   "topicGenerate": {
     "minPureHangul": 50,
-    "maxPureHangul": 110
+    "maxPureHangul": 120
   }
 }

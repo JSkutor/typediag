@@ -132,8 +132,11 @@ async function callOpenAITopicGenerate(
     .replace("{complex_sentence}", prompts.common_rules.complex_sentence)
     .replace("{no_newlines}", prompts.common_rules.no_newlines)
     .replace("{allowed_punctuation}", prompts.common_rules.allowed_punctuation)
+    .replace("{no_quotes}", prompts.common_rules.no_quotes)
+    .replace("{no_proper_nouns}", prompts.common_rules.no_proper_nouns)
     .replace("{topic}", topic)
-    .replace("{number_condition}", numberCondition);
+    .replace("{number_condition}", numberCondition)
+    .replace("{target_len}", "80");
 
   const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",

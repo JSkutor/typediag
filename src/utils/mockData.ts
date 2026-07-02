@@ -1,6 +1,19 @@
 import { KeyEvent } from "@/lib/skdm";
 import targets from "@/data/targets_client.json";
 import { db } from "@/utils/db";
+
+const typedTargets = targets as Array<{
+  id: string;
+  content: string;
+  language: string;
+  source?: string;
+  generator_model?: string | null;
+  topic?: string | null;
+  user_id?: string | null;
+  usage_count?: number;
+  last_used_at?: string | null;
+  created_at?: string;
+}>;
 import { calculateMetrics } from "@/lib/practice/metrics";
 import { disassemble } from "es-hangul";
 
@@ -378,7 +391,7 @@ function generateExtraEvents(
 
 // --- Generates store-compatible dummy state conforming to DB schema ---
 export function generateDummyTypingState(targetTextFallback: string) {
-  const targetText = targetTextFallback || (targets.length > 0 ? targets[0].content : "");
+  const targetText = targetTextFallback || (typedTargets.length > 0 ? typedTargets[0].content : "");
   const random = new SeededRandom(98765);
 
   // Generate realistic text typing events
@@ -430,7 +443,7 @@ export async function populateDummyDatabase(
     started_at: run1Date.toISOString(),
   });
 
-  const targetsToUse = targets.slice(0, 3);
+  const targetsToUse = typedTargets.slice(0, 3);
   let orderIndex = 0;
   let pageDate = new Date(run1Date);
 
@@ -486,7 +499,7 @@ export async function populateDummyDatabase(
     started_at: run2Date.toISOString(),
   });
 
-  const targetsToUse2 = targets.slice(1, 4);
+  const targetsToUse2 = typedTargets.slice(1, 4);
   orderIndex = 0;
   pageDate = new Date(run2Date);
 
@@ -542,7 +555,7 @@ export async function populateDummyDatabase(
   });
 
   // Add 2 completed pages to this run to simulate progression
-  const targetsToUse3 = targets.slice(2, 4);
+  const targetsToUse3 = typedTargets.slice(2, 4);
   orderIndex = 0;
   pageDate = new Date(run3Date);
 
@@ -589,7 +602,7 @@ export async function populateDummyDatabase(
 
   // Pre-save the current page (which we loaded into the store state) to the DB
   // This allows startDiagnosticsTransition to pick it up immediately!
-  const currentTargetTextObj = targets.find((t) => t.content === currentTargetText);
+  const currentTargetTextObj = typedTargets.find((t) => t.content === currentTargetText);
   const currentTargetTextId = currentTargetTextObj ? currentTargetTextObj.id : "unknown";
   const currentLanguage = currentTargetTextObj ? currentTargetTextObj.language : "en";
 

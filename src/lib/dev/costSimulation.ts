@@ -241,7 +241,10 @@ function buildTopicUserPrompt(topic: string, withNumbers: boolean): string {
     .replace("{number_condition}", numberCondition)
     .replace("{complex_sentence}", prompts.common_rules.complex_sentence)
     .replace("{no_newlines}", prompts.common_rules.no_newlines)
-    .replace("{allowed_punctuation}", prompts.common_rules.allowed_punctuation);
+    .replace("{allowed_punctuation}", prompts.common_rules.allowed_punctuation)
+    .replace("{no_quotes}", prompts.common_rules.no_quotes)
+    .replace("{no_proper_nouns}", prompts.common_rules.no_proper_nouns)
+    .replace("{target_len}", "80");
 }
 
 /** SSOT: `prompts.json` + `topicGenerateOpenAI.ts` system_instruction / user template. */

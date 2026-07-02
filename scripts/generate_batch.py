@@ -43,6 +43,21 @@ TOPICS = [
     "Time",
     "Ocean",
     "Architecture",
+    "Literature",
+    "Music",
+    "History",
+    "Daily Life",
+    "Future",
+    "Motivation",
+    "Friendship",
+    "Love",
+    "Hobby",
+    "Season",
+    "Memory",
+    "City",
+    "Dream",
+    "Cooperation",
+    "Mythology",
 ]
 
 
@@ -79,7 +94,7 @@ def make_directory():
         os.makedirs(DATA_DIR)
 
 
-def generate_prompts(count=1500):
+def generate_prompts(count=1000):
     """
     Generates a specified number of diverse and high-quality typing practice prompts.
     Adjusts the distribution of character counts (excluding spaces and punctuation) to center around 80 characters.
@@ -133,6 +148,8 @@ def generate_prompts(count=1500):
                 complex_sentence=prompts_cfg["common_rules"]["complex_sentence"],
                 no_newlines=prompts_cfg["common_rules"]["no_newlines"],
                 allowed_punctuation=prompts_cfg["common_rules"]["allowed_punctuation"],
+                no_quotes=prompts_cfg["common_rules"]["no_quotes"],
+                no_proper_nouns=prompts_cfg["common_rules"]["no_proper_nouns"],
             )
 
             prompts.append(
@@ -149,7 +166,7 @@ def generate_prompts(count=1500):
     return prompts
 
 
-def submit_job(count=1500):
+def submit_job(count=1000):
     """JSONL 생성, 업로드 및 배치 작업 요청 제출"""
     api_key = load_env_key()
     if not api_key:
@@ -190,6 +207,9 @@ def submit_job(count=1500):
                             },
                             "required": ["content"],
                         },
+                        "thinkingConfig": {
+                            "thinkingLevel": "LOW"
+                        },
                     },
                 },
             }
@@ -206,7 +226,7 @@ def submit_job(count=1500):
 
     print(f"4. Gemini Batch Job 생성 요청 중...")
     batch_job = client.batches.create(
-        model="models/gemini-2.5-flash",
+        model="models/gemini-3.1-flash-lite",
         src=uploaded_file.name,
         config=types.CreateBatchJobConfig(display_name="typediag_target_generation"),
     )
@@ -289,7 +309,7 @@ if __name__ == "__main__":
         help="실행할 명령 (submit: 배치 요청 제출, check: 상태 확인 및 결과 받기)",
     )
     parser.add_argument(
-        "--count", type=int, default=1500, help="생성할 문장 개수 (기본값: 1500)"
+        "--count", type=int, default=1000, help="생성할 문장 개수 (기본값: 1000)"
     )
 
     args = parser.parse_args()

@@ -2,6 +2,7 @@ import constraints from "./targetSentenceConstraints.json";
 
 const ALLOWED_PUNCTUATION = /^[가-힣0-9\s.,!?]+$/;
 const CONTROL_CHAR_PATTERN = /[\x00-\x08\x0B\x0C\x0E-\x1F\\]/;
+const FORBIDDEN_QUOTES_PATTERN = /['"`‘’“”]/;
 
 export const TOPIC_GENERATE_HANGUL_RANGE = constraints.topicGenerate;
 export const BATCH_HANGUL_RANGE = constraints.batch;
@@ -57,6 +58,9 @@ export function validateTargetSentence(
   }
   if (CONTROL_CHAR_PATTERN.test(cleaned)) {
     return { isValid: false, reason: "control_char", pureHangulCount, cleaned };
+  }
+  if (FORBIDDEN_QUOTES_PATTERN.test(cleaned)) {
+    return { isValid: false, reason: "invalid_char", pureHangulCount, cleaned };
   }
   if (!ALLOWED_PUNCTUATION.test(cleaned)) {
     return { isValid: false, reason: "invalid_char", pureHangulCount, cleaned };

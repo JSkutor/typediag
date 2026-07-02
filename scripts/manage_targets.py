@@ -29,10 +29,12 @@ def get_pure_hangul_count(text):
     return len(hangul_chars)
 
 def clean_sentence(text):
-    """문장 정제 (앞뒤 공백 제거, 비정상 제어 문자 제거)"""
+    """문장 정제 (따옴표 제거, 앞뒤 공백 제거, 비정상 제어 문자 제거)"""
     if not text:
         return ""
-    cleaned = re.sub(r'\s+', ' ', text)
+    # 홑따옴표, 쌍따옴표, 백틱 및 스마트 따옴표 완전히 제거
+    cleaned = re.sub(r"['\"`‘’“”]", "", text)
+    cleaned = re.sub(r'\s+', ' ', cleaned)
     return cleaned.strip()
 
 def init_db():
@@ -122,6 +124,17 @@ def import_results(min_len=None, max_len=None):
                 if not (min_len <= hangul_cnt <= max_len):
                     filtered_count += 1
                     continue
+                    
+                # 따옴표류(홑따옴표, 쌍따옴표, 백틱, 스마트 따옴표) 차단
+                if re.search(r"['\"`‘’“”]", content):
+                    filtered_count += 1
+                    continue
+                    
+                # 허용된 글자 집합(한글, 숫자, 공백, .,!?) 이외의 특수기호 차단
+                if not re.match(r"^[가-힣0-9\s.,!?]+$", content):
+                    filtered_count += 1
+                    continue
+
                     
                 # DB 저장
                 try:

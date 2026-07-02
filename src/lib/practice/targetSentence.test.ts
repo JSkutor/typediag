@@ -77,4 +77,27 @@ describe("targetSentence", () => {
   it("returns empty array for filterTopicGeneratedSentences with empty input", () => {
     expect(filterTopicGeneratedSentences([])).toEqual([]);
   });
+
+  it("rejects sentences containing forbidden quotes and apostrophes", () => {
+    // 홑따옴표가 포함된 경우
+    const result1 = validateTargetSentence("한글 연습 문장에 '홑따옴표'가 포함된 경우입니다.", 1, 100);
+    expect(result1.isValid).toBe(false);
+    expect(result1.reason).toBe("invalid_char");
+
+    // 쌍따옴표가 포함된 경우
+    const result2 = validateTargetSentence('한글 연습 문장에 "쌍따옴표"가 포함된 경우입니다.', 1, 100);
+    expect(result2.isValid).toBe(false);
+    expect(result2.reason).toBe("invalid_char");
+
+    // 백틱이 포함된 경우
+    const result3 = validateTargetSentence("한글 연습 문장에 `백틱`이 포함된 경우입니다.", 1, 100);
+    expect(result3.isValid).toBe(false);
+    expect(result3.reason).toBe("invalid_char");
+
+    // 스마트 아포스트로피 및 스마트 따옴표가 포함된 경우
+    const result4 = validateTargetSentence("한글 연습 문장에 ’스마트아포스트로피’가 포함된 경우입니다.", 1, 100);
+    expect(result4.isValid).toBe(false);
+    expect(result4.reason).toBe("invalid_char");
+  });
 });
+
