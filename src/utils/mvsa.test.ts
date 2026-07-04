@@ -61,7 +61,7 @@ describe("MVSA (Maximum Valid Sequence Aligner)", () => {
     const result = runMvsa("가나다라", qwerty, true);
 
     expect(result).toEqual([
-      { op: "PARTIAL", char: "간", targetChar: "가", targetIndex: 0, inputIndex: 2 },
+      { op: "INSERT", char: "간", targetChar: "가", targetIndex: 0, inputIndex: 2 },
       { op: "OMIT", char: "", targetChar: "나", targetIndex: 1 },
       { op: "EQUAL", char: "다", targetChar: "다", targetIndex: 2, inputIndex: 4 },
       { op: "EQUAL", char: "라", targetChar: "라", targetIndex: 3, inputIndex: 6 },
@@ -76,7 +76,7 @@ describe("MVSA (Maximum Valid Sequence Aligner)", () => {
 
     expect(result).toEqual([
       // First word
-      { op: "PARTIAL", char: "간", targetChar: "가", targetIndex: 0, inputIndex: 2 },
+      { op: "INSERT", char: "간", targetChar: "가", targetIndex: 0, inputIndex: 2 },
       { op: "OMIT", char: "", targetChar: "나", targetIndex: 1 },
       { op: "EQUAL", char: "다", targetChar: "다", targetIndex: 2, inputIndex: 4 },
       { op: "EQUAL", char: "라", targetChar: "라", targetIndex: 3, inputIndex: 6 },
@@ -174,6 +174,18 @@ describe("MVSA (Maximum Valid Sequence Aligner)", () => {
       { op: "EQUAL", char: "학", targetChar: "학", targetIndex: 0, inputIndex: 2 },
       { op: "OMIT", char: "", targetChar: "교", targetIndex: 1 },
       { op: "INSERT", char: " ", inputIndex: 3 },
+    ]);
+  });
+
+  it("should handle consonant cluster trailing jamo aligning to next target initial (인류가 / 읺ㄹ)", () => {
+    // target: 인류가 / qwerty: dlsgf
+    // 읺(ㅇ+ㅣ+ㄶ=d+l+s+g) + ㄹ(f)
+    // 기대: 읺=INSERT(인에 ㅎ여분 삽입 오타), ㄹ=PARTIAL(류 초성만), 가=PENDING
+    const result = runMvsa("인류가", "dlsgf", true);
+    expect(result).toEqual([
+      { op: "INSERT", char: "읺", targetChar: "인", targetIndex: 0, inputIndex: 3 },
+      { op: "PARTIAL", char: "ㄹ", targetChar: "류", targetIndex: 1, inputIndex: 4 },
+      { op: "PENDING", char: "", targetChar: "가", targetIndex: 2 },
     ]);
   });
 });

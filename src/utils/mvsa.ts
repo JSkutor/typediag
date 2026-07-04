@@ -351,7 +351,28 @@ export class MaximumValidSequenceAligner {
 
     for (let pIdx = 0; pIdx < panicTyped.length && !matchFound; pIdx++) {
       const pChar = panicTyped[pIdx];
-      if (!this.isComparableCompleteUnit(pChar)) continue;
+      if (!this.isComparableCompleteUnit(pChar)) {
+        // 단독 자음인 경우, 뒤에 완성 한글이 없을 때만 target 글자의 초성 자소와 비교
+        // (뒤에 완성 한글이 있으면 받침 문맥이므로 초성으로 사용 불가)
+        // 예: 'ㄴ다라'의 ㄴ → 뒤에 '다'(완성 한글)가 있으므로 받침 → 초성 비교 X
+        //     'ㅎㄹ'의 ㄹ → 뒤에 완성 한글 없음, 미완성 초성 → 초성 비교 O
+        const hasCompleteHangulAfter = panicTyped
+          .slice(pIdx + 1)
+          .split("")
+          .some((c) => isCompleteHangul(c));
+        if (/[ㄱ-ㅎ]/.test(pChar) && !hasCompleteHangulAfter) {
+          for (let lookTIdx = targetLookaheadEnd - 1; lookTIdx >= tIdx; lookTIdx--) {
+            const targetDis = disassemble(wordTarget[lookTIdx]);
+            if (targetDis[0] === pChar) {
+              matchFound = true;
+              bestMatchInputIdx = pIdx;
+              bestMatchTargetIdx = lookTIdx;
+              break;
+            }
+          }
+        }
+        continue;
+      }
 
       for (let lookTIdx = targetLookaheadEnd - 1; lookTIdx >= tIdx; lookTIdx--) {
         if (wordTarget[lookTIdx] === pChar) {
