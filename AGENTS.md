@@ -157,6 +157,9 @@ graphify-ts mcp 명령을 사용해 구조를 파악하라.
 - Topic Mode의 API rate limit 정책(일일 검색 100회, 생성 15회)이나 OpenAI API의 지수 백오프 재시도 딜레이 정책을 유저 동의 없이 변경하거나 우회하지 마십시오.
 - DB 마이그레이션 및 ORM 코드 작성 시 snake_case(DB)와 camelCase(TypeScript) 매핑 룰을 혼용하지 마십시오. 스키마 정의(`src/db/schema.ts`)의 camelCase 매핑 규칙을 철저히 따라야 합니다.
 - `key_events` 테이블 다룰 때, TimescaleDB Hypertable 제약인 `(id, created_at)` 복합 기본키 제약조건을 훼손하거나, `created_at` 파티셔닝 기준을 무력화하지 마십시오.
+- `next.config.ts`의 `turbopack.resolveAlias`에서 `path`를 `empty.ts`로 alias하지 마십시오. `posthog-node` 등 서버사이드 패키지가 `path.parse()`, `path.sep` 등을 실제로 사용하므로 `_path.default.parse is not a function` 에러가 발생합니다.
+- `@cloudflare/next-on-pages`는 모든 라우트가 Edge Runtime이어야 하므로, OCI 셀프호스팅 PostgreSQL처럼 TCP 직접 연결이 필요한 DB를 쓰는 이 프로젝트에는 사용 불가입니다. Cloudflare Pages 배포는 GitHub 직접 연동 + `npm run build` + `.next` 출력 디렉토리 방식을 사용하십시오.
+- MVSA `runPanicMode`에서 단독 자음(ㄱ-ㅎ)을 target 초성과 비교할 때, 해당 자음 **뒤에 완성 한글이 있는 경우(받침 문맥)에는 초성 비교를 허용하면 안 됩니다.** 예: `panicTyped='ㄴ다라'`에서 `ㄴ`은 받침이므로 `나`의 초성으로 매칭하면 OMIT이 아닌 복구 지점으로 처리되어 오타 판정이 틀어집니다. `hasCompleteHangulAfter` 조건으로 구분해야 합니다.
 
 ## 8. Learn by yourself.
 

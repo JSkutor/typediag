@@ -52,12 +52,12 @@ describe("resolveApiUser", () => {
     const result = await resolveApiUser(makeGuestRequest());
 
     expect(result.userId).toBe(`db_${guestId}`);
-    expect(result.issueGuestToken).toBe(signGuestToken(guestId));
+    expect(result.issueGuestToken).toBe(await signGuestToken(guestId));
   });
 
   it("does not issue token when guest token is valid", async () => {
     const result = await resolveApiUser(
-      makeGuestRequest({ "x-guest-token": signGuestToken(guestId) }),
+      makeGuestRequest({ "x-guest-token": await signGuestToken(guestId) }),
     );
 
     expect(result).toEqual({ userId: `db_${guestId}` });
@@ -67,7 +67,7 @@ describe("resolveApiUser", () => {
     const result = await resolveApiUser(makeGuestRequest({ "x-guest-token": "invalid-token" }));
 
     expect(result.userId).toBe(`db_${guestId}`);
-    expect(result.issueGuestToken).toBe(signGuestToken(guestId));
+    expect(result.issueGuestToken).toBe(await signGuestToken(guestId));
   });
 
   it("throws when guest id is missing or invalid", async () => {
@@ -93,7 +93,7 @@ describe("resolveApiUser", () => {
 
   it("allows guest with valid token when requireGuestToken is true", async () => {
     const result = await resolveApiUser(
-      makeGuestRequest({ "x-guest-token": signGuestToken(guestId) }),
+      makeGuestRequest({ "x-guest-token": await signGuestToken(guestId) }),
       { requireGuestToken: true },
     );
 

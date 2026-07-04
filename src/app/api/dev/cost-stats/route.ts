@@ -1,5 +1,3 @@
-import { readFile } from "fs/promises";
-import path from "path";
 
 import { NextResponse } from "next/server";
 import { sql } from "drizzle-orm";
@@ -20,14 +18,18 @@ export async function GET() {
   }
 
   let batchMetadata: BatchMetadata | null = null;
-  try {
-    const raw = await readFile(
-      path.join(process.cwd(), "scripts", "data", "batch_metadata.json"),
-      "utf-8",
-    );
-    batchMetadata = JSON.parse(raw) as BatchMetadata;
-  } catch {
-    batchMetadata = null;
+  if (process.env.NEXT_RUNTIME !== "edge") {
+    try {
+      const fs = await import("fs/promises");
+      const path = await import("path");
+      const raw = await fs.readFile(
+        path.join(process.cwd(), "scripts", "data", "batch_metadata.json"),
+        "utf-8",
+      );
+      batchMetadata = JSON.parse(raw) as BatchMetadata;
+    } catch {
+      batchMetadata = null;
+    }
   }
 
   try {

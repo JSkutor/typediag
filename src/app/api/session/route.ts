@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from "next/server";
 import type { KeyEvent } from "@/lib/skdm";
 import { sessionService } from "@/services/sessionService";
@@ -7,8 +8,6 @@ import { GuestAuthError } from "@/utils/guestAuth";
 import { isDevOnlyEnabled } from "@/lib/api/isDevOnlyRoute";
 import { resolveApiUser, withGuestToken } from "@/lib/api/resolveApiUser";
 import { SessionPostPayloadSchema } from "@/lib/api/sessionSchemas";
-import fs from "fs";
-import path from "path";
 
 export async function POST(request: NextRequest) {
   try {
@@ -88,12 +87,22 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      const filePath = path.join(process.cwd(), "src/data/local_db.json");
-      if (!fs.existsSync(filePath)) {
+      if (process.env.NEXT_RUNTIME === "edge") {
+        return NextResponse.json(
+          { error: "Mock session not supported on Edge Runtime" },
+          { status: 400 }
+        );
+      }
+
+      const fsMod = await import("fs");
+      const pathMod = await import("path");
+
+      const filePath = pathMod.join(process.cwd(), "src/data/local_db.json");
+      if (!fsMod.existsSync(filePath)) {
         return NextResponse.json({ error: "local_db.json not found on server" }, { status: 404 });
       }
 
-      const fileContent = await fs.promises.readFile(filePath, "utf-8");
+      const fileContent = await fsMod.promises.readFile(filePath, "utf-8");
       const dbData = JSON.parse(fileContent);
 
       const events: KeyEvent[] = [];

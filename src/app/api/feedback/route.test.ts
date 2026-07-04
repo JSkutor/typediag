@@ -53,7 +53,7 @@ describe("POST /api/feedback", () => {
 
     const data = await response.json();
     expect(data.success).toBe(true);
-    expect(data.guestToken).toBe(signGuestToken(guestId));
+    expect(data.guestToken).toBe(await signGuestToken(guestId));
     expect(mockCreateUserFeedback).toHaveBeenCalledWith({
       user_id: guestId,
       message: "great app",

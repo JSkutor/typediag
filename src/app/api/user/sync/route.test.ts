@@ -48,7 +48,7 @@ describe("/api/user/sync route", () => {
       headers: {
         "Content-Type": "application/json",
         "x-guest-user-id": guestId,
-        "x-guest-token": signGuestToken(guestId),
+        "x-guest-token": await signGuestToken(guestId),
       },
     });
 

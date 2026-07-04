@@ -30,7 +30,7 @@ describe("/api/session route", () => {
 
     const data = await response.json();
     expect(data.success).toBe(true);
-    expect(data.guestToken).toBe(signGuestToken(guestId));
+    expect(data.guestToken).toBe(await signGuestToken(guestId));
   });
 
   it("rejects invalid finish payload before auth", async () => {
@@ -80,7 +80,7 @@ describe("/api/session route", () => {
         method: "GET",
         headers: {
           "x-guest-user-id": guestId,
-          "x-guest-token": signGuestToken(guestId),
+          "x-guest-token": await signGuestToken(guestId),
         },
       },
     );

@@ -16,11 +16,11 @@ describe("guestAuth", () => {
     expect(isValidGuestId("")).toBe(false);
   });
 
-  it("signs and verifies guest tokens", () => {
-    const token = signGuestToken(validGuestId);
-    expect(verifyGuestToken(validGuestId, token)).toBe(true);
-    expect(verifyGuestToken(validGuestId, "invalid-token")).toBe(false);
-    expect(verifyGuestToken("guest_00000000-0000-0000-0000-000000000099", token)).toBe(false);
+  it("signs and verifies guest tokens", async () => {
+    const token = await signGuestToken(validGuestId);
+    expect(await verifyGuestToken(validGuestId, token)).toBe(true);
+    expect(await verifyGuestToken(validGuestId, "invalid-token")).toBe(false);
+    expect(await verifyGuestToken("guest_00000000-0000-0000-0000-000000000099", token)).toBe(false);
   });
 
   it("parses guest headers from request Headers", () => {

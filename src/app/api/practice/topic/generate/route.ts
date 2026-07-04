@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from "next/server";
 import { getPostHogClient } from "@/lib/posthog-server";
 import { parseTopicRequest } from "@/lib/api/parseTopicRequest";
@@ -9,7 +10,6 @@ import {
   TOPIC_GENERATE_TRUNCATED_ERROR,
 } from "@/lib/api/topicGenerateOpenAI";
 import { db } from "@/utils/db";
-import crypto from "crypto";
 import { resolveApiUser, withGuestToken } from "@/lib/api/resolveApiUser";
 import { checkTopicRateLimit } from "@/lib/api/topicRateLimiter";
 

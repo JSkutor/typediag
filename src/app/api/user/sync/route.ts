@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getPostHogClient } from "@/lib/posthog-server";
@@ -31,7 +32,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Invalid guest identification" }, { status: 400 });
       }
 
-      if (!verifyGuestToken(guestClerkId, guestToken)) {
+      if (!(await verifyGuestToken(guestClerkId, guestToken))) {
         return NextResponse.json(
           { error: "Guest token required for account merge" },
           { status: 401 },

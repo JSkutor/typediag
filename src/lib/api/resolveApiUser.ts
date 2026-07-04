@@ -36,7 +36,7 @@ export async function resolveApiUser(
     throw new GuestAuthError("Unauthorized: Missing or invalid guest identification");
   }
 
-  const tokenValid = verifyGuestToken(guestId, guestToken);
+  const tokenValid = await verifyGuestToken(guestId, guestToken);
 
   if (options.requireGuestToken && !tokenValid) {
     throw new GuestAuthError("Unauthorized: Guest token required or invalid");
@@ -46,7 +46,7 @@ export async function resolveApiUser(
 
   return {
     userId: user.id,
-    issueGuestToken: tokenValid ? undefined : signGuestToken(guestId),
+    issueGuestToken: tokenValid ? undefined : await signGuestToken(guestId),
   };
 }
 
