@@ -799,6 +799,13 @@ export function groupAlignResultsByVisualCharacters(
     if (vRes.targetIndex !== undefined) adoptedTargets.add(vRes.targetIndex);
   }
 
+  // Final pass: any PARTIAL that is not the last visual character is definitely locked in as a typo (REPLACE).
+  for (const [vIdx, existing] of vCharIdxToResult.entries()) {
+    if (existing.op === "PARTIAL" && vIdx < typedChars.length - 1) {
+      existing.op = "REPLACE";
+    }
+  }
+
   // 타겟 인덱스 목록 추출
   const allTargetIndices = results
     .filter(r => r.targetIndex !== undefined)
