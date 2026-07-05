@@ -95,14 +95,14 @@ export class JasoSequenceAligner {
         const minCost = Math.min(costEQUAL, costREPLACE, costOMIT, costINSERT);
         dp[i][j] = minCost;
         
-        if (minCost === costEQUAL) {
-          parent[i][j] = { op: 'EQUAL', i: i - 1, j: j - 1 };
-        } else if (minCost === costREPLACE) {
-          parent[i][j] = { op: 'REPLACE', i: i - 1, j: j - 1 };
-        } else if (minCost === costOMIT) {
+        if (minCost === costOMIT) {
           parent[i][j] = { op: 'OMIT', i: i - 1, j: j };
-        } else {
+        } else if (minCost === costINSERT) {
           parent[i][j] = { op: 'INSERT', i: i, j: j - 1 };
+        } else if (minCost === costEQUAL) {
+          parent[i][j] = { op: 'EQUAL', i: i - 1, j: j - 1 };
+        } else {
+          parent[i][j] = { op: 'REPLACE', i: i - 1, j: j - 1 };
         }
       }
     }

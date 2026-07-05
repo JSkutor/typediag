@@ -1,5 +1,7 @@
 import { disassemble, convertQwertyToAlphabet, assemble } from "es-hangul";
 import { assembleHangulWithPunctuation, isCompleteHangul } from "./keyboardMap";
+import { JasoSequenceAligner } from "./mvsaJasoCore";
+import { MvsaAggregator } from "./mvsaAggregator";
 
 export type AlignOp = "EQUAL" | "PARTIAL" | "REPLACE" | "INSERT" | "OMIT" | "PENDING";
 
@@ -446,7 +448,7 @@ export class MaximumValidSequenceAligner {
     const charToQwertyIdx = getCharQwertyIndices(panicQBuffer);
     const panicTyped = assembleHangulWithPunctuation(panicQBuffer);
 
-    const maxLookahead = this.calculateLookaheadWindow(panicTyped);
+    const maxLookahead = this.calculateLookaheadWindow(panicQBuffer.length);
     const targetLookaheadEnd = Math.min(wordTarget.length, tIdx + maxLookahead);
 
     let matchFound = false;
@@ -528,14 +530,9 @@ export class MaximumValidSequenceAligner {
     }
   }
 
-  private calculateLookaheadWindow(panicTyped: string): number {
-    let completeCharCount = 0;
-    let jamoCount = 0;
-    for (const char of panicTyped) {
-      if (this.isComparableCompleteUnit(char)) completeCharCount++;
-      else if (/[ㄱ-ㅎㅏ-ㅣ]/.test(char)) jamoCount++;
-    }
-    return completeCharCount + Math.floor(jamoCount / 2) + 1;
+  private calculateLookaheadWindow(jamoCount: number): number {
+    // 자소 수(qwerty 키 수) 기준. OMIT 1개가 생겨도 한 칸 더 볼 수 있도록 +1.
+    return jamoCount + 1;
   }
 
   private isComparableCompleteUnit(char: string): boolean {
@@ -897,8 +894,15 @@ export function runMvsa(
   isKorean: boolean,
   cache?: MvsaCache,
 ): AlignResult[] {
-  const aligner = new MaximumValidSequenceAligner(targetText, qwertyBuffer, isKorean, cache);
-  const results = aligner.align();
-  if (!isKorean) return results;
-  return groupAlignResultsByVisualCharacters(results, qwertyBuffer);
+  if (!isKorean) {
+    const aligner = new MaximumValidSequenceAligner(targetText, qwertyBuffer, isKorean, cache);
+    return aligner.align();
+  }
+  
+  // Phase 3: Switch to new Jaso-based engine
+  const jasoAligner = new JasoSequenceAligner(targetText, qwertyBuffer);
+  const jasoResults = jasoAligner.align();
+  
+  const aggregator = new MvsaAggregator();
+  return aggregator.aggregate(jasoResults, qwertyBuffer, targetText);
 }
