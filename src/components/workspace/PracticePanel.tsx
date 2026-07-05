@@ -174,6 +174,22 @@ const PracticeTypingText: React.FC = React.memo(function PracticeTypingText() {
     lastInputIndex,
   );
 
+  const duplicateTargetIndices = React.useMemo(() => {
+    const set = new Set<number>();
+    const seenTargets = new Set<number>();
+    for (let i = 0; i < diffResult.length; i++) {
+      const tIdx = diffResult[i].targetIndex;
+      if (tIdx !== undefined) {
+        if (seenTargets.has(tIdx)) {
+          set.add(i);
+        } else {
+          seenTargets.add(tIdx);
+        }
+      }
+    }
+    return set;
+  }, [diffResult]);
+
   return (
     <>
       {wordGroups.map((group, groupIdx) => (
@@ -189,6 +205,8 @@ const PracticeTypingText: React.FC = React.memo(function PracticeTypingText() {
               (qwertyBuffer.length === 0 && index === 0) ||
               (cursorJumpIndex !== null && index === cursorJumpIndex);
 
+            const isDuplicateTarget = duplicateTargetIndices.has(index);
+
             return (
               <PracticeChar
                 key={index}
@@ -197,6 +215,7 @@ const PracticeTypingText: React.FC = React.memo(function PracticeTypingText() {
                 isWrapHiddenSpace={isWrapHiddenSpace}
                 showCursorLeft={showCursorLeft}
                 showCursorRight={showCursorRight}
+                isDuplicateTarget={isDuplicateTarget}
               />
             );
           })}

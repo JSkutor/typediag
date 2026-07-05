@@ -10,6 +10,7 @@ export type PracticeCharProps = {
   isWrapHiddenSpace: boolean;
   showCursorLeft: boolean;
   showCursorRight: boolean;
+  isDuplicateTarget?: boolean;
 };
 
 function getHighlightClass(alignment: AlignResult): string {
@@ -32,7 +33,8 @@ function practiceCharPropsAreEqual(prev: PracticeCharProps, next: PracticeCharPr
     prev.index !== next.index ||
     prev.isWrapHiddenSpace !== next.isWrapHiddenSpace ||
     prev.showCursorLeft !== next.showCursorLeft ||
-    prev.showCursorRight !== next.showCursorRight
+    prev.showCursorRight !== next.showCursorRight ||
+    prev.isDuplicateTarget !== next.isDuplicateTarget
   ) {
     return false;
   }
@@ -54,6 +56,7 @@ export const PracticeChar = React.memo(function PracticeChar({
   isWrapHiddenSpace,
   showCursorLeft,
   showCursorRight,
+  isDuplicateTarget,
 }: PracticeCharProps) {
   const isOmitted = alignment.op === "OMIT";
   const highlightClass = getHighlightClass(alignment);
@@ -68,7 +71,7 @@ export const PracticeChar = React.memo(function PracticeChar({
       id={`text-char-${index}`}
       className={`text-char-container${isWrapHiddenSpace ? " text-char-space-wrap-hidden" : ""}`}
     >
-      {alignment.op !== "INSERT" && (
+      {alignment.op !== "INSERT" && !isDuplicateTarget && (
         <span className={isOmitted ? "text-char-omitted" : "text-char-muted"}>
           {formatPracticeChar(alignment.targetChar, isWrapHiddenSpace)}
         </span>
@@ -76,7 +79,7 @@ export const PracticeChar = React.memo(function PracticeChar({
 
       {showsTyped && (
         <span
-          className={`${alignment.op !== "INSERT" ? "text-char-overlay" : ""} ${highlightClass}`.trim()}
+          className={`${alignment.op !== "INSERT" && !isDuplicateTarget ? "text-char-overlay" : ""} ${highlightClass}`.trim()}
         >
           {formatPracticeChar(alignment.char, isWrapHiddenSpace)}
         </span>
