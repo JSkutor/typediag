@@ -530,10 +530,12 @@ export class MaximumValidSequenceAligner {
 
   private calculateLookaheadWindow(panicTyped: string): number {
     let completeCharCount = 0;
+    let jamoCount = 0;
     for (const char of panicTyped) {
       if (this.isComparableCompleteUnit(char)) completeCharCount++;
+      else if (/[ㄱ-ㅎㅏ-ㅣ]/.test(char)) jamoCount++;
     }
-    return completeCharCount + 1;
+    return completeCharCount + Math.floor(jamoCount / 2) + 1;
   }
 
   private isComparableCompleteUnit(char: string): boolean {
@@ -708,31 +710,135 @@ export function groupAlignResultsByVisualCharacters(
   }
 
   const vCharIdxToResult = new Map<number, AlignResult>();
-  const opPriority = { REPLACE: 5, INSERT: 4, PARTIAL: 3, EQUAL: 2, OMIT: 1, PENDING: 0 };
+  const opPriority: Record<string, number> = { REPLACE: 5, INSERT: 4, PARTIAL: 3, EQUAL: 2, OMIT: 1, PENDING: 0 };
+  
+  // vIdx -> Map<targetIndex, voteCount>
+  const vCharIdxToTargetVotes = new Map<number, Map<number, number>>();
 
+  let prevInputIndex = -1;
   for (const res of results) {
     if (
       res.inputIndex !== undefined &&
       res.inputIndex >= 0 &&
       res.inputIndex < qwertyBuffer.length
     ) {
-      const vIdx = qIdxToVCharIdx[res.inputIndex];
-      if (vIdx !== -1) {
-        if (!vCharIdxToResult.has(vIdx)) {
-          const groupedOp =
-            res.op === "EQUAL" && typedChars[vIdx] !== res.targetChar ? "PARTIAL" : res.op;
-          vCharIdxToResult.set(vIdx, {
-            ...res,
-            op: groupedOp,
-            char: typedChars[vIdx],
-            inputIndex: qEnds[vIdx],
-          });
-        } else {
-          const existing = vCharIdxToResult.get(vIdx)!;
-          if (opPriority[res.op] > opPriority[existing.op]) {
-            existing.op = res.op;
+      const startQ = prevInputIndex + 1;
+      const endQ = res.inputIndex;
+      for (let q = startQ; q <= endQ; q++) {
+        const vIdx = qIdxToVCharIdx[q];
+        if (vIdx !== -1) {
+          // 투표 (votes) 집계
+          if (res.targetIndex !== undefined) {
+            let votes = vCharIdxToTargetVotes.get(vIdx);
+            if (!votes) {
+              votes = new Map<number, number>();
+              vCharIdxToTargetVotes.set(vIdx, votes);
+            }
+            votes.set(res.targetIndex, (votes.get(res.targetIndex) || 0) + 1);
           }
-          existing.inputIndex = Math.max(existing.inputIndex!, res.inputIndex);
+
+          if (!vCharIdxToResult.has(vIdx)) {
+            const groupedOp =
+              res.op === "EQUAL" && typedChars[vIdx] !== res.targetChar ? "PARTIAL" : res.op;
+            vCharIdxToResult.set(vIdx, {
+              ...res,
+              op: groupedOp,
+              char: typedChars[vIdx],
+              inputIndex: qEnds[vIdx],
+            });
+          } else {
+            const existing = vCharIdxToResult.get(vIdx)!;
+            if (opPriority[res.op] > opPriority[existing.op]) {
+              existing.op = res.op;
+            }
+            existing.inputIndex = Math.max(existing.inputIndex!, res.inputIndex);
+            
+            // Note: targetIndex is NOT overwritten here anymore. It will be decided by votes later.
+          }
+        }
+      }
+      prevInputIndex = endQ;
+    }
+  }
+
+  // 투표 결과에 따라 각 vIdx의 targetIndex를 확정
+  for (const [vIdx, existing] of vCharIdxToResult.entries()) {
+    const votes = vCharIdxToTargetVotes.get(vIdx);
+    if (votes && votes.size > 0) {
+      let maxTargetIndex = -1;
+      let maxVotes = -1;
+      for (const [tIdx, count] of votes.entries()) {
+        if (count > maxVotes || (count === maxVotes && tIdx > maxTargetIndex)) {
+          maxVotes = count;
+          maxTargetIndex = tIdx;
+        }
+      }
+      if (maxTargetIndex !== -1) {
+        existing.targetIndex = maxTargetIndex;
+        const matchedRes = results.find(r => r.targetIndex === maxTargetIndex);
+        if (matchedRes) {
+          existing.targetChar = matchedRes.targetChar;
+        }
+        // INSERT이지만 투표로 타겟이 배정되었다면 실질적으로 오타(REPLACE)임.
+        // INSERT는 "연결된 타겟 없이 초과 입력된 글자"를 뜻하는데,
+        // 패닉 복구 시 단독 자모가 INSERT로 원시 결과에 들어오고
+        // opPriority 승격(INSERT:4 > EQUAL:2)으로 op가 INSERT가 될 수 있다.
+        if (existing.op === "INSERT") {
+          existing.op = "REPLACE";
+        }
+      }
+    }
+  }
+
+  // 갭 재배정 (Gap Reassignment)
+  // 투표 확정 후, 미채택 타겟이 있을 때 인접한 시각 글자를 해당 타겟으로 재배정.
+  // 예: '지나간' → '진ㄱ' 에서 'ㄱ'(vIdx=1)이 '간'(tIdx=2)에 매핑되었지만
+  //     중간 '나'(tIdx=1)가 미채택이면 'ㄱ'을 '나'로 재배정.
+  const adoptedTargets = new Set<number>();
+  for (const [, vRes] of vCharIdxToResult.entries()) {
+    if (vRes.targetIndex !== undefined) adoptedTargets.add(vRes.targetIndex);
+  }
+
+  // 타겟 인덱스 목록 추출
+  const allTargetIndices = results
+    .filter(r => r.targetIndex !== undefined)
+    .map(r => r.targetIndex!);
+  const uniqueTargetIndices = [...new Set(allTargetIndices)].sort((a, b) => a - b);
+
+  // vIdx를 오름차순으로 정렬한 배열
+  const sortedVIdxEntries = [...vCharIdxToResult.entries()].sort((a, b) => a[0] - b[0]);
+
+  for (const unadoptedTIdx of uniqueTargetIndices) {
+    if (adoptedTargets.has(unadoptedTIdx)) continue;
+    // unadoptedTIdx를 채택한 vIdx가 없다.
+    // 이 타겟의 바로 앞 타겟을 채택한 vIdx를 찾고, 그 다음 vIdx가 뒤쪽 타겟을 채택 중이면 재배정.
+    for (let vi = 0; vi < sortedVIdxEntries.length; vi++) {
+      const [, vRes] = sortedVIdxEntries[vi];
+      if (vRes.targetIndex === undefined) continue;
+      // 이 vIdx가 unadoptedTIdx보다 뒤의 타겟을 채택하고 있을 때
+      if (vRes.targetIndex > unadoptedTIdx) {
+        // 가드: 이 시각 글자가 현재 타겟과 정확히 일치하면 빼앗지 않는다.
+        // 예: '간다라' 에서 '다'가 tIdx=2('다')와 EQUAL인데 tIdx=1('나')로 빼앗으면 안 됨.
+        if (vRes.char === vRes.targetChar) break;
+        
+        // 이 vIdx 앞에 있는 vIdx가 unadoptedTIdx보다 앞의 타겟을 갖고 있는지 확인
+        const prevVIdx = vi > 0 ? sortedVIdxEntries[vi - 1] : null;
+        const prevTIdx = prevVIdx ? prevVIdx[1].targetIndex : undefined;
+        if (prevTIdx === undefined || prevTIdx < unadoptedTIdx) {
+          // 재배정: 이 vIdx를 미채택 타겟으로 이동
+          vRes.targetIndex = unadoptedTIdx;
+          const matchedRes = results.find(r => r.targetIndex === unadoptedTIdx);
+          if (matchedRes) {
+            vRes.targetChar = matchedRes.targetChar;
+            // op도 재결정: 자소가 타겟 초성과 일치하면 PARTIAL, 아니면 REPLACE
+            if (matchedRes.op === "OMIT") {
+              vRes.op = "REPLACE";
+            } else {
+              vRes.op = matchedRes.op;
+            }
+          }
+          adoptedTargets.add(unadoptedTIdx);
+          break;
         }
       }
     }
@@ -742,30 +848,37 @@ export function groupAlignResultsByVisualCharacters(
   const emittedVIdx = new Set<number>();
 
   for (const res of results) {
-    if (
-      res.inputIndex !== undefined &&
-      res.inputIndex >= 0 &&
-      res.inputIndex < qwertyBuffer.length
-    ) {
-      const vIdx = qIdxToVCharIdx[res.inputIndex];
-      if (vIdx !== -1) {
-        if (!emittedVIdx.has(vIdx)) {
-          finalResults.push(vCharIdxToResult.get(vIdx)!);
-          emittedVIdx.add(vIdx);
-        } else if (res.targetIndex !== undefined) {
-          // Preserve a target-only slot when multiple target chars are absorbed
-          // into the same composed visual character.
-          finalResults.push({
-            op: res.op === "OMIT" ? "OMIT" : "PENDING",
-            char: "",
-            targetChar: res.targetChar,
-            targetIndex: res.targetIndex,
-          });
+    if (res.targetIndex !== undefined) {
+      let adoptedVIdx = -1;
+      for (const [vIdx, vRes] of vCharIdxToResult.entries()) {
+        if (vRes.targetIndex === res.targetIndex) {
+          adoptedVIdx = vIdx;
+          break;
         }
-        continue;
       }
+
+      if (adoptedVIdx !== -1) {
+        if (!emittedVIdx.has(adoptedVIdx)) {
+          finalResults.push(vCharIdxToResult.get(adoptedVIdx)!);
+          emittedVIdx.add(adoptedVIdx);
+        }
+      } else {
+        finalResults.push({
+          op: res.op === "OMIT" ? "OMIT" : "PENDING",
+          char: "",
+          targetChar: res.targetChar,
+          targetIndex: res.targetIndex,
+        });
+      }
+    } else if (res.inputIndex !== undefined) {
+      const vIdx = qIdxToVCharIdx[res.inputIndex];
+      if (vIdx !== -1 && !emittedVIdx.has(vIdx)) {
+        finalResults.push(vCharIdxToResult.get(vIdx)!);
+        emittedVIdx.add(vIdx);
+      }
+    } else {
+      finalResults.push(res);
     }
-    finalResults.push(res);
   }
 
   return finalResults;

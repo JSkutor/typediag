@@ -43,17 +43,7 @@ export async function GET() {
       })
       .from(targetTexts);
 
-    const [usageRow] = await drizzleDb.execute<{
-      page_count: number;
-      key_event_count: number;
-      run_count: number;
-      pages_last_30d: number;
-      database_bytes: string;
-      pages_bytes: string;
-      key_events_bytes: string;
-      runs_bytes: string;
-      target_texts_bytes: string;
-    }>(sql`
+    const usageResult = await drizzleDb.execute(sql`
       SELECT
         (SELECT count(*)::int FROM pages) AS page_count,
         (SELECT count(*)::int FROM key_events) AS key_event_count,
@@ -66,15 +56,23 @@ export async function GET() {
         pg_total_relation_size('target_texts')::bigint AS target_texts_bytes
     `);
 
-    const row = usageRow;
+    let row: Record<string, unknown> | undefined;
+    if (usageResult && typeof usageResult === 'object') {
+      if ('rows' in usageResult && Array.isArray((usageResult as unknown as Record<string, unknown>).rows)) {
+        row = (usageResult as unknown as Record<string, unknown[]>).rows[0] as Record<string, unknown> | undefined;
+      } else if (Array.isArray(usageResult)) {
+        row = usageResult[0] as Record<string, unknown> | undefined;
+      }
+    }
+
     const databaseBytes = Number(row?.database_bytes ?? 0);
-    const pageCount = row?.page_count ?? 0;
+    const pageCount = Number(row?.page_count ?? 0);
     const sessionDataBytes =
       Number(row?.pages_bytes ?? 0) +
       Number(row?.key_events_bytes ?? 0) +
       Number(row?.runs_bytes ?? 0);
     const kbPerPageEstimate = estimateKbPerPageFromDb(sessionDataBytes, pageCount);
-    const pagesLast30d = row?.pages_last_30d ?? 0;
+    const pagesLast30d = Number(row?.pages_last_30d ?? 0);
     const sessionDataGb = sessionDataBytes / (1024 * 1024 * 1024);
     const growthGbPer30d =
       pagesLast30d > 0 && kbPerPageEstimate != null

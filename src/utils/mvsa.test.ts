@@ -61,7 +61,7 @@ describe("MVSA (Maximum Valid Sequence Aligner)", () => {
     const result = runMvsa("가나다라", qwerty, true);
 
     expect(result).toEqual([
-      { op: "INSERT", char: "간", targetChar: "가", targetIndex: 0, inputIndex: 2 },
+      { op: "PARTIAL", char: "간", targetChar: "가", targetIndex: 0, inputIndex: 2 },
       { op: "OMIT", char: "", targetChar: "나", targetIndex: 1 },
       { op: "EQUAL", char: "다", targetChar: "다", targetIndex: 2, inputIndex: 4 },
       { op: "EQUAL", char: "라", targetChar: "라", targetIndex: 3, inputIndex: 6 },
@@ -76,7 +76,7 @@ describe("MVSA (Maximum Valid Sequence Aligner)", () => {
 
     expect(result).toEqual([
       // First word
-      { op: "INSERT", char: "간", targetChar: "가", targetIndex: 0, inputIndex: 2 },
+      { op: "PARTIAL", char: "간", targetChar: "가", targetIndex: 0, inputIndex: 2 },
       { op: "OMIT", char: "", targetChar: "나", targetIndex: 1 },
       { op: "EQUAL", char: "다", targetChar: "다", targetIndex: 2, inputIndex: 4 },
       { op: "EQUAL", char: "라", targetChar: "라", targetIndex: 3, inputIndex: 6 },
@@ -180,12 +180,50 @@ describe("MVSA (Maximum Valid Sequence Aligner)", () => {
   it("should handle consonant cluster trailing jamo aligning to next target initial (인류가 / 읺ㄹ)", () => {
     // target: 인류가 / qwerty: dlsgf
     // 읺(ㅇ+ㅣ+ㄶ=d+l+s+g) + ㄹ(f)
-    // 기대: 읺=INSERT(인에 ㅎ여분 삽입 오타), ㄹ=PARTIAL(류 초성만), 가=PENDING
+    // 읺은 '인'에 ㅎ을 잘못 눌러 생긴 오타 → 인 자리에 읺이 REPLACE로 표시
+    // (투표 확정 후 INSERT→REPLACE 교정: 타겟이 배정된 시각 글자는 REPLACE가 맞음)
     const result = runMvsa("인류가", "dlsgf", true);
     expect(result).toEqual([
-      { op: "INSERT", char: "읺", targetChar: "인", targetIndex: 0, inputIndex: 3 },
+      { op: "REPLACE", char: "읺", targetChar: "인", targetIndex: 0, inputIndex: 3 },
       { op: "PARTIAL", char: "ㄹ", targetChar: "류", targetIndex: 1, inputIndex: 4 },
       { op: "PENDING", char: "", targetChar: "가", targetIndex: 2 },
+    ]);
+  });
+
+  it("should place next initial consonant at the adjacent target position (지나간 / 진ㄱ → gap reassignment)", () => {
+    // target: 지나간, qwerty: wlsr → visual: 진ㄱ
+    // '진' = 지 + ㄴ(나의 초성이 종성으로 묻힘), 'ㄱ'은 바로 다음 입력
+    // 기대: 'ㄱ'이 '나'(tIdx=1) 자리에 표시 (건너뛰지 않음)
+    const result = runMvsa("지나간", "wlsr", true);
+    expect(result).toEqual([
+      { op: "PARTIAL", char: "진", targetChar: "지", targetIndex: 0, inputIndex: 2 },
+      { op: "PARTIAL", char: "ㄱ", targetChar: "나", targetIndex: 1, inputIndex: 3 },
+      { op: "PENDING", char: "", targetChar: "간", targetIndex: 2 },
+    ]);
+  });
+
+  it("should not reassign a visual char away from its EQUAL target (지나간 / 진간 → completed)", () => {
+    // target: 지나간, qwerty: wlsrks → visual: 진간
+    // '간' === '간' EQUAL이므로 '나'로 빼앗기면 안 됨
+    const result = runMvsa("지나간", "wlsrks", true);
+    expect(result).toEqual([
+      { op: "PARTIAL", char: "진", targetChar: "지", targetIndex: 0, inputIndex: 2 },
+      { op: "OMIT", char: "", targetChar: "나", targetIndex: 1 },
+      { op: "EQUAL", char: "간", targetChar: "간", targetIndex: 2, inputIndex: 5 },
+    ]);
+  });
+
+  it("should correctly map trailing jamo-only panic buffer when jamo count exceeds complete chars (선율이 / 서뉼ㅇ)", () => {
+    // target: 선율이 / qwerty: tjsbfd → visual: 서뉼ㅇ
+    // 패닉 버퍼: "bfd" → panicTyped="ㅠㄹㅇ" (완성 글자 0개, 자모 3개)
+    // 버그: lookahead=1이면 'ㅇ'이 '율'의 초성으로 오매핑 → 뉼이 INSERT + 이가 PENDING
+    // 수정: lookahead에 자모 가중치 추가(Math.floor(3/2)=1) → lookahead=2 → '이' 탐색 범위에 포함
+    // 기대: 서=PARTIAL→선, 뉼=REPLACE→율, ㅇ=PARTIAL→이
+    const result = runMvsa("선율이", "tjsbfd", true);
+    expect(result).toEqual([
+      { op: "PARTIAL", char: "서", targetChar: "선", targetIndex: 0, inputIndex: 2 },
+      { op: "REPLACE", char: "뉼", targetChar: "율", targetIndex: 1, inputIndex: 4 },
+      { op: "PARTIAL", char: "ㅇ", targetChar: "이", targetIndex: 2, inputIndex: 5 },
     ]);
   });
 });
