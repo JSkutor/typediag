@@ -45,12 +45,8 @@ describe("surfaceVertexColor", () => {
 
 describe("subdivideSurfaceMesh", () => {
   it("quadruples triangle count with one subdivision pass", () => {
-    const positions = new Float32Array([
-      0, 0, 0, 1, 0, 0, 0, 1, 0,
-    ]);
-    const colors = new Float32Array([
-      1, 0, 0, 0, 1, 0, 0, 0, 1,
-    ]);
+    const positions = new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]);
+    const colors = new Float32Array([1, 0, 0, 0, 1, 0, 0, 0, 1]);
     const indices = [0, 1, 2];
 
     const result = subdivideSurfaceMesh(positions, colors, indices);

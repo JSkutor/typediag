@@ -161,9 +161,7 @@ export function createPhysicalKeyPressHandler(
       const evalResult = {
         keyChar: baseEval.keyChar,
         isCorrect,
-        expectedChar: !isCorrect
-          ? (lastOp?.targetChar ?? baseEval.expectedChar ?? null)
-          : null,
+        expectedChar: !isCorrect ? (lastOp?.targetChar ?? baseEval.expectedChar ?? null) : null,
       };
 
       set({

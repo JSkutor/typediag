@@ -93,11 +93,7 @@ function CylindricalVector3DInner({
       mgr.onLabelsUpdate = (proj: LabelProjection) => {
         if (!proj.vectorCoords) return;
 
-        const labels = offsetHudLabelsFromAnchor(
-          proj.vectorCoords,
-          proj.originX,
-          proj.originY,
-        );
+        const labels = offsetHudLabelsFromAnchor(proj.vectorCoords, proj.originX, proj.originY);
         labels.forEach((item) => {
           const el = labelRefs.current[item.fromKey];
           if (!el) return;
@@ -117,9 +113,12 @@ function CylindricalVector3DInner({
 
   const managerRef = useThreeManager(Cylindrical3DManager, mountRef, shouldRenderThree, handleInit);
 
-  const handleDrawerShiftPx = useCallback((shiftPx: number) => {
-    managerRef.current?.setDrawerShiftPx(shiftPx);
-  }, [managerRef]);
+  const handleDrawerShiftPx = useCallback(
+    (shiftPx: number) => {
+      managerRef.current?.setDrawerShiftPx(shiftPx);
+    },
+    [managerRef],
+  );
 
   useEffect(() => {
     if (shouldRenderThree && managerReady && managerRef.current) {

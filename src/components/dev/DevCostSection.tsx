@@ -420,7 +420,8 @@ export function DevCostSection({
         <h3 className={styles.sectionTitle}>API · 인프라 단가</h3>
         <div className={styles.fieldGrid}>
           <p className={devStyles.helpText}>
-            OpenAI 모델: <code>{input.topicLlmModel}</code> — input ${OPENAI_PRICING[input.topicLlmModel].input}
+            OpenAI 모델: <code>{input.topicLlmModel}</code> — input $
+            {OPENAI_PRICING[input.topicLlmModel].input}
             /1M · output ${OPENAI_PRICING[input.topicLlmModel].output}/1M tokens
           </p>
           <NumberField

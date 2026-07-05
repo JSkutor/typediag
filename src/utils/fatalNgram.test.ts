@@ -64,7 +64,11 @@ describe("selectFatalNgrams", () => {
 
 describe("buildDiagnosticsAccumulator · 3-Gram", () => {
   it("attributes K₃ typo to expected layout key", () => {
-    const events = makeAlphaTriplet(["s", "d"], { toKey: "j", isCorrect: false, expectedChar: "k" });
+    const events = makeAlphaTriplet(["s", "d"], {
+      toKey: "j",
+      isCorrect: false,
+      expectedChar: "k",
+    });
     const acc = buildDiagnosticsAccumulator(events);
     const ngrams = acc.perKey.get("k")?.contextualTypos.ngrams;
 
@@ -137,7 +141,9 @@ describe("buildDiagnosticsAccumulator · 3-Gram", () => {
     ];
 
     expect(
-      buildDiagnosticsAccumulator(beforeBackspace).perKey.get("k")?.contextualTypos.ngrams.get("s→d"),
+      buildDiagnosticsAccumulator(beforeBackspace)
+        .perKey.get("k")
+        ?.contextualTypos.ngrams.get("s→d"),
     ).toEqual({ total: 1, error: 1 });
     expect(
       buildDiagnosticsAccumulator(beforeEnter).perKey.get("k")?.contextualTypos.ngrams.get("s→d"),

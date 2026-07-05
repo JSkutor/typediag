@@ -3,11 +3,7 @@ import { KeyResult, KeyEvent } from "@/lib/skdm";
 
 export type UiState = "practice" | "measuring" | "diagnostics";
 
-export type DiagnosticsMode =
-  | "surface"
-  | "cylindrical"
-  | "backspace"
-  | "finger";
+export type DiagnosticsMode = "surface" | "cylindrical" | "backspace" | "finger";
 
 interface WorkspaceState {
   uiState: UiState;

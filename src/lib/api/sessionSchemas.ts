@@ -2,10 +2,7 @@ import { z } from "zod";
 
 const UuidSchema = z
   .string()
-  .regex(
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
-    "Invalid UUID",
-  );
+  .regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, "Invalid UUID");
 
 /** 클라이언트 `KeyEvent` (camelCase) — `POST /api/session` finish body */
 export const SessionKeyEventSchema = z.object({

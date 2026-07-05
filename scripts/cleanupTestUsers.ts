@@ -7,10 +7,7 @@
 
 import postgres from "postgres";
 
-const databaseUrl =
-  process.argv[2] ??
-  process.env.DEV_DATABASE_URL ??
-  process.env.DATABASE_URL;
+const databaseUrl = process.argv[2] ?? process.env.DEV_DATABASE_URL ?? process.env.DATABASE_URL;
 
 if (!databaseUrl) {
   console.error("DATABASE_URL or DEV_DATABASE_URL is required.");

@@ -30,8 +30,7 @@ export const TOPIC_GENERATE_PARSE_ERROR =
 export const TOPIC_GENERATE_VALIDATION_ERROR =
   "생성된 문장이 형식 요건에 맞지 않습니다. 다시 시도해 주세요.";
 
-export const TOPIC_GENERATE_EMPTY_ERROR =
-  "부적절한 주제이거나 문장 생성에 실패했습니다.";
+export const TOPIC_GENERATE_EMPTY_ERROR = "부적절한 주제이거나 문장 생성에 실패했습니다.";
 
 export function topicGenerateUserError(statusCode: number): string {
   if (statusCode === 429) {
@@ -98,10 +97,9 @@ export type TopicGenerateResult = {
   parseFailed: boolean;
 };
 
-export function resolveTopicGenerateError(result: Pick<
-  TopicGenerateResult,
-  "sentences" | "rawCount" | "truncated" | "parseFailed"
->): string {
+export function resolveTopicGenerateError(
+  result: Pick<TopicGenerateResult, "sentences" | "rawCount" | "truncated" | "parseFailed">,
+): string {
   if (result.sentences.length > 0) {
     return "";
   }
@@ -182,14 +180,11 @@ async function callOpenAITopicGenerate(
     );
   }
 
-  const rawText =
-    openaiData?.choices?.[0]?.message?.content?.trim() ?? '{"sentences":[]}';
+  const rawText = openaiData?.choices?.[0]?.message?.content?.trim() ?? '{"sentences":[]}';
 
   const parsed = parseTopicSentencesResponse(rawText);
   if (parsed.rawCount > 0 && parsed.sentences.length === 0) {
-    console.warn(
-      `[generate/route] All ${parsed.rawCount} OpenAI sentences rejected by validation`,
-    );
+    console.warn(`[generate/route] All ${parsed.rawCount} OpenAI sentences rejected by validation`);
   }
 
   if (truncated && parsed.sentences.length === 0) {
@@ -203,9 +198,7 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export async function generateTopicSentences(
-  topic: string,
-): Promise<TopicGenerateResult> {
+export async function generateTopicSentences(topic: string): Promise<TopicGenerateResult> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw new Error("OPENAI_API_KEY is not set in environment variables.");

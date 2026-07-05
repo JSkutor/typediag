@@ -2,10 +2,7 @@
 
 import { useId, useMemo } from "react";
 import { buildLayout } from "@/lib/skdm/layout";
-import {
-  classifySpatialTypoDistance,
-  SPATIAL_TYPO_CLASS_LABEL,
-} from "@/lib/skdm/geometry";
+import { classifySpatialTypoDistance, SPATIAL_TYPO_CLASS_LABEL } from "@/lib/skdm/geometry";
 import type { SpatialErrorDistanceResult } from "@/utils/cylindricalStats";
 import type { KeyPosition } from "@/lib/skdm/types";
 

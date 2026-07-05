@@ -22,9 +22,7 @@ let cachedFont: Font | null = null;
 
 function getBrandFont(): Font {
   if (!cachedFont) {
-    cachedFont = new FontLoader().parse(
-      helvetikerBold as Parameters<FontLoader["parse"]>[0],
-    );
+    cachedFont = new FontLoader().parse(helvetikerBold as Parameters<FontLoader["parse"]>[0]);
   }
   return cachedFont;
 }

@@ -5,8 +5,7 @@ import { loadEnvConfig } from "@next/env";
 loadEnvConfig(process.cwd());
 
 const TEST_DATABASE_URL =
-  process.env.TEST_DATABASE_URL ??
-  "postgresql://typediag:typediag@localhost:5432/typediag_test";
+  process.env.TEST_DATABASE_URL ?? "postgresql://typediag:typediag@localhost:5432/typediag_test";
 
 // Preserve dev DB URL for orphan/test user cleanup in globalSetup
 if (process.env.DATABASE_URL && !process.env.DEV_DATABASE_URL) {

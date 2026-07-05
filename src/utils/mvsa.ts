@@ -188,13 +188,7 @@ export class MaximumValidSequenceAligner {
           }
         } else {
           // 진행 중 어절: 상태 저장 없이 O(N²) 시뮬레이션
-          wordResults = this.alignWordIncremental(
-            word.text,
-            wordQwerty,
-            word.start,
-            qPtr,
-            false,
-          );
+          wordResults = this.alignWordIncremental(word.text, wordQwerty, word.start, qPtr, false);
         }
 
         result.push(...wordResults);
@@ -707,8 +701,15 @@ export function groupAlignResultsByVisualCharacters(
   }
 
   const vCharIdxToResult = new Map<number, AlignResult>();
-  const opPriority: Record<string, number> = { REPLACE: 5, INSERT: 4, PARTIAL: 3, EQUAL: 2, OMIT: 1, PENDING: 0 };
-  
+  const opPriority: Record<string, number> = {
+    REPLACE: 5,
+    INSERT: 4,
+    PARTIAL: 3,
+    EQUAL: 2,
+    OMIT: 1,
+    PENDING: 0,
+  };
+
   // vIdx -> Map<targetIndex, voteCount>
   const vCharIdxToTargetVotes = new Map<number, Map<number, number>>();
 
@@ -749,7 +750,7 @@ export function groupAlignResultsByVisualCharacters(
               existing.op = res.op;
             }
             existing.inputIndex = Math.max(existing.inputIndex!, res.inputIndex);
-            
+
             // Note: targetIndex is NOT overwritten here anymore. It will be decided by votes later.
           }
         }
@@ -772,7 +773,7 @@ export function groupAlignResultsByVisualCharacters(
       }
       if (maxTargetIndex !== -1) {
         existing.targetIndex = maxTargetIndex;
-        const matchedRes = results.find(r => r.targetIndex === maxTargetIndex);
+        const matchedRes = results.find((r) => r.targetIndex === maxTargetIndex);
         if (matchedRes) {
           existing.targetChar = matchedRes.targetChar;
         }
@@ -805,8 +806,8 @@ export function groupAlignResultsByVisualCharacters(
 
   // 타겟 인덱스 목록 추출
   const allTargetIndices = results
-    .filter(r => r.targetIndex !== undefined)
-    .map(r => r.targetIndex!);
+    .filter((r) => r.targetIndex !== undefined)
+    .map((r) => r.targetIndex!);
   const uniqueTargetIndices = [...new Set(allTargetIndices)].sort((a, b) => a - b);
 
   // vIdx를 오름차순으로 정렬한 배열
@@ -824,14 +825,14 @@ export function groupAlignResultsByVisualCharacters(
         // 가드: 이 시각 글자가 현재 타겟과 정확히 일치하면 빼앗지 않는다.
         // 예: '간다라' 에서 '다'가 tIdx=2('다')와 EQUAL인데 tIdx=1('나')로 빼앗으면 안 됨.
         if (vRes.char === vRes.targetChar) break;
-        
+
         // 이 vIdx 앞에 있는 vIdx가 unadoptedTIdx보다 앞의 타겟을 갖고 있는지 확인
         const prevVIdx = vi > 0 ? sortedVIdxEntries[vi - 1] : null;
         const prevTIdx = prevVIdx ? prevVIdx[1].targetIndex : undefined;
         if (prevTIdx === undefined || prevTIdx < unadoptedTIdx) {
           // 재배정: 이 vIdx를 미채택 타겟으로 이동
           vRes.targetIndex = unadoptedTIdx;
-          const matchedRes = results.find(r => r.targetIndex === unadoptedTIdx);
+          const matchedRes = results.find((r) => r.targetIndex === unadoptedTIdx);
           if (matchedRes) {
             vRes.targetChar = matchedRes.targetChar;
             // op도 재결정: 자소가 타겟 초성과 일치하면 PARTIAL, 아니면 REPLACE
@@ -898,11 +899,11 @@ export function runMvsa(
     const aligner = new MaximumValidSequenceAligner(targetText, qwertyBuffer, isKorean, cache);
     return aligner.align();
   }
-  
+
   // Phase 3: Switch to new Jaso-based engine
   const jasoAligner = new JasoSequenceAligner(targetText, qwertyBuffer);
   const jasoResults = jasoAligner.align();
-  
+
   const aggregator = new MvsaAggregator();
   return aggregator.aggregate(jasoResults, qwertyBuffer, targetText);
 }

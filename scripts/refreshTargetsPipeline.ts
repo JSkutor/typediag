@@ -1,6 +1,6 @@
 /**
  * Full Pipeline Script to Refresh Target Texts.
- * 
+ *
  * 1. Clears PostgreSQL database (using clearDatabase.ts)
  * 2. Deletes local SQLite DB and cached batch files
  * 3. Submits a new Gemini Batch API job for 1000 sentences
@@ -9,7 +9,7 @@
  * 6. Generates Upstage Embeddings for SQLite entries
  * 7. Exports the entries to frontend JSON files (targets_client.json, targets_vector.json)
  * 8. Seeds the PostgreSQL database from SQLite (using seed.ts)
- * 
+ *
  * Usage: npx tsx --env-file=.env.local scripts/refreshTargetsPipeline.ts
  */
 
@@ -46,10 +46,10 @@ async function main() {
   // --- Step 1: Clear local SQLite DB and cached batch files ---
   console.log("\n🧹 Cleaning up local SQLite DB and cached files...");
   // If skipBatch is true, we must preserve OUTPUT_JSONL
-  const filesToDelete = skipBatch 
+  const filesToDelete = skipBatch
     ? [DB_FILE, METADATA_FILE, INPUT_JSONL]
     : [DB_FILE, METADATA_FILE, INPUT_JSONL, OUTPUT_JSONL];
-    
+
   for (const file of filesToDelete) {
     if (fs.existsSync(file)) {
       fs.unlinkSync(file);
@@ -75,11 +75,14 @@ async function main() {
     while (!isDone) {
       attempts++;
       console.log(`\n[Attempt #${attempts}] Checking batch job status...`);
-      
+
       try {
         // Run the check command which downloads the output on success
-        execSync(".venv/bin/python3 scripts/generate_batch.py check", { stdio: "inherit", env: process.env });
-        
+        execSync(".venv/bin/python3 scripts/generate_batch.py check", {
+          stdio: "inherit",
+          env: process.env,
+        });
+
         if (fs.existsSync(OUTPUT_JSONL)) {
           console.log("   ✅ Batch output file downloaded successfully!");
           isDone = true;
@@ -95,7 +98,9 @@ async function main() {
   } else {
     console.log("\n⏭️ Skipping Gemini Batch API Job (using existing batch_output.jsonl)");
     if (!fs.existsSync(OUTPUT_JSONL)) {
-      console.error(`❌ Error: batch_output.jsonl not found at ${OUTPUT_JSONL}. Cannot skip batch.`);
+      console.error(
+        `❌ Error: batch_output.jsonl not found at ${OUTPUT_JSONL}. Cannot skip batch.`,
+      );
       process.exit(1);
     }
   }

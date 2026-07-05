@@ -50,13 +50,11 @@ describe("/api/practice/target route", () => {
   });
 
   it("passes exclude id and retries without exclude when no row is found", async () => {
-    mockGetRandomTargetText
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({
-        id: "target_002",
-        content: "fallback sentence",
-        language: "en",
-      });
+    mockGetRandomTargetText.mockResolvedValueOnce(null).mockResolvedValueOnce({
+      id: "target_002",
+      content: "fallback sentence",
+      language: "en",
+    });
 
     const response = await GET(makeTargetRequest("language=en&exclude=target_001"));
     const payload = await response.json();

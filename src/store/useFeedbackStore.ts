@@ -1,10 +1,7 @@
 import { create } from "zustand";
 import { feedbackServiceClient } from "@/services/feedbackServiceClient";
 import { useTypingStore } from "@/store/useTypingStore";
-import {
-  buildFeedbackNoticeState,
-  getFeedbackSuccessText,
-} from "@/lib/feedback/freeformTyping";
+import { buildFeedbackNoticeState, getFeedbackSuccessText } from "@/lib/feedback/freeformTyping";
 
 export type FeedbackSubmitStatus = "idle" | "submitting" | "success" | "error";
 
@@ -67,8 +64,7 @@ export const useFeedbackStore = create<FeedbackStore>((set, get) => ({
       set({ submitStatus: "success", submitError: null });
       scheduleReturnToNormalMode();
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "피드백 전송에 실패했습니다.";
+      const errorMessage = error instanceof Error ? error.message : "피드백 전송에 실패했습니다.";
       set({ submitStatus: "error", submitError: errorMessage });
     }
   },

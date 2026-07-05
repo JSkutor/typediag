@@ -740,7 +740,9 @@
   align-items: center;
   justify-content: center;
   line-height: 1;
-  transition: color 0.15s, transform 0.15s;
+  transition:
+    color 0.15s,
+    transform 0.15s;
   border-radius: 4px;
 }
 
@@ -760,4 +762,3 @@
     transform: translate3d(0, 0, 0);
   }
 }
-

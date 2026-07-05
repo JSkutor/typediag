@@ -40,7 +40,9 @@ describe("useDiagnosticsTransition", () => {
         if (runId && runId !== "all") {
           const pages = await db.getPagesForRun(runId);
           if (pages.length > 0) {
-            const keyEventsByPage = await Promise.all(pages.map((p) => db.getKeyEventsForPage(p.id)));
+            const keyEventsByPage = await Promise.all(
+              pages.map((p) => db.getKeyEventsForPage(p.id)),
+            );
             events = keyEventsByPage.flatMap((pageEvents) =>
               pageEvents.map((ev) => ({
                 fromKey: ev.fromKey,
@@ -59,7 +61,9 @@ describe("useDiagnosticsTransition", () => {
           const allEvents: any[] = [];
           for (const run of allRuns) {
             const pages = await db.getPagesForRun(run.id);
-            const keyEventsByPage = await Promise.all(pages.map((p) => db.getKeyEventsForPage(p.id)));
+            const keyEventsByPage = await Promise.all(
+              pages.map((p) => db.getKeyEventsForPage(p.id)),
+            );
             const evs = keyEventsByPage.flatMap((pageEvents) =>
               pageEvents.map((ev) => ({
                 fromKey: ev.fromKey,

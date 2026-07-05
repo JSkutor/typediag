@@ -34,7 +34,7 @@ describe("computeDevCloudBandLatencies", () => {
     const { lowerMs, upperMs } = computeDevCloudBandLatencies(20, 0.25, 80);
     expect(lowerMs).toBeCloseTo(0, 4);
     expect(upperMs).toBeCloseTo(40, 4);
-    
+
     // hold=100, L+D > 80. Relative region: L <= 100 * 1.25 / 0.75 = 166.6, L >= 100 * 0.75 / 1.25 = 60
     const { lowerMs: l2, upperMs: u2 } = computeDevCloudBandLatencies(100, 0.25, 80);
     expect(l2).toBeCloseTo(60, 4);
@@ -125,7 +125,9 @@ describe("buildCloudTypingDevData", () => {
     const withMinDenom = buildCloudTypingDevData(events, "f", { minDenomMs: 80 });
     const withoutMinDenom = buildCloudTypingDevData(events, "f", { minDenomMs: 0 });
 
-    const cloudCountWithM = withMinDenom.analysisPoints.filter((point) => point.isCloudStroke).length;
+    const cloudCountWithM = withMinDenom.analysisPoints.filter(
+      (point) => point.isCloudStroke,
+    ).length;
     const cloudCountWithoutM = withoutMinDenom.analysisPoints.filter(
       (point) => point.isCloudStroke,
     ).length;

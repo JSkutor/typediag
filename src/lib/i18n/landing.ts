@@ -241,8 +241,7 @@ const COPY: Record<LandingLang, LandingCopy> = {
         },
         {
           quote: "I repeat the same mistakes without knowing why.",
-          detail:
-            "Without tracking key ordering errors, it is difficult to break old habits.",
+          detail: "Without tracking key ordering errors, it is difficult to break old habits.",
         },
       ],
     },

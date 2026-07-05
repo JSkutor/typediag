@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { TOPIC_LOADING_DELAYED_AFTER_MS, type TopicLoadingPhase } from "@/lib/practice/topicLoading";
+import {
+  TOPIC_LOADING_DELAYED_AFTER_MS,
+  type TopicLoadingPhase,
+} from "@/lib/practice/topicLoading";
 
 export function useTopicLoadingPhase(isActive: boolean): TopicLoadingPhase {
   const [activePhase, setActivePhase] = useState<"loading" | "delayed">("loading");

@@ -31,7 +31,7 @@ export class JasoSequenceAligner {
     const inputChars = this.tokenizeInput(this.qwertyBuffer);
 
     const results: JasoAlignResult[] = [];
-    
+
     let tTokIdx = 0;
     let qIdx = 0;
 
@@ -40,74 +40,83 @@ export class JasoSequenceAligner {
       while (endTTokIdx < targetTokens.length && targetTokens[endTTokIdx].char !== " ") {
         endTTokIdx++;
       }
-      
+
       let endQIdx = qIdx;
       while (endQIdx < inputChars.length && inputChars[endQIdx] !== " ") {
         endQIdx++;
       }
-      
+
       const wordTargetTokens = targetTokens.slice(tTokIdx, endTTokIdx);
       const wordInputChars = inputChars.slice(qIdx, endQIdx);
       const isCompleted = endQIdx < inputChars.length;
-      
-      const wordResults = this.alignWordIncrementalHeuristic(wordTargetTokens, wordInputChars, qIdx, isCompleted);
+
+      const wordResults = this.alignWordIncrementalHeuristic(
+        wordTargetTokens,
+        wordInputChars,
+        qIdx,
+        isCompleted,
+      );
       results.push(...wordResults);
-      
+
       tTokIdx = endTTokIdx;
       qIdx = endQIdx;
 
-      if (tTokIdx < targetTokens.length && targetTokens[tTokIdx].char === " " && 
-          qIdx < inputChars.length && inputChars[qIdx] === " ") {
+      if (
+        tTokIdx < targetTokens.length &&
+        targetTokens[tTokIdx].char === " " &&
+        qIdx < inputChars.length &&
+        inputChars[qIdx] === " "
+      ) {
         results.push({
           op: "EQUAL",
           char: " ",
           targetChar: " ",
           targetJasoIndex: targetTokens[tTokIdx].jasoIndex,
           targetVCharIndex: targetTokens[tTokIdx].vCharIndex,
-          inputIndex: qIdx
+          inputIndex: qIdx,
         });
         tTokIdx++;
         qIdx++;
       } else if (tTokIdx < targetTokens.length && targetTokens[tTokIdx].char === " ") {
-        const isPending = !isCompleted && (qIdx === inputChars.length);
+        const isPending = !isCompleted && qIdx === inputChars.length;
         results.push({
           op: isPending ? "PENDING" : "OMIT",
           char: "",
           targetChar: " ",
           targetJasoIndex: targetTokens[tTokIdx].jasoIndex,
-          targetVCharIndex: targetTokens[tTokIdx].vCharIndex
+          targetVCharIndex: targetTokens[tTokIdx].vCharIndex,
         });
         tTokIdx++;
       } else if (qIdx < inputChars.length && inputChars[qIdx] === " ") {
         results.push({
           op: "INSERT",
           char: " ",
-          inputIndex: qIdx
+          inputIndex: qIdx,
         });
         qIdx++;
       }
     }
-    
+
     while (qIdx < inputChars.length) {
       results.push({
         op: "INSERT",
         char: inputChars[qIdx],
-        inputIndex: qIdx
+        inputIndex: qIdx,
       });
       qIdx++;
     }
-    
+
     while (tTokIdx < targetTokens.length) {
       results.push({
         op: "PENDING",
         char: "",
         targetChar: targetTokens[tTokIdx].char,
         targetJasoIndex: targetTokens[tTokIdx].jasoIndex,
-        targetVCharIndex: targetTokens[tTokIdx].vCharIndex
+        targetVCharIndex: targetTokens[tTokIdx].vCharIndex,
       });
       tTokIdx++;
     }
-    
+
     return results;
   }
 
@@ -140,7 +149,7 @@ export class JasoSequenceAligner {
     wordTargetTokens: TargetToken[],
     wordInputChars: string[],
     qOffset: number,
-    isCompleted: boolean
+    isCompleted: boolean,
   ): JasoAlignResult[] {
     if (wordInputChars.length === 0) {
       return this.alignWordHeuristic(wordTargetTokens, [], qOffset, isCompleted);
@@ -178,7 +187,7 @@ export class JasoSequenceAligner {
           }
         }
         if (r.targetJasoIndex !== undefined && r.op !== "PENDING") {
-          const localT = wordTargetTokens.findIndex(t => t.jasoIndex === r.targetJasoIndex);
+          const localT = wordTargetTokens.findIndex((t) => t.jasoIndex === r.targetJasoIndex);
           if (localT !== -1 && localT >= confirmedTIdx) {
             confirmedTIdx = localT + 1;
           }
@@ -194,7 +203,7 @@ export class JasoSequenceAligner {
           remainingTarget,
           remainingQwerty,
           qOffset + confirmedQIdx,
-          isLast
+          isLast,
         );
       }
 
@@ -205,10 +214,10 @@ export class JasoSequenceAligner {
   }
 
   private alignWordHeuristic(
-    wordTargetTokens: TargetToken[], 
-    wordInputChars: string[], 
-    qOffset: number, 
-    isCompleted: boolean
+    wordTargetTokens: TargetToken[],
+    wordInputChars: string[],
+    qOffset: number,
+    isCompleted: boolean,
   ): JasoAlignResult[] {
     const results: JasoAlignResult[] = [];
     let tIdx = 0;
@@ -225,7 +234,7 @@ export class JasoSequenceAligner {
           targetChar: tChar,
           targetJasoIndex: wordTargetTokens[tIdx].jasoIndex,
           targetVCharIndex: wordTargetTokens[tIdx].vCharIndex,
-          inputIndex: qOffset + qIdx
+          inputIndex: qOffset + qIdx,
         });
         tIdx++;
         qIdx++;
@@ -235,7 +244,7 @@ export class JasoSequenceAligner {
           wordInputChars,
           tIdx,
           qIdx,
-          qOffset
+          qOffset,
         );
         results.push(...panicResults);
         tIdx = newTIdx;
@@ -247,19 +256,19 @@ export class JasoSequenceAligner {
       results.push({
         op: "INSERT",
         char: wordInputChars[qIdx],
-        inputIndex: qOffset + qIdx
+        inputIndex: qOffset + qIdx,
       });
       qIdx++;
     }
 
     while (tIdx < wordTargetTokens.length) {
-      const isPending = !isCompleted && (qIdx === wordInputChars.length);
+      const isPending = !isCompleted && qIdx === wordInputChars.length;
       results.push({
         op: isPending ? "PENDING" : "OMIT",
         char: "",
         targetChar: wordTargetTokens[tIdx].char,
         targetJasoIndex: wordTargetTokens[tIdx].jasoIndex,
-        targetVCharIndex: wordTargetTokens[tIdx].vCharIndex
+        targetVCharIndex: wordTargetTokens[tIdx].vCharIndex,
       });
       tIdx++;
     }
@@ -272,11 +281,11 @@ export class JasoSequenceAligner {
     wordInputChars: string[],
     tIdx: number,
     qIdx: number,
-    qOffset: number
+    qOffset: number,
   ) {
     const results: JasoAlignResult[] = [];
     const panicInputLen = wordInputChars.length - qIdx;
-    
+
     // +1 Heuristic (Jamo count + 1)
     const maxLookahead = panicInputLen + 1;
     const targetLookaheadEnd = Math.min(wordTargetTokens.length, tIdx + maxLookahead);
@@ -288,7 +297,7 @@ export class JasoSequenceAligner {
     // R2L Search
     for (let pIdx = wordInputChars.length - 1; pIdx >= qIdx && !matchFound; pIdx--) {
       const pChar = wordInputChars[pIdx];
-      for (let lookTIdx = targetLookaheadEnd - 1; lookTIdx >= tIdx; lookTIdx--) {
+      for (let lookTIdx = tIdx; lookTIdx < targetLookaheadEnd; lookTIdx++) {
         if (wordTargetTokens[lookTIdx].char === pChar) {
           matchFound = true;
           bestMatchInputIdx = pIdx;
@@ -310,7 +319,7 @@ export class JasoSequenceAligner {
           targetChar: wordTargetTokens[tIdx + i].char,
           targetJasoIndex: wordTargetTokens[tIdx + i].jasoIndex,
           targetVCharIndex: wordTargetTokens[tIdx + i].vCharIndex,
-          inputIndex: qOffset + qIdx + i
+          inputIndex: qOffset + qIdx + i,
         });
       }
 
@@ -318,7 +327,7 @@ export class JasoSequenceAligner {
         results.push({
           op: "INSERT",
           char: wordInputChars[qIdx + i],
-          inputIndex: qOffset + qIdx + i
+          inputIndex: qOffset + qIdx + i,
         });
       }
 
@@ -328,7 +337,7 @@ export class JasoSequenceAligner {
           char: "",
           targetChar: wordTargetTokens[tIdx + i].char,
           targetJasoIndex: wordTargetTokens[tIdx + i].jasoIndex,
-          targetVCharIndex: wordTargetTokens[tIdx + i].vCharIndex
+          targetVCharIndex: wordTargetTokens[tIdx + i].vCharIndex,
         });
       }
 
@@ -338,20 +347,20 @@ export class JasoSequenceAligner {
         targetChar: wordTargetTokens[bestMatchTargetIdx].char,
         targetJasoIndex: wordTargetTokens[bestMatchTargetIdx].jasoIndex,
         targetVCharIndex: wordTargetTokens[bestMatchTargetIdx].vCharIndex,
-        inputIndex: qOffset + bestMatchInputIdx
+        inputIndex: qOffset + bestMatchInputIdx,
       });
 
       return {
         panicResults: results,
         newTIdx: bestMatchTargetIdx + 1,
-        newQIdx: bestMatchInputIdx + 1
+        newQIdx: bestMatchInputIdx + 1,
       };
     } else {
       const targetCharsLen = wordTargetTokens.length - tIdx;
       const M = panicInputLen;
       const N = targetCharsLen;
       const minLen = Math.min(M, N);
-      
+
       for (let i = 0; i < minLen; i++) {
         results.push({
           op: "REPLACE",
@@ -359,22 +368,22 @@ export class JasoSequenceAligner {
           targetChar: wordTargetTokens[tIdx + i].char,
           targetJasoIndex: wordTargetTokens[tIdx + i].jasoIndex,
           targetVCharIndex: wordTargetTokens[tIdx + i].vCharIndex,
-          inputIndex: qOffset + qIdx + i
+          inputIndex: qOffset + qIdx + i,
         });
       }
-      
+
       for (let i = minLen; i < M; i++) {
         results.push({
           op: "INSERT",
           char: wordInputChars[qIdx + i],
-          inputIndex: qOffset + qIdx + i
+          inputIndex: qOffset + qIdx + i,
         });
       }
-      
+
       return {
         panicResults: results,
         newTIdx: tIdx + minLen,
-        newQIdx: qIdx + M
+        newQIdx: qIdx + M,
       };
     }
   }

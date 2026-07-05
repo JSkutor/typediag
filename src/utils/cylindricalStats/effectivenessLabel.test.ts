@@ -2,9 +2,7 @@ import { describe, expect, it } from "vitest";
 import { getCloudTypingEffectivenessLabel } from "./effectivenessLabel";
 import type { CloudTypingDiagnostics } from "./types";
 
-function makeCloudTyping(
-  overrides: Partial<CloudTypingDiagnostics> = {},
-): CloudTypingDiagnostics {
+function makeCloudTyping(overrides: Partial<CloudTypingDiagnostics> = {}): CloudTypingDiagnostics {
   return {
     effectivenessCorrelation: {
       pearsonR: 0,
@@ -41,21 +39,16 @@ describe("getCloudTypingEffectivenessLabel", () => {
     };
 
     expect(
-      getCloudTypingEffectivenessLabel(
-        makeCloudTyping({ key, effectiveness: "effective" }),
-      ).label,
+      getCloudTypingEffectivenessLabel(makeCloudTyping({ key, effectiveness: "effective" })).label,
     ).toBe("효과 있음");
 
     expect(
-      getCloudTypingEffectivenessLabel(
-        makeCloudTyping({ key, effectiveness: "counterproductive" }),
-      ).label,
+      getCloudTypingEffectivenessLabel(makeCloudTyping({ key, effectiveness: "counterproductive" }))
+        .label,
     ).toBe("역효과");
 
     expect(
-      getCloudTypingEffectivenessLabel(
-        makeCloudTyping({ key, effectiveness: "neutral" }),
-      ).label,
+      getCloudTypingEffectivenessLabel(makeCloudTyping({ key, effectiveness: "neutral" })).label,
     ).toBe("효과 없음");
   });
 

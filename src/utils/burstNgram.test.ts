@@ -9,11 +9,7 @@ import {
   selectBurstNgrams,
 } from "./cylindricalStats";
 
-function burstStroke(
-  fromKey: string,
-  toKey: string,
-  latencyMs: number,
-): KeyEvent {
+function burstStroke(fromKey: string, toKey: string, latencyMs: number): KeyEvent {
   return { fromKey, toKey, latencyMs, isCorrect: true };
 }
 
@@ -82,10 +78,7 @@ describe("buildDiagnosticsAccumulator · burst", () => {
   });
 
   it("resets burst window when latency exceeds BURST_LATENCY_MAX_MS", () => {
-    const events: KeyEvent[] = [
-      burstStroke("x", "s", 20),
-      burstStroke("s", "d", 40),
-    ];
+    const events: KeyEvent[] = [burstStroke("x", "s", 20), burstStroke("s", "d", 40)];
 
     const acc = buildDiagnosticsAccumulator(events);
 

@@ -23,10 +23,10 @@ describe("PageMetricsFlash", () => {
   it("renders nothing when pageMetricsFlash is null", () => {
     const flashHost = document.createElement("div");
     document.body.appendChild(flashHost);
-    
+
     const { container } = render(<PageMetricsFlash />, { container: flashHost });
     expect(container.querySelector(".page-metrics-flash")).toBeNull();
-    
+
     flashHost.remove();
   });
 
@@ -86,8 +86,7 @@ describe("PageMetricsFlash", () => {
 
     vi.advanceTimersByTime(2200);
     expect(useTypingStore.getState().pageMetricsFlash).toBeNull();
-    
+
     flashHost.remove();
   });
 });
-

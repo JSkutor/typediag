@@ -190,15 +190,15 @@ describe("MVSA (Maximum Valid Sequence Aligner)", () => {
     ]);
   });
 
-  it("should place next initial consonant at the adjacent target position (지나간 / 진ㄱ → gap reassignment)", () => {
+  it("should not reassign to unadopted target if it matches a later target (지나간 / 진ㄱ → no gap reassignment)", () => {
     // target: 지나간, qwerty: wlsr → visual: 진ㄱ
     // '진' = 지 + ㄴ(나의 초성이 종성으로 묻힘), 'ㄱ'은 바로 다음 입력
-    // 기대: 'ㄱ'이 '나'(tIdx=1) 자리에 표시 (건너뛰지 않음)
+    // 기대: 'ㄱ'이 '간'(tIdx=2) 자리에 PARTIAL로 표시되고 '나'는 OMIT 처리됨
     const result = runMvsa("지나간", "wlsr", true);
     expect(result).toEqual([
       { op: "REPLACE", char: "진", targetChar: "지", targetIndex: 0, inputIndex: 2 },
-      { op: "REPLACE", char: "ㄱ", targetChar: "나", targetIndex: 1, inputIndex: 3 },
-      { op: "PENDING", char: "", targetChar: "간", targetIndex: 2 },
+      { op: "OMIT", char: "", targetChar: "나", targetIndex: 1 },
+      { op: "PARTIAL", char: "ㄱ", targetChar: "간", targetIndex: 2, inputIndex: 3 },
     ]);
   });
 

@@ -1,4 +1,3 @@
-
 import { NextResponse } from "next/server";
 import { sql } from "drizzle-orm";
 
@@ -57,9 +56,14 @@ export async function GET() {
     `);
 
     let row: Record<string, unknown> | undefined;
-    if (usageResult && typeof usageResult === 'object') {
-      if ('rows' in usageResult && Array.isArray((usageResult as unknown as Record<string, unknown>).rows)) {
-        row = (usageResult as unknown as Record<string, unknown[]>).rows[0] as Record<string, unknown> | undefined;
+    if (usageResult && typeof usageResult === "object") {
+      if (
+        "rows" in usageResult &&
+        Array.isArray((usageResult as unknown as Record<string, unknown>).rows)
+      ) {
+        row = (usageResult as unknown as Record<string, unknown[]>).rows[0] as
+          | Record<string, unknown>
+          | undefined;
       } else if (Array.isArray(usageResult)) {
         row = usageResult[0] as Record<string, unknown> | undefined;
       }

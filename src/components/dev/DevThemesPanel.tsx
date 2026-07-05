@@ -428,7 +428,9 @@ export function DevThemesPanel() {
               <div key={rowIndex} className={styles.keyboardRow}>
                 {/* Esc / Caps Locks */}
                 {rowIndex === 0 && (
-                  <div className={`${styles.keycap} ${styles.modKey} ${styles.escKey} ${styles.accentSecondKeycap}`}>
+                  <div
+                    className={`${styles.keycap} ${styles.modKey} ${styles.escKey} ${styles.accentSecondKeycap}`}
+                  >
                     <span>Esc</span>
                   </div>
                 )}
@@ -487,7 +489,9 @@ export function DevThemesPanel() {
                   </div>
                 )}
                 {rowIndex === 1 && (
-                  <div className={`${styles.keycap} ${styles.modKey} ${styles.enterKey} ${styles.accentKeycap}`}>
+                  <div
+                    className={`${styles.keycap} ${styles.modKey} ${styles.enterKey} ${styles.accentKeycap}`}
+                  >
                     <span>Enter</span>
                   </div>
                 )}
@@ -606,9 +610,7 @@ export function DevThemesPanel() {
               <div className={styles.scoreCard}>
                 <div className={styles.scoreHeader}>
                   <span>Diagnostic Score</span>
-                  <span
-                    className={`${styles.scoreBadge} ${styles.scoreBadgeAccent}`}
-                  >
+                  <span className={`${styles.scoreBadge} ${styles.scoreBadgeAccent}`}>
                     Excellent
                   </span>
                 </div>
@@ -625,15 +627,11 @@ export function DevThemesPanel() {
               <div className={styles.metricGrid}>
                 <div className={styles.metricCard}>
                   <span className={styles.metricLabel}>평균 타자속도 (WPM)</span>
-                  <span className={`${styles.metricVal} ${styles.metricValAccent}`}>
-                    82 WPM
-                  </span>
+                  <span className={`${styles.metricVal} ${styles.metricValAccent}`}>82 WPM</span>
                 </div>
                 <div className={styles.metricCard}>
                   <span className={styles.metricLabel}>타건 정확도 (ACC)</span>
-                  <span className={`${styles.metricVal} ${styles.metricValSecond}`}>
-                    98.4%
-                  </span>
+                  <span className={`${styles.metricVal} ${styles.metricValSecond}`}>98.4%</span>
                 </div>
               </div>
 

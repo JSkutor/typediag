@@ -137,9 +137,7 @@ describe("generateTopicSentences", () => {
   it("throws when OPENAI_API_KEY is missing", async () => {
     delete process.env.OPENAI_API_KEY;
 
-    await expect(generateTopicSentences("타자 연습")).rejects.toThrow(
-      "OPENAI_API_KEY is not set",
-    );
+    await expect(generateTopicSentences("타자 연습")).rejects.toThrow("OPENAI_API_KEY is not set");
   });
 
   it("retries on 429 and returns filtered sentences", async () => {

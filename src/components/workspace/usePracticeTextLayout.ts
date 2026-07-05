@@ -39,10 +39,7 @@ function resizeLayoutArrays(cache: LayoutCache, len: number) {
   cache.isSpace.length = len;
 }
 
-export function usePracticeTextLayout(
-  diffResult: readonly AlignResult[],
-  lastInputIndex: number,
-) {
+export function usePracticeTextLayout(diffResult: readonly AlignResult[], lastInputIndex: number) {
   const cacheRef = useRef<LayoutCache>({ tops: [], lefts: [], isSpace: [], length: 0 });
   const lineStartRef = useRef<ReadonlySet<number>>(new Set());
 
@@ -92,9 +89,7 @@ export function usePracticeTextLayout(
       const containerLeft = container?.getBoundingClientRect().left ?? 0;
 
       const shouldMeasureAll =
-        fullRemeasure ||
-        cache.length === 0 ||
-        (len !== cache.length && lastInputIndex === -1);
+        fullRemeasure || cache.length === 0 || (len !== cache.length && lastInputIndex === -1);
 
       if (shouldMeasureAll) {
         resizeLayoutArrays(cache, len);
@@ -145,9 +140,7 @@ export function usePracticeTextLayout(
 
     const container = document.getElementById(TYPING_TEXT_CONTAINER_ID);
     const resizeObserver =
-      typeof ResizeObserver !== "undefined" && container
-        ? new ResizeObserver(handleResize)
-        : null;
+      typeof ResizeObserver !== "undefined" && container ? new ResizeObserver(handleResize) : null;
     if (container) {
       resizeObserver?.observe(container);
     }

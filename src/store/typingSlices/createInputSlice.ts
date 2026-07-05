@@ -6,7 +6,10 @@ import { topicInitialState, createTopicTopicActions } from "./createTopicSlice";
 import { normalInitialState, createNormalModeActions } from "./createNormalModeSlice";
 import { saveCurrentPageIfDone } from "./saveIfDone";
 import { createPhysicalKeyPressHandler } from "./physicalKeyPressHandler";
-import { buildFeedbackAlignments, buildFeedbackEmptyAlignments } from "@/lib/feedback/freeformTyping";
+import {
+  buildFeedbackAlignments,
+  buildFeedbackEmptyAlignments,
+} from "@/lib/feedback/freeformTyping";
 
 const generateHardcoreText = (): string => {
   const randomLength = 70 + Math.floor(Math.random() * 21) - 10;

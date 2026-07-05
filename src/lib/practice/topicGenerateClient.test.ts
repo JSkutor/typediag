@@ -58,9 +58,7 @@ describe("fetchTopicGenerateWithRetry", () => {
   });
 
   it("does not retry on 422", async () => {
-    vi.mocked(global.fetch).mockResolvedValueOnce(
-      jsonResponse(false, 422, { error: "형식 오류" }),
-    );
+    vi.mocked(global.fetch).mockResolvedValueOnce(jsonResponse(false, 422, { error: "형식 오류" }));
 
     await expect(fetchTopicGenerateWithRetry("타자")).rejects.toMatchObject({
       errorKey: "validationFailed",

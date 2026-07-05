@@ -9,10 +9,7 @@ describe("mergeGuestData", () => {
     await drizzleDb
       .delete(targetTexts)
       .where(
-        or(
-          like(targetTexts.id, "guest-target-%"),
-          like(targetTexts.content, "guest-content-%"),
-        ),
+        or(like(targetTexts.id, "guest-target-%"), like(targetTexts.content, "guest-content-%")),
       );
   });
 

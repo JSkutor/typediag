@@ -11,9 +11,7 @@ import {
   selectDefaultFocusKey,
 } from "@/lib/dev/piecewiseDev";
 import { useWorkspaceStore } from "@/store/useWorkspaceStore";
-import {
-  buildDiagnosticsAccumulator,
-} from "@/utils/cylindricalStats";
+import { buildDiagnosticsAccumulator } from "@/utils/cylindricalStats";
 import {
   fitPiecewiseFromLatencies,
   type PiecewiseFitFailure,
@@ -121,9 +119,7 @@ export function DevPiecewisePanel() {
           <div className={styles.metaItem}>
             <span className={styles.metaLabel}>선택 focusKey reference transition 정답 수</span>
             <span className={styles.metaValue}>
-              {focusKey
-                ? (focusKeyOptions.find(([key]) => key === focusKey)?.[1] ?? "—")
-                : "—"}
+              {focusKey ? (focusKeyOptions.find(([key]) => key === focusKey)?.[1] ?? "—") : "—"}
             </span>
           </div>
           <div className={styles.metaItem}>

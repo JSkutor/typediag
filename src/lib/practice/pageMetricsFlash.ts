@@ -16,4 +16,3 @@ export interface FinishPageResult {
 export function formatPageMetricsFlashCpm(cpm: number): string {
   return `${cpm} CPM`;
 }
-

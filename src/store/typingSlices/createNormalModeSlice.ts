@@ -1,9 +1,6 @@
 import type { StoreSlice, InputSlice, TypingStore } from "./types";
 import { runMvsa } from "@/utils/mvsa";
-import {
-  fetchRandomNormalTarget,
-  type NormalTarget,
-} from "@/lib/practice/normalTargetClient";
+import { fetchRandomNormalTarget, type NormalTarget } from "@/lib/practice/normalTargetClient";
 import { saveCurrentPageIfDone } from "./saveIfDone";
 
 export const normalInitialState: Pick<InputSlice, "normalPreviousTarget"> = {

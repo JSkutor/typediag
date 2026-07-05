@@ -46,9 +46,7 @@ export function getCloudTypingEffectivenessLabel(
   };
 }
 
-export function cloudTypingEffectivenessToneClass(
-  tone: CloudTypingEffectivenessTone,
-): string {
+export function cloudTypingEffectivenessToneClass(tone: CloudTypingEffectivenessTone): string {
   switch (tone) {
     case "success":
       return "text-success";

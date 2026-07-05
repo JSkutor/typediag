@@ -68,7 +68,9 @@ describe("createInputSlice - Topic Mode", () => {
 
     const state = useTypingStore.getState();
     expect(global.fetch).toHaveBeenCalledTimes(2);
-    expect(String((global.fetch as any).mock.calls[1][0])).toContain("/api/practice/topic/generate");
+    expect(String((global.fetch as any).mock.calls[1][0])).toContain(
+      "/api/practice/topic/generate",
+    );
     expect(state.topicTargets).toHaveLength(3);
     expect(state.targetText).toBe("생성 문장 1");
     expect(state.isTopicInputActive).toBe(false);

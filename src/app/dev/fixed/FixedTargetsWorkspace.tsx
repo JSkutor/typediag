@@ -39,10 +39,10 @@ export default function FixedTargetsWorkspace({ targets }: FixedTargetsWorkspace
     if (targets.length > 0) {
       const lang = targets[0].language;
       setTargetLanguage(lang);
-      
+
       useTypingStore.setState({
         mode: "topic",
-        topicTargets: targets.map(t => ({ id: t.id, content: t.content, language: t.language })),
+        topicTargets: targets.map((t) => ({ id: t.id, content: t.content, language: t.language })),
         topicTargetIndex: 0,
         currentTopic: "", // empty string disables fetching more topics
         isTopicInputActive: false,

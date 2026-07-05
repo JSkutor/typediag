@@ -97,7 +97,7 @@ export const DEV_MOCK_DIAGNOSTICS: KeystrokeDiagnostics = {
   spatialErrorDistance: {
     sampleCount: 45,
     quartilesU: { q1: 1.0, q2: 1.1, q3: 1.4 },
-    typoCounts: { "ㅁ": 25, "ㄴ": 12, "ㄹ": 8 },
+    typoCounts: { ㅁ: 25, ㄴ: 12, ㄹ: 8 },
   },
   fatalNgrams: [
     {

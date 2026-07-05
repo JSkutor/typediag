@@ -10,8 +10,7 @@ export function CloudTypingView({
   cloudTyping: KeystrokeDiagnostics["cloudTyping"];
 }) {
   const { key: keyStats } = cloudTyping;
-  const { label: effectLabel, tone: effectTone } =
-    getCloudTypingEffectivenessLabel(cloudTyping);
+  const { label: effectLabel, tone: effectTone } = getCloudTypingEffectivenessLabel(cloudTyping);
 
   if (cloudTyping.insufficientSample || !keyStats) {
     return <p className="cyl-diag__empty">{effectLabel}</p>;
