@@ -453,7 +453,7 @@ export class MaximumValidSequenceAligner {
     let bestMatchInputIdx = -1;
     let bestMatchTargetIdx = -1;
 
-    for (let pIdx = 0; pIdx < panicTyped.length && !matchFound; pIdx++) {
+    for (let pIdx = panicTyped.length - 1; pIdx >= 0 && !matchFound; pIdx--) {
       const pChar = panicTyped[pIdx];
       if (!this.isComparableCompleteUnit(pChar)) {
         // 단독 자음인 경우, 뒤에 완성 한글이 없을 때만 target 글자의 초성 자소와 비교

@@ -197,7 +197,7 @@ describe("MVSA (Maximum Valid Sequence Aligner)", () => {
     const result = runMvsa("지나간", "wlsr", true);
     expect(result).toEqual([
       { op: "REPLACE", char: "진", targetChar: "지", targetIndex: 0, inputIndex: 2 },
-      { op: "PARTIAL", char: "ㄱ", targetChar: "나", targetIndex: 1, inputIndex: 3 },
+      { op: "REPLACE", char: "ㄱ", targetChar: "나", targetIndex: 1, inputIndex: 3 },
       { op: "PENDING", char: "", targetChar: "간", targetIndex: 2 },
     ]);
   });
