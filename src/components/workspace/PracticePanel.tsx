@@ -250,7 +250,7 @@ const PracticeTextContainer: React.FC = React.memo(function PracticeTextContaine
   );
 });
 
-export const PracticePanel: React.FC = () => {
+export const PracticePanel: React.FC<{ hideToolbar?: boolean }> = ({ hideToolbar }) => {
   const mode = useTypingStore((state) => state.mode);
   const isTopicLoading = useTypingStore((state) => state.isTopicLoading);
   const isTopicGenerating = useTypingStore((state) => state.isTopicGenerating);
@@ -265,7 +265,7 @@ export const PracticePanel: React.FC = () => {
   return (
     <div className="typing-area">
       <div className="practice-content-width">
-        <PracticePanelToolbar />
+        {!hideToolbar && <PracticePanelToolbar />}
         <TopicRemainingBadge />
         <PracticeTextContainer />
       </div>
