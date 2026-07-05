@@ -181,8 +181,8 @@ export function createPhysicalKeyPressHandler(
       }
 
       if (shouldFinish && state.mode === "hardcore") {
-        const hasInsert = alignments.some((d) => d.op === "INSERT");
-        if (hasInsert) {
+        const hasErrors = alignments.some((d) => d.op !== "EQUAL");
+        if (hasErrors) {
           shouldFinish = false;
         }
       }

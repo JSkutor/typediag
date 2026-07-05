@@ -139,7 +139,7 @@ export class MvsaAggregator {
           }
         } else {
             const tJasos = jasoResults.filter(r => r.targetVCharIndex === tIdx);
-            const isPending = tJasos.length > 0 && tJasos.every(r => r.op === "PENDING");
+            const isPending = tJasos.length > 0 && tJasos.some(r => r.op === "PENDING");
             finalResults.push({
               op: isPending ? "PENDING" : "OMIT",
               char: "",

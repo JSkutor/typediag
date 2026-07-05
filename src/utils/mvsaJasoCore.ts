@@ -29,8 +29,86 @@ export class JasoSequenceAligner {
   public align(): JasoAlignResult[] {
     const targetTokens = this.tokenizeTarget(this.targetText);
     const inputChars = this.tokenizeInput(this.qwertyBuffer);
+
+    const results: JasoAlignResult[] = [];
     
-    return this.alignDynamicProgramming(targetTokens, inputChars);
+    let tTokIdx = 0;
+    let qIdx = 0;
+
+    while (tTokIdx < targetTokens.length && qIdx < inputChars.length) {
+      let endTTokIdx = tTokIdx;
+      while (endTTokIdx < targetTokens.length && targetTokens[endTTokIdx].char !== " ") {
+        endTTokIdx++;
+      }
+      
+      let endQIdx = qIdx;
+      while (endQIdx < inputChars.length && inputChars[endQIdx] !== " ") {
+        endQIdx++;
+      }
+      
+      const wordTargetTokens = targetTokens.slice(tTokIdx, endTTokIdx);
+      const wordInputChars = inputChars.slice(qIdx, endQIdx);
+      const isCompleted = endQIdx < inputChars.length;
+      
+      const wordResults = this.alignWordIncrementalHeuristic(wordTargetTokens, wordInputChars, qIdx, isCompleted);
+      results.push(...wordResults);
+      
+      tTokIdx = endTTokIdx;
+      qIdx = endQIdx;
+
+      if (tTokIdx < targetTokens.length && targetTokens[tTokIdx].char === " " && 
+          qIdx < inputChars.length && inputChars[qIdx] === " ") {
+        results.push({
+          op: "EQUAL",
+          char: " ",
+          targetChar: " ",
+          targetJasoIndex: targetTokens[tTokIdx].jasoIndex,
+          targetVCharIndex: targetTokens[tTokIdx].vCharIndex,
+          inputIndex: qIdx
+        });
+        tTokIdx++;
+        qIdx++;
+      } else if (tTokIdx < targetTokens.length && targetTokens[tTokIdx].char === " ") {
+        const isPending = !isCompleted && (qIdx === inputChars.length);
+        results.push({
+          op: isPending ? "PENDING" : "OMIT",
+          char: "",
+          targetChar: " ",
+          targetJasoIndex: targetTokens[tTokIdx].jasoIndex,
+          targetVCharIndex: targetTokens[tTokIdx].vCharIndex
+        });
+        tTokIdx++;
+      } else if (qIdx < inputChars.length && inputChars[qIdx] === " ") {
+        results.push({
+          op: "INSERT",
+          char: " ",
+          inputIndex: qIdx
+        });
+        qIdx++;
+      }
+    }
+    
+    while (qIdx < inputChars.length) {
+      results.push({
+        op: "INSERT",
+        char: inputChars[qIdx],
+        inputIndex: qIdx
+      });
+      qIdx++;
+    }
+    
+    while (tTokIdx < targetTokens.length) {
+      results.push({
+        op: "PENDING",
+        char: "",
+        targetChar: targetTokens[tTokIdx].char,
+        targetJasoIndex: targetTokens[tTokIdx].jasoIndex,
+        targetVCharIndex: targetTokens[tTokIdx].vCharIndex
+      });
+      tTokIdx++;
+    }
+    
+    return results;
   }
 
   private tokenizeTarget(text: string): TargetToken[] {
@@ -53,98 +131,251 @@ export class JasoSequenceAligner {
   private tokenizeInput(qwerty: string): string[] {
     const chars: string[] = [];
     for (let i = 0; i < qwerty.length; i++) {
-      // es-hangul의 convertQwertyToAlphabet은 한글 자음/모음 외의 문자는 그대로 반환합니다.
       chars.push(convertQwertyToAlphabet(qwerty[i]));
     }
     return chars;
   }
 
-  private alignDynamicProgramming(targetTokens: TargetToken[], inputChars: string[]): JasoAlignResult[] {
-    const n = targetTokens.length;
-    const m = inputChars.length;
-    
-    const dp: number[][] = Array(n + 1).fill(0).map(() => Array(m + 1).fill(0));
-    const parent: {op: JasoAlignOp, i: number, j: number}[][] = Array(n + 1).fill(null).map(() => Array(m + 1).fill(null));
-
-    for (let i = 1; i <= n; i++) {
-      dp[i][0] = i; 
-      parent[i][0] = { op: 'OMIT', i: i - 1, j: 0 };
-    }
-    for (let j = 1; j <= m; j++) {
-      dp[0][j] = j; 
-      parent[0][j] = { op: 'INSERT', i: 0, j: j - 1 };
+  private alignWordIncrementalHeuristic(
+    wordTargetTokens: TargetToken[],
+    wordInputChars: string[],
+    qOffset: number,
+    isCompleted: boolean
+  ): JasoAlignResult[] {
+    if (wordInputChars.length === 0) {
+      return this.alignWordHeuristic(wordTargetTokens, [], qOffset, isCompleted);
     }
 
-    for (let i = 1; i <= n; i++) {
-      for (let j = 1; j <= m; j++) {
-        const tChar = targetTokens[i - 1].char;
-        const iChar = inputChars[j - 1];
-        
-        let costEQUAL = Infinity;
-        let costREPLACE = Infinity;
-        
-        if (tChar === iChar) {
-          costEQUAL = dp[i - 1][j - 1];
-        } else {
-          costREPLACE = dp[i - 1][j - 1] + 1;
-        }
-        
-        const costOMIT = dp[i - 1][j] + 1;
-        const costINSERT = dp[i][j - 1] + 1;
-        
-        const minCost = Math.min(costEQUAL, costREPLACE, costOMIT, costINSERT);
-        dp[i][j] = minCost;
-        
-        if (minCost === costOMIT) {
-          parent[i][j] = { op: 'OMIT', i: i - 1, j: j };
-        } else if (minCost === costINSERT) {
-          parent[i][j] = { op: 'INSERT', i: i, j: j - 1 };
-        } else if (minCost === costEQUAL) {
-          parent[i][j] = { op: 'EQUAL', i: i - 1, j: j - 1 };
-        } else {
-          parent[i][j] = { op: 'REPLACE', i: i - 1, j: j - 1 };
+    let results: JasoAlignResult[] = [];
+
+    for (let i = 1; i <= wordInputChars.length; i++) {
+      const prefix = wordInputChars.slice(0, i);
+      const isLast = i === wordInputChars.length && isCompleted;
+
+      if (results.length === 0) {
+        results = this.alignWordHeuristic(wordTargetTokens, prefix, qOffset, isLast);
+        continue;
+      }
+
+      let lastEqualIdx = -1;
+      for (let j = results.length - 1; j >= 0; j--) {
+        if (results[j].op === "EQUAL") {
+          lastEqualIdx = j;
+          break;
         }
       }
+
+      const confirmedResults = lastEqualIdx === -1 ? [] : results.slice(0, lastEqualIdx + 1);
+
+      let confirmedTIdx = 0;
+      let confirmedQIdx = 0;
+
+      for (const r of confirmedResults) {
+        if (r.inputIndex !== undefined) {
+          const localQ = r.inputIndex - qOffset;
+          if (localQ >= confirmedQIdx) {
+            confirmedQIdx = localQ + 1;
+          }
+        }
+        if (r.targetJasoIndex !== undefined && r.op !== "PENDING") {
+          const localT = wordTargetTokens.findIndex(t => t.jasoIndex === r.targetJasoIndex);
+          if (localT !== -1 && localT >= confirmedTIdx) {
+            confirmedTIdx = localT + 1;
+          }
+        }
+      }
+
+      const remainingTarget = wordTargetTokens.slice(confirmedTIdx);
+      const remainingQwerty = prefix.slice(confirmedQIdx);
+
+      let tailResults: JasoAlignResult[] = [];
+      if (remainingTarget.length > 0 || remainingQwerty.length > 0) {
+        tailResults = this.alignWordHeuristic(
+          remainingTarget,
+          remainingQwerty,
+          qOffset + confirmedQIdx,
+          isLast
+        );
+      }
+
+      results = [...confirmedResults, ...tailResults];
     }
 
-    const results: JasoAlignResult[] = [];
-    let i = n;
-    let j = m;
-    
-    while (i > 0 || j > 0) {
-      const p = parent[i][j];
-      if (p.op === 'EQUAL' || p.op === 'REPLACE') {
-        results.push({
-          op: p.op,
-          char: inputChars[j - 1],
-          targetChar: targetTokens[i - 1].char,
-          targetJasoIndex: targetTokens[i - 1].jasoIndex,
-          targetVCharIndex: targetTokens[i - 1].vCharIndex,
-          inputIndex: j - 1
-        });
-        i--;
-        j--;
-      } else if (p.op === 'OMIT') {
-        const isPending = (j === m);
-        results.push({
-          op: isPending ? 'PENDING' : 'OMIT',
-          char: "",
-          targetChar: targetTokens[i - 1].char,
-          targetJasoIndex: targetTokens[i - 1].jasoIndex,
-          targetVCharIndex: targetTokens[i - 1].vCharIndex
-        });
-        i--;
-      } else if (p.op === 'INSERT') {
-        results.push({
-          op: 'INSERT',
-          char: inputChars[j - 1],
-          inputIndex: j - 1
-        });
-        j--;
-      }
-    }
-    
-    results.reverse();
     return results;
+  }
+
+  private alignWordHeuristic(
+    wordTargetTokens: TargetToken[], 
+    wordInputChars: string[], 
+    qOffset: number, 
+    isCompleted: boolean
+  ): JasoAlignResult[] {
+    const results: JasoAlignResult[] = [];
+    let tIdx = 0;
+    let qIdx = 0;
+
+    while (tIdx < wordTargetTokens.length && qIdx < wordInputChars.length) {
+      const tChar = wordTargetTokens[tIdx].char;
+      const qChar = wordInputChars[qIdx];
+
+      if (tChar === qChar) {
+        results.push({
+          op: "EQUAL",
+          char: qChar,
+          targetChar: tChar,
+          targetJasoIndex: wordTargetTokens[tIdx].jasoIndex,
+          targetVCharIndex: wordTargetTokens[tIdx].vCharIndex,
+          inputIndex: qOffset + qIdx
+        });
+        tIdx++;
+        qIdx++;
+      } else {
+        const { newTIdx, newQIdx, panicResults } = this.runJasoPanicMode(
+          wordTargetTokens,
+          wordInputChars,
+          tIdx,
+          qIdx,
+          qOffset
+        );
+        results.push(...panicResults);
+        tIdx = newTIdx;
+        qIdx = newQIdx;
+      }
+    }
+
+    while (qIdx < wordInputChars.length) {
+      results.push({
+        op: "INSERT",
+        char: wordInputChars[qIdx],
+        inputIndex: qOffset + qIdx
+      });
+      qIdx++;
+    }
+
+    while (tIdx < wordTargetTokens.length) {
+      const isPending = !isCompleted && (qIdx === wordInputChars.length);
+      results.push({
+        op: isPending ? "PENDING" : "OMIT",
+        char: "",
+        targetChar: wordTargetTokens[tIdx].char,
+        targetJasoIndex: wordTargetTokens[tIdx].jasoIndex,
+        targetVCharIndex: wordTargetTokens[tIdx].vCharIndex
+      });
+      tIdx++;
+    }
+
+    return results;
+  }
+
+  private runJasoPanicMode(
+    wordTargetTokens: TargetToken[],
+    wordInputChars: string[],
+    tIdx: number,
+    qIdx: number,
+    qOffset: number
+  ) {
+    const results: JasoAlignResult[] = [];
+    const panicInputLen = wordInputChars.length - qIdx;
+    
+    // +1 Heuristic (Jamo count + 1)
+    const maxLookahead = panicInputLen + 1;
+    const targetLookaheadEnd = Math.min(wordTargetTokens.length, tIdx + maxLookahead);
+
+    let matchFound = false;
+    let bestMatchInputIdx = -1;
+    let bestMatchTargetIdx = -1;
+
+    // R2L Search
+    for (let pIdx = wordInputChars.length - 1; pIdx >= qIdx && !matchFound; pIdx--) {
+      const pChar = wordInputChars[pIdx];
+      for (let lookTIdx = targetLookaheadEnd - 1; lookTIdx >= tIdx; lookTIdx--) {
+        if (wordTargetTokens[lookTIdx].char === pChar) {
+          matchFound = true;
+          bestMatchInputIdx = pIdx;
+          bestMatchTargetIdx = lookTIdx;
+          break;
+        }
+      }
+    }
+
+    if (matchFound) {
+      const M = bestMatchInputIdx - qIdx;
+      const N = bestMatchTargetIdx - tIdx;
+      const minLen = Math.min(M, N);
+
+      for (let i = 0; i < minLen; i++) {
+        results.push({
+          op: "REPLACE",
+          char: wordInputChars[qIdx + i],
+          targetChar: wordTargetTokens[tIdx + i].char,
+          targetJasoIndex: wordTargetTokens[tIdx + i].jasoIndex,
+          targetVCharIndex: wordTargetTokens[tIdx + i].vCharIndex,
+          inputIndex: qOffset + qIdx + i
+        });
+      }
+
+      for (let i = minLen; i < M; i++) {
+        results.push({
+          op: "INSERT",
+          char: wordInputChars[qIdx + i],
+          inputIndex: qOffset + qIdx + i
+        });
+      }
+
+      for (let i = minLen; i < N; i++) {
+        results.push({
+          op: "OMIT",
+          char: "",
+          targetChar: wordTargetTokens[tIdx + i].char,
+          targetJasoIndex: wordTargetTokens[tIdx + i].jasoIndex,
+          targetVCharIndex: wordTargetTokens[tIdx + i].vCharIndex
+        });
+      }
+
+      results.push({
+        op: "EQUAL",
+        char: wordInputChars[bestMatchInputIdx],
+        targetChar: wordTargetTokens[bestMatchTargetIdx].char,
+        targetJasoIndex: wordTargetTokens[bestMatchTargetIdx].jasoIndex,
+        targetVCharIndex: wordTargetTokens[bestMatchTargetIdx].vCharIndex,
+        inputIndex: qOffset + bestMatchInputIdx
+      });
+
+      return {
+        panicResults: results,
+        newTIdx: bestMatchTargetIdx + 1,
+        newQIdx: bestMatchInputIdx + 1
+      };
+    } else {
+      const targetCharsLen = wordTargetTokens.length - tIdx;
+      const M = panicInputLen;
+      const N = targetCharsLen;
+      const minLen = Math.min(M, N);
+      
+      for (let i = 0; i < minLen; i++) {
+        results.push({
+          op: "REPLACE",
+          char: wordInputChars[qIdx + i],
+          targetChar: wordTargetTokens[tIdx + i].char,
+          targetJasoIndex: wordTargetTokens[tIdx + i].jasoIndex,
+          targetVCharIndex: wordTargetTokens[tIdx + i].vCharIndex,
+          inputIndex: qOffset + qIdx + i
+        });
+      }
+      
+      for (let i = minLen; i < M; i++) {
+        results.push({
+          op: "INSERT",
+          char: wordInputChars[qIdx + i],
+          inputIndex: qOffset + qIdx + i
+        });
+      }
+      
+      return {
+        panicResults: results,
+        newTIdx: tIdx + minLen,
+        newQIdx: qIdx + M
+      };
+    }
   }
 }

@@ -221,7 +221,7 @@ describe("MVSA (Maximum Valid Sequence Aligner)", () => {
     // 기대: 서=PARTIAL→선, 뉼=REPLACE→율, ㅇ=PARTIAL→이
     const result = runMvsa("선율이", "tjsbfd", true);
     expect(result).toEqual([
-      { op: "REPLACE", char: "서", targetChar: "선", targetIndex: 0, inputIndex: 2 },
+      { op: "REPLACE", char: "서", targetChar: "선", targetIndex: 0, inputIndex: 1 },
       { op: "REPLACE", char: "뉼", targetChar: "율", targetIndex: 1, inputIndex: 4 },
       { op: "PARTIAL", char: "ㅇ", targetChar: "이", targetIndex: 2, inputIndex: 5 },
     ]);
