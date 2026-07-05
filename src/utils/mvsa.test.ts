@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { runMvsa } from "./mvsa";
 
 describe("MVSA (Maximum Valid Sequence Aligner)", () => {
-  it("should match identical strings (Normal mode)", () => {
+  it("should match identical strings", () => {
     // target: 마우스가, typed: 마우스가 (akdntm rk -> akdntmrk)
     const qwerty = "akdntmrk";
     const result = runMvsa("마우스가", qwerty, true);
