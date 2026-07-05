@@ -11,6 +11,18 @@ export interface AlignResult {
   inputIndex?: number;
 }
 
+/**
+ * MvsaCache: runMvsa()에 외부에서 전달하는 단일 캐시 Map.
+ *
+ * 내부적으로 두 종류의 엔트리를 구분하여 저장한다:
+ *
+ * 1. Word-level 캐시 (완성 어절 - 스페이스 뒤):
+ *    키: `${wordStart}:${qOffset}:${wordQwerty}:true`
+ *    - 어절이 스페이스로 완전히 끝난 뒤 저장. 이후 동일 어절 재계산 생략.
+ *
+ * 진행 중인 어절은 외부 캐시를 사용하지 않고 내부 O(N²) 시뮬레이션을 통해
+ * 패닉 복구 지점을 고정합니다.
+ */
 export type MvsaCache = Map<string, AlignResult[]>;
 
 export function getCharQwertyIndices(qwerty: string): number[] {
@@ -159,18 +171,28 @@ export class MaximumValidSequenceAligner {
           endQPtr++;
         }
         const wordQwerty = this.qwertyBuffer.slice(qPtr, endQPtr);
-
         const isCompleted = endQPtr < this.qwertyBuffer.length;
-        const cacheKey = `${word.start}:${qPtr}:${wordQwerty}:${isCompleted}`;
+
         let wordResults: AlignResult[];
 
-        if (this.cache && this.cache.has(cacheKey)) {
-          wordResults = this.cache.get(cacheKey)!;
-        } else {
-          wordResults = this.alignWord(word.text, wordQwerty, word.start, qPtr, isCompleted);
-          if (this.cache) {
-            this.cache.set(cacheKey, wordResults);
+        if (isCompleted) {
+          // 완성 어절: word-level 캐시 조회
+          const wordKey = `${word.start}:${qPtr}:${wordQwerty}:true`;
+          if (this.cache?.has(wordKey)) {
+            wordResults = this.cache.get(wordKey)!;
+          } else {
+            wordResults = this.alignWordIncremental(word.text, wordQwerty, word.start, qPtr, true);
+            this.cache?.set(wordKey, wordResults);
           }
+        } else {
+          // 진행 중 어절: 상태 저장 없이 O(N²) 시뮬레이션
+          wordResults = this.alignWordIncremental(
+            word.text,
+            wordQwerty,
+            word.start,
+            qPtr,
+            false,
+          );
         }
 
         result.push(...wordResults);
@@ -192,6 +214,88 @@ export class MaximumValidSequenceAligner {
     }
 
     return result;
+  }
+
+  /**
+   * O(N²) Prefix Simulation
+   *
+   * 외부 상태(캐시) 없이 내부적으로 1글자부터 N글자까지 타이핑 과정을 시뮬레이션합니다.
+   * 매 단계에서 완벽히 일치한 지점(EQUAL)의 타겟 인덱스(tIdx)와 입력 인덱스(qIdx)를
+   * '복구 지점(Anchor)'으로 기억하고, 다음 글자 계산 시 이 복구 지점 이후의
+   * 짧은 문자열만 재계산합니다.
+   * 이를 통해 오타나 삽입(INSERT)으로 인해 글자수가 변하더라도
+   * 패닉 복구 경계가 절대 뒤틀리지 않습니다.
+   */
+  private alignWordIncremental(
+    wordTarget: string,
+    wordQwerty: string,
+    targetOffset: number,
+    qOffset: number,
+    isCompleted: boolean,
+  ): AlignResult[] {
+    if (wordQwerty.length === 0) {
+      return this.alignWord(wordTarget, "", targetOffset, qOffset, isCompleted);
+    }
+
+    let results: AlignResult[] = [];
+
+    for (let i = 1; i <= wordQwerty.length; i++) {
+      const prefix = wordQwerty.slice(0, i);
+      const isLast = i === wordQwerty.length && isCompleted;
+
+      if (results.length === 0) {
+        results = this.alignWord(wordTarget, prefix, targetOffset, qOffset, isLast);
+        continue;
+      }
+
+      // 이전 prefix 결과에서 마지막으로 확정된 복구 지점(EQUAL) 찾기
+      let lastEqualIdx = -1;
+      for (let j = results.length - 1; j >= 0; j--) {
+        if (results[j].op === "EQUAL") {
+          lastEqualIdx = j;
+          break;
+        }
+      }
+
+      const confirmedResults = lastEqualIdx === -1 ? [] : results.slice(0, lastEqualIdx + 1);
+
+      // 복구 지점(Anchor)의 두 인덱스(tIdx, qIdx) 기억
+      let confirmedTIdx = 0;
+      let confirmedQIdx = 0;
+
+      for (const r of confirmedResults) {
+        if (r.inputIndex !== undefined) {
+          const localQ = r.inputIndex - qOffset;
+          if (localQ >= confirmedQIdx) {
+            confirmedQIdx = localQ + 1;
+          }
+        }
+        if (r.targetIndex !== undefined && r.op !== "PENDING") {
+          const localT = r.targetIndex - targetOffset;
+          if (localT >= confirmedTIdx) {
+            confirmedTIdx = localT + 1;
+          }
+        }
+      }
+
+      const remainingTarget = wordTarget.slice(confirmedTIdx);
+      const remainingQwerty = prefix.slice(confirmedQIdx);
+
+      let tailResults: AlignResult[] = [];
+      if (remainingTarget.length > 0 || remainingQwerty.length > 0) {
+        tailResults = this.alignWord(
+          remainingTarget,
+          remainingQwerty,
+          targetOffset + confirmedTIdx,
+          qOffset + confirmedQIdx,
+          isLast,
+        );
+      }
+
+      results = [...confirmedResults, ...tailResults];
+    }
+
+    return results;
   }
 
   private alignWord(
@@ -476,10 +580,8 @@ export class MaximumValidSequenceAligner {
           continue;
         }
 
-        const op = "REPLACE";
-
         results.push({
-          op,
+          op: "REPLACE",
           char: typedC,
           targetChar: targetC,
           targetIndex: targetOffset + tIdx + i,
@@ -518,10 +620,12 @@ export class MaximumValidSequenceAligner {
     }
 
     // 일치한 글자(동기화 지점) 처리
+    const matchedChar = panicTyped[bestMatchInputIdx];
+    const targetC = wordTarget[bestMatchTargetIdx];
     results.push({
-      op: "EQUAL",
-      char: panicTyped[bestMatchInputIdx],
-      targetChar: wordTarget[bestMatchTargetIdx],
+      op: matchedChar === targetC ? "EQUAL" : "PARTIAL",
+      char: matchedChar,
+      targetChar: targetC,
       targetIndex: targetOffset + bestMatchTargetIdx,
       inputIndex: qOffset + qIdx + charToQwertyIdx[bestMatchInputIdx],
     });
@@ -544,17 +648,12 @@ export class MaximumValidSequenceAligner {
     if (N > 0) {
       const minLen = Math.min(M, N);
 
-      // 1. 개수가 같은 부분은 1:1 REPLACE (또는 PARTIAL)
+      // 1. 개수가 같은 부분은 1:1 REPLACE
       for (let i = 0; i < minLen; i++) {
-        const typedC = panicTyped[i];
-        const targetC = targetChars[i];
-
-        const op = "REPLACE";
-
         results.push({
-          op,
-          char: typedC,
-          targetChar: targetC,
+          op: "REPLACE",
+          char: panicTyped[i],
+          targetChar: targetChars[i],
           targetIndex: targetOffset + tIdx + i,
           inputIndex: qOffset + qIdx + charToQwertyIdx[i],
         });
