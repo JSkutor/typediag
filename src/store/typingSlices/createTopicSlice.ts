@@ -193,7 +193,7 @@ export function createTopicTopicActions(set: TopicSliceSet, get: TopicSliceGet) 
     set({
       ...topicGuideScreenState("ko"),
       targetLanguage: "ko",
-      mvsaCache: new Map(),
+
     });
   };
 
@@ -221,7 +221,7 @@ export function createTopicTopicActions(set: TopicSliceSet, get: TopicSliceGet) 
     set({
       ...topicGuideScreenState("ko"),
       targetLanguage: "ko",
-      mvsaCache: new Map(),
+
     });
   };
 
@@ -271,8 +271,8 @@ export function createTopicTopicActions(set: TopicSliceSet, get: TopicSliceGet) 
         const nextTargetText = nextBuffer.length === 0 ? guide : nextTyped;
         const nextAlignments =
           nextBuffer.length === 0
-            ? runMvsa(nextTargetText, "", isKorean, state.mvsaCache)
-            : runMvsa(nextTargetText, nextBuffer, isKorean, state.mvsaCache);
+            ? runMvsa(nextTargetText, "", isKorean)
+            : runMvsa(nextTargetText, nextBuffer, isKorean);
 
         set({
           targetText: nextTargetText,
@@ -289,7 +289,7 @@ export function createTopicTopicActions(set: TopicSliceSet, get: TopicSliceGet) 
       const nextBuffer = state.qwertyBuffer + char;
       const nextTyped = isKorean ? assembleHangulWithPunctuation(nextBuffer) : nextBuffer;
       const nextTargetText = nextTyped;
-      const nextAlignments = runMvsa(nextTargetText, nextBuffer, isKorean, state.mvsaCache);
+      const nextAlignments = runMvsa(nextTargetText, nextBuffer, isKorean);
 
       set({
         targetText: nextTargetText,

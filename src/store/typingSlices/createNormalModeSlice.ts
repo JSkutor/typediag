@@ -22,7 +22,7 @@ function buildPracticeTargetReset(
     typedText: "",
     maxTypedTextLength: 0,
     qwertyBuffer: "",
-    mvsaCache: new Map(),
+
     alignments: runMvsa(target.content, "", target.language === "ko"),
     events: [],
     status: "idle",

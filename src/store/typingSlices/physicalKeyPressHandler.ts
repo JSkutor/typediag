@@ -126,7 +126,7 @@ export function createPhysicalKeyPressHandler(
         }
 
         const nextTyped = isKorean ? assembleHangulWithPunctuation(nextBuffer) : nextBuffer;
-        const nextAlignments = runMvsa(state.targetText, nextBuffer, isKorean, state.mvsaCache);
+        const nextAlignments = runMvsa(state.targetText, nextBuffer, isKorean);
 
         set({
           targetText: state.targetText,
@@ -151,7 +151,7 @@ export function createPhysicalKeyPressHandler(
       const nextBuffer = state.qwertyBuffer + char;
       const nextTyped = isKorean ? assembleHangulWithPunctuation(nextBuffer) : nextBuffer;
 
-      const alignments = runMvsa(state.targetText, nextBuffer, isKorean, state.mvsaCache);
+      const alignments = runMvsa(state.targetText, nextBuffer, isKorean);
       const lastInputIndex = alignments.findLastIndex((d) => d.inputIndex !== undefined);
       const pendingTargets = alignments.slice(lastInputIndex + 1).some((d) => d.op === "PENDING");
       let shouldFinish = !pendingTargets;

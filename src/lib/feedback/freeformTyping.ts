@@ -91,7 +91,7 @@ export function buildFeedbackNoticeState(text: string, language: FeedbackLanguag
     typedText: "",
     qwertyBuffer: "",
     maxTypedTextLength: 0,
-    mvsaCache: new Map(),
+
     alignments: runMvsa(text, "", isKorean),
   };
 }

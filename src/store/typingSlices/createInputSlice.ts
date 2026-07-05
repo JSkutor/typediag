@@ -38,7 +38,7 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => {
     typedText: "",
     maxTypedTextLength: 0,
     qwertyBuffer: "",
-    mvsaCache: new Map(),
+
     alignments: [],
     mode: "normal",
 
@@ -63,7 +63,7 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => {
           typedText: "",
           maxTypedTextLength: 0,
           qwertyBuffer: "",
-          mvsaCache: new Map(),
+
           alignments: buildFeedbackEmptyAlignments(),
           events: [],
           status: "idle",
@@ -109,7 +109,7 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => {
           targetText: state.targetText,
           targetId: state.targetId,
           typedText: nextTyped,
-          alignments: runMvsa(state.targetText, state.qwertyBuffer, isKorean, state.mvsaCache),
+          alignments: runMvsa(state.targetText, state.qwertyBuffer, isKorean),
         };
       });
     },
@@ -139,7 +139,7 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => {
         typedText: "",
         maxTypedTextLength: 0,
         qwertyBuffer: "",
-        mvsaCache: new Map(),
+
         alignments: runMvsa(text, "", language === "ko"),
         events: [],
         status: "idle",
@@ -187,7 +187,7 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => {
           typedText: value,
           qwertyBuffer: value,
           maxTypedTextLength: value.length,
-          alignments: runMvsa(state.targetText, value, isKorean, state.mvsaCache),
+          alignments: runMvsa(state.targetText, value, isKorean),
         };
       }),
 
