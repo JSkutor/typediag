@@ -1,5 +1,6 @@
 import { useTypingStore } from "@/store/useTypingStore";
 import type { AlignResult } from "@/utils/mvsa";
+import type { FuzzAction } from "@/lib/ko/keystrokeSimulator";
 
 export interface AssertionResult {
   passed: boolean;
@@ -9,7 +10,7 @@ export interface AssertionResult {
 /**
  * 키 입력 직후의 TypingStore 상태를 검사하여 MVSA 엔진의 버그를 찾아냅니다.
  */
-export function assertMvsaState(prevCursor: number): AssertionResult {
+export function assertMvsaState(prevCursor: number, action: FuzzAction): AssertionResult {
   const state = useTypingStore.getState();
   const currentCursor = state.typedText.length;
   
@@ -23,16 +24,29 @@ export function assertMvsaState(prevCursor: number): AssertionResult {
     };
   }
 
-  // 2. MVSA False Positive 검사
-  // 타겟 문장(전체)에 대해, 유저가 입력한 부분이 완벽히 맞다면 
-  // (물론 Fuzz 테스트 중 오타가 섞여 있으면 다를 수 있음)
-  // 현재 입력 중인 단어(word) 내에서 panicMode가 비정상적으로 터졌는지 검사.
-  // (현재 TypingStore에서는 panicMode를 노출하지 않으므로 생략)
 
-  // 3. 렌더링용 배열 검사 (EQUAL인데 이상한 값?)
-  // 만약 봇이 오타를 냈다가 완벽히 지우고(Backspace) 다시 쳤는데
-  // REPLACE나 INSERT 잔재가 남아있다면 버그임.
-  // (이는 봇 시퀀스 전체가 끝난 '완료' 시점에 체크하는 게 더 정확함)
+  // 2. 비정상적인 백워드 점프 감지
+  // 백스페이스 액션이 아닌데 커서가 뒤로 간 경우 심각한 렌더링 꼬임일 수 있음.
+  if (currentCursor < prevCursor && action.code !== "Backspace") {
+    return {
+      passed: false,
+      reason: `Abnormal Backward Jump: Cursor moved ${prevCursor} -> ${currentCursor} without Backspace (Action: ${action.type})`
+    };
+  }
+
+  // 3. MVSA 배열 길이 비동기화 감지 (Length Mismatch)
+  // mvsaArray(alignments) 길이는 정상적인 경우 target 길이 또는 typed 길이와 비슷하게 유지됨.
+  // 매우 비정상적으로 큰 경우 (메모리 릭, 무한 생성 버그)
+  const mvsaLength = state.alignments.length;
+  const typedLength = state.typedText.length;
+  const targetLength = state.targetText.length;
+  
+  if (mvsaLength > typedLength + 10 && mvsaLength > targetLength + 10) {
+    return {
+      passed: false,
+      reason: `Length Mismatch: MVSA array length (${mvsaLength}) is abnormally large (typed: ${typedLength}, target: ${targetLength}).`
+    };
+  }
 
   return { passed: true };
 }

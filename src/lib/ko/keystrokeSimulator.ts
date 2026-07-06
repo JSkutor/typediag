@@ -72,6 +72,7 @@ export interface FuzzConfig {
   insertRate: number;   // 0.0 ~ 1.0
   replaceRate: number;  // 0.0 ~ 1.0
   omitRate: number;     // 0.0 ~ 1.0
+  backspaceRate: number; // 0.0 ~ 1.0
 }
 
 /**
@@ -118,6 +119,15 @@ export function generateFuzzActions(targetText: string, config: FuzzConfig): Fuz
       // 대체 오타 (본 키 대신 엉뚱한 키 누름)
       const wrong = randomKey();
       actions.push({ type: 'REPLACE', code: wrong.code, shift: wrong.shift, char: '?' });
+      continue;
+    }
+    
+    if (r < config.omitRate + config.insertRate + config.replaceRate + config.backspaceRate) {
+      // 백스페이스 오타 (오타 입력 후 백스페이스, 그 다음 정타)
+      const wrong = randomKey();
+      actions.push({ type: 'INSERT', code: wrong.code, shift: wrong.shift, char: '?' });
+      actions.push({ type: 'BACKSPACE', code: 'Backspace', shift: false, char: '⌫' });
+      actions.push({ type: 'NORMAL', code: defaultCode, shift: defaultShift, char });
       continue;
     }
     

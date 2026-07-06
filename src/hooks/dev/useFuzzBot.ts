@@ -17,6 +17,7 @@ export function useFuzzBot(targetTexts: string[]) {
     insertRate: 0.03,
     replaceRate: 0.03,
     omitRate: 0.03,
+    backspaceRate: 0.03,
   });
   const [delayMs, setDelayMs] = useState(50);
   
@@ -74,7 +75,7 @@ export function useFuzzBot(targetTexts: string[]) {
         });
         
         // Assertions per keystroke
-        const result = assertMvsaState(cursorBefore);
+        const result = assertMvsaState(cursorBefore, action);
         if (!result.passed) {
           setCrashLog({
             target,

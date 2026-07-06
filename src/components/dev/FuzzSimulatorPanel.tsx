@@ -57,38 +57,61 @@ export function FuzzSimulatorPanel({ targets }: { targets: string[] }) {
       </header>
 
       {/* Controls */}
-      <section className="grid grid-cols-4 gap-4 p-4 rounded-xl bg-black/20 border border-white/5">
+      <section className="grid grid-cols-5 gap-4 p-4 rounded-xl bg-black/20 border border-white/5">
         <label className="flex flex-col gap-2 text-sm">
-          <span className="opacity-70">Insert Error Rate</span>
+          <span className="opacity-70">Insert Error Rate (%)</span>
           <input 
-            type="range" min="0" max="0.2" step="0.01" 
-            value={config.insertRate} 
-            onChange={e => setConfig({...config, insertRate: parseFloat(e.target.value)})}
+            type="number" min="0" max="100" step="0.1" 
+            value={config.insertRate * 100} 
+            onChange={e => {
+              const val = parseFloat(e.target.value);
+              setConfig({...config, insertRate: isNaN(val) ? 0 : val / 100});
+            }}
             disabled={isRunning}
+            className="px-2 py-1 bg-black/50 border border-white/20 rounded font-mono text-right"
           />
-          <span className="text-xs text-right font-mono">{(config.insertRate * 100).toFixed(0)}%</span>
         </label>
         
         <label className="flex flex-col gap-2 text-sm">
-          <span className="opacity-70">Replace Error Rate</span>
+          <span className="opacity-70">Replace Error Rate (%)</span>
           <input 
-            type="range" min="0" max="0.2" step="0.01" 
-            value={config.replaceRate} 
-            onChange={e => setConfig({...config, replaceRate: parseFloat(e.target.value)})}
+            type="number" min="0" max="100" step="0.1" 
+            value={config.replaceRate * 100} 
+            onChange={e => {
+              const val = parseFloat(e.target.value);
+              setConfig({...config, replaceRate: isNaN(val) ? 0 : val / 100});
+            }}
             disabled={isRunning}
+            className="px-2 py-1 bg-black/50 border border-white/20 rounded font-mono text-right"
           />
-          <span className="text-xs text-right font-mono">{(config.replaceRate * 100).toFixed(0)}%</span>
         </label>
         
         <label className="flex flex-col gap-2 text-sm">
-          <span className="opacity-70">Omit Error Rate</span>
+          <span className="opacity-70">Omit Error Rate (%)</span>
           <input 
-            type="range" min="0" max="0.2" step="0.01" 
-            value={config.omitRate} 
-            onChange={e => setConfig({...config, omitRate: parseFloat(e.target.value)})}
+            type="number" min="0" max="100" step="0.1" 
+            value={config.omitRate * 100} 
+            onChange={e => {
+              const val = parseFloat(e.target.value);
+              setConfig({...config, omitRate: isNaN(val) ? 0 : val / 100});
+            }}
             disabled={isRunning}
+            className="px-2 py-1 bg-black/50 border border-white/20 rounded font-mono text-right"
           />
-          <span className="text-xs text-right font-mono">{(config.omitRate * 100).toFixed(0)}%</span>
+        </label>
+        
+        <label className="flex flex-col gap-2 text-sm">
+          <span className="opacity-70">Backspace Rate (%)</span>
+          <input 
+            type="number" min="0" max="100" step="0.1" 
+            value={config.backspaceRate * 100} 
+            onChange={e => {
+              const val = parseFloat(e.target.value);
+              setConfig({...config, backspaceRate: isNaN(val) ? 0 : val / 100});
+            }}
+            disabled={isRunning}
+            className="px-2 py-1 bg-black/50 border border-white/20 rounded font-mono text-right"
+          />
         </label>
         
         <label className="flex flex-col gap-2 text-sm">
