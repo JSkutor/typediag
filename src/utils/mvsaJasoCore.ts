@@ -297,7 +297,8 @@ export class JasoSequenceAligner {
     // R2L Search
     for (let pIdx = wordInputChars.length - 1; pIdx >= qIdx && !matchFound; pIdx--) {
       const pChar = wordInputChars[pIdx];
-      for (let lookTIdx = tIdx; lookTIdx < targetLookaheadEnd; lookTIdx++) {
+      // Target search is also R2L to maximize REPLACE intent instead of INSERTs
+      for (let lookTIdx = targetLookaheadEnd - 1; lookTIdx >= tIdx; lookTIdx--) {
         if (wordTargetTokens[lookTIdx].char === pChar) {
           matchFound = true;
           bestMatchInputIdx = pIdx;

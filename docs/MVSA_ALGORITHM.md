@@ -71,9 +71,9 @@ To prevent aligning a typo with a completely unrelated character later in the wo
 
 *Heuristic Intent*: If a user makes a typo, they will not accidentally skip more than one logical character unit.
 
-**Step 2: Right-to-Left (R2L) Search**
-The engine scans the user's panic input buffer from right to left, attempting to match against the bounded target window.
-*Heuristic Intent*: R2L guarantees we anchor to the most recently typed valid character. A Left-to-Right search could falsely anchor to an accidental correct character early in the typo buffer.
+**Step 2: Dual Right-to-Left (R2L) Search**
+The engine scans the user's panic input buffer from right to left, and simultaneously searches the bounded target window from right to left, attempting to find a match.
+*Heuristic Intent*: R2L input search guarantees we anchor to the most recently typed valid character. R2L target search ensures that we maximize REPLACE operations over INSERT operations for typos (e.g., matching a later target character appropriately when the user has substituted keystrokes), aligning perfectly with human typing intent.
 
 **Step 3: Resolution**
 Once anchored:
