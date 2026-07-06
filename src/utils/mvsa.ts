@@ -31,7 +31,12 @@ export function getCharQwertyIndices(qwerty: string): number[] {
       jamoBuffer.push(char);
     } else {
       if (jamoBuffer.length > 0) {
-        const assembled = assemble(jamoBuffer);
+        let assembled = "";
+        try {
+          assembled = assemble(jamoBuffer);
+        } catch (e) {
+          assembled = jamoBuffer.join("");
+        }
         for (const assembledChar of assembled) {
           const dis = disassemble(assembledChar);
           jamoStartIdx += dis.length;
@@ -44,7 +49,12 @@ export function getCharQwertyIndices(qwerty: string): number[] {
   }
 
   if (jamoBuffer.length > 0) {
-    const assembled = assemble(jamoBuffer);
+    let assembled = "";
+    try {
+      assembled = assemble(jamoBuffer);
+    } catch (e) {
+      assembled = jamoBuffer.join("");
+    }
     for (const assembledChar of assembled) {
       const dis = disassemble(assembledChar);
       jamoStartIdx += dis.length;

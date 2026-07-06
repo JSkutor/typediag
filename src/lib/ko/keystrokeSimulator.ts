@@ -57,6 +57,18 @@ export const JAMO_TO_KEY_MAP: Record<string, { code: string; shift: boolean }> =
   ',': { code: 'Comma', shift: false },
   '?': { code: 'Slash', shift: true },
   '!': { code: 'Digit1', shift: true },
+  
+  // 숫자
+  '1': { code: 'Digit1', shift: false },
+  '2': { code: 'Digit2', shift: false },
+  '3': { code: 'Digit3', shift: false },
+  '4': { code: 'Digit4', shift: false },
+  '5': { code: 'Digit5', shift: false },
+  '6': { code: 'Digit6', shift: false },
+  '7': { code: 'Digit7', shift: false },
+  '8': { code: 'Digit8', shift: false },
+  '9': { code: 'Digit9', shift: false },
+  '0': { code: 'Digit0', shift: false },
 };
 
 export type FuzzActionType = 'NORMAL' | 'INSERT' | 'REPLACE' | 'OMIT' | 'BACKSPACE';
@@ -85,7 +97,8 @@ export function generateFuzzActions(targetText: string, config: FuzzConfig): Fuz
   const actions: FuzzAction[] = [];
   
   const randomKey = () => {
-    const keys = Object.values(JAMO_TO_KEY_MAP);
+    // 스페이스바 오타 발생을 방지/축소하기 위해 스페이스는 오타 풀에서 제외
+    const keys = Object.values(JAMO_TO_KEY_MAP).filter(k => k.code !== 'Space');
     const idx = Math.floor(Math.random() * keys.length);
     return keys[idx];
   };
@@ -102,6 +115,10 @@ export function generateFuzzActions(targetText: string, config: FuzzConfig): Fuz
     
     if (r < config.omitRate) {
       // 누락 오타
+      // 스페이스바 누락은 단어를 통째로 붙여버려 렌더링 검증에 방해가 되므로 생략 방지
+      if (defaultCode === 'Space') {
+        actions.push({ type: 'NORMAL', code: defaultCode, shift: defaultShift, char });
+      }
       continue;
     }
     

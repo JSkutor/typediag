@@ -43,8 +43,8 @@ export function useFuzzBot(targetTexts: string[]) {
       
       const target = targetTexts[i];
       // 1. TypingStore 초기화 및 타겟 설정
-      useTypingStore.getState().setMode("normal");
-      useTypingStore.getState().setTarget(target);
+      await useTypingStore.getState().setMode("normal");
+      await useTypingStore.getState().setTarget(target);
       // 강제로 시작 상태로 만들기 위해 아무 키나 한번 (포커스 효과)
       
       const actions = generateFuzzActions(target, config);
@@ -85,6 +85,11 @@ export function useFuzzBot(targetTexts: string[]) {
           setIsRunning(false);
           isRunningRef.current = false;
           return; // 봇 정지
+        }
+        
+        // 문장이 완료되었다면 남은 action(오타 등) 무시하고 종료
+        if (useTypingStore.getState().status === "done") {
+          break;
         }
       }
       

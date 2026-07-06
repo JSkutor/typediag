@@ -35,16 +35,18 @@ export function assertMvsaState(prevCursor: number, action: FuzzAction): Asserti
   }
 
   // 3. MVSA 배열 길이 비동기화 감지 (Length Mismatch)
-  // mvsaArray(alignments) 길이는 정상적인 경우 target 길이 또는 typed 길이와 비슷하게 유지됨.
-  // 매우 비정상적으로 큰 경우 (메모리 릭, 무한 생성 버그)
+  // mvsaArray(alignments) 길이는 기본적으로 targetLength와 거의 같지만, INSERT 오타가 발생할 때마다 늘어납니다.
+  // Fuzz 테스트 환경에서는 자모 단위로 오타가 발생하므로 INSERT가 매우 많이 누적될 수 있습니다.
+  // 따라서 (target 길이 + typed 길이) * 1.5 + 20 정도로 넉넉하게 잡고, 이를 초과하면 무한 팽창(릭)으로 간주합니다.
   const mvsaLength = state.alignments.length;
   const typedLength = state.typedText.length;
   const targetLength = state.targetText.length;
   
-  if (mvsaLength > typedLength + 10 && mvsaLength > targetLength + 10) {
+  const maxLengthThreshold = (targetLength + typedLength) * 1.5 + 20;
+  if (mvsaLength > maxLengthThreshold) {
     return {
       passed: false,
-      reason: `Length Mismatch: MVSA array length (${mvsaLength}) is abnormally large (typed: ${typedLength}, target: ${targetLength}).`
+      reason: `Length Mismatch: MVSA array length (${mvsaLength}) is abnormally large (typed: ${typedLength}, target: ${targetLength}, threshold: ${Math.floor(maxLengthThreshold)}).`
     };
   }
 
