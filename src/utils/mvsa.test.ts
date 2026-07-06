@@ -226,4 +226,27 @@ describe("MVSA (Maximum Valid Sequence Aligner)", () => {
       { op: "PARTIAL", char: "ㅇ", targetChar: "이", targetIndex: 2, inputIndex: 5 },
     ]);
   });
+  it("should resolve tie-breaker monotonically to prevent OMIT and cursor jumping (랑이 / 라이)", () => {
+    // target: 랑이 (fkddl), qwerty: fkdl -> 라이
+    // The greedy L2R jaso aligner matches the 'ㅇ' in '이' to the 'ㅇ' in '랑', causing a tie for '이'.
+    // The aggregator must monotonically resolve this tie so '라' -> '랑', and '이' -> '이'.
+    const result = runMvsa("랑이", "fkdl", true);
+    expect(result).toEqual([
+      { op: "REPLACE", char: "라", targetChar: "랑", targetIndex: 0, inputIndex: 1 },
+      { op: "EQUAL", char: "이", targetChar: "이", targetIndex: 1, inputIndex: 3 },
+    ]);
+  });
+
+  it("should maximize REPLACE intent using Dual R2L search in panic mode (안녕안 / 안안)", () => {
+    // target: 안녕안 (dkssuddks), qwerty: dksdks -> 안안
+    // Panic mode at second char. Input 'dks' vs targets '녕', '안'.
+    // L2R search would match 's'(ㄴ) to '녕'(ssud), causing '안' to map to '녕'.
+    // Dual R2L search anchors 's'(ㄴ) to '안'(dks), so '녕' is skipped (OMIT) and '안' maps to '안' (REPLACE).
+    const result = runMvsa("안녕안", "dksdks", true);
+    expect(result).toEqual([
+      { op: "EQUAL", char: "안", targetChar: "안", targetIndex: 0, inputIndex: 2 },
+      { op: "OMIT", char: "", targetChar: "녕", targetIndex: 1 },
+      { op: "EQUAL", char: "안", targetChar: "안", targetIndex: 2, inputIndex: 5 },
+    ]);
+  });
 });

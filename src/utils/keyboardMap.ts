@@ -104,7 +104,7 @@ export function assembleHangulWithPunctuation(qwerty: string): string {
     if (jamos.length === 0) return "";
     let res = "";
     let currentJamos: string[] = [];
-    
+
     for (const jamo of jamos) {
       const nextJamos = [...currentJamos, jamo];
       try {
@@ -112,14 +112,22 @@ export function assembleHangulWithPunctuation(qwerty: string): string {
         currentJamos = nextJamos;
       } catch (e) {
         if (currentJamos.length > 0) {
-          try { res += assemble(currentJamos); } catch { res += currentJamos.join(""); }
+          try {
+            res += assemble(currentJamos);
+          } catch {
+            res += currentJamos.join("");
+          }
         }
         currentJamos = [jamo];
       }
     }
-    
+
     if (currentJamos.length > 0) {
-      try { res += assemble(currentJamos); } catch { res += currentJamos.join(""); }
+      try {
+        res += assemble(currentJamos);
+      } catch {
+        res += currentJamos.join("");
+      }
     }
     return res;
   };

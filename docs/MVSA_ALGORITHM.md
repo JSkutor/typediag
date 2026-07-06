@@ -50,11 +50,11 @@ Typing errors in one word should never corrupt the alignment of subsequent words
 - Both the `targetText` and `qwertyBuffer` are partitioned by space (`\s+`) boundaries.
 - The alignment is executed strictly word-by-word. A space character acts as an absolute quarantine barrier.
 
-### 3.2. Stateless Incremental Prefix Heuristic
-In early iterations, MVSA suffered from \(\mathcal{O}(N^2)\) performance degradation on long texts because it re-calculated everything on every keystroke. Instead of relying on a stateful cache map, the current implementation uses a **Stateless Incremental Heuristic**.
-- The engine dynamically locks the longest consecutive prefix of `EQUAL` alignments.
-- For every new keystroke, it only computes the remaining "tail" of the input against the remaining target.
-- This guarantees \(\mathcal{O}(1)\) computation relative to document size while remaining perfectly stateless.
+### 3.2. Word-Level Memoization Cache
+In early iterations, MVSA suffered from \(\mathcal{O}(N^2)\) performance degradation on long texts because it re-calculated everything on every keystroke. The current implementation resolves this using a **Word-Level Memoization Cache**.
+- By leveraging the space-delimited word isolation boundary, the alignment results of fully typed or currently typed words are cached (`JasoMvsaCache`).
+- The cache key incorporates the target word index, the current query index, the actual typed character sequence, and whether the word is completed.
+- This guarantees \(\mathcal{O}(1)\) computation for already processed words, completely avoiding expensive global realignments upon every new keystroke.
 
 ### 3.3. Execution Modes
 The core operates in two primary modes within a word:

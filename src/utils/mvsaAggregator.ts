@@ -84,7 +84,7 @@ export class MvsaAggregator {
           } else if (count === maxVotes && maxTargetIndex !== -1) {
             const tValid = tIdx > lastAssignedTIdx;
             const maxValid = maxTargetIndex > lastAssignedTIdx;
-            
+
             let preferTIdx = false;
             if (tValid && !maxValid) {
               preferTIdx = true;
@@ -95,7 +95,7 @@ export class MvsaAggregator {
             } else {
               preferTIdx = tIdx > maxTargetIndex;
             }
-            
+
             if (preferTIdx) {
               maxTargetIndex = tIdx;
             }
