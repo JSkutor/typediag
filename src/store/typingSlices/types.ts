@@ -3,6 +3,7 @@ import type { KeyEvent } from "@/lib/skdm";
 import type { TopicErrorKey } from "@/lib/practice/topicLoading";
 import type { PageMetricsFlash } from "@/lib/practice/pageMetricsFlash";
 import type { AlignResult } from "@/utils/mvsa";
+import type { JasoMvsaCache } from "@/utils/mvsaJasoCore";
 
 export type SessionStatus = "idle" | "running" | "done";
 export type TypingMode = "normal" | "topic" | "hardcore" | "feedback";
@@ -30,6 +31,7 @@ export interface InputSlice {
   maxTypedTextLength: number;
   qwertyBuffer: string;
 
+  mvsaCache: JasoMvsaCache;
   alignments: AlignResult[];
   mode: TypingMode;
   setMode: (mode: TypingMode) => void | Promise<void>;

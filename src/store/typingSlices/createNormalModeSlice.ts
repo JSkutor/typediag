@@ -23,7 +23,7 @@ function buildPracticeTargetReset(
     maxTypedTextLength: 0,
     qwertyBuffer: "",
 
-    alignments: runMvsa(target.content, "", target.language === "ko"),
+    alignments: runMvsa(target.content, "", target.language === "ko", new Map()),
     events: [],
     status: "idle",
     startedAt: null,

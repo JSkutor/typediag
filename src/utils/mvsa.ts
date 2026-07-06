@@ -1,5 +1,5 @@
 import { disassemble, convertQwertyToAlphabet, assemble } from "es-hangul";
-import { JasoSequenceAligner } from "./mvsaJasoCore";
+import { JasoSequenceAligner, JasoMvsaCache } from "./mvsaJasoCore";
 import { MvsaAggregator } from "./mvsaAggregator";
 
 export type AlignOp = "EQUAL" | "PARTIAL" | "REPLACE" | "INSERT" | "OMIT" | "PENDING";
@@ -95,12 +95,13 @@ export function runMvsa(
   targetText: string,
   qwertyBuffer: string,
   isKorean: boolean,
+  cache?: JasoMvsaCache,
 ): AlignResult[] {
   if (!isKorean) {
     return runEnglishMvsa(targetText, qwertyBuffer);
   }
 
-  const jasoAligner = new JasoSequenceAligner(targetText, qwertyBuffer);
+  const jasoAligner = new JasoSequenceAligner(targetText, qwertyBuffer, cache);
   const jasoResults = jasoAligner.align();
 
   const aggregator = new MvsaAggregator();

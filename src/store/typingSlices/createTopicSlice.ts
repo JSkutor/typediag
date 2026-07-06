@@ -50,7 +50,7 @@ function topicGuideScreenState(lang: ReturnType<typeof getTopicLang>) {
     typedText: "",
     qwertyBuffer: "",
     maxTypedTextLength: 0,
-    alignments: runMvsa(guide, "", isKorean),
+    alignments: runMvsa(guide, "", isKorean, new Map()),
     isTopicInputActive: true,
     isTopicLoading: false,
     isTopicGenerating: false,
@@ -112,7 +112,7 @@ export function createTopicTopicActions(set: TopicSliceSet, get: TopicSliceGet) 
         typedText: "",
         qwertyBuffer: "",
         maxTypedTextLength: 0,
-        alignments: runMvsa(errorMsg, "", lang === "ko"),
+        alignments: runMvsa(errorMsg, "", lang === "ko", new Map()),
         isTopicInputActive: true,
         topicTargets: [],
         topicTargetIndex: -1,
@@ -193,7 +193,6 @@ export function createTopicTopicActions(set: TopicSliceSet, get: TopicSliceGet) 
     set({
       ...topicGuideScreenState("ko"),
       targetLanguage: "ko",
-
     });
   };
 
@@ -221,7 +220,6 @@ export function createTopicTopicActions(set: TopicSliceSet, get: TopicSliceGet) 
     set({
       ...topicGuideScreenState("ko"),
       targetLanguage: "ko",
-
     });
   };
 
@@ -271,8 +269,8 @@ export function createTopicTopicActions(set: TopicSliceSet, get: TopicSliceGet) 
         const nextTargetText = nextBuffer.length === 0 ? guide : nextTyped;
         const nextAlignments =
           nextBuffer.length === 0
-            ? runMvsa(nextTargetText, "", isKorean)
-            : runMvsa(nextTargetText, nextBuffer, isKorean);
+            ? runMvsa(nextTargetText, "", isKorean, get().mvsaCache)
+            : runMvsa(nextTargetText, nextBuffer, isKorean, get().mvsaCache);
 
         set({
           targetText: nextTargetText,

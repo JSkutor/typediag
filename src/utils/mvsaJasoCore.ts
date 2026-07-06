@@ -17,13 +17,17 @@ interface TargetToken {
   vCharIndex: number;
 }
 
+export type JasoMvsaCache = Map<string, JasoAlignResult[]>;
+
 export class JasoSequenceAligner {
   private targetText: string;
   private qwertyBuffer: string;
+  private cache?: JasoMvsaCache;
 
-  constructor(targetText: string, qwertyBuffer: string) {
+  constructor(targetText: string, qwertyBuffer: string, cache?: JasoMvsaCache) {
     this.targetText = targetText;
     this.qwertyBuffer = qwertyBuffer;
+    this.cache = cache;
   }
 
   public align(): JasoAlignResult[] {
@@ -50,12 +54,21 @@ export class JasoSequenceAligner {
       const wordInputChars = inputChars.slice(qIdx, endQIdx);
       const isCompleted = endQIdx < inputChars.length;
 
-      const wordResults = this.alignWordIncrementalHeuristic(
-        wordTargetTokens,
-        wordInputChars,
-        qIdx,
-        isCompleted,
-      );
+      const cacheKey = `${tTokIdx}:${qIdx}:${wordInputChars.join("")}:${isCompleted}`;
+      let wordResults: JasoAlignResult[];
+
+      if (this.cache && this.cache.has(cacheKey)) {
+        wordResults = this.cache.get(cacheKey)!;
+      } else {
+        wordResults = this.alignWordIncrementalHeuristic(
+          wordTargetTokens,
+          wordInputChars,
+          qIdx,
+          isCompleted,
+        );
+        this.cache?.set(cacheKey, wordResults);
+      }
+
       results.push(...wordResults);
 
       tTokIdx = endTTokIdx;
