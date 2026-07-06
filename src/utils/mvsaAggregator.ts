@@ -68,15 +68,37 @@ export class MvsaAggregator {
       }
     }
 
-    for (const [vIdx, existing] of vCharIdxToResult.entries()) {
+    const vIndices = Array.from(vCharIdxToResult.keys()).sort((a, b) => a - b);
+    let lastAssignedTIdx = -1;
+
+    for (const vIdx of vIndices) {
+      const existing = vCharIdxToResult.get(vIdx)!;
       const votes = vCharIdxToTargetVotes.get(vIdx);
       if (votes && votes.size > 0) {
         let maxTargetIndex = -1;
         let maxVotes = -1;
         for (const [tIdx, count] of votes.entries()) {
-          if (count > maxVotes || (count === maxVotes && (maxTargetIndex === -1 || tIdx < maxTargetIndex))) {
+          if (count > maxVotes) {
             maxVotes = count;
             maxTargetIndex = tIdx;
+          } else if (count === maxVotes && maxTargetIndex !== -1) {
+            const tValid = tIdx > lastAssignedTIdx;
+            const maxValid = maxTargetIndex > lastAssignedTIdx;
+            
+            let preferTIdx = false;
+            if (tValid && !maxValid) {
+              preferTIdx = true;
+            } else if (!tValid && maxValid) {
+              preferTIdx = false;
+            } else if (tValid && maxValid) {
+              preferTIdx = tIdx < maxTargetIndex;
+            } else {
+              preferTIdx = tIdx > maxTargetIndex;
+            }
+            
+            if (preferTIdx) {
+              maxTargetIndex = tIdx;
+            }
           }
         }
         if (maxTargetIndex !== -1) {
@@ -85,6 +107,7 @@ export class MvsaAggregator {
           if (existing.op === "INSERT") {
             existing.op = "REPLACE";
           }
+          lastAssignedTIdx = maxTargetIndex;
         }
       }
     }
