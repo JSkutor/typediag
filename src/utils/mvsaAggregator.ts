@@ -1,4 +1,4 @@
-import { JasoAlignResult } from "./mvsaJasoCore";
+import { JasoAlignResult } from "./mvsaCore";
 import { AlignResult, AlignOp } from "./mvsa";
 import { assembleHangulWithPunctuation } from "./keyboardMap";
 import { getCharQwertyIndices } from "./mvsa";

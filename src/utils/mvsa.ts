@@ -1,5 +1,5 @@
 import { disassemble, convertQwertyToAlphabet, assemble } from "es-hangul";
-import { JasoSequenceAligner, JasoMvsaCache } from "./mvsaJasoCore";
+import { JasoSequenceAligner, JasoMvsaCache } from "./mvsaCore";
 import { MvsaAggregator } from "./mvsaAggregator";
 
 export type AlignOp = "EQUAL" | "PARTIAL" | "REPLACE" | "INSERT" | "OMIT" | "PENDING";
