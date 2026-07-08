@@ -81,6 +81,15 @@ Once anchored:
 - Keystrokes replacing a target: `REPLACE`
 - Excess keystrokes: `INSERT`
 
+### 3.4. Prefix Simulation & Incremental Computation
+The R2L recovery strategy has a blind spot: a single typo early in a word could unnecessarily persist the panic state for subsequent valid keystrokes because the search anchors only to the very end of the input (the "간다라 problem"). 
+
+To resolve this while maintaining the stateless external interface, MVSA employs internal **Prefix Simulation** and **Anchoring**.
+- **Simulating State**: On every keystroke, the engine simulates the alignment incrementally, feeding the prefix inputs one by one (e.g., `a`, then `ab`, then `abc`).
+- **Anchor Mechanism**: Each simulation step identifies an **Anchor** (the last `EQUAL` jaso). The segment before the anchor is considered a "confirmed valid state" and is bypassed.
+- **Incremental Re-calculation**: Only the "panic segment" (after the anchor) plus the newly typed keystroke are re-evaluated.
+- **Complexity**: This reduces the theoretical \(\mathcal{O}(N^2)\) simulation cost to an \(\mathcal{O}(w + k)\) constant-time operation (where \(w\) is cached previous words and \(k\) is the unconfirmed panic segment length).
+
 ---
 
 ## 4. Macro-level Aggregation (MvsaAggregator)
@@ -90,6 +99,8 @@ The aggregator collapses multiple jaso states into a single visual character sta
 ### 4.1. Target Voting Mechanism
 Because a single visual character consists of multiple jasos, the `JasoSequenceAligner` might align different jasos of the same typed character to different target characters.
 The Aggregator tallies the "target index" of all component jasos. The target index with the most votes wins, anchoring the visual character to a specific target character.
+
+**Tie-Breaking Logic**: If votes are tied (e.g., 1:1), the aggregator breaks the tie based on the relative position to the cursor. Un-typed "future" characters (+1) receive higher precedence than already-typed "past" characters (-1), prioritizing forward progression during partial inputs.
 
 ### 4.2. Operator Precedence
 When multiple jasos within the same visual character have different alignment states, a strict precedence model determines the dominant visual state:
