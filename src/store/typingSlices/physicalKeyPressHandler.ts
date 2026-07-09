@@ -165,7 +165,7 @@ export function createPhysicalKeyPressHandler(
         const jasoResults = aligner.align();
         const lastJasoInputIndex = jasoResults.findLastIndex((d) => d.inputIndex !== undefined);
         const lastJasoOp = jasoResults[lastJasoInputIndex];
-        isCorrect = lastJasoOp ? lastJasoOp.op === "EQUAL" || lastJasoOp.op === "PARTIAL" : false;
+        isCorrect = lastJasoOp ? lastJasoOp.op === "EQUAL" : false;
         expectedChar = !isCorrect
           ? lastJasoOp?.targetVCharIndex !== undefined
             ? state.targetText[lastJasoOp.targetVCharIndex]
@@ -193,7 +193,16 @@ export function createPhysicalKeyPressHandler(
       get().recordKey(keyToken, timestamp, evalResult);
 
       if (shouldFinish && isKorean) {
-        if (lastOp && lastOp.op === "PARTIAL") {
+        const lastVisualOp = lastInputIndex !== -1 ? alignments[lastInputIndex] : null;
+        if (lastVisualOp && lastVisualOp.op === "PARTIAL") {
+          shouldFinish = false;
+        }
+      }
+
+      // Excess characters check (INSERT)
+      if (shouldFinish) {
+        const lastVisualOp = lastInputIndex !== -1 ? alignments[lastInputIndex] : null;
+        if (lastVisualOp && lastVisualOp.op === "INSERT") {
           shouldFinish = false;
         }
       }
