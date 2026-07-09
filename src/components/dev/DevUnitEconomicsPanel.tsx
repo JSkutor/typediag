@@ -22,7 +22,7 @@ import {
 } from "@/lib/dev/revenueSimulation";
 
 import devStyles from "@/app/dev/dev.module.css";
-import { DevCostSection } from "@/components/dev/DevCostSection";
+import { DevCostSection } from "@/components/dev/cost/DevCostSection";
 import { DevPlatformSection } from "@/components/dev/DevPlatformSection";
 import { DevRevenueSection } from "@/components/dev/DevRevenueSection";
 import { BreakdownList, MauField, NumberField } from "@/components/dev/DevSimFields";

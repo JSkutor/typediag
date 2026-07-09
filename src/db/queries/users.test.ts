@@ -2,7 +2,9 @@ import { describe, it, expect, afterEach } from "vitest";
 import { eq, or, like } from "drizzle-orm";
 import { drizzleDb } from "@/db";
 import { targetTexts, users } from "@/db/schema";
-import { db } from "./db";
+
+import { getOrCreateUserByClerkId, mergeGuestData } from "./users";
+import { createRun, getRun } from "./sessions";
 
 describe("mergeGuestData", () => {
   afterEach(async () => {
@@ -17,10 +19,10 @@ describe("mergeGuestData", () => {
     const guestClerkId = `guest_${crypto.randomUUID()}`;
     const memberClerkId = `user_${crypto.randomUUID()}`;
 
-    const guestUser = await db.getOrCreateUserByClerkId(guestClerkId);
-    const memberUser = await db.getOrCreateUserByClerkId(memberClerkId);
+    const guestUser = await getOrCreateUserByClerkId(guestClerkId);
+    const memberUser = await getOrCreateUserByClerkId(memberClerkId);
 
-    const guestRun = await db.createRun({
+    const guestRun = await createRun({
       user_id: guestUser.id,
       status: "completed",
       started_at: "2026-06-15T00:00:00Z",
@@ -35,9 +37,9 @@ describe("mergeGuestData", () => {
       userId: guestUser.id,
     });
 
-    await db.mergeGuestData(guestUser.id, memberUser.id);
+    await mergeGuestData(guestUser.id, memberUser.id);
 
-    const transferredRun = await db.getRun(guestRun.id);
+    const transferredRun = await getRun(guestRun.id);
     expect(transferredRun?.userId).toBe(memberUser.id);
 
     const transferredTargetText = await drizzleDb
@@ -57,10 +59,10 @@ describe("mergeGuestData", () => {
 
   it("should skip merging if guestUserId and memberUserId are identical", async () => {
     const clerkId = `guest_${crypto.randomUUID()}`;
-    const user = await db.getOrCreateUserByClerkId(clerkId);
+    const user = await getOrCreateUserByClerkId(clerkId);
 
     // Call merge with identical IDs
-    await db.mergeGuestData(user.id, user.id);
+    await mergeGuestData(user.id, user.id);
 
     // Ensure user still exists
     const existing = await drizzleDb.select().from(users).where(eq(users.id, user.id)).limit(1);

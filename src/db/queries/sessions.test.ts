@@ -2,8 +2,19 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { sql, and, inArray, isNull, or, like, eq } from "drizzle-orm";
 import { drizzleDb } from "@/db";
 import { targetTexts, runs } from "@/db/schema";
-import { db } from "./db";
+
 import crypto from "crypto";
+import { getOrCreateUserByClerkId } from "./users";
+import { getTargetTexts, findTargetText, insertTopicGeneratedTargets } from "./practice";
+import {
+  createRun,
+  updateRun,
+  getRun,
+  createPage,
+  finalizeRun,
+  syncSessionOnMount,
+} from "./sessions";
+import { getKeyEventsForPage } from "./stats";
 
 describe("db", () => {
   let testUserId: string;
@@ -12,7 +23,7 @@ describe("db", () => {
     if (typeof window !== "undefined") {
       localStorage.clear();
     }
-    const user = await db.getOrCreateUserByClerkId("test_clerk_id");
+    const user = await getOrCreateUserByClerkId("test_clerk_id");
     testUserId = user.id;
   });
 
@@ -40,7 +51,7 @@ describe("db", () => {
   });
 
   it("should create and update a run correctly", async () => {
-    const run = await db.createRun({
+    const run = await createRun({
       user_id: testUserId,
       status: "pending",
       started_at: "2026-06-15T00:00:00Z",
@@ -49,21 +60,21 @@ describe("db", () => {
     expect(run.status).toBe("pending");
     expect(run.finishedAt).toBeNull();
 
-    const updated = await db.updateRun(run.id, { status: "in_progress" });
+    const updated = await updateRun(run.id, { status: "in_progress" });
     expect(updated.status).toBe("in_progress");
 
-    const fetched = await db.getRun(run.id);
+    const fetched = await getRun(run.id);
     expect(fetched?.status).toBe("in_progress");
   });
 
   it("should finalize a run correctly with no pages", async () => {
-    const run = await db.createRun({
+    const run = await createRun({
       user_id: testUserId,
       status: "in_progress",
       started_at: "2026-06-15T00:00:00Z",
     });
 
-    const finalized = await db.finalizeRun(run.id);
+    const finalized = await finalizeRun(run.id);
     expect(finalized?.status).toBe("completed");
     expect(finalized?.cpm).toBe(0);
     expect(finalized?.wpm).toBe(0);
@@ -71,13 +82,13 @@ describe("db", () => {
   });
 
   it("should finalize a run correctly with pages", async () => {
-    const run = await db.createRun({
+    const run = await createRun({
       user_id: testUserId,
       status: "in_progress",
       started_at: "2026-06-15T00:00:00Z",
     });
 
-    await db.createPage({
+    await createPage({
       id: "00000000-0000-0000-0000-000000000021",
       run_id: run.id,
       target_text_id: null,
@@ -93,7 +104,7 @@ describe("db", () => {
       key_events: [],
     });
 
-    await db.createPage({
+    await createPage({
       id: "00000000-0000-0000-0000-000000000022",
       run_id: run.id,
       target_text_id: null,
@@ -109,7 +120,7 @@ describe("db", () => {
       key_events: [],
     });
 
-    const finalized = await db.finalizeRun(run.id);
+    const finalized = await finalizeRun(run.id);
     expect(finalized?.status).toBe("completed");
     expect(finalized?.wpm).toBe(90); // (100 + 80) / 2
     expect(finalized?.cpm).toBe(450); // (500 + 400) / 2
@@ -117,14 +128,14 @@ describe("db", () => {
   });
 
   it("should finalize a run correctly using weighted averages for pages with different lengths and durations", async () => {
-    const run = await db.createRun({
+    const run = await createRun({
       user_id: testUserId,
       status: "in_progress",
       started_at: "2026-06-15T00:00:00Z",
     });
 
     // Page 1: 1000ms (1s), 600 CPM, 120 WPM, 100% accuracy, 10 key events
-    await db.createPage({
+    await createPage({
       id: "00000000-0000-0000-0000-000000000023",
       run_id: run.id,
       target_text_id: null,
@@ -149,7 +160,7 @@ describe("db", () => {
     });
 
     // Page 2: 9000ms (9s), 400 CPM, 80 WPM, 90% accuracy, 90 key events
-    await db.createPage({
+    await createPage({
       id: "00000000-0000-0000-0000-000000000024",
       run_id: run.id,
       target_text_id: null,
@@ -173,7 +184,7 @@ describe("db", () => {
       })),
     });
 
-    const finalized = await db.finalizeRun(run.id);
+    const finalized = await finalizeRun(run.id);
     expect(finalized?.status).toBe("completed");
 
     // Total time = 10000ms
@@ -190,41 +201,41 @@ describe("db", () => {
   });
 
   it("syncSessionOnMount should delete a pending run", async () => {
-    const run = await db.createRun({
+    const run = await createRun({
       user_id: testUserId,
       status: "pending",
       started_at: new Date(Date.now() - 10 * 60 * 1000).toISOString(), // 10 mins ago
     });
 
-    await db.syncSessionOnMount(testUserId);
+    await syncSessionOnMount(testUserId);
 
-    const fetched = await db.getRun(run.id);
+    const fetched = await getRun(run.id);
     expect(fetched).toBeNull();
   });
 
   it("syncSessionOnMount should finalize an in_progress run if idle for > 3 mins", async () => {
-    const run = await db.createRun({
+    const run = await createRun({
       user_id: testUserId,
       status: "in_progress",
       started_at: new Date(Date.now() - 4 * 60 * 1000).toISOString(), // 4 mins ago
     });
 
-    await db.syncSessionOnMount(testUserId);
+    await syncSessionOnMount(testUserId);
 
-    const fetched = await db.getRun(run.id);
+    const fetched = await getRun(run.id);
     expect(fetched?.status).toBe("completed");
   });
 
   it("syncSessionOnMount should not finalize an in_progress run if active within 3 mins", async () => {
-    const run = await db.createRun({
+    const run = await createRun({
       user_id: testUserId,
       status: "in_progress",
       started_at: new Date(Date.now() - 2 * 60 * 1000).toISOString(), // 2 mins ago
     });
 
-    await db.syncSessionOnMount(testUserId);
+    await syncSessionOnMount(testUserId);
 
-    const fetched = await db.getRun(run.id);
+    const fetched = await getRun(run.id);
     expect(fetched?.status).toBe("in_progress");
   });
 
@@ -240,24 +251,24 @@ describe("db", () => {
       userId: testUserId,
     });
 
-    const all = await db.getTargetTexts();
+    const all = await getTargetTexts();
     expect(all.some((t) => t.id === targetTextId)).toBe(true);
 
-    const foundById = await db.findTargetText({ id: targetTextId });
+    const foundById = await findTargetText({ id: targetTextId });
     expect(foundById?.content).toBe(content);
 
-    const foundByContent = await db.findTargetText({ content });
+    const foundByContent = await findTargetText({ content });
     expect(foundByContent?.id).toBe(targetTextId);
   });
 
   it("should default target_text_id to null if it does not exist in DB when creating a page", async () => {
-    const run = await db.createRun({
+    const run = await createRun({
       user_id: testUserId,
       status: "in_progress",
       started_at: "2026-06-15T00:00:00Z",
     });
 
-    const page = await db.createPage({
+    const page = await createPage({
       run_id: run.id,
       target_text_id: "non-existent-id",
       order_index: 0,
@@ -276,14 +287,14 @@ describe("db", () => {
   });
 
   it("should successfully bulk insert pages with > 500 key events", async () => {
-    const run = await db.createRun({
+    const run = await createRun({
       user_id: testUserId,
       status: "in_progress",
       started_at: "2026-06-15T00:00:00Z",
     });
 
     const numEvents = 550;
-    const page = await db.createPage({
+    const page = await createPage({
       run_id: run.id,
       target_text_id: null,
       order_index: 0,
@@ -306,12 +317,12 @@ describe("db", () => {
       })),
     });
 
-    const fetchedEvents = await db.getKeyEventsForPage(page.id);
+    const fetchedEvents = await getKeyEventsForPage(page.id);
     expect(fetchedEvents).toHaveLength(numEvents);
   });
 
   it("should truncate oversized key event fields before insert", async () => {
-    const run = await db.createRun({
+    const run = await createRun({
       user_id: testUserId,
       status: "in_progress",
       started_at: "2026-06-15T00:00:00Z",
@@ -322,7 +333,7 @@ describe("db", () => {
     const longKeyChar = "c".repeat(15);
     const longExpected = "d".repeat(15);
 
-    const page = await db.createPage({
+    const page = await createPage({
       run_id: run.id,
       target_text_id: null,
       order_index: 0,
@@ -347,7 +358,7 @@ describe("db", () => {
       ],
     });
 
-    const [event] = await db.getKeyEventsForPage(page.id);
+    const [event] = await getKeyEventsForPage(page.id);
     expect(event.fromKey).toHaveLength(20);
     expect(event.toKey).toHaveLength(20);
     expect(event.keyChar).toHaveLength(10);
@@ -360,9 +371,9 @@ describe("db", () => {
     const id = `target_gen_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`;
     const content = `topic-gen-${crypto.randomUUID()}`;
 
-    await db.insertTopicGeneratedTargets([{ id, content, language: "ko", topic: "테스트 주제" }]);
+    await insertTopicGeneratedTargets([{ id, content, language: "ko", topic: "테스트 주제" }]);
 
-    const found = await db.findTargetText({ id });
+    const found = await findTargetText({ id });
     expect(found?.content).toBe(content);
     expect(found?.source).toBe("topic");
     expect(found?.generatorModel).toBe("gpt-4.1-nano");
@@ -375,15 +386,11 @@ describe("db", () => {
     const firstId = `target_gen_${Date.now()}_aaaa1111`;
     const secondId = `target_gen_${Date.now()}_bbbb2222`;
 
-    await db.insertTopicGeneratedTargets([
-      { id: firstId, content, language: "ko", topic: "주제A" },
-    ]);
-    await db.insertTopicGeneratedTargets([
-      { id: secondId, content, language: "ko", topic: "주제B" },
-    ]);
+    await insertTopicGeneratedTargets([{ id: firstId, content, language: "ko", topic: "주제A" }]);
+    await insertTopicGeneratedTargets([{ id: secondId, content, language: "ko", topic: "주제B" }]);
 
-    expect(await db.findTargetText({ id: secondId })).toBeNull();
-    expect((await db.findTargetText({ content }))?.id).toBe(firstId);
+    expect(await findTargetText({ id: secondId })).toBeNull();
+    expect((await findTargetText({ content }))?.id).toBe(firstId);
   });
 
   it("should select only target texts with null embedding for batch embed", async () => {

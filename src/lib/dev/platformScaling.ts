@@ -13,14 +13,14 @@ export const VERCEL_HOSTING = {
   freeDailySsrLimit: 30_000,
   /** MAU가 이 수치를 넘거나 상업용(결제/광고)일 경우 Pro 필수 */
   mauUpgradeThreshold: 5_000,
-  
+
   /** Pro 플랜 기본 요금 (1 seat) */
   proBaseUsd: 20,
   /** 함수 호출 (Invocations): 100만 회 기본 제공, 이후 100만 회당 $2 */
   invocationUsdPerMillion: 2,
   /** 대역폭 (Fast Data Transfer): 1TB 기본 제공, 이후 GB당 $0.15 */
   bandwidthUsdPerGb: 0.15,
-  
+
   /** 1 SSR 호출당 대략적인 대역폭 소모량 (JSON payload + HTML) = 약 100KB 가정 */
   estimatedGbPerSsrCall: 0.0001,
 } as const;

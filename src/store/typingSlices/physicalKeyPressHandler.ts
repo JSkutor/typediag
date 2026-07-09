@@ -169,7 +169,7 @@ export function createPhysicalKeyPressHandler(
         expectedChar = !isCorrect
           ? lastJasoOp?.targetVCharIndex !== undefined
             ? state.targetText[lastJasoOp.targetVCharIndex]
-            : baseEval.expectedChar ?? null
+            : (baseEval.expectedChar ?? null)
           : null;
       } else {
         const lastInputIndex = alignments.findLastIndex((d) => d.inputIndex !== undefined);

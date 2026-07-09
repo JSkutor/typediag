@@ -3,7 +3,10 @@ import { runMvsa } from "@/utils/mvsa";
 import { fetchRandomNormalTarget, type NormalTarget } from "@/lib/practice/normalTargetClient";
 import { saveCurrentPageIfDone } from "./saveIfDone";
 
-export const normalInitialState: Pick<InputSlice, "normalPreviousTarget" | "normalPrefetchedTarget"> = {
+export const normalInitialState: Pick<
+  InputSlice,
+  "normalPreviousTarget" | "normalPrefetchedTarget"
+> = {
   normalPreviousTarget: null,
   normalPrefetchedTarget: null,
 };
