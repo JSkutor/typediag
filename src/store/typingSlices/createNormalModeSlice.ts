@@ -3,8 +3,9 @@ import { runMvsa } from "@/utils/mvsa";
 import { fetchRandomNormalTarget, type NormalTarget } from "@/lib/practice/normalTargetClient";
 import { saveCurrentPageIfDone } from "./saveIfDone";
 
-export const normalInitialState: Pick<InputSlice, "normalPreviousTarget"> = {
+export const normalInitialState: Pick<InputSlice, "normalPreviousTarget" | "normalPrefetchedTarget"> = {
   normalPreviousTarget: null,
+  normalPrefetchedTarget: null,
 };
 
 type NormalSliceSet = Parameters<StoreSlice<InputSlice>>[0];
@@ -42,8 +43,27 @@ export function createNormalModeActions(set: NormalSliceSet, get: NormalSliceGet
     options: { excludeId?: string; previous?: NormalTarget | null } = {},
   ) => {
     try {
-      const target = await fetchRandomNormalTarget(language, options.excludeId);
+      let target: NormalTarget;
+      const prefetched = get().normalPrefetchedTarget;
+
+      // Use prefetched target if available, language matches, and it's not the excluded ID
+      if (prefetched && prefetched.language === language && prefetched.id !== options.excludeId) {
+        target = prefetched;
+        set({ normalPrefetchedTarget: null });
+      } else {
+        target = await fetchRandomNormalTarget(language, options.excludeId);
+      }
+
       set(buildPracticeTargetReset(target, options.previous ?? null));
+
+      // Prefetch next target in the background
+      fetchRandomNormalTarget(language, target.id)
+        .then((nextTarget) => {
+          set({ normalPrefetchedTarget: nextTarget });
+        })
+        .catch((err) => {
+          console.warn("[createNormalModeSlice] Failed to prefetch practice sentence:", err);
+        });
     } catch (error) {
       console.warn("[createNormalModeSlice] Failed to load practice sentence:", error);
     }

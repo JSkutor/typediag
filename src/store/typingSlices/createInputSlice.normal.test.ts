@@ -48,6 +48,7 @@ describe("createInputSlice normal mode", () => {
       targetLanguage: "ko",
       targetId: "",
       normalPreviousTarget: null,
+      normalPrefetchedTarget: null,
       typedText: "",
       qwertyBuffer: "",
       events: [],
@@ -75,7 +76,7 @@ describe("createInputSlice normal mode", () => {
     const state = useTypingStore.getState();
     expect(state.targetId).toBe("target_c");
     expect(state.normalPreviousTarget).toEqual(TARGET_B);
-    expect(mockFetchRandomNormalTarget).toHaveBeenLastCalledWith("ko", "target_b");
+    expect(mockFetchRandomNormalTarget).toHaveBeenCalledWith("ko", "target_b");
   });
 
   it("restores only one previous target with ArrowLeft", async () => {
@@ -119,7 +120,7 @@ describe("createInputSlice normal mode", () => {
     expect(state.targetLanguage).toBe("en");
     expect(state.targetId).toBe("target_en");
     expect(state.normalPreviousTarget).toBeNull();
-    expect(mockFetchRandomNormalTarget).toHaveBeenLastCalledWith("en", undefined);
+    expect(mockFetchRandomNormalTarget).toHaveBeenCalledWith("en", undefined);
   });
 
   it("saves a completed page before restoring the previous target", async () => {

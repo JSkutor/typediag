@@ -22,6 +22,7 @@ export interface InputSlice {
   topicTargetIndex: number;
 
   normalPreviousTarget: { id: string; content: string; language: string } | null;
+  normalPrefetchedTarget: { id: string; content: string; language: string } | null;
   fetchInitialNormalTarget: (language?: string) => Promise<void>;
 
   targetText: string;
