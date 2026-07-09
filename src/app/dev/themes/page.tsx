@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 
-import { DevThemesPanel } from "@/components/dev/DevThemesPanel";
 
 import styles from "../dev.module.css";
 
@@ -19,7 +18,9 @@ export default function DevThemesPage() {
             비교합니다. 직접 색상을 커스텀하고 내보낼 수 있습니다.
           </p>
         </header>
-        <DevThemesPanel />
+        <div>
+          <p>Under construction: Theme Panel was removed.</p>
+        </div>
       </div>
     </div>
   );
