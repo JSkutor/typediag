@@ -2,6 +2,7 @@ import { getQwertyChar, assembleHangulWithPunctuation } from "@/utils/keyboardMa
 import { evaluateKeystroke } from "@/utils/typingEvaluator";
 import { getKeyToken } from "./utils";
 import { runMvsa, getCharQwertyIndices } from "@/utils/mvsa";
+import { JasoSequenceAligner } from "@/utils/mvsaCore";
 import type { StoreSlice, TypingStore } from "./types";
 import type { createNormalModeActions } from "./createNormalModeSlice";
 import type { createTopicTopicActions } from "./createTopicSlice";
@@ -156,14 +157,31 @@ export function createPhysicalKeyPressHandler(
       const pendingTargets = alignments.slice(lastInputIndex + 1).some((d) => d.op === "PENDING");
       let shouldFinish = !pendingTargets;
 
-      const lastOp = alignments[lastInputIndex];
-      const isCorrect = lastOp ? lastOp.op === "EQUAL" || lastOp.op === "PARTIAL" : false;
+      let isCorrect = false;
+      let expectedChar: string | null = null;
+
+      if (isKorean) {
+        const aligner = new JasoSequenceAligner(state.targetText, nextBuffer, state.mvsaCache);
+        const jasoResults = aligner.align();
+        const lastJasoInputIndex = jasoResults.findLastIndex((d) => d.inputIndex !== undefined);
+        const lastJasoOp = jasoResults[lastJasoInputIndex];
+        isCorrect = lastJasoOp ? lastJasoOp.op === "EQUAL" || lastJasoOp.op === "PARTIAL" : false;
+        expectedChar = !isCorrect
+          ? lastJasoOp?.targetVCharIndex !== undefined
+            ? state.targetText[lastJasoOp.targetVCharIndex]
+            : baseEval.expectedChar ?? null
+          : null;
+      } else {
+        const lastInputIndex = alignments.findLastIndex((d) => d.inputIndex !== undefined);
+        const lastOp = alignments[lastInputIndex];
+        isCorrect = lastOp ? lastOp.op === "EQUAL" || lastOp.op === "PARTIAL" : false;
+        expectedChar = !isCorrect ? (lastOp?.targetChar ?? baseEval.expectedChar ?? null) : null;
+      }
+
       const evalResult = {
         keyChar: baseEval.keyChar,
         isCorrect,
-        expectedChar: !isCorrect
-          ? (lastOp?.targetChar ?? baseEval.expectedChar ?? null)
-          : null,
+        expectedChar,
       };
 
       set({
@@ -181,8 +199,8 @@ export function createPhysicalKeyPressHandler(
       }
 
       if (shouldFinish && state.mode === "hardcore") {
-        const hasInsert = alignments.some((d) => d.op === "INSERT");
-        if (hasInsert) {
+        const hasErrors = alignments.some((d) => d.op !== "EQUAL");
+        if (hasErrors) {
           shouldFinish = false;
         }
       }

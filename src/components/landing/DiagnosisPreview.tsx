@@ -62,8 +62,12 @@ export function DiagnosisPreview({ lang }: DiagnosisPreviewProps) {
             </span>
 
             <div className="diagnosis-highlight">
-              <span className="diagnosis-highlight-key">{t.slowTransitions[0]?.pair || "R → T"}</span>
-              <span className="diagnosis-highlight-ms">{t.slowTransitions[0]?.ms ? `${t.slowTransitions[0].ms}ms` : "340ms"}</span>
+              <span className="diagnosis-highlight-key">
+                {t.slowTransitions[0]?.pair || "R → T"}
+              </span>
+              <span className="diagnosis-highlight-ms">
+                {t.slowTransitions[0]?.ms ? `${t.slowTransitions[0].ms}ms` : "340ms"}
+              </span>
               <span className="diagnosis-highlight-tag">{t.bottleneck}</span>
             </div>
 

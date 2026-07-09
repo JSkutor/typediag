@@ -10,9 +10,7 @@ import {
   countCorrectReferenceTransitions,
   selectDefaultFocusKey,
 } from "@/lib/dev/cloudTypingDev";
-import {
-  getCloudTypingEffectivenessLabel,
-} from "@/utils/cylindricalStats";
+import { getCloudTypingEffectivenessLabel } from "@/utils/cylindricalStats";
 import { useDiagnosticsTransition } from "@/hooks/useDiagnosticsTransition";
 import { useWorkspaceStore } from "@/store/useWorkspaceStore";
 
@@ -103,9 +101,9 @@ export function DevCloudTypingPanel() {
       <section className={styles.panel}>
         <h2 className={styles.panelTitle}>필터 · §2.1</h2>
         <p className={styles.successNote}>
-          outgoing 추출 후 IQR로 머뭇거림을 제외해 분석 풀을 만듭니다. ND = |L−D| /
-          max(L+D, M). M 기본값 300 ms는 빠른 타건에서 비율이 과도하게 튀지 않게 하는
-          휴리스틱이며, 슬라이더로 조절할 수 있습니다. 구름 stroke 상한은 0.25입니다.
+          outgoing 추출 후 IQR로 머뭇거림을 제외해 분석 풀을 만듭니다. ND = |L−D| / max(L+D, M). M
+          기본값 300 ms는 빠른 타건에서 비율이 과도하게 튀지 않게 하는 휴리스틱이며, 슬라이더로
+          조절할 수 있습니다. 구름 stroke 상한은 0.25입니다.
         </p>
         <div className={styles.controlRow}>
           <label className={styles.controlLabel} htmlFor="dev-cloud-focus-select">
@@ -208,9 +206,7 @@ export function DevCloudTypingPanel() {
               </div>
               <div className={styles.metaItem}>
                 <span className={styles.metaLabel}>median ND</span>
-                <span className={styles.metaValue}>
-                  {keyStats.normalizedDifference.toFixed(3)}
-                </span>
+                <span className={styles.metaValue}>{keyStats.normalizedDifference.toFixed(3)}</span>
               </div>
               <div className={styles.metaItem}>
                 <span className={styles.metaLabel}>상관 r (n)</span>
@@ -246,14 +242,13 @@ export function DevCloudTypingPanel() {
             머뭇거림 IQR 제외
           </span>
           <span className={styles.legendItem}>
-            <span className={styles.legendDashMuted} />
-            D = L
+            <span className={styles.legendDashMuted} />D = L
           </span>
         </div>
         {analysisPoints.length === 0 && excludedPoints.length === 0 ? (
           <p className={styles.emptyState}>
-            조건을 만족하는 outgoing transition 쌍이 없습니다 (outgoing 정답 + reference hold
-            기록 + 제외 키 아님).
+            조건을 만족하는 outgoing transition 쌍이 없습니다 (outgoing 정답 + reference hold 기록 +
+            제외 키 아님).
           </p>
         ) : (
           <div className={styles.chartWrap}>

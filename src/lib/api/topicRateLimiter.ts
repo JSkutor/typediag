@@ -21,7 +21,7 @@ export const TOPIC_LIMITS = {
 export async function checkTopicRateLimit(
   request: NextRequest,
   userId: string,
-  actionType: "search" | "generate"
+  actionType: "search" | "generate",
 ): Promise<RateLimitResult> {
   const ipAddress =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
@@ -40,8 +40,8 @@ export async function checkTopicRateLimit(
       and(
         eq(topicUsageLimits.userId, userId),
         eq(topicUsageLimits.actionType, actionType),
-        eq(topicUsageLimits.usageDate, todayStr)
-      )
+        eq(topicUsageLimits.usageDate, todayStr),
+      ),
     );
 
   const currentCount = existingRecord ? existingRecord.requestCount : 0;
@@ -65,11 +65,7 @@ export async function checkTopicRateLimit(
       requestCount: 1,
     })
     .onConflictDoUpdate({
-      target: [
-        topicUsageLimits.userId,
-        topicUsageLimits.actionType,
-        topicUsageLimits.usageDate,
-      ],
+      target: [topicUsageLimits.userId, topicUsageLimits.actionType, topicUsageLimits.usageDate],
       set: {
         requestCount: sql`${topicUsageLimits.requestCount} + 1`,
         ipAddress,

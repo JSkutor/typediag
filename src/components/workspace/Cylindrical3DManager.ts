@@ -162,14 +162,7 @@ export class Cylindrical3DManager {
     floorDisc.renderOrder = -2;
     this.floorGroup.add(floorDisc);
 
-    const polarGrid = new THREE.PolarGridHelper(
-      floorRadius,
-      16,
-      8,
-      64,
-      C.gridMain,
-      C.gridSub,
-    );
+    const polarGrid = new THREE.PolarGridHelper(floorRadius, 16, 8, 64, C.gridMain, C.gridSub);
     polarGrid.position.y = 0.001;
     polarGrid.renderOrder = -2;
     polarGrid.traverse((child) => {

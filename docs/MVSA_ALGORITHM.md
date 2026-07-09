@@ -1,124 +1,119 @@
 # MVSA (Maximum Valid Sequence Aligner) Algorithm Specification
 
-## 1. Definition & Objective
-The **MVSA (Maximum Valid Sequence Aligner)** is a heuristic state machine designed for real-time typing alignment in TypeDiag. It aligns a QWERTY physical key buffer against a target text string to accurately determine typos and incomplete states.
+## 1. Introduction & Design Intent
 
-### Core Differentiators
-1. **IME Composition State Handling**: Unlike general algorithms (e.g., LCS, Levenshtein) which misclassify intermediate Hangul composition states (e.g., treating the process of typing "한" as inserting "하"), MVSA performs matching at the *jamo* (phoneme) level.
-2. **Carry-over Detection**: It robustly tracks Hangul's unique characteristic where a trailing consonant can carry over to become the leading consonant of the next character, maintaining synchronization without breaking the alignment flow.
-3. **Bounded Lookahead for Typo Confinement**: In the event of a mismatch, MVSA restricts its lookahead search window to the number of completed characters, preventing local typos from incorrectly aligning with distant future text.
-4. **Stateless & Deterministic**: The engine does not maintain internal history. It reconstructs the alignment purely from the `(targetText, qwertyBuffer)` pair. To prevent $\mathcal{O}(N^2)$ performance degradation on long texts, a **Word-Level Memoization Cache** is injected to yield $\mathcal{O}(1)$ performance for previously processed safe zones.
+The **MVSA (Maximum Valid Sequence Aligner)** is a real-time, heuristic state machine and alignment engine specifically designed for typing validation in TypeDiag.
 
----
+### Why not standard algorithms?
+General string alignment algorithms like Longest Common Subsequence (LCS) or Levenshtein Distance fall short when applied to real-time Korean typing:
+1. **Intermediate Hangul States**: Hangul composition involves intermediate jamo (phoneme) combinations (e.g., typing '하' on the way to '한'). Standard algorithms often penalize this as a mismatch.
+2. **Carry-over (도깨비불 현상)**: A trailing consonant (종성) from the previous character may temporarily attach to the next character's leading consonant (초성). A rigid character-by-character alignment fails to handle this natural IME behavior smoothly.
+3. **Typo Cascading**: A single omitted character in LCS or Left-to-Right matchers can cause the rest of the string to misalign, creating unnatural error boundaries.
 
-## 2. Architecture & File Mapping
-
-- **Core Engine**: `src/utils/mvsa.ts` — Houses `MaximumValidSequenceAligner` and the `runMvsa` entry point.
-- **Composition Utilities**: `src/utils/keyboardMap.ts` — `assembleHangulWithPunctuation`, `isCompleteHangul`.
-- **Jamo Operations**: Uses `es-hangul` (`disassemble`, `assemble`, `convertQwertyToAlphabet`).
-- **State Integration**: Injected into `src/store/typingSlices/createInputSlice.ts` for typing validation and UI rendering via `PracticePanel.tsx`.
+### MVSA Philosophy
+MVSA aims to **maximize the recognition of valid sequences** while strictly bounding the impact of typos. It assumes that typos are localized anomalies.
+- **Jaso-level precision**: All alignments are performed at the Jaso (Jamo/Alphabet) level.
+- **Stateless & Word-Isolated**: Eliminates the need for manual backspace handling and prevents cross-word typo cascading.
+- **Right-to-Left (R2L) Recovery**: Boxes typos between the last known good state and the next anchor, mirroring human intent.
 
 ---
 
-## 3. Data Pipeline
+## 2. Core Architecture: Separation of Concerns
+
+The architecture strictly separates mathematical alignment logic from visual UI aggregation.
 
 ```mermaid
 flowchart TD
-    Start(["runMvsa(targetText, qwertyBuffer)"])
-    --> LangCheck{"isKorean?"}
-    LangCheck -->|False| Eng["runEnglishFallback (1:1 Matching)"]
-    LangCheck -->|True| Split["splitIntoWords (Isolate by spaces)"]
-    Split --> Loop["alignWord for each segment"]
-    Loop --> Cache{"Cache Hit?"}
-    Cache -->|Yes| Hit["Return Cached AlignResult[]"]
-    Cache -->|No| NM["runNormalMode (Jamo Matching)"]
-    NM -->|Match| Next["Advance pointers"]
-    NM -->|Mismatch| PM["runPanicMode (Complete Character Matching)"]
-    PM -->|Recovered| RF["recoverFromPanic (Sync)"]
-    PM -->|Unrecoverable| HU["handleUnrecoverablePanic"]
-    Next --> Loop
-    RF --> Loop
-    HU --> Loop
-    Loop --> Group["groupAlignResultsByVisualCharacters"]
-    Group --> End(["Return final AlignResult[]"])
+    Input[("Physical Input\n(qwertyBuffer)")] --> Core
+    Target[("Target Text\n(targetText)")] --> Core
+
+    subgraph MVSA Engine
+        Core["JasoSequenceAligner\n(Micro-level, Stateless)"]
+        Agg["MvsaAggregator\n(Macro-level, Voting)"]
+    end
+
+    Core -- "JasoAlignResult[]" --> Agg
+    Agg -- "AlignResult[]" --> Output[("UI State\n(Alignments)")]
 ```
+
+1. **`JasoSequenceAligner` (`mvsaJasoCore.ts`)**: 
+   A stateless engine that breaks down strings into English-mapped jamo arrays. It performs the alignment using an *Incremental Heuristic* and outputs fine-grained jaso-level alignment results.
+2. **`MvsaAggregator` (`mvsaAggregator.ts`)**: 
+   Takes the jaso-level results, maps them back to their corresponding physical keystrokes and visual character boundaries, resolves target matching via a voting mechanism, and emits the final UI-ready state.
+
+---
+
+## 3. Micro-level Alignment (JasoSequenceAligner)
 
 ### 3.1. Word Isolation (Safe Zone Partitioning)
-- `targetText` is partitioned by spaces (`\s+`) into offset blocks `{ text, start }`.
-- `qwertyBuffer` is analogously partitioned. This guarantees that typos in one word strictly cannot cascade and corrupt the alignment of subsequent words.
+Typing errors in one word should never corrupt the alignment of subsequent words.
+- Both the `targetText` and `qwertyBuffer` are partitioned by space (`\s+`) boundaries.
+- The alignment is executed strictly word-by-word. A space character acts as an absolute quarantine barrier.
 
-### 3.2. Caching Strategy
-To maintain the functional statelessness without sacrificing performance:
-- A unique cache key is generated: `${word.start}:${qPtr}:${wordQwerty}:${isCompleted}`.
-- If the user backspaces across a word boundary, the joined string forms a new cache key, naturally invalidating the boundary state.
-- Computation complexity per keystroke is functionally reduced to $\mathcal{O}(W)$ where $W$ is the length of the current word being typed.
+### 3.2. Word-Level Memoization Cache
+In early iterations, MVSA suffered from \(\mathcal{O}(N^2)\) performance degradation on long texts because it re-calculated everything on every keystroke. The current implementation resolves this using a **Word-Level Memoization Cache**.
+- By leveraging the space-delimited word isolation boundary, the alignment results of fully typed or currently typed words are cached (`JasoMvsaCache`).
+- The cache key incorporates the target word index, the current query index, the actual typed character sequence, and whether the word is completed.
+- This guarantees \(\mathcal{O}(1)\) computation for already processed words, completely avoiding expensive global realignments upon every new keystroke.
 
----
+### 3.3. Execution Modes
+The core operates in two primary modes within a word:
 
-## 4. Execution Modes
+#### Normal Mode
+As long as the user's keystrokes match the target jaso sequence, the engine iterates forward 1:1, labeling keystrokes as `EQUAL`.
 
-### 4.1. Normal Mode (Jamo-based Matching)
-The algorithm disassembles the target character and compares it sequentially with the QWERTY input.
-- **EQUAL**: The target's jamo sequence perfectly matches the buffer.
-- **PARTIAL**: The buffer follows the correct jamo path but is incomplete (e.g., typing 'ㅎ' and 'ㅏ' for '하' when target is '한').
+#### Panic Mode & R2L Recovery
+Triggered immediately upon a jamo mismatch. The engine transitions to an error recovery state to find the next valid sync point.
 
-### 4.2. Panic Mode (Recovery Search)
-Triggered upon a jamo mismatch. It transitions to matching by **completed visual characters** rather than individual jamo.
+**Step 1: Bounded Lookahead Window**
+To prevent aligning a typo with a completely unrelated character later in the word, the search window is bounded by the user's current panic buffer length:
+> `maxLookahead = panicInputLen + 1`
 
-1. **Calculate Lookahead Window**:
-   $$\text{maxLookahead} = \text{completeCharCount} + 1$$
-   The search bound is strictly limited by how many complete characters the user has typed in the error buffer.
-2. **Reverse Target Search**:
-   For each completed character in the panic buffer, it scans the bounded target window *backwards* (Right-to-Left) to find the most recent synchronization point.
-3. **Recovery Resolution (`recoverFromPanic`)**:
-   - **Matched**: Intervening inputs are marked as `REPLACE` (or `INSERT` for excess), and skipped targets are marked as `OMIT`. Normal mode resumes from the sync point.
-   - **Unmatched**: If no sync point is found, the remaining panic buffer is marked as `INSERT` or `REPLACE`, and remaining targets are marked as `PENDING`.
+*Heuristic Intent*: If a user makes a typo, they will not accidentally skip more than one logical character unit.
 
----
+**Step 2: Dual Right-to-Left (R2L) Search**
+The engine scans the user's panic input buffer from right to left, and simultaneously searches the bounded target window from right to left, attempting to find a match.
+*Heuristic Intent*: R2L input search guarantees we anchor to the most recently typed valid character. R2L target search ensures that we maximize REPLACE operations over INSERT operations for typos (e.g., matching a later target character appropriately when the user has substituted keystrokes), aligning perfectly with human typing intent.
 
-## 5. Visual Character Grouping
+**Step 3: Resolution**
+Once anchored:
+- Skipped targets before the anchor: `OMIT`
+- Keystrokes replacing a target: `REPLACE`
+- Excess keystrokes: `INSERT`
 
-Since Hangul uses multiple physical keystrokes for a single visual character, jamo-level alignments are aggregated into visual blocks via `groupAlignResultsByVisualCharacters`.
+### 3.4. Prefix Simulation & Incremental Computation
+The R2L recovery strategy has a blind spot: a single typo early in a word could unnecessarily persist the panic state for subsequent valid keystrokes because the search anchors only to the very end of the input (the "간다라 problem"). 
 
-**Operator Precedence**:
-When collapsing jamo states into a single character state, the most severe operation dictates the final state:
-$$\text{REPLACE (5)} > \text{INSERT (4)} > \text{PARTIAL (3)} > \text{EQUAL (2)} > \text{OMIT (1)} > \text{PENDING (0)}$$
-
-**Carry-over Example (`가나다라` typed as `간다라`)**:
-1. `rk` matches `가` (`EQUAL`).
-2. `s` morphs `가` into `간`.
-3. `e` triggers mismatch for `다` (Panic Mode).
-4. `da` synchronizes with `다`.
-5. The grouping collapses the skipped `나` to `OMIT`, rendering `간` as `PARTIAL` (since it contains the valid `가` plus an unexpected `ㄴ`), and `다라` as `EQUAL`.
+To resolve this while maintaining the stateless external interface, MVSA employs internal **Prefix Simulation** and **Anchoring**.
+- **Simulating State**: On every keystroke, the engine simulates the alignment incrementally, feeding the prefix inputs one by one (e.g., `a`, then `ab`, then `abc`).
+- **Anchor Mechanism**: Each simulation step identifies an **Anchor** (the last `EQUAL` jaso). The segment before the anchor is considered a "confirmed valid state" and is bypassed.
+- **Incremental Re-calculation**: Only the "panic segment" (after the anchor) plus the newly typed keystroke are re-evaluated.
+- **Complexity**: This reduces the theoretical \(\mathcal{O}(N^2)\) simulation cost to an \(\mathcal{O}(w + k)\) constant-time operation (where \(w\) is cached previous words and \(k\) is the unconfirmed panic segment length).
 
 ---
 
-## 6. Output Schema (`AlignResult`)
+## 4. Macro-level Aggregation (MvsaAggregator)
 
-```typescript
-export type AlignOp = "EQUAL" | "PARTIAL" | "REPLACE" | "INSERT" | "OMIT" | "PENDING";
+The aggregator collapses multiple jaso states into a single visual character state.
 
-export interface AlignResult {
-  op: AlignOp;
-  char: string;         // User's composed character (or mapped state)
-  targetChar?: string;  // The ground truth character
-  targetIndex?: number; // Absolute index in targetText
-  inputIndex?: number;  // Absolute index in qwertyBuffer
-}
-```
+### 4.1. Target Voting Mechanism
+Because a single visual character consists of multiple jasos, the `JasoSequenceAligner` might align different jasos of the same typed character to different target characters.
+The Aggregator tallies the "target index" of all component jasos. The target index with the most votes wins, anchoring the visual character to a specific target character.
 
-### Operation Semantics & UI Mapping
+**Tie-Breaking Logic**: If votes are tied (e.g., 1:1), the aggregator breaks the tie based on the relative position to the cursor. Un-typed "future" characters (+1) receive higher precedence than already-typed "past" characters (-1), prioritizing forward progression during partial inputs.
 
-| `op` | `char` | `targetChar` | Description | UI Rendering |
-| :--- | :--- | :--- | :--- | :--- |
-| **`EQUAL`** | Complete | Target | Perfectly matched character. | Default color |
-| **`PARTIAL`**| Incomplete | Target | On the correct path, but unfinished. | Default color, cursor attached |
-| **`REPLACE`**| Typo | Target | Incorrect character in the target's position. | Red font, warning background |
-| **`INSERT`** | Extra | *None* | Keystrokes exceeding the target length. | Red font, warning background |
-| **`OMIT`** | `""` | Target | Target character skipped by the user. | Red underline in empty space |
-| **`PENDING`**| `""` | Target | Future characters waiting to be typed. | Faded grey font |
+### 4.2. Operator Precedence
+When multiple jasos within the same visual character have different alignment states, a strict precedence model determines the dominant visual state:
 
-### Cursor Positioning Logic
-The `inputIndex` dynamically drives the typing cursor in the UI.
-- If the buffer is active, the cursor is placed immediately right of the element corresponding to the maximum `inputIndex`.
-- This ensures the visual cursor perfectly follows the user's physical keystrokes, even during complex Hangul composition or error recovery states.
+| Precedence | Operator | Description & Intent | UI Feedback |
+| :---: | :--- | :--- | :--- |
+| **5 (Max)** | `REPLACE` | Structural mismatch. The base character is critically wrong. | Red text, warning bg |
+| **4** | `INSERT` | The base is correct, but excess invalid keystrokes exist. | Red text, warning bg |
+| **3** | `PARTIAL` | The jamo path is correct, but the character is incomplete. | Default color w/ cursor |
+| **2** | `EQUAL` | The character is completely and correctly typed. | Default color |
+| **1** | `OMIT` | The user explicitly skipped this target character. | Red underline in gap |
+| **0 (Min)** | `PENDING` | Future characters yet to be typed. | Faded grey text |
+
+### 4.3. Edge Case Handling
+- **`PARTIAL` to `REPLACE` Upgrade**: If a character is marked as `PARTIAL` but it is *not* the last character typed (i.e., the user moved on to type the next character), the `PARTIAL` state is forcefully upgraded to `REPLACE`.
+- **`OMIT` vs `PENDING` Distinction**: If a target character was bypassed by the alignment logic, it could be either skipped (`OMIT`) or just not reached yet (`PENDING`). If a *subsequent* target character has already been "adopted" by a typed character, the bypassed target is definitively marked as `OMIT`. Otherwise, it remains `PENDING`.

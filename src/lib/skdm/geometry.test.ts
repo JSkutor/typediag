@@ -1,11 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { KEY_PITCH_MM } from "./config";
 import { buildLayout } from "./layout";
-import {
-  classifySpatialTypoDistance,
-  keyDistanceMm,
-  keyDistanceU,
-} from "./geometry";
+import { classifySpatialTypoDistance, keyDistanceMm, keyDistanceU } from "./geometry";
 import { SPATIAL_ADJACENT_MAX_DISTANCE_U } from "./config";
 
 describe("geometry", () => {

@@ -66,4 +66,15 @@ describe("assembleHangulWithPunctuation", () => {
     expect(assembleHangulWithPunctuation("Rk")).toBe("까");
     expect(assembleHangulWithPunctuation("ghl")).toBe("회");
   });
+
+  it("should gracefully handle invalid jamo sequences without throwing", () => {
+    // 'ㄱㄱㄱ' -> 'r r r' (Wait, qwerty for ㄱ is 'r'. 'rrr' is ㄱㄱㄱ)
+    expect(assembleHangulWithPunctuation("rrr")).toBe("ㄱㄱㄱ");
+    // 'ㅏㅏㅏ' -> 'k k k'
+    expect(assembleHangulWithPunctuation("kkk")).toBe("ㅏㅏㅏ");
+    // '가낚ㄱ' -> 'rkskR r' ('R' is ㄲ which becomes jongsung for '나')
+    expect(assembleHangulWithPunctuation("rkskRr")).toBe("가낚ㄱ");
+    // '안녕ㄱㄱ' -> 'dkssudrr'
+    expect(assembleHangulWithPunctuation("dkssudrr")).toBe("안녕ㄱㄱ");
+  });
 });

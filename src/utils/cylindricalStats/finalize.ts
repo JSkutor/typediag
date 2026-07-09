@@ -148,8 +148,7 @@ export function selectFatalNgrams(
       total: stat.total,
     }))
     .filter(
-      (c) =>
-        c.total >= FATAL_NGRAM_MIN_SAMPLES && c.errorRate > FATAL_NGRAM_ERROR_RATE_THRESHOLD,
+      (c) => c.total >= FATAL_NGRAM_MIN_SAMPLES && c.errorRate > FATAL_NGRAM_ERROR_RATE_THRESHOLD,
     )
     .sort((a, b) => b.errorRate - a.errorRate || b.total - a.total)
     .map((top) => ({
@@ -234,9 +233,7 @@ export function finalizeKeystrokeDiagnostics(
   const errorInducementCount = keyEntry?.errorInducementCount ?? 0;
 
   const errorInducementRate =
-    acc.totalErrorStartsCount > 0
-      ? (errorInducementCount / acc.totalErrorStartsCount) * 100
-      : 0;
+    acc.totalErrorStartsCount > 0 ? (errorInducementCount / acc.totalErrorStartsCount) * 100 : 0;
 
   const lateKeystroke = resolveLateKeystroke(keyEntry, focusKey, flowFromKey);
   const commonPair = resolveCommonPair(acc, focusKey, flowFromKey);
@@ -287,10 +284,7 @@ export function finalizeKeystrokeDiagnostics(
     }
   }
 
-  const cloudTyping = computeCloudTypingFromSamples(
-    keyEntry?.outgoingSamples ?? [],
-    focusKey,
-  );
+  const cloudTyping = computeCloudTypingFromSamples(keyEntry?.outgoingSamples ?? [], focusKey);
 
   const fatalNgrams =
     keyEntry && keyEntry.contextualTypos.ngrams.size > 0
@@ -318,10 +312,8 @@ export function finalizeKeystrokeDiagnostics(
     burstNgrams,
   };
 
-  const flowMedianLatencyMs =
-    flowLatencies.length > 0 ? getMedian(flowLatencies) : 0;
-  const flowEquivalentCpm =
-    flowMedianLatencyMs > 0 ? Math.round(60000 / flowMedianLatencyMs) : 0;
+  const flowMedianLatencyMs = flowLatencies.length > 0 ? getMedian(flowLatencies) : 0;
+  const flowEquivalentCpm = flowMedianLatencyMs > 0 ? Math.round(60000 / flowMedianLatencyMs) : 0;
 
   let flowHesitation = defaultDiagnostics.hesitation;
   if (flowLatencies.length > 0) {

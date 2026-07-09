@@ -98,11 +98,11 @@ export function computeDevCloudBandLatencies(
   // 절대 오차 허용 경계 (L+D <= M 영역)
   const upperAbs = holdMs + ndMax * minDenomMs;
   const lowerAbs = holdMs - ndMax * minDenomMs;
-  
+
   // 비율 오차 허용 경계 (L+D > M 영역)
-  const upperRel = holdMs * (1 + ndMax) / (1 - ndMax);
-  const lowerRel = holdMs * (1 - ndMax) / (1 + ndMax);
-  
+  const upperRel = (holdMs * (1 + ndMax)) / (1 - ndMax);
+  const lowerRel = (holdMs * (1 - ndMax)) / (1 + ndMax);
+
   return {
     lowerMs: Math.max(0, Math.min(lowerAbs, lowerRel)),
     upperMs: Math.max(upperAbs, upperRel),
@@ -248,9 +248,7 @@ export function buildCloudTypingDevData(
 
   return {
     diagnostics,
-    analysisPoints: analysisPool.map((sample) =>
-      toScatterPoint(sample, true, minDenomMs),
-    ),
+    analysisPoints: analysisPool.map((sample) => toScatterPoint(sample, true, minDenomMs)),
     excludedPoints: rawSamples
       .filter((sample) => !analysisKeys.has(sampleKey(sample)))
       .map((sample) => toScatterPoint(sample, false, minDenomMs)),

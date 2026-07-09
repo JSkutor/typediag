@@ -9,8 +9,7 @@ const PANEL_COPY: Record<
 > = {
   backspace: {
     title: "Backspace Path",
-    description:
-      "Highlights keys that frequently trigger an immediate backspace error correction.",
+    description: "Highlights keys that frequently trigger an immediate backspace error correction.",
   },
   finger: {
     title: "Finger Load",

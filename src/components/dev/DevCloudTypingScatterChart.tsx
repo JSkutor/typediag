@@ -1,10 +1,7 @@
 "use client";
 
 import type { CloudTypingScatterPoint } from "@/lib/dev/cloudTypingDev";
-import {
-  CLOUD_TYPING_DEV_ND_MAX,
-  traceDevCloudBandPolygon,
-} from "@/lib/dev/cloudTypingDev";
+import { CLOUD_TYPING_DEV_ND_MAX, traceDevCloudBandPolygon } from "@/lib/dev/cloudTypingDev";
 
 interface DevCloudTypingScatterChartProps {
   analysisPoints: CloudTypingScatterPoint[];
@@ -31,9 +28,7 @@ function scaleLinear(
 
 function buildLinearTicks(domainMax: number, count: number): number[] {
   const step = domainMax / (count - 1);
-  return Array.from({ length: count }, (_, i) =>
-    Number((i * step).toFixed(0)),
-  );
+  return Array.from({ length: count }, (_, i) => Number((i * step).toFixed(0)));
 }
 
 export function DevCloudTypingScatterChart({
@@ -94,8 +89,8 @@ export function DevCloudTypingScatterChart({
         strokeWidth={1}
       >
         <title>
-          {focusKey}→{point.toKey}: hold={point.holdMs.toFixed(1)}ms, latency={point.latencyMs.toFixed(1)}ms
-          , ND={point.normalizedDifference.toFixed(3)}
+          {focusKey}→{point.toKey}: hold={point.holdMs.toFixed(1)}ms, latency=
+          {point.latencyMs.toFixed(1)}ms , ND={point.normalizedDifference.toFixed(3)}
           {point.isCloudStroke ? " (cloud stroke)" : ""}
           {!point.inAnalysisPool ? " (머뭇거림 제외)" : ""}
         </title>
@@ -195,7 +190,8 @@ export function DevCloudTypingScatterChart({
         fill="var(--text-secondary)"
         fontSize={12}
       >
-        D, L 원본(ms) 축 · 최소 분모 M={minDenomMs}ms · ND=|L-D|/max(L+D, M) ≤ {CLOUD_TYPING_DEV_ND_MAX}
+        D, L 원본(ms) 축 · 최소 분모 M={minDenomMs}ms · ND=|L-D|/max(L+D, M) ≤{" "}
+        {CLOUD_TYPING_DEV_ND_MAX}
       </text>
     </svg>
   );

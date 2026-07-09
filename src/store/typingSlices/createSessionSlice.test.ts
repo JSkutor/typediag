@@ -40,7 +40,11 @@ describe("saveCurrentPage retry", () => {
     await useTypingStore.getState().flushPendingPageSave();
 
     expect(getPendingPageSave()).toBeNull();
-    expect(useTypingStore.getState().pageMetricsFlash).toEqual({ cpm: 420, wpm: 84, accuracy: 100 });
+    expect(useTypingStore.getState().pageMetricsFlash).toEqual({
+      cpm: 420,
+      wpm: 84,
+      accuracy: 100,
+    });
     finishSpy.mockRestore();
   });
 
@@ -58,7 +62,11 @@ describe("saveCurrentPage retry", () => {
 
     await useTypingStore.getState().saveCurrentPage();
 
-    expect(useTypingStore.getState().pageMetricsFlash).toEqual({ cpm: 312, wpm: 62, accuracy: 100 });
+    expect(useTypingStore.getState().pageMetricsFlash).toEqual({
+      cpm: 312,
+      wpm: 62,
+      accuracy: 100,
+    });
     finishSpy.mockRestore();
   });
 });

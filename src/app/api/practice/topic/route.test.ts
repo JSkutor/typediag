@@ -1,8 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-const mockResolveApiUser = vi.fn().mockResolvedValue({ userId: "mock-user-id", issueGuestToken: undefined });
-const mockWithGuestToken = vi.fn().mockImplementation((body, token) => ({ ...body, ...(token ? { guestToken: token } : {}) }));
-const mockCheckTopicRateLimit = vi.fn().mockResolvedValue({ allowed: true, currentCount: 1, limit: 100 });
+const mockResolveApiUser = vi
+  .fn()
+  .mockResolvedValue({ userId: "mock-user-id", issueGuestToken: undefined });
+const mockWithGuestToken = vi
+  .fn()
+  .mockImplementation((body, token) => ({ ...body, ...(token ? { guestToken: token } : {}) }));
+const mockCheckTopicRateLimit = vi
+  .fn()
+  .mockResolvedValue({ allowed: true, currentCount: 1, limit: 100 });
 
 vi.mock("@/db", () => ({
   drizzleDb: {
@@ -129,4 +135,3 @@ describe("/api/practice/topic route", () => {
     expect(payload.error).toContain("한도");
   });
 });
-

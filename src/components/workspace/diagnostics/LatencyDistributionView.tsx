@@ -20,7 +20,10 @@ const LATENCY_LEVEL_BADGE: Record<
 
 const HISTOGRAM_AXIS_TICK_COUNT = 5;
 
-function buildHistogramAxisTicks(upperBoundMs: number, count = HISTOGRAM_AXIS_TICK_COUNT): number[] {
+function buildHistogramAxisTicks(
+  upperBoundMs: number,
+  count = HISTOGRAM_AXIS_TICK_COUNT,
+): number[] {
   if (upperBoundMs <= 0 || count < 2) return [0];
 
   return Array.from({ length: count }, (_, index) =>

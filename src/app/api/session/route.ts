@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from "next/server";
 import type { KeyEvent } from "@/lib/skdm";
 import { sessionService } from "@/services/sessionService";
@@ -61,7 +60,10 @@ export async function POST(request: NextRequest) {
       }
       default: {
         const _exhaustive: never = body;
-        return NextResponse.json({ error: `Invalid action: ${String(_exhaustive)}` }, { status: 400 });
+        return NextResponse.json(
+          { error: `Invalid action: ${String(_exhaustive)}` },
+          { status: 400 },
+        );
       }
     }
   } catch (err: unknown) {
@@ -90,7 +92,7 @@ export async function GET(request: NextRequest) {
       if (process.env.NEXT_RUNTIME === "edge") {
         return NextResponse.json(
           { error: "Mock session not supported on Edge Runtime" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 

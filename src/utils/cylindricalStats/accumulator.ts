@@ -90,10 +90,7 @@ function expectedLayoutKey(expectedChar: string | null | undefined): string | nu
   return layout.toLowerCase();
 }
 
-function getOrCreatePerKey(
-  perKey: Map<string, PerKeyAccumulator>,
-  key: string,
-): PerKeyAccumulator {
+function getOrCreatePerKey(perKey: Map<string, PerKeyAccumulator>, key: string): PerKeyAccumulator {
   let entry = perKey.get(key);
   if (!entry) {
     entry = {
@@ -152,7 +149,10 @@ export function buildDiagnosticsAccumulator(events: KeyEvent[]): DiagnosticsAccu
     }
 
     // 2. keyStats (EXCLUDE_KEYS 제외, unconsciousKey·totalErrorsCount용)
-    if (!ACCUMULATOR_EXCLUDE_KEYS.has(event.toKey) && (event.isCorrect === true || event.isCorrect === false)) {
+    if (
+      !ACCUMULATOR_EXCLUDE_KEYS.has(event.toKey) &&
+      (event.isCorrect === true || event.isCorrect === false)
+    ) {
       const stat = keyStats.get(event.toKey) ?? { correct: 0, incorrect: 0 };
       if (event.isCorrect === true) stat.correct++;
       else {
@@ -323,7 +323,11 @@ export function buildDiagnosticsAccumulator(events: KeyEvent[]): DiagnosticsAccu
       }
     }
 
-    if (event.toKey && ALPHA_KEY_REGEX.test(event.toKey) && !ACCUMULATOR_EXCLUDE_KEYS.has(event.toKey)) {
+    if (
+      event.toKey &&
+      ALPHA_KEY_REGEX.test(event.toKey) &&
+      !ACCUMULATOR_EXCLUDE_KEYS.has(event.toKey)
+    ) {
       window3Gram.push({ key: event.toKey, isCorrect: event.isCorrect === true });
       if (window3Gram.length > 2) window3Gram.shift();
 

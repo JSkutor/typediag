@@ -31,7 +31,7 @@ const nextConfig: NextConfig = {
         "node:util/types": false,
         "node:util": false,
         "util/types": false,
-        "util": false,
+        util: false,
         net: false,
         tls: false,
         dns: false,

@@ -43,7 +43,12 @@ export type {
   CloudTypingEffectivenessTone,
 } from "./effectivenessLabel";
 
-export { buildDiagnosticsAccumulator, normalizeReferenceFromKey, pickRichestReferenceFromKey, resolveEffectiveFlowFromKey } from "./accumulator";
+export {
+  buildDiagnosticsAccumulator,
+  normalizeReferenceFromKey,
+  pickRichestReferenceFromKey,
+  resolveEffectiveFlowFromKey,
+} from "./accumulator";
 export {
   buildLatencyHistogram,
   finalizeKeystrokeDiagnostics,

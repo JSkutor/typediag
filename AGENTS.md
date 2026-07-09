@@ -32,8 +32,9 @@
 
 ## 3. 디렉터리 구조 및 컴포넌트 맵 (Directory Map)
 
-에이전트는 코드 탐색 범위를 최소화하고 파일 생성 위치를 규격화하기 위해 프로젝트 구조를 파악하고 작업 혹은 답변을 하라.
-graphify-ts mcp 명령을 사용해 구조를 파악하라.
+에이전트는 코드 탐색 범위를 최소화하고 파일 생성 위치를 규격화하기 위해 프로젝트 구조 및 의존성 관계를 파악하고 작업 혹은 답변을 하라.
+- 작업 시작 시 또는 코드 분석 필요 시, 반드시 `graphify-ts status`를 확인하고 그래프가 stale한 상태라면 `graphify-ts generate . --update` 명령을 실행하여 최신 그래프를 유지하십시오.
+- `graphify-ts summary`, `graphify-ts query`, `graphify-ts pack` 명령 등을 적극적으로 활용하여 코드베이스의 전체 아키텍처적 맥락과 결합도를 선제적으로 파악하십시오.
 
 ---
 
@@ -128,6 +129,8 @@ graphify-ts mcp 명령을 사용해 구조를 파악하라.
 
 - 코드 작성 전 **정본(SSOT)** 파일의 구조를 미리 검색하고 기존 코드를 재사용하십시오.
 - 아키텍처나 기능 설계, DB 스키마가 바뀐 경우 반드시 코드 작업과 함께 `docs/` 하위 문서를 갱신해 주십시오. (문서와 코드의 싱크 유지)
+- 새로운 작업을 시작하거나 복잡한 의존성 구조 파악이 필요할 때, 무조건 `graphify-ts` 도구를 활용하여 영향도를 분석하십시오. (`graphify-ts status` 확인 및 필요시 `graphify-ts generate . --update`로 그래프 최신화)
+- 대규모 코드 맥락 조립이 필요할 경우 `graphify-ts pack` 또는 `query` 기능을 활용하여 불필요한 전체 스캔을 줄이고 토큰 사용량을 최소화하십시오.
 - 타입 에러를 숨기기 위해 `@ts-ignore`나 `any`를 임의로 정의하지 마십시오. 필요한 경우 타입 추론을 정교하게 하거나 유니온 타입을 활용하십시오.
 - 로직을 대대적으로 변경하기 전, 의도하지 않은 사이드 이펙트(동작 무력화 등)를 예방하기 위한 유닛 테스트 코드를 함께 보강하십시오.
 - 사용자한테 말할때는 한국어 사용해.
@@ -137,7 +140,7 @@ graphify-ts mcp 명령을 사용해 구조를 파악하라.
 - 임의의 디버그용 `console.log`를 프로덕션 코드에 남겨둔 채 작업을 끝내지 마십시오.
 - 기존에 정상 동작하던 UX 요소(예: 키바인딩 단축키 UX 계약)를 유저 동의 없이 수정하거나 무력화하지 마십시오.
 - 검증되지 않은 코드나 플레이스홀더(`// TODO: 구현 예정`) 상태로 커밋을 제안하거나 방치하지 마십시오.
-- 사용자가 설명하라고만 했는데, 바로 코드 수정을 하지 마라. 설명을 하고 허락을 구해라.
+- 사용자가 질문만 했거나 설명하라고 했을 때, 바로 코드 수정을 하지 마라. 설명을 하고 허락을 구해라. 제발.
 - TODO.md 는 사용자의 메모장이므로 사용자의 직접적인 명령이 없을 때 임의로 수정하지 마라. 사용자가 커밋을 요청했을 때 `TODO.md`에 변경분이 있으면 함께 스테이징·커밋에 포함할 것.
 - 사용자가 커밋을 요청하지 않았는데 임의로 `git commit`을 만들지 마라.
 - 세션·키 이벤트 영속화를 localStorage나 JSON 파일 DB로 되돌리지 마라. 정본은 PostgreSQL + `src/utils/db.ts`이다.
@@ -152,14 +155,12 @@ graphify-ts mcp 명령을 사용해 구조를 파악하라.
 - 스타일 수정 시 하드코딩된 색상 값을 CSS에 작성하지 마십시오. 반드시 `src/app/styles/tokens.css`에 지정된 CSS 변수(예: `--accent`, `--bg-base`)를 사용하십시오.
 - 하드코어 모드 구현 시 완료 조건을 우회하여 오타(특히 초과 입력 `INSERT`)가 남아있는데 페이지 완료가 트리거되도록 수정하지 마십시오. (완벽한 타건 입력을 강제해야 함)
 - 하드코어 모드에서 사용자 취약 키를 계산하는 `getUserWeakKeys()` 함수가 임의로 동작하도록 가짜 로직을 만들지 마십시오. 현재 스텁(`[]` 반환)으로 처리되어 있으므로 사용자의 요청 시에만 정교하게 구현해야 합니다.
-- MVSA 알고리즘 수정 시 Word-Level Memoization Cache 및 세그먼트 간의 word boundary 로직을 훼손하여 $\mathcal{O}(N^2)$ 성능 저하가 발생하지 않도록 하십시오.
 - MVSA의 결과 병합 시 Operator Precedence 순서(`REPLACE (5) > INSERT (4) > PARTIAL (3) > EQUAL (2) > OMIT (1) > PENDING (0)`)를 임의로 수정하지 마십시오.
 - Topic Mode의 API rate limit 정책(일일 검색 100회, 생성 15회)이나 OpenAI API의 지수 백오프 재시도 딜레이 정책을 유저 동의 없이 변경하거나 우회하지 마십시오.
 - DB 마이그레이션 및 ORM 코드 작성 시 snake_case(DB)와 camelCase(TypeScript) 매핑 룰을 혼용하지 마십시오. 스키마 정의(`src/db/schema.ts`)의 camelCase 매핑 규칙을 철저히 따라야 합니다.
 - `key_events` 테이블 다룰 때, TimescaleDB Hypertable 제약인 `(id, created_at)` 복합 기본키 제약조건을 훼손하거나, `created_at` 파티셔닝 기준을 무력화하지 마십시오.
 - `next.config.ts`의 `turbopack.resolveAlias`에서 `path`를 `empty.ts`로 alias하지 마십시오. `posthog-node` 등 서버사이드 패키지가 `path.parse()`, `path.sep` 등을 실제로 사용하므로 `_path.default.parse is not a function` 에러가 발생합니다.
 - `@cloudflare/next-on-pages`는 모든 라우트가 Edge Runtime이어야 하므로, OCI 셀프호스팅 PostgreSQL처럼 TCP 직접 연결이 필요한 DB를 쓰는 이 프로젝트에는 사용 불가입니다. Cloudflare Pages 배포는 GitHub 직접 연동 + `npm run build` + `.next` 출력 디렉토리 방식을 사용하십시오.
-- MVSA `runPanicMode`에서 단독 자음(ㄱ-ㅎ)을 target 초성과 비교할 때, 해당 자음 **뒤에 완성 한글이 있는 경우(받침 문맥)에는 초성 비교를 허용하면 안 됩니다.** 예: `panicTyped='ㄴ다라'`에서 `ㄴ`은 받침이므로 `나`의 초성으로 매칭하면 OMIT이 아닌 복구 지점으로 처리되어 오타 판정이 틀어집니다. `hasCompleteHangulAfter` 조건으로 구분해야 합니다.
 
 ## 8. Learn by yourself.
 

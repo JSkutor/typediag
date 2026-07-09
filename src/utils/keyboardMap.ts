@@ -100,21 +100,49 @@ export function assembleHangulWithPunctuation(qwerty: string): string {
 
   const isJamo = (char: string) => /[ㄱ-ㅎㅏ-ㅣ]/.test(char);
 
+  const flushJamoBuffer = (jamos: string[]) => {
+    if (jamos.length === 0) return "";
+    let res = "";
+    let currentJamos: string[] = [];
+
+    for (const jamo of jamos) {
+      const nextJamos = [...currentJamos, jamo];
+      try {
+        assemble(nextJamos); // Test if valid sequence
+        currentJamos = nextJamos;
+      } catch (e) {
+        if (currentJamos.length > 0) {
+          try {
+            res += assemble(currentJamos);
+          } catch {
+            res += currentJamos.join("");
+          }
+        }
+        currentJamos = [jamo];
+      }
+    }
+
+    if (currentJamos.length > 0) {
+      try {
+        res += assemble(currentJamos);
+      } catch {
+        res += currentJamos.join("");
+      }
+    }
+    return res;
+  };
+
   for (const char of alphabet) {
     if (isJamo(char)) {
       jamoBuffer.push(char);
     } else {
-      if (jamoBuffer.length > 0) {
-        result += assemble(jamoBuffer);
-        jamoBuffer = [];
-      }
+      result += flushJamoBuffer(jamoBuffer);
+      jamoBuffer = [];
       result += char;
     }
   }
 
-  if (jamoBuffer.length > 0) {
-    result += assemble(jamoBuffer);
-  }
+  result += flushJamoBuffer(jamoBuffer);
 
   return result;
 }

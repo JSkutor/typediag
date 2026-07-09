@@ -9,8 +9,7 @@ const PRIVACY: LegalDocumentByLang = {
         "TypeDiag 개인정보 처리방침. 수집 항목, 보유 기간, 가명처리, OpenAI·Clerk 위탁 및 정보주체 권리를 안내합니다.",
     },
     title: "개인정보 처리방침",
-    subtitle:
-      "TypeDiag 서비스의 개인정보 처리 기준 및 보호 조치를 투명하게 안내해 드립니다.",
+    subtitle: "TypeDiag 서비스의 개인정보 처리 기준 및 보호 조치를 투명하게 안내해 드립니다.",
     dashboardTitle: "핵심 개인정보 처리 요약",
     dashboardIcon: "grid",
     tocLabel: "목차",

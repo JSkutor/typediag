@@ -434,7 +434,7 @@ describe("useTypingStore", () => {
     });
   });
 
-  it("should not finish in hardcore mode if there are excess characters (INSERT)", () => {
+  it("should not finish if there are excess characters (INSERT)", () => {
     useTypingStore.setState({
       mode: "hardcore",
       targetText: "구구",

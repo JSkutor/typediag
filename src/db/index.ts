@@ -29,4 +29,3 @@ const pool = new Pool({
 });
 
 export const drizzleDb = drizzle(pool, { schema });
-

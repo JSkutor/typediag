@@ -146,8 +146,12 @@ export const topicUsageLimits = pgTable(
     requestCount: integer("request_count").default(1).notNull(),
   },
   (table) => [
-    unique("topic_usage_limits_user_date_action_unique").on(table.userId, table.actionType, table.usageDate),
-  ]
+    unique("topic_usage_limits_user_date_action_unique").on(
+      table.userId,
+      table.actionType,
+      table.usageDate,
+    ),
+  ],
 );
 
 export type TopicUsageLimit = typeof topicUsageLimits.$inferSelect;
@@ -166,4 +170,3 @@ export const userFeedbacks = pgTable("user_feedbacks", {
 
 export type UserFeedback = typeof userFeedbacks.$inferSelect;
 export type NewUserFeedback = typeof userFeedbacks.$inferInsert;
-

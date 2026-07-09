@@ -1,4 +1,3 @@
-
 import { NextResponse } from "next/server";
 import { db } from "@/utils/db";
 import { DbApiPayloadSchema } from "@/lib/api/dbSchemas";

@@ -10,6 +10,16 @@ const DEV_TOOLS = [
     description: "비용·수익 분리 시뮬레이션 및 월간 손익 추정.",
   },
   {
+    href: "/dev/fixed",
+    title: "Fixed Targets (10)",
+    description: "고정된 타겟 문장 10개를 반복 연습하는 모드입니다.",
+  },
+  {
+    href: "/dev/simulate",
+    title: "MVSA Fuzz Simulator",
+    description: "가상 유저로 무작위 오타를 발생시켜 MVSA 렌더링 엔진의 엣지 케이스를 검증합니다.",
+  },
+  {
     href: "/dev/cosine",
     title: "Cosine Similarity",
     description: "Topic Mode 시맨틱 검색. DB 유사도 상위 문장 조회.",

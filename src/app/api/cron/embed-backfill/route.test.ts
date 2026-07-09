@@ -80,13 +80,10 @@ describe("/api/cron/embed-backfill route", () => {
     const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue(
       new Response(
         JSON.stringify({
-          data: [
-            { embedding: [0.1, 0.2, 0.3] },
-            { embedding: [0.4, 0.5, 0.6] },
-          ],
+          data: [{ embedding: [0.1, 0.2, 0.3] }, { embedding: [0.4, 0.5, 0.6] }],
         }),
-        { status: 200 }
-      )
+        { status: 200 },
+      ),
     );
 
     const mockUpdate = vi.fn().mockReturnValue({

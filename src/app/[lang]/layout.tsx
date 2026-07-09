@@ -1,11 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
-import {
-  EN_PUBLIC_ENABLED,
-  getPublicLangs,
-  isPublicLangRoute,
-  isValidLang,
-} from "@/lib/i18n/lang";
+import { EN_PUBLIC_ENABLED, getPublicLangs, isPublicLangRoute, isValidLang } from "@/lib/i18n/lang";
 import { getLandingCopy } from "@/lib/i18n/landing";
 
 type Params = Promise<{ lang: string }>;

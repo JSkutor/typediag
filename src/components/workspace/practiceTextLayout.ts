@@ -92,9 +92,7 @@ export function lineStartIndicesEqual(
   return true;
 }
 
-export function buildPracticeWordGroups(
-  diffResult: readonly AlignmentLike[],
-): PracticeWordGroup[] {
+export function buildPracticeWordGroups(diffResult: readonly AlignmentLike[]): PracticeWordGroup[] {
   const groups: PracticeWordGroup[] = [];
   let currentItems: { index: number }[] = [];
 
@@ -114,8 +112,7 @@ export function buildPracticeWordGroups(
     }
 
     const lastItem = currentItems[currentItems.length - 1];
-    const hasTrailingSpace =
-      lastItem !== undefined && isAlignmentSpace(diffResult[lastItem.index]);
+    const hasTrailingSpace = lastItem !== undefined && isAlignmentSpace(diffResult[lastItem.index]);
     const hasOnlySpaces =
       currentItems.length > 0 &&
       currentItems.every(({ index }) => isAlignmentSpace(diffResult[index]));

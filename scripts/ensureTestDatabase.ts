@@ -6,8 +6,7 @@
 import postgres from "postgres";
 
 const TEST_DATABASE_URL =
-  process.env.TEST_DATABASE_URL ??
-  "postgresql://typediag:typediag@localhost:5432/typediag_test";
+  process.env.TEST_DATABASE_URL ?? "postgresql://typediag:typediag@localhost:5432/typediag_test";
 
 function adminConnectionString(databaseUrl: string): string {
   const url = new URL(databaseUrl);

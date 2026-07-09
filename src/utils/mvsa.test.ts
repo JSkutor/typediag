@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { runMvsa } from "./mvsa";
 
 describe("MVSA (Maximum Valid Sequence Aligner)", () => {
-  it("should match identical strings (Normal mode)", () => {
+  it("should match identical strings", () => {
     // target: 마우스가, typed: 마우스가 (akdntm rk -> akdntmrk)
     const qwerty = "akdntmrk";
     const result = runMvsa("마우스가", qwerty, true);
@@ -61,7 +61,7 @@ describe("MVSA (Maximum Valid Sequence Aligner)", () => {
     const result = runMvsa("가나다라", qwerty, true);
 
     expect(result).toEqual([
-      { op: "PARTIAL", char: "간", targetChar: "가", targetIndex: 0, inputIndex: 2 },
+      { op: "REPLACE", char: "간", targetChar: "가", targetIndex: 0, inputIndex: 2 },
       { op: "OMIT", char: "", targetChar: "나", targetIndex: 1 },
       { op: "EQUAL", char: "다", targetChar: "다", targetIndex: 2, inputIndex: 4 },
       { op: "EQUAL", char: "라", targetChar: "라", targetIndex: 3, inputIndex: 6 },
@@ -76,7 +76,7 @@ describe("MVSA (Maximum Valid Sequence Aligner)", () => {
 
     expect(result).toEqual([
       // First word
-      { op: "PARTIAL", char: "간", targetChar: "가", targetIndex: 0, inputIndex: 2 },
+      { op: "REPLACE", char: "간", targetChar: "가", targetIndex: 0, inputIndex: 2 },
       { op: "OMIT", char: "", targetChar: "나", targetIndex: 1 },
       { op: "EQUAL", char: "다", targetChar: "다", targetIndex: 2, inputIndex: 4 },
       { op: "EQUAL", char: "라", targetChar: "라", targetIndex: 3, inputIndex: 6 },
@@ -174,6 +174,79 @@ describe("MVSA (Maximum Valid Sequence Aligner)", () => {
       { op: "EQUAL", char: "학", targetChar: "학", targetIndex: 0, inputIndex: 2 },
       { op: "OMIT", char: "", targetChar: "교", targetIndex: 1 },
       { op: "INSERT", char: " ", inputIndex: 3 },
+    ]);
+  });
+
+  it("should handle consonant cluster trailing jamo aligning to next target initial (인류가 / 읺ㄹ)", () => {
+    // target: 인류가 / qwerty: dlsgf
+    // 읺(ㅇ+ㅣ+ㄶ=d+l+s+g) + ㄹ(f)
+    // 읺은 '인'에 ㅎ을 잘못 눌러 생긴 오타 → 인 자리에 읺이 REPLACE로 표시
+    // (투표 확정 후 INSERT→REPLACE 교정: 타겟이 배정된 시각 글자는 REPLACE가 맞음)
+    const result = runMvsa("인류가", "dlsgf", true);
+    expect(result).toEqual([
+      { op: "REPLACE", char: "읺", targetChar: "인", targetIndex: 0, inputIndex: 3 },
+      { op: "PARTIAL", char: "ㄹ", targetChar: "류", targetIndex: 1, inputIndex: 4 },
+      { op: "PENDING", char: "", targetChar: "가", targetIndex: 2 },
+    ]);
+  });
+
+  it("should not reassign to unadopted target if it matches a later target (지나간 / 진ㄱ → no gap reassignment)", () => {
+    // target: 지나간, qwerty: wlsr → visual: 진ㄱ
+    // '진' = 지 + ㄴ(나의 초성이 종성으로 묻힘), 'ㄱ'은 바로 다음 입력
+    // 기대: 'ㄱ'이 '간'(tIdx=2) 자리에 PARTIAL로 표시되고 '나'는 OMIT 처리됨
+    const result = runMvsa("지나간", "wlsr", true);
+    expect(result).toEqual([
+      { op: "REPLACE", char: "진", targetChar: "지", targetIndex: 0, inputIndex: 2 },
+      { op: "OMIT", char: "", targetChar: "나", targetIndex: 1 },
+      { op: "PARTIAL", char: "ㄱ", targetChar: "간", targetIndex: 2, inputIndex: 3 },
+    ]);
+  });
+
+  it("should not reassign a visual char away from its EQUAL target (지나간 / 진간 → completed)", () => {
+    // target: 지나간, qwerty: wlsrks → visual: 진간
+    // '간' === '간' EQUAL이므로 '나'로 빼앗기면 안 됨
+    const result = runMvsa("지나간", "wlsrks", true);
+    expect(result).toEqual([
+      { op: "REPLACE", char: "진", targetChar: "지", targetIndex: 0, inputIndex: 2 },
+      { op: "OMIT", char: "", targetChar: "나", targetIndex: 1 },
+      { op: "EQUAL", char: "간", targetChar: "간", targetIndex: 2, inputIndex: 5 },
+    ]);
+  });
+
+  it("should correctly map trailing jamo-only panic buffer when jamo count exceeds complete chars (선율이 / 서뉼ㅇ)", () => {
+    // target: 선율이 / qwerty: tjsbfd → visual: 서뉼ㅇ
+    // 패닉 버퍼: "bfd" → panicTyped="ㅠㄹㅇ" (완성 글자 0개, 자모 3개)
+    // 버그: lookahead=1이면 'ㅇ'이 '율'의 초성으로 오매핑 → 뉼이 INSERT + 이가 PENDING
+    // 수정: lookahead에 자모 가중치 추가(Math.floor(3/2)=1) → lookahead=2 → '이' 탐색 범위에 포함
+    // 기대: 서=PARTIAL→선, 뉼=REPLACE→율, ㅇ=PARTIAL→이
+    const result = runMvsa("선율이", "tjsbfd", true);
+    expect(result).toEqual([
+      { op: "REPLACE", char: "서", targetChar: "선", targetIndex: 0, inputIndex: 1 },
+      { op: "REPLACE", char: "뉼", targetChar: "율", targetIndex: 1, inputIndex: 4 },
+      { op: "PARTIAL", char: "ㅇ", targetChar: "이", targetIndex: 2, inputIndex: 5 },
+    ]);
+  });
+  it("should resolve tie-breaker monotonically to prevent OMIT and cursor jumping (랑이 / 라이)", () => {
+    // target: 랑이 (fkddl), qwerty: fkdl -> 라이
+    // The greedy L2R jaso aligner matches the 'ㅇ' in '이' to the 'ㅇ' in '랑', causing a tie for '이'.
+    // The aggregator must monotonically resolve this tie so '라' -> '랑', and '이' -> '이'.
+    const result = runMvsa("랑이", "fkdl", true);
+    expect(result).toEqual([
+      { op: "REPLACE", char: "라", targetChar: "랑", targetIndex: 0, inputIndex: 1 },
+      { op: "EQUAL", char: "이", targetChar: "이", targetIndex: 1, inputIndex: 3 },
+    ]);
+  });
+
+  it("should maximize REPLACE intent using Dual R2L search in panic mode (안녕안 / 안안)", () => {
+    // target: 안녕안 (dkssuddks), qwerty: dksdks -> 안안
+    // Panic mode at second char. Input 'dks' vs targets '녕', '안'.
+    // L2R search would match 's'(ㄴ) to '녕'(ssud), causing '안' to map to '녕'.
+    // Dual R2L search anchors 's'(ㄴ) to '안'(dks), so '녕' is skipped (OMIT) and '안' maps to '안' (REPLACE).
+    const result = runMvsa("안녕안", "dksdks", true);
+    expect(result).toEqual([
+      { op: "EQUAL", char: "안", targetChar: "안", targetIndex: 0, inputIndex: 2 },
+      { op: "OMIT", char: "", targetChar: "녕", targetIndex: 1 },
+      { op: "EQUAL", char: "안", targetChar: "안", targetIndex: 2, inputIndex: 5 },
     ]);
   });
 });

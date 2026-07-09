@@ -1,9 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import * as topicGenerateOpenAI from "@/lib/api/topicGenerateOpenAI";
 
-const mockResolveApiUser = vi.fn().mockResolvedValue({ userId: "mock-user-id", issueGuestToken: undefined });
-const mockWithGuestToken = vi.fn().mockImplementation((body, token) => ({ ...body, ...(token ? { guestToken: token } : {}) }));
-const mockCheckTopicRateLimit = vi.fn().mockResolvedValue({ allowed: true, currentCount: 1, limit: 15 });
+const mockResolveApiUser = vi
+  .fn()
+  .mockResolvedValue({ userId: "mock-user-id", issueGuestToken: undefined });
+const mockWithGuestToken = vi
+  .fn()
+  .mockImplementation((body, token) => ({ ...body, ...(token ? { guestToken: token } : {}) }));
+const mockCheckTopicRateLimit = vi
+  .fn()
+  .mockResolvedValue({ allowed: true, currentCount: 1, limit: 15 });
 
 vi.mock("@/utils/db", () => ({
   db: {

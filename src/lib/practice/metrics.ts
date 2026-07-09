@@ -59,10 +59,7 @@ export function countTargetWords(targetText: string, language: string): number {
  * Elapsed time is the sum of per-event latencies (not wall clock).
  * Outliers (> outlierThresholdMs) are replaced with avg of normal latencies (latency > 0 only).
  */
-export function calculateMetrics(
-  events: GenericKeyEvent[],
-  options: CalculateMetricsOptions,
-) {
+export function calculateMetrics(events: GenericKeyEvent[], options: CalculateMetricsOptions) {
   const outlierThresholdMs = options.outlierThresholdMs ?? 3000;
   const targetKeystrokes = countTargetKeystrokes(options.targetText, options.language);
   const targetWords = countTargetWords(options.targetText, options.language);

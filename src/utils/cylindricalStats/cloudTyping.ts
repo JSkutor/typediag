@@ -116,10 +116,7 @@ function classifyCloudTypingEffectiveness(
   return "neutral";
 }
 
-export function computePearsonCorrelation(
-  xs: number[],
-  ys: number[],
-): HoldCorrelationResult {
+export function computePearsonCorrelation(xs: number[], ys: number[]): HoldCorrelationResult {
   const defaultResult: HoldCorrelationResult = {
     pearsonR: 0,
     pValue: 1.0,

@@ -9,8 +9,7 @@ const TERMS: LegalDocumentByLang = {
         "TypeDiag 플랫폼 서비스 이용약관. 회원·게스트 이용 조건, 데이터 병합, 금지행위 및 지적재산권을 안내합니다.",
     },
     title: "서비스 이용약관",
-    subtitle:
-      "TypeDiag 플랫폼 서비스를 안전하고 편리하게 이용하기 위한 권리와 의무를 규정합니다.",
+    subtitle: "TypeDiag 플랫폼 서비스를 안전하고 편리하게 이용하기 위한 권리와 의무를 규정합니다.",
     dashboardTitle: "이용약관 핵심 요약",
     dashboardIcon: "document",
     tocLabel: "목차",

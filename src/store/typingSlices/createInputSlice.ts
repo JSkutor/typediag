@@ -6,7 +6,10 @@ import { topicInitialState, createTopicTopicActions } from "./createTopicSlice";
 import { normalInitialState, createNormalModeActions } from "./createNormalModeSlice";
 import { saveCurrentPageIfDone } from "./saveIfDone";
 import { createPhysicalKeyPressHandler } from "./physicalKeyPressHandler";
-import { buildFeedbackAlignments, buildFeedbackEmptyAlignments } from "@/lib/feedback/freeformTyping";
+import {
+  buildFeedbackAlignments,
+  buildFeedbackEmptyAlignments,
+} from "@/lib/feedback/freeformTyping";
 
 const generateHardcoreText = (): string => {
   const randomLength = 70 + Math.floor(Math.random() * 21) - 10;
@@ -36,6 +39,7 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => {
     maxTypedTextLength: 0,
     qwertyBuffer: "",
     mvsaCache: new Map(),
+
     alignments: [],
     mode: "normal",
 
@@ -61,6 +65,7 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => {
           maxTypedTextLength: 0,
           qwertyBuffer: "",
           mvsaCache: new Map(),
+
           alignments: buildFeedbackEmptyAlignments(),
           events: [],
           status: "idle",
@@ -136,8 +141,9 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => {
         typedText: "",
         maxTypedTextLength: 0,
         qwertyBuffer: "",
+
         mvsaCache: new Map(),
-        alignments: runMvsa(text, "", language === "ko"),
+        alignments: runMvsa(text, "", language === "ko", new Map()),
         events: [],
         status: "idle",
         startedAt: null,
@@ -169,6 +175,7 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => {
           typedText: "",
           maxTypedTextLength: 0,
           qwertyBuffer: "",
+          mvsaCache: new Map(),
           alignments: buildFeedbackEmptyAlignments(),
         });
       }

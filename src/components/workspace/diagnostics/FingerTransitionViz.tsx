@@ -141,14 +141,14 @@ function FocusHand({ hand, focusFinger, fingerValues }: FocusHandProps) {
               />
             )}
             <text
-                x={x + w / 2}
-                y={LAYOUT.baseY - height / 2 + 4}
-                textAnchor="middle"
-                className="cyl-diag__finger-pct"
-                fill={fillOpacity > 0.5 ? "#f8fafc" : color}
-              >
-                {formatPct(pct)}
-              </text>
+              x={x + w / 2}
+              y={LAYOUT.baseY - height / 2 + 4}
+              textAnchor="middle"
+              className="cyl-diag__finger-pct"
+              fill={fillOpacity > 0.5 ? "#f8fafc" : color}
+            >
+              {formatPct(pct)}
+            </text>
           </g>
         );
       })}
@@ -248,12 +248,7 @@ export function FingerTransitionViz({
           <OppositeHand hand="R" pct={ratios.oppositeHand} />
         )}
 
-        <text
-          x={centerX}
-          y={centerY}
-          textAnchor="middle"
-          className="cyl-diag__finger-other-center"
-        >
+        <text x={centerX} y={centerY} textAnchor="middle" className="cyl-diag__finger-other-center">
           기타
           <tspan x={centerX} dy="1.35em" className="cyl-diag__finger-other-val">
             {ratios.other.toFixed(0)}%

@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from "next/server";
 import { drizzleDb } from "@/db";
 import { targetTexts } from "@/db/schema";
@@ -80,9 +79,6 @@ export async function GET(req: NextRequest) {
   } catch (error: unknown) {
     console.error("[embed-backfill] Cron Job Error:", error);
     const errorMessage = error instanceof Error ? error.message : "Internal server error";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

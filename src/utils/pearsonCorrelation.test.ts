@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  computeCloudTypingFromSamples,
-  computePearsonCorrelation,
-} from "./cylindricalStats";
+import { computeCloudTypingFromSamples, computePearsonCorrelation } from "./cylindricalStats";
 import type { OutgoingTransitionSample } from "./cylindricalStats";
 
 describe("computePearsonCorrelation", () => {
