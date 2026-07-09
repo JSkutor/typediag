@@ -48,6 +48,18 @@ export async function POST(request: NextRequest) {
       properties: { language: parsed.data.language },
     });
 
+    const discordWebhookUrl = process.env.DISCORD_WEBHOOK_URL;
+    if (discordWebhookUrl) {
+      // Fire and forget
+      fetch(discordWebhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: `**새로운 피드백 도착!** 📬\n\n**User ID:** \`${userId}\`\n**Language:** \`${parsed.data.language}\`\n**Message:**\n> ${parsed.data.message.replace(/\n/g, "\n> ")}`,
+        }),
+      }).catch((e) => console.error("[Discord Webhook Error]", e));
+    }
+
     return NextResponse.json(withGuestToken({ success: true }, issueGuestToken));
   } catch (err: unknown) {
     if (err instanceof GuestAuthError) {
