@@ -1,6 +1,6 @@
 "use client";
 
-import { CLOUDFLARE_PAGES, HETZNER_VPS, PLATFORM_STAGE_SPECS } from "@/lib/dev/platformScaling";
+import { VERCEL_HOSTING, HETZNER_VPS, PLATFORM_STAGE_SPECS } from "@/lib/dev/platformScaling";
 import {
   formatKrw,
   formatUsd,
@@ -45,7 +45,7 @@ export function DevPlatformSection({ input, result, onPatch }: DevPlatformSectio
       <div className={styles.platformHeader}>
         <h2 className={styles.sectionTitle}>플랫폼 스케일링 전략</h2>
         <p className={devStyles.helpText}>
-          MAU·SSR·RPS 한계에 따라 Cloudflare 플랜 업그레이드 / OCI → Hetzner DB 이전을 자동
+          MAU·SSR·RPS 한계에 따라 Vercel 플랜 업그레이드 / OCI → Hetzner DB 이전을 자동
           시뮬레이션합니다.
         </p>
       </div>
@@ -69,7 +69,7 @@ export function DevPlatformSection({ input, result, onPatch }: DevPlatformSectio
             </div>
             <p className={styles.platformStatusMetric}>
               일 SSR {Math.round(frontend.dailySsrCalls).toLocaleString()} /{" "}
-              {CLOUDFLARE_PAGES.freeDailySsrLimit.toLocaleString()}
+              {VERCEL_HOSTING.freeDailySsrLimit.toLocaleString()}
             </p>
             <p className={styles.platformStatusCost}>
               {frontend.monthlyUsd > 0 ? `${formatUsd(frontend.monthlyUsd)}/mo` : "$0 (Free)"}
@@ -201,13 +201,13 @@ export function DevPlatformSection({ input, result, onPatch }: DevPlatformSectio
             </button>
           </div>
           <NumberField
-            label="Cloudflare Paid $/mo"
-            value={input.cloudflarePagesPaidMonthlyUsd}
+            label="Vercel Pro Base $/mo"
+            value={input.vercelProBaseUsd}
             min={0}
             max={50}
             step={1}
-            hint={`MAU > ${CLOUDFLARE_PAGES.mauUpgradeThreshold.toLocaleString()} 또는 일 SSR > ${CLOUDFLARE_PAGES.freeDailySsrLimit.toLocaleString()}`}
-            onChange={(cloudflarePagesPaidMonthlyUsd) => onPatch({ cloudflarePagesPaidMonthlyUsd })}
+            hint={`MAU > ${VERCEL_HOSTING.mauUpgradeThreshold.toLocaleString()} 또는 일 SSR > ${VERCEL_HOSTING.freeDailySsrLimit.toLocaleString()}`}
+            onChange={(vercelProBaseUsd) => onPatch({ vercelProBaseUsd })}
           />
           <NumberField
             label="추가 볼륨 단가 ₩/GB"

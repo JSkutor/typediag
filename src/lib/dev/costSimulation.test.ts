@@ -161,15 +161,19 @@ describe("costSimulation", () => {
     expect(growth.items.find((i) => i.id === "db-hosting")?.usd).toBeGreaterThan(0);
   });
 
-  it("auto mode upgrades Cloudflare when MAU exceeds 10k", () => {
+  it("auto mode upgrades Vercel when MAU exceeds 5k", () => {
     const scaled = runCostSimulation({
       ...DEFAULT_COST_SIMULATION,
       frontendHosting: "auto",
       mau: 15_000,
     });
     expect(scaled.derived.frontend.stage).toBe("paid");
-    expect(scaled.derived.frontend.monthlyUsd).toBe(5);
-    expect(scaled.items.find((i) => i.id === "cloudflare")?.usd).toBe(5);
+    // With 15000 MAU * 10 sessions * 30 pages = 4,500,000 views/mo * 1.5 = 6.75M calls.
+    // Over 1M calls limit -> 5.75M overage -> $11.5
+    // Bandwidth: 6.75M * 100KB = 675GB. Under 1000GB limit.
+    // Total = 20 + 11.5 = 31.5
+    expect(scaled.derived.frontend.monthlyUsd).toBe(31.5);
+    expect(scaled.items.find((i) => i.id === "vercel")?.usd).toBe(31.5);
   });
 
   it("auto mode switches to Hetzner when already at OCI cap", () => {

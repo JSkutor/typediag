@@ -128,8 +128,8 @@ export interface CostSimulationInput {
   dbDiskBaselineGb: number;
   /** Hetzner VPS flat monthly (KRW). Ignored when dbHosting=oracle_free. */
   hetznerVpsMonthlyKrw: number;
-  /** Cloudflare Pages paid plan $/mo. Used when frontend auto → paid. */
-  cloudflarePagesPaidMonthlyUsd: number;
+  /** Vercel Pro base monthly USD. Used when frontend auto → paid. */
+  vercelProBaseUsd: number;
   /** `auto` — free until MAU/SSR limit; else paid plan. */
   frontendHosting: "auto" | FrontendHostingStage;
   /** Edge/SSR invocations per page view. */
@@ -332,7 +332,7 @@ export const DEFAULT_COST_SIMULATION: CostSimulationInput = {
   dbHosting: "auto",
   dbDiskBaselineGb: 15,
   hetznerVpsMonthlyKrw: HETZNER_VPS.tiers.cx23.monthlyKrw,
-  cloudflarePagesPaidMonthlyUsd: 5,
+  vercelProBaseUsd: 20,
   frontendHosting: "auto",
   ssrCallsPerPageView: 1.5,
   keyEventsPerPage: 40,
@@ -567,7 +567,7 @@ export function runCostSimulation(
     pagesPerSession: input.pagesPerSession,
     ssrCallsPerPageView: input.ssrCallsPerPageView,
     mode: input.frontendHosting,
-    paidMonthlyUsd: input.cloudflarePagesPaidMonthlyUsd,
+    paidMonthlyUsd: input.vercelProBaseUsd,
   });
 
   const backend = resolveDbHostingScaled({
@@ -628,18 +628,19 @@ export function runCostSimulation(
       bucket: "variable",
     },
     {
-      id: "cloudflare",
-      label: "Cloudflare Pages",
+      id: "vercel",
+      label: "Vercel Web App",
       usd: frontend.monthlyUsd,
       detail:
         frontend.stage === "free"
-          ? `Free · 일 SSR ${Math.round(frontend.dailySsrCalls).toLocaleString()}${
+          ? `Hobby (Free) · 일 SSR ${Math.round(frontend.dailySsrCalls).toLocaleString()}${
               input.frontendHosting === "auto" ? " (auto)" : ""
             }`
-          : `Paid $${input.cloudflarePagesPaidMonthlyUsd}/mo${
+          : `Pro $${input.vercelProBaseUsd}/mo + 종량제 (호출/대역폭)${
               input.frontendHosting === "auto" ? " (auto)" : ""
             }`,
-      bucket: "fixed",
+      // Vercel Pro는 종량제(Variable) 성격이 강하지만 편의상 DB Hosting처럼 인프라 항목에 고정시킵니다
+      bucket: frontend.stage === "free" ? "fixed" : "variable",
     },
     {
       id: "db-hosting",
@@ -670,7 +671,7 @@ export function runCostSimulation(
       bucket: "fixed",
     },
   ];
-  const alwaysShowIds = new Set(["clerk-base", "cloudflare", "db-hosting", "db-disk"]);
+  const alwaysShowIds = new Set(["clerk-base", "vercel", "db-hosting", "db-disk"]);
   const items = allItems.filter((item) => item.usd > 0 || alwaysShowIds.has(item.id));
 
   const fixedCostUsd = items.filter((i) => i.bucket === "fixed").reduce((sum, i) => sum + i.usd, 0);

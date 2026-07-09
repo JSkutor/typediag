@@ -7,16 +7,22 @@ export const ORACLE_FREE_TIER = {
   ipv4Count: 1,
 } as const;
 
-/** Cloudflare Pages — Next.js SSR / Edge 호스팅 SSOT. */
-export const CLOUDFLARE_PAGES = {
-  /** Free tier daily Edge/SSR invocation cap. */
-  freeDailySsrLimit: 100_000,
-  paidMonthlyUsd: 5,
-  /** MAU above this → paid plan assumed in auto mode. */
-  mauUpgradeThreshold: 10_000,
-  estimatedMauAtLimit: { min: 5_000, max: 10_000 },
-  commercialUseFree: true,
-  unlimitedBandwidth: true,
+/** Vercel — Next.js SSR 호스팅 SSOT (요금 폭탄 시뮬레이션용). */
+export const VERCEL_HOSTING = {
+  /** Hobby 플랜에서 강제 업그레이드를 유도할 만한 일일 트래픽 한계치 추정 */
+  freeDailySsrLimit: 30_000,
+  /** MAU가 이 수치를 넘거나 상업용(결제/광고)일 경우 Pro 필수 */
+  mauUpgradeThreshold: 5_000,
+  
+  /** Pro 플랜 기본 요금 (1 seat) */
+  proBaseUsd: 20,
+  /** 함수 호출 (Invocations): 100만 회 기본 제공, 이후 100만 회당 $2 */
+  invocationUsdPerMillion: 2,
+  /** 대역폭 (Fast Data Transfer): 1TB 기본 제공, 이후 GB당 $0.15 */
+  bandwidthUsdPerGb: 0.15,
+  
+  /** 1 SSR 호출당 대략적인 대역폭 소모량 (JSON payload + HTML) = 약 100KB 가정 */
+  estimatedGbPerSsrCall: 0.0001,
 } as const;
 
 /** Hetzner (or similar) cost-effective VPS for self-hosted TimescaleDB. */
@@ -80,10 +86,10 @@ export interface PlatformStageSpec {
 export const PLATFORM_STAGE_SPECS: PlatformStageSpec[] = [
   {
     id: "frontend",
-    platform: "Frontend (Cloudflare Pages)",
-    stage1: "무료 상업 이용 · 무제한 트래픽/대역폭 · Edge SSR 일 10만 호출",
-    stage2: `적정 MAU ${CLOUDFLARE_PAGES.estimatedMauAtLimit.min.toLocaleString()}~${CLOUDFLARE_PAGES.estimatedMauAtLimit.max.toLocaleString()} · 일 SSR > ${CLOUDFLARE_PAGES.freeDailySsrLimit.toLocaleString()}회`,
-    stage3: `물리 마이그레이션 없음 · 대시보드 $${CLOUDFLARE_PAGES.paidMonthlyUsd}/mo 플랜 업그레이드 · 코드 변경 0%`,
+    platform: "Frontend (Vercel)",
+    stage1: "Hobby (비상업용 무료) · 제한적 트래픽",
+    stage2: `상업용 전환 또는 MAU > ${VERCEL_HOSTING.mauUpgradeThreshold.toLocaleString()} · 일 SSR > ${VERCEL_HOSTING.freeDailySsrLimit.toLocaleString()}회`,
+    stage3: `Pro 플랜 강제 ($${VERCEL_HOSTING.proBaseUsd}/mo) · 초과 호출 100만당 $${VERCEL_HOSTING.invocationUsdPerMillion} · 대역폭 초과 GB당 $${VERCEL_HOSTING.bandwidthUsdPerGb} (종량제 폭탄 위험)`,
   },
   {
     id: "backend",
@@ -171,6 +177,21 @@ export function estimateAvgWriteRps(input: {
 
 export function resolveFrontendHosting(input: FrontendScalingInput): FrontendScalingResult {
   const dailySsrCalls = estimateDailySsrCalls(input);
+  const monthlySsrCalls = dailySsrCalls * 30;
+
+  // Vercel Pro 종량제 요금 계산 로직
+  const calculateProUsd = () => {
+    // 1. Invocation 과금 (100만 회 초과분)
+    const overageInvocations = Math.max(0, monthlySsrCalls - 1_000_000);
+    const invocationUsd = (overageInvocations / 1_000_000) * VERCEL_HOSTING.invocationUsdPerMillion;
+
+    // 2. Bandwidth 과금 (1TB = 1,000GB 초과분)
+    const monthlyBandwidthGb = monthlySsrCalls * VERCEL_HOSTING.estimatedGbPerSsrCall;
+    const overageBandwidthGb = Math.max(0, monthlyBandwidthGb - 1000);
+    const bandwidthUsd = overageBandwidthGb * VERCEL_HOSTING.bandwidthUsdPerGb;
+
+    return VERCEL_HOSTING.proBaseUsd + invocationUsd + bandwidthUsd;
+  };
 
   if (input.mode === "free") {
     return {
@@ -179,42 +200,42 @@ export function resolveFrontendHosting(input: FrontendScalingInput): FrontendSca
       monthlyUsd: 0,
       autoReason: null,
       migrationAction: null,
-      effort: "0% — Free tier",
+      effort: "0% — Hobby tier",
     };
   }
   if (input.mode === "paid") {
     return {
       stage: "paid",
       dailySsrCalls,
-      monthlyUsd: input.paidMonthlyUsd,
+      monthlyUsd: calculateProUsd(),
       autoReason: null,
       migrationAction: null,
-      effort: "0% — 이미 Paid 플랜",
+      effort: "0% — 이미 Pro 플랜",
     };
   }
 
-  const overSsr = dailySsrCalls > CLOUDFLARE_PAGES.freeDailySsrLimit;
-  const overMau = input.mau > CLOUDFLARE_PAGES.mauUpgradeThreshold;
+  const overSsr = dailySsrCalls > VERCEL_HOSTING.freeDailySsrLimit;
+  const overMau = input.mau > VERCEL_HOSTING.mauUpgradeThreshold;
 
   if (overSsr || overMau) {
     const triggers: string[] = [];
     if (overMau) {
       triggers.push(
-        `MAU ${input.mau.toLocaleString()} > ${CLOUDFLARE_PAGES.mauUpgradeThreshold.toLocaleString()}`,
+        `MAU ${input.mau.toLocaleString()} > ${VERCEL_HOSTING.mauUpgradeThreshold.toLocaleString()}`,
       );
     }
     if (overSsr) {
       triggers.push(
-        `일 SSR ${Math.round(dailySsrCalls).toLocaleString()} > ${CLOUDFLARE_PAGES.freeDailySsrLimit.toLocaleString()}`,
+        `일 SSR ${Math.round(dailySsrCalls).toLocaleString()} > ${VERCEL_HOSTING.freeDailySsrLimit.toLocaleString()}`,
       );
     }
     return {
       stage: "paid",
       dailySsrCalls,
-      monthlyUsd: input.paidMonthlyUsd,
+      monthlyUsd: calculateProUsd(),
       autoReason: triggers.join(" · "),
-      migrationAction: `Cloudflare Pages $${input.paidMonthlyUsd}/mo 플랜 업그레이드 (대시보드만)`,
-      effort: "0% — 코드·마이그레이션 없음",
+      migrationAction: `Vercel Pro 플랜 전환 및 종량제 과금 시작`,
+      effort: "0% — 코드 변경은 없으나 비용 모니터링 필요",
     };
   }
 
@@ -222,9 +243,9 @@ export function resolveFrontendHosting(input: FrontendScalingInput): FrontendSca
     stage: "free",
     dailySsrCalls,
     monthlyUsd: 0,
-    autoReason: `일 SSR ${Math.round(dailySsrCalls).toLocaleString()} / ${CLOUDFLARE_PAGES.freeDailySsrLimit.toLocaleString()} · MAU ${input.mau.toLocaleString()}`,
+    autoReason: `일 SSR ${Math.round(dailySsrCalls).toLocaleString()} / ${VERCEL_HOSTING.freeDailySsrLimit.toLocaleString()} · MAU ${input.mau.toLocaleString()}`,
     migrationAction: null,
-    effort: "0% — Free tier",
+    effort: "0% — Hobby tier",
   };
 }
 
