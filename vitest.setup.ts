@@ -1,7 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { beforeEach } from "vitest";
 import { drizzleDb } from "@/db";
-import { keyEvents, pages, runs, users } from "@/db/schema";
+import { pages, runs, users } from "@/db/schema";
 
 function assertTestDatabase(): void {
   const databaseUrl = process.env.DATABASE_URL ?? "";
@@ -19,7 +19,6 @@ assertTestDatabase();
 
 beforeEach(async () => {
   try {
-    await drizzleDb.delete(keyEvents);
     await drizzleDb.delete(pages);
     await drizzleDb.delete(runs);
     await drizzleDb.delete(users);

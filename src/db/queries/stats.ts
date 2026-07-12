@@ -1,81 +1,78 @@
-import { eq, and, gt, type SQL } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { drizzleDb } from "@/db";
-import { runs, pages, keyEvents } from "@/db/schema";
+import { runs, pages } from "@/db/schema";
+import type { KeyEvent } from "@/lib/skdm";
 
 /**
- * Get key events for a specific page.
+ * Unpacks a page's parallel arrays back into a KeyEvent array.
+ * The index i across all packed columns corresponds to the i-th keystroke.
  */
-export async function getKeyEventsForPage(pageId: string) {
-  return drizzleDb
-    .select()
-    .from(keyEvents)
-    .where(eq(keyEvents.pageId, pageId))
-    .orderBy(keyEvents.seq);
+function unpackKeyEvents(page: {
+  packedFromKeys: (string | null)[] | null;
+  packedToKeys: (string | null)[] | null;
+  packedLatencies: (number | null)[] | null;
+  packedHolds: (number | null)[] | null;
+  packedIsCorrects: (boolean | null)[] | null;
+  packedExpectedChars: (string | null)[] | null;
+  packedKeyChars: (string | null)[] | null;
+}): KeyEvent[] {
+  const toKeys = page.packedToKeys;
+  if (!toKeys || toKeys.length === 0) return [];
+
+  return toKeys.map((toKey, i) => ({
+    fromKey: page.packedFromKeys?.[i] || null,   // "" sentinel → null
+    toKey: toKey ?? "",
+    latencyMs: page.packedLatencies?.[i] ?? 0,
+    holdDurationMs: (page.packedHolds?.[i] ?? -1) === -1 ? null : page.packedHolds![i],  // -1 sentinel → null
+    isCorrect: page.packedIsCorrects?.[i] ?? null,
+    expectedChar: page.packedExpectedChars?.[i] || null,  // "" sentinel → null
+    keyChar: page.packedKeyChars?.[i] || undefined,       // "" sentinel → undefined
+  }));
 }
 
 /**
- * Get all key events for a specific user across all runs and pages.
- *
- * Internally fetches in cursor-based batches of BATCH_SIZE to avoid
- * loading unbounded rows into memory in a single query.
- * The returned array contains all events, ordered by (run.startedAt,
- * page.orderIndex, key_event.seq) — same semantics as before.
+ * Get all key events for a specific page, unpacked from parallel arrays.
  */
-export async function getKeyEventsForUser(userId: string) {
-  const BATCH_SIZE = 5_000;
-  const results: {
-    id: bigint;
-    pageId: string;
-    seq: number;
-    fromKey: string | null;
-    toKey: string;
-    keyChar: string | null;
-    latency: number;
-    holdDurationMs: number | null;
-    isCorrect: boolean | null;
-    expectedChar: string | null;
-    createdAt: Date;
-  }[] = [];
+export async function getKeyEventsForPage(pageId: string): Promise<KeyEvent[]> {
+  const result = await drizzleDb
+    .select({
+      packedFromKeys: pages.packedFromKeys,
+      packedToKeys: pages.packedToKeys,
+      packedLatencies: pages.packedLatencies,
+      packedHolds: pages.packedHolds,
+      packedIsCorrects: pages.packedIsCorrects,
+      packedExpectedChars: pages.packedExpectedChars,
+      packedKeyChars: pages.packedKeyChars,
+    })
+    .from(pages)
+    .where(eq(pages.id, pageId))
+    .limit(1);
 
-  // cursor는 마지막으로 가져온 key_events.id (bigint). null이면 처음부터 조회.
-  let cursor: bigint | null = null;
+  if (result.length === 0) return [];
+  return unpackKeyEvents(result[0]);
+}
 
-  while (true) {
-    const conditions: SQL[] = [
-      eq(runs.userId, userId),
-      ...(cursor !== null ? [gt(keyEvents.id, cursor)] : []),
-    ];
+/**
+ * Get all key events for a specific user across all runs and pages,
+ * unpacked from parallel arrays. Ordered by run.startedAt → page.orderIndex.
+ */
+export async function getKeyEventsForUser(userId: string): Promise<KeyEvent[]> {
+  const userPages = await drizzleDb
+    .select({
+      packedFromKeys: pages.packedFromKeys,
+      packedToKeys: pages.packedToKeys,
+      packedLatencies: pages.packedLatencies,
+      packedHolds: pages.packedHolds,
+      packedIsCorrects: pages.packedIsCorrects,
+      packedExpectedChars: pages.packedExpectedChars,
+      packedKeyChars: pages.packedKeyChars,
+      orderIndex: pages.orderIndex,
+      runStartedAt: runs.startedAt,
+    })
+    .from(pages)
+    .innerJoin(runs, eq(pages.runId, runs.id))
+    .where(eq(runs.userId, userId))
+    .orderBy(desc(runs.startedAt), pages.orderIndex);
 
-    const batch = await drizzleDb
-      .select({
-        id: keyEvents.id,
-        pageId: keyEvents.pageId,
-        seq: keyEvents.seq,
-        fromKey: keyEvents.fromKey,
-        toKey: keyEvents.toKey,
-        keyChar: keyEvents.keyChar,
-        latency: keyEvents.latency,
-        holdDurationMs: keyEvents.holdDurationMs,
-        isCorrect: keyEvents.isCorrect,
-        expectedChar: keyEvents.expectedChar,
-        createdAt: keyEvents.createdAt,
-      })
-      .from(keyEvents)
-      .innerJoin(pages, eq(keyEvents.pageId, pages.id))
-      .innerJoin(runs, eq(pages.runId, runs.id))
-      .where(and(...conditions))
-      .orderBy(keyEvents.id)
-      .limit(BATCH_SIZE);
-
-    if (batch.length === 0) break;
-
-    results.push(...batch);
-
-    // 배치가 꽉 찼을 때만 다음 페이지 요청
-    if (batch.length < BATCH_SIZE) break;
-
-    cursor = batch[batch.length - 1].id;
-  }
-
-  return results;
+  return userPages.flatMap((p) => unpackKeyEvents(p));
 }

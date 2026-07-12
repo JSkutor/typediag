@@ -28,7 +28,7 @@ describe("db", () => {
   });
 
   afterEach(async () => {
-    // Clean up runs created during tests (cascades to pages and key_events)
+    // Clean up runs created during tests (cascades to pages)
     if (testUserId) {
       await drizzleDb.delete(runs).where(eq(runs.userId, testUserId));
     }
@@ -319,6 +319,9 @@ describe("db", () => {
 
     const fetchedEvents = await getKeyEventsForPage(page.id);
     expect(fetchedEvents).toHaveLength(numEvents);
+    expect(fetchedEvents[0].latencyMs).toBe(10);
+    expect(fetchedEvents[0].fromKey).toBe("a");
+    expect(fetchedEvents[0].toKey).toBe("b");
   });
 
   it("should truncate oversized key event fields before insert", async () => {
@@ -363,7 +366,7 @@ describe("db", () => {
     expect(event.toKey).toHaveLength(20);
     expect(event.keyChar).toHaveLength(10);
     expect(event.expectedChar).toHaveLength(10);
-    expect(event.latency).toBe(124);
+    expect(event.latencyMs).toBe(124);
     expect(event.holdDurationMs).toBe(46);
   });
 

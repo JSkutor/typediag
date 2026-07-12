@@ -47,7 +47,7 @@ describe("useDiagnosticsTransition", () => {
               pageEvents.map((ev) => ({
                 fromKey: ev.fromKey,
                 toKey: ev.toKey,
-                latencyMs: ev.latency,
+                latencyMs: ev.latencyMs,
                 keyChar: ev.keyChar || undefined,
                 holdDurationMs: ev.holdDurationMs,
                 isCorrect: ev.isCorrect,
@@ -68,7 +68,7 @@ describe("useDiagnosticsTransition", () => {
               pageEvents.map((ev) => ({
                 fromKey: ev.fromKey,
                 toKey: ev.toKey,
-                latencyMs: ev.latency,
+                latencyMs: ev.latencyMs,
                 keyChar: ev.keyChar || undefined,
                 holdDurationMs: ev.holdDurationMs,
                 isCorrect: ev.isCorrect,

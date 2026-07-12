@@ -1,13 +1,11 @@
-import { eq, desc, sql, inArray } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { drizzleDb } from "@/db";
 import {
   runs,
   pages,
-  keyEvents,
   targetTexts,
   type Run,
   type Page,
-  type NewKeyEvent,
 } from "@/db/schema";
 
 // --- Row type re-exports for consumers ---
@@ -117,8 +115,8 @@ export async function getLatestRun(userId: string): Promise<Run | null> {
 }
 
 /**
- * Create a new page typing result and its associated key events.
- * Key events are bulk-inserted into the separate key_events table.
+ * Create a new page typing result and pack all key events as parallel arrays.
+ * A single INSERT replaces the previous page + key_events bulk transaction.
  */
 export async function createPage(pageData: {
   id?: string;
@@ -148,50 +146,43 @@ export async function createPage(pageData: {
     }
   }
 
-  // page와 key_events를 하나의 트랜잭션으로 묶어 고아 page 생성 방지
-  const newPage = await drizzleDb.transaction(async (tx) => {
-    const [page] = await tx
-      .insert(pages)
-      .values({
-        runId: pageData.run_id,
-        targetTextId,
-        orderIndex: pageData.order_index,
-        language: pageData.language,
-        typedText: pageData.typed_text,
-        wpm: pageData.wpm,
-        cpm: pageData.cpm,
-        accuracy: pageData.accuracy,
-        startedAt: new Date(pageData.started_at),
-        finishedAt: new Date(pageData.finished_at),
-        elapsedTimeMs: pageData.elapsed_time_ms,
-      })
-      .returning();
+  // Pack all key events into parallel arrays (one element per keystroke).
+  // Nullable fields: fromKey → "" (empty string sentinel), expectedChar → "" (empty string sentinel).
+  // holdDurationMs → -1 sentinel for "no hold recorded". isCorrect → stored as boolean[].
+  const evs = pageData.key_events;
+  const packedFromKeys = evs.length > 0 ? evs.map((e) => (e.from_key ? e.from_key.substring(0, 20) : "")) : null;
+  const packedToKeys = evs.length > 0 ? evs.map((e) => (e.to_key ? e.to_key.substring(0, 20) : "")) : null;
+  const packedLatencies = evs.length > 0 ? evs.map((e) => Math.round(typeof e.latency === "number" ? e.latency : 0)) : null;
+  const packedHolds = evs.length > 0 ? evs.map((e) => (e.hold_duration_ms != null ? Math.round(e.hold_duration_ms) : -1)) : null;
+  const packedIsCorrects = evs.length > 0 ? evs.map((e) => e.is_correct ?? true) : null;
+  const packedExpectedChars = evs.length > 0 ? evs.map((e) => (e.expected_char ? e.expected_char.substring(0, 10) : "")) : null;
+  const packedKeyChars = evs.length > 0 ? evs.map((e) => (e.key_char ? e.key_char.substring(0, 10) : "")) : null;
 
-    // Bulk insert key events into the normalized key_events table
-    if (pageData.key_events.length > 0) {
-      const keyEventRows: NewKeyEvent[] = pageData.key_events.map((ev, idx) => ({
-        pageId: page.id,
-        seq: idx,
-        fromKey: ev.from_key ? ev.from_key.substring(0, 20) : null,
-        toKey: ev.to_key ? ev.to_key.substring(0, 20) : "",
-        keyChar: ev.key_char ? ev.key_char.substring(0, 10) : "",
-        latency: Math.round(typeof ev.latency === "number" ? ev.latency : 0),
-        holdDurationMs: ev.hold_duration_ms != null ? Math.round(ev.hold_duration_ms) : null,
-        isCorrect: ev.is_correct ?? null,
-        expectedChar: ev.expected_char ? ev.expected_char.substring(0, 10) : null,
-        createdAt: page.createdAt ?? new Date(),
-      }));
+  const baseValues = {
+    runId: pageData.run_id,
+    targetTextId,
+    orderIndex: pageData.order_index,
+    language: pageData.language,
+    typedText: pageData.typed_text,
+    wpm: pageData.wpm,
+    cpm: pageData.cpm,
+    accuracy: pageData.accuracy,
+    startedAt: new Date(pageData.started_at),
+    finishedAt: new Date(pageData.finished_at),
+    elapsedTimeMs: pageData.elapsed_time_ms,
+    packedFromKeys,
+    packedToKeys,
+    packedLatencies,
+    packedHolds,
+    packedIsCorrects,
+    packedExpectedChars,
+    packedKeyChars,
+  };
 
-      // Batch insert in chunks of 500 to avoid exceeding query parameter limits
-      const CHUNK_SIZE = 500;
-      for (let i = 0; i < keyEventRows.length; i += CHUNK_SIZE) {
-        const chunk = keyEventRows.slice(i, i + CHUNK_SIZE);
-        await tx.insert(keyEvents).values(chunk);
-      }
-    }
-
-    return page;
-  });
+  const [newPage] = await drizzleDb
+    .insert(pages)
+    .values(pageData.id ? { id: pageData.id, ...baseValues } : baseValues)
+    .returning();
 
   return newPage;
 }
@@ -226,23 +217,9 @@ export async function finalizeRun(runId: string, finishedAtStr?: string): Promis
 
   const totalTimeMs = pagesToAggregate.reduce((sum, p) => sum + p.elapsedTimeMs, 0);
 
-  // Count key events per page for weighted accuracy calculation
-  const pageIds = pagesToAggregate.map((p) => p.id);
-  const countMap = new Map<string, number>();
-
-  if (pageIds.length > 0) {
-    const keyEventCountsResult = await drizzleDb
-      .select({ pageId: keyEvents.pageId, count: sql<number>`count(*)::int` })
-      .from(keyEvents)
-      .where(inArray(keyEvents.pageId, pageIds))
-      .groupBy(keyEvents.pageId);
-
-    for (const r of keyEventCountsResult) {
-      countMap.set(r.pageId, r.count);
-    }
-  }
-
-  const pageKeyEventCounts = pagesToAggregate.map((p) => countMap.get(p.id) ?? 0);
+  // Count keystrokes per page from packed arrays (replaces key_events JOIN).
+  // packedToKeys is always set when events exist; fall back to 0 if no events recorded.
+  const pageKeyEventCounts = pagesToAggregate.map((p) => p.packedToKeys?.length ?? 0);
 
   const avgCpm =
     totalTimeMs > 0

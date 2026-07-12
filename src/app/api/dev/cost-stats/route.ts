@@ -45,12 +45,10 @@ export async function GET() {
     const usageResult = await drizzleDb.execute(sql`
       SELECT
         (SELECT count(*)::int FROM pages) AS page_count,
-        (SELECT count(*)::int FROM key_events) AS key_event_count,
         (SELECT count(*)::int FROM runs) AS run_count,
         (SELECT count(*)::int FROM pages WHERE created_at > now() - interval '30 days') AS pages_last_30d,
         pg_database_size(current_database())::bigint AS database_bytes,
         pg_total_relation_size('pages')::bigint AS pages_bytes,
-        pg_total_relation_size('key_events')::bigint AS key_events_bytes,
         pg_total_relation_size('runs')::bigint AS runs_bytes,
         pg_total_relation_size('target_texts')::bigint AS target_texts_bytes
     `);
@@ -73,7 +71,6 @@ export async function GET() {
     const pageCount = Number(row?.page_count ?? 0);
     const sessionDataBytes =
       Number(row?.pages_bytes ?? 0) +
-      Number(row?.key_events_bytes ?? 0) +
       Number(row?.runs_bytes ?? 0);
     const kbPerPageEstimate = estimateKbPerPageFromDb(sessionDataBytes, pageCount);
     const pagesLast30d = Number(row?.pages_last_30d ?? 0);
@@ -98,14 +95,12 @@ export async function GET() {
         databaseGb: databaseBytes / (1024 * 1024 * 1024),
         databaseBytes,
         pagesBytes: Number(row?.pages_bytes ?? 0),
-        keyEventsBytes: Number(row?.key_events_bytes ?? 0),
         runsBytes: Number(row?.runs_bytes ?? 0),
         targetTextsBytes: Number(row?.target_texts_bytes ?? 0),
         sessionDataGb,
       },
       usage: {
         pageCount,
-        keyEventCount: row?.key_event_count ?? 0,
         runCount: row?.run_count ?? 0,
         pagesLast30d,
         kbPerPageEstimate,
@@ -114,10 +109,10 @@ export async function GET() {
       glossary: {
         targetTexts:
           "제시문 1행 = 타자 연습 문장 1개. Batch API 1요청 → 1행. Topic generate 1회 → 20행.",
-        pages: "유저가 문장 1개를 끝까지 친 완주 기록 (세션 데이터). 캐시 코퍼스와 별개.",
+        pages: "유저가 문장 1개를 끝까지 친 완주 기록 (세션 데이터). 키 이벤트는 pages 테이블 packed 배열에 내장됨.",
         embedded: "embedding IS NOT NULL — 벡터 검색에 쓰이는 행 수.",
         databaseGb: "pg_database_size — OCI Free 200 GB cap 비교용.",
-        kbPerPageEstimate: "pages+key_events+runs 바이트 ÷ page 수.",
+        kbPerPageEstimate: "pages+runs 바이트 ÷ page 수.",
       },
     });
   } catch (error) {

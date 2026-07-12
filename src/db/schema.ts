@@ -1,8 +1,8 @@
 /**
  * Drizzle ORM Schema for TypeDiag
  *
- * Tables: users, target_texts, runs, pages, key_events
- * key_events is designed to be converted into a TimescaleDB Hypertable.
+ * Tables: users, target_texts, runs, pages, topic_usage_limits, user_feedbacks
+ * Key events are stored as packed parallel arrays on the pages table.
  *
  * Naming convention: snake_case for DB columns (matching DB_SCHEMA.md),
  * Drizzle maps them to camelCase via the column builder's name parameter.
@@ -14,13 +14,10 @@ import {
   varchar,
   text,
   integer,
-  smallint,
   boolean,
   real,
   timestamp,
-  bigserial,
   customType,
-  primaryKey,
   serial,
   date,
   unique,
@@ -99,27 +96,16 @@ export const pages = pgTable("pages", {
   finishedAt: timestamp("finished_at", { withTimezone: true }).notNull(),
   elapsedTimeMs: integer("elapsed_time_ms").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  // --- Packed key event arrays (replaces key_events Hypertable) ---
+  // Each index i across all arrays corresponds to the i-th keystroke.
+  packedFromKeys: varchar("packed_from_keys", { length: 20 }).array(),
+  packedToKeys: varchar("packed_to_keys", { length: 20 }).array(),
+  packedLatencies: integer("packed_latencies").array(),
+  packedHolds: integer("packed_holds").array(),
+  packedIsCorrects: boolean("packed_is_corrects").array(),
+  packedExpectedChars: varchar("packed_expected_chars", { length: 10 }).array(),
+  packedKeyChars: varchar("packed_key_chars", { length: 10 }).array(),
 });
-
-export const keyEvents = pgTable(
-  "key_events",
-  {
-    id: bigserial("id", { mode: "bigint" }),
-    pageId: uuid("page_id")
-      .references(() => pages.id, { onDelete: "cascade" })
-      .notNull(),
-    seq: integer("seq").notNull(),
-    fromKey: varchar("from_key", { length: 20 }),
-    toKey: varchar("to_key", { length: 20 }).notNull(),
-    keyChar: varchar("key_char", { length: 10 }).default(""),
-    latency: integer("latency").notNull(),
-    holdDurationMs: integer("hold_duration_ms"),
-    isCorrect: boolean("is_correct"),
-    expectedChar: varchar("expected_char", { length: 10 }),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-  },
-  (table) => [primaryKey({ name: "key_events_pk", columns: [table.id, table.createdAt] })],
-);
 
 // --- Type exports ---
 export type User = typeof users.$inferSelect;
@@ -130,8 +116,6 @@ export type Run = typeof runs.$inferSelect;
 export type NewRun = typeof runs.$inferInsert;
 export type Page = typeof pages.$inferSelect;
 export type NewPage = typeof pages.$inferInsert;
-export type KeyEventRow = typeof keyEvents.$inferSelect;
-export type NewKeyEvent = typeof keyEvents.$inferInsert;
 
 export const topicUsageLimits = pgTable(
   "topic_usage_limits",

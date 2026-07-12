@@ -38,6 +38,13 @@
       "when": 1782528293453,
       "tag": "0004_conscious_captain_cross",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1783852270069,
+      "tag": "0005_freezing_maverick",
+      "breakpoints": true
     }
   ]
 }

@@ -1,7 +1,7 @@
 # 타이핑 진단 서비스 DB 스키마 설계
 
 이 문서는 타이핑 진단 서비스에 사용되는 데이터베이스 구조를 설명합니다. 이 설계는 사용자 정보, 연습 세션, 개별 문장 결과를 기록하고 분석하는 데 초점을 맞춥니다.
-최신 아키텍처에서는 **TimescaleDB, Drizzle ORM, Clerk 인증**을 사용하여 관계형 스키마와 시계열 최적화를 모두 달성합니다.
+최신 아키텍처에서는 **TimescaleDB, Drizzle ORM, Clerk 인증**을 사용합니다. 키 입력 이벤트는 별도 테이블 대신 `pages` 테이블의 **Parallel Array 컬럼**에 패킹되어 저장됩니다.
 
 **네이밍 규칙 주의사항**: 데이터베이스 테이블 및 컬럼은 **snake_case**로 작성되며, TypeScript 코드 단의 Drizzle ORM 스키마 정의 (`src/db/schema.ts`)에서는 이를 **camelCase**로 자동 매핑합니다 (예: DB `created_at` ↔ TS `createdAt`).
 
@@ -16,7 +16,6 @@ erDiagram
     users ||--o{ user_feedbacks : "leaves"
     target_texts ||--o{ pages : "referenced by"
     runs ||--o{ pages : "contains"
-    pages ||--o{ key_events : "generates"
     
     users {
         string id PK "Clerk/Guest ID"
@@ -30,10 +29,7 @@ erDiagram
     }
     pages {
         uuid id PK
-    }
-    key_events {
-        bigint id PK
-        timestamp created_at "Timescale Hypertable"
+        integer[] packedLatencies "키 이벤트 패킹"
     }
     topic_usage_limits {
         int id PK
@@ -102,25 +98,18 @@ Clerk 인증과 연동되는 사용자 정보를 저장합니다.
 - `finished_at`: 문장 입력 완료 일시 (TimestampTZ, Not Null)
 - `elapsed_time_ms`: 타이핑 소요 시간 밀리초 (Integer, Not Null)
 - `created_at`: 생성 일시 (TimestampTZ, Not Null)
+- `packed_from_keys`: 타건 순서대로 packed된 fromKey 배열 (varchar(20)[], Nullable — 이벤트 없으면 NULL)
+- `packed_to_keys`: 타건 순서대로 packed된 toKey 배열 (varchar(20)[], Nullable)
+- `packed_latencies`: fromKey→toKey 지연시간 ms 배열 (integer[], Nullable)
+- `packed_holds`: 키 누름 지속시간 ms 배열, sentinel -1 = 기록없음 (integer[], Nullable)
+- `packed_is_corrects`: 정타 여부 배열 (boolean[], Nullable)
+- `packed_expected_chars`: 기대 정타 글자 배열, sentinel "" = 없음 (varchar(10)[], Nullable)
+- `packed_key_chars`: 화면 출력 글자 배열, sentinel "" = 없음 (varchar(10)[], Nullable)
 
-### 5. key_events (키 입력 이벤트 로그 - Hypertable)
+> [!NOTE]
+> 인덱스 i는 i번째 타건에 대응. `unpackKeyEvents(page)` 함수(`src/db/queries/stats.ts`)가 7개 배열을 zip하여 `KeyEvent[]`로 복원.
 
-수많은 키 입력 이벤트를 개별 Row 단위로 정규화하여 저장합니다. **TimescaleDB의 Hypertable**을 사용하여 `created_at` 기준으로 시간별 파티셔닝되어 대용량 쓰기 성능을 극대화합니다.
-
-- `id`: 고유 식별값 (BIGSERIAL)
-- `page_id`: 속한 페이지 결과 식별값 (UUID, FK, Not Null)
-- `seq`: 페이지 내 키 입력 순서 (Integer, Not Null)
-- `from_key`: 이전 입력 키값 (VARCHAR(20), Nullable)
-- `to_key`: 현재 입력 키값 (VARCHAR(20), Not Null)
-- `key_char`: 화면에 출력되는 글자 (VARCHAR(10), Default '')
-- `latency`: `from_key` 완료 후 `to_key`까지의 지연시간 ms (Integer, Not Null)
-- `hold_duration_ms`: `to_key`를 누르고 있는 시간 ms (Integer, Nullable)
-- `is_correct`: 정타 여부 (Boolean, Nullable)
-- `expected_char`: 기대했던 정타 글자 (VARCHAR(10), Nullable)
-- `created_at`: 기록 생성 일시 (TimestampTZ, Not Null) 
-- *복합 기본 키(Composite PK): `(id, created_at)`* **[Hypertable 파티션 키]**
-
-### 6. topic_usage_limits (토픽 모드 사용량 제한)
+### 5. topic_usage_limits (토픽 모드 사용량 제한)
 
 API 검색 및 생성 호출을 추적하여 일일 한도를 제한합니다.
 
@@ -132,7 +121,7 @@ API 검색 및 생성 호출을 추적하여 일일 한도를 제한합니다.
 - `request_count`: 해당 일자 요청 누적 수 (Integer, Not Null, Default 1)
 - *유니크 제약조건(Unique Constraint): `(user_id, action_type, usage_date)`*
 
-### 7. user_feedbacks (사용자 피드백)
+### 6. user_feedbacks (사용자 피드백)
 
 워크스페이스 피드백 오버레이에서 전송된 의견을 저장합니다.
 
@@ -147,8 +136,8 @@ API 검색 및 생성 호출을 추적하여 일일 한도를 제한합니다.
 
 ## 주요 지표 계산 및 아키텍처
 
-1. **실시간 처리 분리**: WPM/CPM/정확도는 `src/lib/practice/metrics.ts`의 `calculateMetrics()`로 페이지 완료 시 계산합니다. 타건 중에는 서버 통신이 없으며, 문장 완료 직후 1회 API 호출로 **`pages` 요약 1행 + `key_events` N행** bulk insert합니다.
-2. **시계열 최적화 (TimescaleDB)**: `key_events`는 대용량이므로 `created_at` 파티셔닝을 적용하여 쓰기 병목을 방지합니다. 
+1. **실시간 처리 분리**: WPM/CPM/정확도는 `src/lib/practice/metrics.ts`의 `calculateMetrics()`로 페이지 완료 시 계산합니다. 타건 중에는 서버 통신이 없으며, 문장 완료 직후 1회 API 호출로 **`pages` 1행 (packed 배열 7개 포함) INSERT** 합니다.
+2. **Parallel Array 패킹**: 키 입력 이벤트는 `pages` 테이블의 `packed_*` 컬럼에 배열로 내장됩니다. 기존 `key_events` Hypertable 방식 대비 디스크 사용량 ~90% 절감, 쓰기 RPS 대폭 감소.
 3. **벡터 검색 (pgvector)**: Topic 모드 문장 검색 시 코사인 거리 연산자(`<=>`)로 `embedding` 컬럼을 DB 레벨에서 쿼리합니다.
 
 ---

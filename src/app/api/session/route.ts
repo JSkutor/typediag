@@ -145,30 +145,10 @@ export async function GET(request: NextRequest) {
         const pages = await db.getPagesForRun(runId);
         if (pages.length > 0) {
           const keyEventsByPage = await Promise.all(pages.map((p) => db.getKeyEventsForPage(p.id)));
-
-          eventsToAnalyze = keyEventsByPage.flatMap((pageEvents) =>
-            pageEvents.map((ev) => ({
-              fromKey: ev.fromKey,
-              toKey: ev.toKey,
-              latencyMs: ev.latency,
-              keyChar: ev.keyChar || undefined,
-              holdDurationMs: ev.holdDurationMs,
-              isCorrect: ev.isCorrect,
-              expectedChar: ev.expectedChar,
-            })),
-          );
+          eventsToAnalyze = keyEventsByPage.flat();
         }
       } else {
-        const userEvents = await db.getKeyEventsForUser(dbUserId);
-        eventsToAnalyze = userEvents.map((ev) => ({
-          fromKey: ev.fromKey,
-          toKey: ev.toKey,
-          latencyMs: ev.latency,
-          keyChar: ev.keyChar || undefined,
-          holdDurationMs: ev.holdDurationMs,
-          isCorrect: ev.isCorrect,
-          expectedChar: ev.expectedChar,
-        }));
+        eventsToAnalyze = await db.getKeyEventsForUser(dbUserId);
       }
 
       return NextResponse.json(withGuestToken({ events: eventsToAnalyze }, issueGuestToken));
