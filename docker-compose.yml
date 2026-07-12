@@ -1,6 +1,6 @@
 services:
   timescaledb:
-    image: timescale/timescaledb-ha:pg16
+    image: pgvector/pgvector:pg16
     container_name: typediag-db
     ports:
       - "5432:5432"

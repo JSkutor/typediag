@@ -40,8 +40,7 @@ async function main() {
   // --- Step 1: Enable extensions ---
   console.log("📦 Enabling PostgreSQL extensions...");
   await sql`CREATE EXTENSION IF NOT EXISTS vector`;
-  await sql`CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE`;
-  console.log("   ✅ pgvector + timescaledb enabled\n");
+  console.log("   ✅ pgvector enabled\n");
 
   // --- Step 2: Seed target_texts from SQLite ---
   const sqlitePath = path.join(process.cwd(), "scripts", "data", "targets.db");
@@ -106,21 +105,7 @@ async function main() {
   console.log(`\n   ✅ Inserted ${insertedCount} target texts\n`);
   sqliteDb.close();
 
-  // --- Step 3: Convert key_events to Hypertable ---
-  console.log("⏱️  Converting key_events to TimescaleDB Hypertable...");
-  try {
-    await sql`
-      SELECT create_hypertable('key_events', 'created_at', if_not_exists => TRUE)
-    `;
-    console.log("   ✅ key_events is now a Hypertable\n");
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message.includes("already a hypertable")) {
-      console.log("   ℹ️  key_events is already a Hypertable\n");
-    } else {
-      console.error(`   ❌ Failed to create hypertable: ${message}`);
-    }
-  }
+
 
   // --- Step 4: Verify ---
   console.log("🔍 Verifying...");

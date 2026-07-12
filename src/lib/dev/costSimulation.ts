@@ -8,10 +8,10 @@ export const OPENAI_PRICING = {
 /** Upstage embedding API pricing (2026). */
 export const DEFAULT_UPSTAGE_USD_PER_M = 0.1;
 
-export { ORACLE_FREE_TIER } from "@/lib/dev/platformScaling";
+export { GCP_FREE_TIER } from "@/lib/dev/platformScaling";
 import {
   HETZNER_VPS,
-  ORACLE_FREE_TIER,
+  GCP_FREE_TIER,
   resolveDbHostingScaled,
   resolveFrontendHosting,
   type DbHostingMode,
@@ -120,13 +120,13 @@ export interface CostSimulationInput {
   useClerkPro: boolean;
 
   /**
-   * Hetzner VPS vs Oracle OCI Always Free (Docker TimescaleDB).
-   * `auto` — Oracle until MAU/RPS/disk cap; else Hetzner (see `resolveDbHostingScaled`).
+   * Hetzner VPS vs GCP e2-micro Free (Docker PostgreSQL).
+   * `auto` — GCP until MAU/RPS/disk cap; else Hetzner (see `resolveDbHostingScaled`).
    */
   dbHosting: DbHostingMode;
-  /** Used with oracle_free — projected months until 200 GB cap. */
+  /** Used with gcp_free — projected months until 30 GB cap. */
   dbDiskBaselineGb: number;
-  /** Hetzner VPS flat monthly (KRW). Ignored when dbHosting=oracle_free. */
+  /** Hetzner VPS flat monthly (KRW). Ignored when dbHosting=gcp_free. */
   hetznerVpsMonthlyKrw: number;
   /** Vercel Pro base monthly USD. Used when frontend auto → paid. */
   vercelProBaseUsd: number;
@@ -189,8 +189,8 @@ export interface CostSimulationResult {
     resolvedDbHosting: ResolvedDbHosting;
     dbDiskBaselineGb: number;
     dbHostingAutoReason: string | null;
-    oracleStorageCapGb: number | null;
-    oracleStorageMonthsToCap: number | null;
+    gcpStorageCapGb: number | null;
+    gcpStorageMonthsToCap: number | null;
     clerkMru: number;
     dailySsrCalls: number;
     avgWriteRps: number;
@@ -583,7 +583,7 @@ export function runCostSimulation(
   });
 
   const resolvedHosting = backend.hosting;
-  const isOracleFree = resolvedHosting === "oracle_free";
+  const isGcpFree = resolvedHosting === "gcp_free";
 
   const allItems: CostLineItem[] = [
     {
@@ -646,8 +646,8 @@ export function runCostSimulation(
       id: "db-hosting",
       label: "DB hosting",
       usd: backend.monthlyUsd,
-      detail: isOracleFree
-        ? `OCI Free · ARM ${ORACLE_FREE_TIER.arm.ocpus} OCPU / ${ORACLE_FREE_TIER.arm.ramGb}GB · Docker${
+      detail: isGcpFree
+        ? `GCP Free · e2-micro ${GCP_FREE_TIER.vcpus} vCPU / ${GCP_FREE_TIER.ramGb}GB · Docker${
             input.dbHosting === "auto" ? " (auto)" : ""
           }`
         : `${backend.tierName} · ₩${backend.monthlyKrw.toLocaleString("ko-KR")}/mo${
@@ -659,10 +659,10 @@ export function runCostSimulation(
       id: "db-disk",
       label: "DB 추가 볼륨",
       usd: backend.additionalVolumeUsd,
-      detail: isOracleFree
-        ? `Always Free ${ORACLE_FREE_TIER.storageGb}GB · +${dbGrowthGbPerMonth.toFixed(2)} GB/mo${
-            backend.oracleStorageMonthsToCap != null
-              ? ` · cap ~${backend.oracleStorageMonthsToCap}mo`
+      detail: isGcpFree
+        ? `Free ${GCP_FREE_TIER.storageGb}GB · +${dbGrowthGbPerMonth.toFixed(2)} GB/mo${
+            backend.gcpStorageMonthsToCap != null
+              ? ` · cap ~${backend.gcpStorageMonthsToCap}mo`
               : ""
           }`
         : backend.additionalVolumeGb > 0
@@ -702,8 +702,8 @@ export function runCostSimulation(
       resolvedDbHosting: resolvedHosting,
       dbDiskBaselineGb: effectiveBaselineGb,
       dbHostingAutoReason: backend.autoReason,
-      oracleStorageCapGb: backend.oracleStorageCapGb,
-      oracleStorageMonthsToCap: backend.oracleStorageMonthsToCap,
+      gcpStorageCapGb: backend.gcpStorageCapGb,
+      gcpStorageMonthsToCap: backend.gcpStorageMonthsToCap,
       clerkMru,
       dailySsrCalls: frontend.dailySsrCalls,
       avgWriteRps: backend.avgWriteRps,

@@ -40,7 +40,6 @@ async function main() {
 
   const testDb = postgres(TEST_DATABASE_URL);
   await testDb`CREATE EXTENSION IF NOT EXISTS vector`;
-  await testDb`CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE`;
   await testDb.end();
   console.log(`Extensions ready on: ${testDbName}`);
 }

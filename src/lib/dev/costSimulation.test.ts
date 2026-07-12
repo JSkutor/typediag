@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   DEFAULT_COST_SIMULATION,
-  ORACLE_FREE_TIER,
+  GCP_FREE_TIER,
   applyFreeTierCaps,
   estimateAvgGeneratesPerSearch,
   estimateCacheHitRate,
@@ -112,15 +112,15 @@ describe("costSimulation", () => {
     expect(result.items.find((i) => i.id === "openai")?.detail).toContain("gpt-4.1-nano");
   });
 
-  it("zeroes DB hosting costs on Oracle Always Free", () => {
+  it("zeroes DB hosting costs on GCP Always Free", () => {
     const oracle = runCostSimulation({
       ...DEFAULT_COST_SIMULATION,
-      dbHosting: "oracle_free",
+      dbHosting: "gcp_free",
       dbDiskBaselineGb: 15,
     });
-    expect(oracle.derived.dbHosting).toBe("oracle_free");
-    expect(oracle.derived.resolvedDbHosting).toBe("oracle_free");
-    expect(oracle.derived.oracleStorageCapGb).toBe(200);
+    expect(oracle.derived.dbHosting).toBe("gcp_free");
+    expect(oracle.derived.resolvedDbHosting).toBe("gcp_free");
+    expect(oracle.derived.gcpStorageCapGb).toBe(30);
     expect(oracle.items.find((i) => i.id === "db-hosting")?.usd).toBe(0);
 
     const hetzner = runCostSimulation({
@@ -132,7 +132,7 @@ describe("costSimulation", () => {
     expect(oracle.totalUsd).toBeLessThan(hetzner.totalUsd);
   });
 
-  it("auto mode stays on Oracle when within MAU/RPS/disk limits", () => {
+  it("auto mode stays on GCP when within MAU/RPS/disk limits", () => {
     const result = runCostSimulation(
       {
         ...DEFAULT_COST_SIMULATION,
@@ -142,8 +142,8 @@ describe("costSimulation", () => {
       },
       { actualDiskGb: 10 },
     );
-    expect(result.derived.resolvedDbHosting).toBe("oracle_free");
-    expect(result.derived.dbHostingAutoReason).toContain("OCI");
+    expect(result.derived.resolvedDbHosting).toBe("gcp_free");
+    expect(result.derived.dbHostingAutoReason).toContain("GCP");
     expect(result.items.find((i) => i.id === "db-hosting")?.usd).toBe(0);
   });
 
@@ -176,13 +176,13 @@ describe("costSimulation", () => {
     expect(scaled.items.find((i) => i.id === "vercel")?.usd).toBe(31.5);
   });
 
-  it("auto mode switches to Hetzner when already at OCI cap", () => {
+  it("auto mode switches to Hetzner when already at GCP cap", () => {
     const atCap = resolveDbHostingScaled({
       mau: 1_000,
       sessionsPerMonth: 10,
       pagesPerSession: 30,
       keyEventsPerPage: 40,
-      baselineGb: ORACLE_FREE_TIER.storageGb,
+      baselineGb: GCP_FREE_TIER.storageGb,
       growthGbPerMonth: 0.1,
       mode: "auto",
       hetznerMonthlyKrw: HETZNER_VPS.tiers.cx23.monthlyKrw,

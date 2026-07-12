@@ -2,7 +2,7 @@
 
 import {
   OPENAI_PRICING,
-  ORACLE_FREE_TIER,
+  GCP_FREE_TIER,
   type CostSimulationInput,
   type CostSimulationResult,
   type TopicLlmTokenEstimate,
@@ -49,7 +49,7 @@ export function CostInfraSection({
           <p className={styles.fieldHint}>
             적용:{" "}
             <strong>
-              {d.resolvedDbHosting === "oracle_free" ? "OCI Always Free" : "Hetzner VPS"}
+              {d.resolvedDbHosting === "gcp_free" ? "GCP Always Free" : "Hetzner VPS"}
             </strong>
             {d.dbHostingAutoReason ? ` — ${d.dbHostingAutoReason}` : ""}
             {d.backend.migrationAction ? ` · ${d.backend.migrationAction}` : ""}
@@ -69,23 +69,22 @@ export function CostInfraSection({
               : ""}
           </div>
         ) : null}
-        {input.dbHosting === "oracle_free" || input.dbHosting === "auto" ? (
+        {input.dbHosting === "gcp_free" || input.dbHosting === "auto" ? (
           <>
-            {input.dbHosting === "oracle_free" ? (
+            {input.dbHosting === "gcp_free" ? (
               <>
                 <p className={devStyles.helpText}>
-                  Oracle 무료 ARM VM에 Docker로 TimescaleDB self-host. compute·디스크 과금 $0 (
-                  {ORACLE_FREE_TIER.storageGb}GB·{ORACLE_FREE_TIER.outboundTbPerMonth}TB 아웃바운드
+                  GCP e2-micro 무료 티어에 Docker로 PostgreSQL self-host. compute·디스크 과금 $0 (
+                  {GCP_FREE_TIER.storageGb}GB·{GCP_FREE_TIER.outboundGbPerMonth}GB 아웃바운드
                   포함).
                 </p>
                 <ul className={styles.specList}>
                   <li>
-                    ARM {ORACLE_FREE_TIER.arm.ocpus} OCPU / {ORACLE_FREE_TIER.arm.ramGb} GB RAM
+                    e2-micro {GCP_FREE_TIER.vcpus} vCPU / {GCP_FREE_TIER.ramGb} GB RAM
                   </li>
                   <li>
-                    스토리지 {ORACLE_FREE_TIER.storageGb} GB · 아웃바운드{" "}
-                    {ORACLE_FREE_TIER.outboundTbPerMonth} TB/월 · IPv4 {ORACLE_FREE_TIER.ipv4Count}
-                    개
+                    스토리지 {GCP_FREE_TIER.storageGb} GB · 아웃바운드{" "}
+                    {GCP_FREE_TIER.outboundGbPerMonth} GB/월
                   </li>
                 </ul>
               </>
@@ -96,11 +95,11 @@ export function CostInfraSection({
               }
               value={input.dbDiskBaselineGb}
               min={1}
-              max={ORACLE_FREE_TIER.storageGb}
+              max={GCP_FREE_TIER.storageGb}
               step={0.1}
               hint={
-                d.oracleStorageMonthsToCap != null
-                  ? `기준 ${d.dbDiskBaselineGb.toFixed(1)} GB · 증분 +${d.dbGrowthGbPerMonth.toFixed(2)} GB/mo → cap 약 ${d.oracleStorageMonthsToCap}개월`
+                d.gcpStorageMonthsToCap != null
+                  ? `기준 ${d.dbDiskBaselineGb.toFixed(1)} GB · 증분 +${d.dbGrowthGbPerMonth.toFixed(2)} GB/mo → cap 약 ${d.gcpStorageMonthsToCap}개월`
                   : `기준 ${d.dbDiskBaselineGb.toFixed(1)} GB · 증분 +${d.dbGrowthGbPerMonth.toFixed(2)} GB/mo`
               }
               onChange={(dbDiskBaselineGb) => onPatch({ dbDiskBaselineGb })}

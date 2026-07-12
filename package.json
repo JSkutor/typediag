@@ -19,7 +19,7 @@
     "db:push": "drizzle-kit push",
     "db:up": "docker compose up -d",
     "db:studio": "drizzle-kit studio",
-    "db:seed": "npx tsx src/db/seed.ts",
+    "db:seed": "npx tsx --env-file=.env.local src/db/seed.ts",
     "db:test:setup": "npx tsx scripts/ensureTestDatabase.ts && DATABASE_URL=postgresql://typediag:typediag@localhost:5432/typediag_test npx drizzle-kit push --force",
     "db:cleanup-test-users": "npx tsx --env-file=.env.local scripts/cleanupTestUsers.ts",
     "db:embed": "npx tsx --env-file=.env.local scripts/embedBatch.ts"

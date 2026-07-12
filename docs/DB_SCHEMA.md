@@ -1,7 +1,7 @@
 # 타이핑 진단 서비스 DB 스키마 설계
 
 이 문서는 타이핑 진단 서비스에 사용되는 데이터베이스 구조를 설명합니다. 이 설계는 사용자 정보, 연습 세션, 개별 문장 결과를 기록하고 분석하는 데 초점을 맞춥니다.
-최신 아키텍처에서는 **TimescaleDB, Drizzle ORM, Clerk 인증**을 사용합니다. 키 입력 이벤트는 별도 테이블 대신 `pages` 테이블의 **Parallel Array 컬럼**에 패킹되어 저장됩니다.
+최신 아키텍처에서는 **PostgreSQL, Drizzle ORM, Clerk 인증**을 사용합니다. 키 입력 이벤트는 별도 테이블 대신 `pages` 테이블의 **Parallel Array 컬럼**에 패킹되어 저장됩니다.
 
 **네이밍 규칙 주의사항**: 데이터베이스 테이블 및 컬럼은 **snake_case**로 작성되며, TypeScript 코드 단의 Drizzle ORM 스키마 정의 (`src/db/schema.ts`)에서는 이를 **camelCase**로 자동 매핑합니다 (예: DB `created_at` ↔ TS `createdAt`).
 

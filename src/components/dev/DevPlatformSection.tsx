@@ -38,7 +38,7 @@ function StageBadge({
 export function DevPlatformSection({ input, result, onPatch }: DevPlatformSectionProps) {
   const { frontend, backend } = result.derived;
   const frontendMigrated = frontend.stage === "paid" && input.frontendHosting === "auto";
-  const backendMigrated = backend.hosting !== "oracle_free" && input.dbHosting === "auto";
+  const backendMigrated = backend.hosting !== "gcp_free" && input.dbHosting === "auto";
 
   return (
     <section className={styles.platformSection}>
@@ -86,20 +86,20 @@ export function DevPlatformSection({ input, result, onPatch }: DevPlatformSectio
             <div className={styles.platformStatusHead}>
               <span className={styles.platformStatusTitle}>Backend & DB</span>
               <StageBadge
-                active={backend.hosting === "oracle_free"}
+                active={backend.hosting === "gcp_free"}
                 migrated={backendMigrated}
                 label={
                   backendMigrated
                     ? "DB 이전됨"
-                    : backend.hosting === "oracle_free"
-                      ? "OCI Free"
+                    : backend.hosting === "gcp_free"
+                      ? "GCP Free"
                       : backend.tierName
                 }
               />
             </div>
             <p className={styles.platformStatusMetric}>
               쓰기 RPS {backend.avgWriteRps.toFixed(1)} (임계:{" "}
-              {backend.hosting === "oracle_free"
+              {backend.hosting === "gcp_free"
                 ? 100
                 : backend.hosting === "hetzner_cx23"
                   ? 50
@@ -124,7 +124,7 @@ export function DevPlatformSection({ input, result, onPatch }: DevPlatformSectio
                   </span>
                 </>
               ) : (
-                "$0 (OCI Free)"
+                "$0 (GCP Free)"
               )}
             </p>
             {backend.migrationAction ? (
@@ -173,10 +173,10 @@ export function DevPlatformSection({ input, result, onPatch }: DevPlatformSectio
             </button>
             <button
               type="button"
-              className={`${styles.modeButton} ${input.dbHosting === "oracle_free" ? styles.modeButtonActive : ""}`}
-              onClick={() => onPatch({ dbHosting: "oracle_free" })}
+              className={`${styles.modeButton} ${input.dbHosting === "gcp_free" ? styles.modeButtonActive : ""}`}
+              onClick={() => onPatch({ dbHosting: "gcp_free" })}
             >
-              OCI Free 고정
+              GCP Free 고정
             </button>
             <button
               type="button"

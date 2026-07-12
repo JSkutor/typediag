@@ -1,10 +1,9 @@
-/** Oracle Cloud Infrastructure Always Free — ARM VM for self-hosted TimescaleDB. */
-export const ORACLE_FREE_TIER = {
-  arm: { ocpus: 2, ramGb: 12 },
-  amd: { ocpus: 0.125, ramGb: 1, maxInstances: 2 },
-  storageGb: 200,
-  outboundTbPerMonth: 10,
-  ipv4Count: 1,
+/** Google Cloud Platform e2-micro Free Tier for self-hosted PostgreSQL. */
+export const GCP_FREE_TIER = {
+  vcpus: 2,
+  ramGb: 1,
+  storageGb: 30,
+  outboundGbPerMonth: 200,
 } as const;
 
 /** Vercel — Next.js SSR 호스팅 SSOT (요금 폭탄 시뮬레이션용). */
@@ -25,7 +24,7 @@ export const VERCEL_HOSTING = {
   estimatedGbPerSsrCall: 0.0001,
 } as const;
 
-/** Hetzner (or similar) cost-effective VPS for self-hosted TimescaleDB. */
+/** Hetzner (or similar) cost-effective VPS for self-hosted PostgreSQL. */
 export const HETZNER_VPS = {
   volumePriceUsdPerGb: 0.05, // €0.044/GB/mo 환산
   volumePriceKrwPerGb: 70, // Hetzner 볼륨 단가 (환율 변동 시 시뮬 `usdToKrw`로 USD 환산)
@@ -65,10 +64,10 @@ export const HETZNER_VPS = {
 } as const;
 
 export type FrontendHostingStage = "free" | "paid";
-export type ResolvedDbHosting = "oracle_free" | "hetzner_cx23" | "hetzner_ccx23" | "hetzner_ccx33";
+export type ResolvedDbHosting = "gcp_free" | "hetzner_cx23" | "hetzner_ccx23" | "hetzner_ccx33";
 export type DbHostingMode =
   | "auto"
-  | "oracle_free"
+  | "gcp_free"
   | "hetzner_vps"
   | "hetzner_cx23"
   | "hetzner_ccx23"
@@ -93,9 +92,9 @@ export const PLATFORM_STAGE_SPECS: PlatformStageSpec[] = [
   },
   {
     id: "backend",
-    platform: "Backend & DB (OCI Free + Docker TimescaleDB)",
-    stage1: `ARM ${ORACLE_FREE_TIER.arm.ocpus} OCPU / ${ORACLE_FREE_TIER.arm.ramGb}GB RAM · 스토리지 ${ORACLE_FREE_TIER.storageGb}GB · 아웃바운드 ${ORACLE_FREE_TIER.outboundTbPerMonth}TB/월`,
-    stage2: `적정 MAU 20,000 · 쓰기 RPS > 100 · 버퍼 캐시(RAM) 부족 · 스토리지 ${ORACLE_FREE_TIER.storageGb}GB 한도 도달`,
+    platform: "Backend & DB (OCI Free + Docker PostgreSQL)",
+    stage1: `e2-micro ${GCP_FREE_TIER.vcpus} vCPU / ${GCP_FREE_TIER.ramGb}GB RAM · 스토리지 ${GCP_FREE_TIER.storageGb}GB · 아웃바운드 ${GCP_FREE_TIER.outboundGbPerMonth}GB/월`,
+    stage2: `적정 MAU 1,000 · 쓰기 RPS > 50 · 버퍼 캐시(RAM) 부족 · 스토리지 ${GCP_FREE_TIER.storageGb}GB 한도 도달`,
     stage3: `Hetzner Cloud VPS 스케일링 (CX23 ₩7k → CCX23 ₩38k → CCX33 ₩84k) · 초과 스토리지 GB당 ₩70 추가 · pg_dump 복원`,
   },
 ];
@@ -139,8 +138,8 @@ export interface DbScalingResult {
   autoReason: string | null;
   migrationAction: string | null;
   effort: string;
-  oracleStorageCapGb: number | null;
-  oracleStorageMonthsToCap: number | null;
+  gcpStorageCapGb: number | null;
+  gcpStorageMonthsToCap: number | null;
   additionalVolumeGb: number;
   additionalVolumeUsd: number;
   additionalVolumeKrw: number;
@@ -250,7 +249,7 @@ export function resolveFrontendHosting(input: FrontendScalingInput): FrontendSca
 }
 
 export function resolveDbHostingScaled(input: DbScalingInput): DbScalingResult {
-  const cap = ORACLE_FREE_TIER.storageGb;
+  const cap = GCP_FREE_TIER.storageGb;
   const avgWriteRps = estimateAvgWriteRps(input);
   const headroom = Math.max(0, cap - input.baselineGb);
   const monthsToCap =
@@ -275,26 +274,26 @@ export function resolveDbHostingScaled(input: DbScalingInput): DbScalingResult {
     };
   };
 
-  const oracleResult = (
+  const gcpResult = (
     autoReason: string | null,
     migrationAction: string | null,
   ): DbScalingResult => ({
-    hosting: "oracle_free",
+    hosting: "gcp_free",
     avgWriteRps,
     monthlyUsd: 0,
     monthlyKrw: 0,
     autoReason,
     migrationAction,
-    effort: "0% — OCI Always Free",
-    oracleStorageCapGb: cap,
-    oracleStorageMonthsToCap: monthsToCap,
+    effort: "0% — GCP Free Tier",
+    gcpStorageCapGb: cap,
+    gcpStorageMonthsToCap: monthsToCap,
     additionalVolumeGb: 0,
     additionalVolumeUsd: 0,
     additionalVolumeKrw: 0,
-    vcpus: ORACLE_FREE_TIER.arm.ocpus,
-    ramGb: ORACLE_FREE_TIER.arm.ramGb,
+    vcpus: GCP_FREE_TIER.vcpus,
+    ramGb: GCP_FREE_TIER.ramGb,
     ssdGb: cap,
-    tierName: "Oracle ARM Free VM",
+    tierName: "GCP e2-micro Free",
   });
 
   const hetznerResult = (
@@ -311,8 +310,8 @@ export function resolveDbHostingScaled(input: DbScalingInput): DbScalingResult {
       autoReason,
       migrationAction,
       effort: "DB만 이전 — pg_dump · VPS 복원 · env DATABASE_URL",
-      oracleStorageCapGb: null,
-      oracleStorageMonthsToCap: null,
+      gcpStorageCapGb: null,
+      gcpStorageMonthsToCap: null,
       additionalVolumeGb: specs.additionalVolumeGb,
       additionalVolumeUsd: specs.additionalVolumeUsd,
       additionalVolumeKrw: specs.additionalVolumeKrw,
@@ -324,8 +323,8 @@ export function resolveDbHostingScaled(input: DbScalingInput): DbScalingResult {
   };
 
   // Manual configuration overrides
-  if (input.mode === "oracle_free") {
-    return oracleResult(null, null);
+  if (input.mode === "gcp_free") {
+    return gcpResult(null, null);
   }
   if (input.mode === "hetzner_cx23") {
     return hetznerResult("cx23", null, "Hetzner CX23 운영 중");
@@ -347,26 +346,26 @@ export function resolveDbHostingScaled(input: DbScalingInput): DbScalingResult {
   }
 
   // Auto Scaling logic
-  const overOracleMau = input.mau > 20_000;
-  const overOracleRps = avgWriteRps > 100; // ARM Free limit
-  const atOracleCap = input.baselineGb >= cap;
-  const oracleCapWithinMonth = input.growthGbPerMonth > 0 && headroom / input.growthGbPerMonth < 1;
+  const overGcpMau = input.mau > 1_000;
+  const overGcpRps = avgWriteRps > 50; // e2-micro limit
+  const atGcpCap = input.baselineGb >= cap;
+  const gcpCapWithinMonth = input.growthGbPerMonth > 0 && headroom / input.growthGbPerMonth < 1;
 
-  if (overOracleMau || overOracleRps || atOracleCap || oracleCapWithinMonth) {
+  if (overGcpMau || overGcpRps || atGcpCap || gcpCapWithinMonth) {
     const triggers: string[] = [];
-    if (overOracleMau) {
-      triggers.push(`MAU ${input.mau.toLocaleString()} > 20,000`);
+    if (overGcpMau) {
+      triggers.push(`MAU ${input.mau.toLocaleString()} > 1,000`);
     }
-    if (overOracleRps) {
-      triggers.push(`쓰기 RPS ${avgWriteRps.toFixed(1)} > 100 (ARM Free 한계)`);
+    if (overGcpRps) {
+      triggers.push(`쓰기 RPS ${avgWriteRps.toFixed(1)} > 50 (GCP Free 한계)`);
     }
-    if (atOracleCap) {
-      triggers.push(`디스크 ${input.baselineGb.toFixed(1)} GB ≥ OCI ${cap} GB`);
-    } else if (oracleCapWithinMonth) {
-      triggers.push(`월 +${input.growthGbPerMonth.toFixed(2)} GB → OCI 한도 1개월 내 초과`);
+    if (atGcpCap) {
+      triggers.push(`디스크 ${input.baselineGb.toFixed(1)} GB ≥ GCP ${cap} GB`);
+    } else if (gcpCapWithinMonth) {
+      triggers.push(`월 +${input.growthGbPerMonth.toFixed(2)} GB → GCP 한도 1개월 내 초과`);
     }
 
-    // OCI 한계 초과 시 적절한 Hetzner Tier 결정
+    // GCP 한계 초과 시 적절한 Hetzner Tier 결정
     let selectedTier: keyof typeof HETZNER_VPS.tiers = "cx23";
     if (avgWriteRps > 300 || input.mau > 100_000) {
       selectedTier = "ccx33";
@@ -381,10 +380,10 @@ export function resolveDbHostingScaled(input: DbScalingInput): DbScalingResult {
     return hetznerResult(selectedTier, triggerMsg, actionMsg);
   }
 
-  // Oracle Free state within bounds
+  // GCP Free state within bounds
   const headroomReason =
     monthsToCap != null
-      ? `OCI 여유 ${headroom.toFixed(1)} GB · cap까지 약 ${monthsToCap}개월`
-      : `OCI 여유 ${headroom.toFixed(1)} GB`;
-  return oracleResult(`${headroomReason} · 쓰기 RPS ${avgWriteRps.toFixed(1)}`, null);
+      ? `GCP 여유 ${headroom.toFixed(1)} GB · cap까지 약 ${monthsToCap}개월`
+      : `GCP 여유 ${headroom.toFixed(1)} GB`;
+  return gcpResult(`${headroomReason} · 쓰기 RPS ${avgWriteRps.toFixed(1)}`, null);
 }
