@@ -16,22 +16,32 @@ export const FeedbackButton: React.FC = () => {
   const isFeedbackMode = mode === "feedback";
 
   return (
-    <button
-      type="button"
-      className="feedback-fab"
-      aria-pressed={isFeedbackMode}
-      onClick={() => {
-        if (isFeedbackMode) {
+    <div className="fab-container">
+      <a
+        href="https://fairy.hada.io/@typediag"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fairy-fab"
+      >
+        🧚‍♀️ 커피 사주기
+      </a>
+      <button
+        type="button"
+        className="feedback-fab"
+        aria-pressed={isFeedbackMode}
+        onClick={() => {
+          if (isFeedbackMode) {
+            resetSubmitStatus();
+            void setMode("normal");
+            return;
+          }
+          setUiState("practice");
           resetSubmitStatus();
-          void setMode("normal");
-          return;
-        }
-        setUiState("practice");
-        resetSubmitStatus();
-        void setMode("feedback");
-      }}
-    >
-      {isEn ? "Feedback" : "피드백"}
-    </button>
+          void setMode("feedback");
+        }}
+      >
+        {isEn ? "Feedback" : "피드백"}
+      </button>
+    </div>
   );
 };

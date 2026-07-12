@@ -142,6 +142,27 @@ export default function LandingPage() {
             &copy; {new Date().getFullYear()} {t.footer.copyright}
           </span>
           <nav className="landing-footer-links">
+            <a
+              href="https://fairy.hada.io/@typediag"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="fairy-link"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                fontWeight: 600,
+                color: "var(--accent)",
+                background: "var(--bg-surface)",
+                padding: "2px 8px",
+                borderRadius: "var(--radius-full)",
+                border: "1px solid var(--border-subtle)",
+                textDecoration: "none",
+                marginRight: "8px",
+                transition: "all 0.2s ease"
+              }}
+            >
+              🧚‍♀️ 개발자에게 커피 사주기
+            </a>
             <Link href="/practice">{t.footer.practice}</Link>
             <Link href="/terms">{t.footer.terms}</Link>
             <Link href="/privacy">{t.footer.privacy}</Link>
