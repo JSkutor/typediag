@@ -30,7 +30,7 @@ export function normalizeReferenceFromKey(
 }
 
 /** focusKey로 들어오는 reference 전이 중 샘플 수가 가장 많은 fromKey (동률 시 알파벳 우선). */
-export function pickRichestReferenceFromKey(
+function pickRichestReferenceFromKey(
   keyEntry: PerKeyAccumulator | undefined,
 ): string | null {
   if (!keyEntry) return null;

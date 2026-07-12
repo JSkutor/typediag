@@ -5,7 +5,7 @@ import type { PageMetricsFlash } from "@/lib/practice/pageMetricsFlash";
 import type { AlignResult } from "@/utils/mvsa";
 import type { JasoMvsaCache } from "@/utils/mvsaCore";
 
-export type SessionStatus = "idle" | "running" | "done";
+type SessionStatus = "idle" | "running" | "done";
 export type TypingMode = "normal" | "topic" | "hardcore" | "feedback";
 
 export interface InputSlice {

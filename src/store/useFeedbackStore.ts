@@ -3,7 +3,7 @@ import { feedbackServiceClient } from "@/services/feedbackServiceClient";
 import { useTypingStore } from "@/store/useTypingStore";
 import { buildFeedbackNoticeState, getFeedbackSuccessText } from "@/lib/feedback/freeformTyping";
 
-export type FeedbackSubmitStatus = "idle" | "submitting" | "success" | "error";
+type FeedbackSubmitStatus = "idle" | "submitting" | "success" | "error";
 
 const FEEDBACK_SUCCESS_DISPLAY_MS = 2000;
 

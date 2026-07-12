@@ -18,7 +18,7 @@ export interface CalculateMetricsOptions {
   outlierThresholdMs?: number;
 }
 
-export function isKoreanTargetText(targetText: string, language: string): boolean {
+function isKoreanTargetText(targetText: string, language: string): boolean {
   return language === "ko" || /[가-힣]/.test(targetText);
 }
 

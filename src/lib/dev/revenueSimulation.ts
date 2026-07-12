@@ -1,7 +1,7 @@
 import { formatUsd } from "@/lib/dev/costSimulation";
 
-export type PaidConversionBasis = "mau" | "logged_in";
-export type RevenueMode = "subscription" | "manual_arpu";
+type PaidConversionBasis = "mau" | "logged_in";
+type RevenueMode = "subscription" | "manual_arpu";
 
 export interface RevenueSimulationInput {
   mau: number;
@@ -36,7 +36,7 @@ export interface RevenueSimulationInput {
   usdToKrw: number;
 }
 
-export interface RevenueLineItem {
+interface RevenueLineItem {
   id: string;
   label: string;
   usd: number;

@@ -2,7 +2,7 @@ import { z } from "zod";
 
 const RunStatusSchema = z.enum(["pending", "in_progress", "completed"]);
 
-export const KeyEventSchema = z.object({
+const KeyEventSchema = z.object({
   from_key: z.string().nullable(),
   to_key: z.string(),
   key_char: z.string(),
@@ -74,4 +74,4 @@ export const DbApiPayloadSchema = z.discriminatedUnion("action", [
   FinalizeRunSchema,
 ]);
 
-export type DbApiPayload = z.infer<typeof DbApiPayloadSchema>;
+type DbApiPayload = z.infer<typeof DbApiPayloadSchema>;

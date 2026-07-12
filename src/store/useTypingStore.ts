@@ -11,5 +11,5 @@ export const useTypingStore = create<TypingStore>((set, get, api) => ({
   ...createSessionSlice(set, get, api),
 }));
 
-export type { SessionStatus, TypingMode } from "./typingSlices/types";
-export { getKeyToken } from "./typingSlices/utils";
+export type {  TypingMode } from "./typingSlices/types";
+;

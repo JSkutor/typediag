@@ -4,7 +4,7 @@ const ALLOWED_PUNCTUATION = /^[가-힣0-9\s.,!?]+$/;
 const CONTROL_CHAR_PATTERN = /[\x00-\x08\x0B\x0C\x0E-\x1F\\]/;
 const FORBIDDEN_QUOTES_PATTERN = /['"`‘’“”]/;
 
-export const TOPIC_GENERATE_HANGUL_RANGE = constraints.topicGenerate;
+const TOPIC_GENERATE_HANGUL_RANGE = constraints.topicGenerate;
 export const BATCH_HANGUL_RANGE = constraints.batch;
 
 /** 공백·문장부호를 제외한 순수 한글 글자 수 (manage_targets.get_pure_hangul_count) */
@@ -19,7 +19,7 @@ export function cleanSentence(text: string): string {
   return text.replace(/\s+/g, " ").trim();
 }
 
-export type TargetSentenceRejectReason =
+type TargetSentenceRejectReason =
   | "empty"
   | "control_char"
   | "multiline"

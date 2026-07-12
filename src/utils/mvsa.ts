@@ -65,7 +65,7 @@ export function getCharQwertyIndices(qwerty: string): number[] {
   return indices;
 }
 
-export function runEnglishMvsa(targetText: string, qwertyBuffer: string): AlignResult[] {
+function runEnglishMvsa(targetText: string, qwertyBuffer: string): AlignResult[] {
   const result: AlignResult[] = [];
   const len = Math.max(targetText.length, qwertyBuffer.length);
   for (let i = 0; i < len; i++) {

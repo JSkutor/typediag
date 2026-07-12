@@ -1,6 +1,6 @@
 import { disassemble, convertQwertyToAlphabet } from "es-hangul";
 
-export type JasoAlignOp = "EQUAL" | "REPLACE" | "INSERT" | "OMIT" | "PENDING";
+type JasoAlignOp = "EQUAL" | "REPLACE" | "INSERT" | "OMIT" | "PENDING";
 
 export interface JasoAlignResult {
   op: JasoAlignOp;

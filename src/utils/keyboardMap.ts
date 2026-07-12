@@ -150,7 +150,7 @@ export function assembleHangulWithPunctuation(qwerty: string): string {
 /**
  * Checks if a character is a complete precomposed Hangul syllable (가-힣).
  */
-export function isCompleteHangul(char: string): boolean {
+function isCompleteHangul(char: string): boolean {
   if (char.length !== 1) return false;
   const code = char.charCodeAt(0);
   return code >= 0xac00 && code <= 0xd7a3;

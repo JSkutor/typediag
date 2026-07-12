@@ -16,7 +16,7 @@ import {
   type TopicErrorKey,
 } from "@/lib/practice/topicLoading";
 
-export { TOPIC_GUIDE_TEXT } from "@/lib/practice/topicLoading";
+;
 
 export const topicInitialState: Pick<
   InputSlice,

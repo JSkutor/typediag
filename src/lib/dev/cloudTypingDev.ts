@@ -150,7 +150,7 @@ function sampleKey(sample: OutgoingTransitionSample): string {
   return `${sample.toKey}:${sample.latencyMs}:${sample.fromHoldMs}`;
 }
 
-export function computeDevCloudTypingDiagnostics(
+function computeDevCloudTypingDiagnostics(
   analysisPool: OutgoingTransitionSample[],
   focusKey: string,
   minDenomMs: number,

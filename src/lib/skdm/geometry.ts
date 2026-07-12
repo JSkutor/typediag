@@ -8,7 +8,7 @@ import type { KeyPosition } from "./types";
 
 const DEFAULT_LAYOUT = buildLayout();
 
-export function getKeyPosition(
+function getKeyPosition(
   key: string,
   layout: Record<string, KeyPosition> = DEFAULT_LAYOUT,
 ): KeyPosition | undefined {

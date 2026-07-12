@@ -13,7 +13,7 @@ const KOREAN_TO_QWERTY_SHIFT: Record<string, string> = {
   ㅖ: "P",
 };
 
-export interface HardcoreWeights {
+interface HardcoreWeights {
   emb_matrix: number[][]; // V x 16
   w1: number[][]; // 96 x 64
   b1: number[]; // 64
@@ -25,7 +25,7 @@ export interface HardcoreWeights {
  * Computes user weak keys based on recent typing history.
  * Returns an array of character IDs representing weak keys.
  */
-export function getUserWeakKeys(): number[] {
+function getUserWeakKeys(): number[] {
   // TODO: Retrieve user keystroke logs from local storage or Zustand store
   // Calculate average latency / error rate for keys
   return []; // Return character IDs
@@ -35,7 +35,7 @@ export function getUserWeakKeys(): number[] {
  * Runs MLP forward pass on given 6-character context.
  * Returns raw logits (length V).
  */
-export function predictNextLogits(contextIds: number[], modelWeights: HardcoreWeights): number[] {
+function predictNextLogits(contextIds: number[], modelWeights: HardcoreWeights): number[] {
   const { emb_matrix, w1, b1, w2, b2 } = modelWeights;
 
   // 1. Embedding lookup & Flatten
@@ -77,7 +77,7 @@ export function predictNextLogits(contextIds: number[], modelWeights: HardcoreWe
  * Blends predicted logits with user's weak keys.
  * Unifies operations strictly into English QWERTY space.
  */
-export function blendLogits(
+function blendLogits(
   logits: number[],
   weakKeys: number[],
   blendStrength: number = 2.0,
@@ -107,7 +107,7 @@ export function blendLogits(
 /**
  * Inverts logits to prioritize rare transitions (rare = higher logit value).
  */
-export function invertLogits(logits: number[]): number[] {
+function invertLogits(logits: number[]): number[] {
   return logits.map((l) => -l);
 }
 
@@ -264,7 +264,7 @@ export function sampleNextId(
  * Decreases probabilities of double consonants, complex vowels, and punctuations.
  * Increases probability of spaces.
  */
-export function applyStaticBiases(logits: number[]): number[] {
+function applyStaticBiases(logits: number[]): number[] {
   const biased = [...logits];
 
   // 1. 대문자(쌍자음 대응)에 강한 페널티 부여

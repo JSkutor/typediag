@@ -1,7 +1,7 @@
 import { disassemble } from "es-hangul";
 
 // 자모 -> 물리적 키보드 코드 (e.code) 및 shift 여부 매핑
-export const JAMO_TO_KEY_MAP: Record<string, { code: string; shift: boolean }> = {
+const JAMO_TO_KEY_MAP: Record<string, { code: string; shift: boolean }> = {
   // 초성/종성 (자음)
   ㅂ: { code: "KeyQ", shift: false },
   ㅃ: { code: "KeyQ", shift: true },
@@ -71,7 +71,7 @@ export const JAMO_TO_KEY_MAP: Record<string, { code: string; shift: boolean }> =
   "0": { code: "Digit0", shift: false },
 };
 
-export type FuzzActionType = "NORMAL" | "INSERT" | "REPLACE" | "OMIT" | "BACKSPACE";
+type FuzzActionType = "NORMAL" | "INSERT" | "REPLACE" | "OMIT" | "BACKSPACE";
 
 export interface FuzzAction {
   type: FuzzActionType;

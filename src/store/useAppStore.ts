@@ -1,8 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type KeyboardLayout = "qwerty" | "dvorak";
-export type PracticeLanguage = "ko" | "en";
+type KeyboardLayout = "qwerty" | "dvorak";
+type PracticeLanguage = "ko" | "en";
 
 interface Settings {
   language: PracticeLanguage;

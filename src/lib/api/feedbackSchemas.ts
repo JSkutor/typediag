@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-export const FEEDBACK_MESSAGE_MIN = 1;
-export const FEEDBACK_MESSAGE_MAX = 5000;
+const FEEDBACK_MESSAGE_MIN = 1;
+const FEEDBACK_MESSAGE_MAX = 5000;
 
 export const FeedbackPostPayloadSchema = z.object({
   message: z
@@ -12,4 +12,4 @@ export const FeedbackPostPayloadSchema = z.object({
   language: z.enum(["ko", "en"]),
 });
 
-export type FeedbackPostPayload = z.infer<typeof FeedbackPostPayloadSchema>;
+type FeedbackPostPayload = z.infer<typeof FeedbackPostPayloadSchema>;

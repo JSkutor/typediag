@@ -3,7 +3,7 @@ import { calculateMetrics, calculateLatencyAfterGap } from "@/lib/practice/metri
 import type { FinishPageResult } from "@/lib/practice/pageMetricsFlash";
 import type { KeyEvent } from "@/lib/skdm";
 
-export class SessionService {
+class SessionService {
   private static instance: SessionService;
 
   private constructor() {}

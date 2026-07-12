@@ -74,7 +74,7 @@ const topicMessages = {
 } as const;
 
 /** @deprecated Use `getTopicGuideText("ko")` */
-export const TOPIC_GUIDE_TEXT = topicMessages.ko.guide;
+const TOPIC_GUIDE_TEXT = topicMessages.ko.guide;
 
 export type TopicLoadingPhase = "idle" | "loading" | "delayed";
 
@@ -108,9 +108,9 @@ export function resolveTopicError(key: TopicErrorKey, lang: TopicLang): string {
 }
 
 /** User-facing fatal overlay copy — hides internal/technical error keys. */
-export type TopicFatalOverlayKey = "busy" | "notFound" | "unavailable";
+type TopicFatalOverlayKey = "busy" | "notFound" | "unavailable";
 
-export function topicErrorToFatalOverlayKey(key: TopicErrorKey): TopicFatalOverlayKey {
+function topicErrorToFatalOverlayKey(key: TopicErrorKey): TopicFatalOverlayKey {
   if (key === "rateLimited" || key === "serverBusy") {
     return "busy";
   }

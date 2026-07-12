@@ -44,7 +44,7 @@ export function getPercentile(arr: number[], p: number): number {
  * 표준 정규 누적 분포 함수(Standard Normal Cumulative Distribution Function) 계산.
  * A&S 7.1.26 오차함수(erf) 근사식을 이용한 고정밀 근사.
  */
-export function normalCDF(z: number): number {
+function normalCDF(z: number): number {
   const p = 0.3275911;
   const a1 = 0.254829592;
   const a2 = -0.284496736;

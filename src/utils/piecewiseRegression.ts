@@ -330,10 +330,10 @@ export interface PiecewiseResult {
 const MAX_SAMPLE_DOTS = 40;
 
 /** 분절 회귀 실패 사유 (dev/디버그 UI용) */
-export type PiecewiseFailureReason = "no_bound" | "insufficient_data" | "ols_failed";
+type PiecewiseFailureReason = "no_bound" | "insufficient_data" | "ols_failed";
 
 /** fitPiecewiseFromLatencies가 함께 반환하는 내부 파이프라인 메타데이터 */
-export interface PiecewiseFitDiagnostics {
+interface PiecewiseFitDiagnostics {
   focusKey: string;
   boundRecord: SkdmFinalUpperBoundRecord;
   upperBoundMs: number;

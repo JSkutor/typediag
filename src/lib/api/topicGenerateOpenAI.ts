@@ -17,7 +17,7 @@ const TOPIC_SENTENCE_JSON_SCHEMA = {
 
 export const OPENAI_TOPIC_MODEL = "gpt-4.1-nano" as const;
 /** 20×(≤110 한글+부호) JSON — 4000 tok에서 잘림이 발생해 여유 있게 설정 */
-export const TOPIC_GENERATE_MAX_OUTPUT_TOKENS = 8192 as const;
+const TOPIC_GENERATE_MAX_OUTPUT_TOKENS = 8192 as const;
 /** Backoff between retryable failures (429/503/truncation). 4 retries after the initial attempt. */
 export const TOPIC_GENERATE_RETRY_DELAYS_MS = [2500, 5000, 8000, 12000] as const;
 
@@ -27,10 +27,10 @@ export const TOPIC_GENERATE_TRUNCATED_ERROR =
 export const TOPIC_GENERATE_PARSE_ERROR =
   "문장 생성 응답을 해석하지 못했습니다. 잠시 후 다시 시도해 주세요.";
 
-export const TOPIC_GENERATE_VALIDATION_ERROR =
+const TOPIC_GENERATE_VALIDATION_ERROR =
   "생성된 문장이 형식 요건에 맞지 않습니다. 다시 시도해 주세요.";
 
-export const TOPIC_GENERATE_EMPTY_ERROR = "부적절한 주제이거나 문장 생성에 실패했습니다.";
+const TOPIC_GENERATE_EMPTY_ERROR = "부적절한 주제이거나 문장 생성에 실패했습니다.";
 
 export function topicGenerateUserError(statusCode: number): string {
   if (statusCode === 429) {

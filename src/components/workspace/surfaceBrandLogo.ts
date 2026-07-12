@@ -16,7 +16,7 @@ const LOGO_TEXT_OPTS = {
 
 const LOGO_GAP = 0.65;
 /** Slightly above y=0 floor to avoid z-fighting with the Delaunay mesh. */
-export const LOGO_FLOOR_LIFT = 0.06;
+const LOGO_FLOOR_LIFT = 0.06;
 
 let cachedFont: Font | null = null;
 

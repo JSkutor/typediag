@@ -11,12 +11,12 @@ export type LegalDashboardIcon =
   | "clock"
   | "shield";
 
-export interface LegalSection {
+interface LegalSection {
   id: string;
   title: string;
 }
 
-export interface LegalDashboardCard {
+interface LegalDashboardCard {
   icon: LegalDashboardIcon;
   label: string;
   value: string;

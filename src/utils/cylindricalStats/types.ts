@@ -102,7 +102,7 @@ export interface HoldCorrelationResult {
 }
 
 /** outgoing transition(fromKey === focusKey) 집계 결과 */
-export interface CloudTypingKeyResult {
+interface CloudTypingKeyResult {
   key: string;
   /** reference transition hold (D) 중앙값 */
   holdMs: number;

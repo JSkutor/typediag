@@ -4,7 +4,7 @@
  */
 
 export const GUEST_ID_STORAGE_KEY = "typediag_guest_id";
-export const GUEST_TOKEN_STORAGE_KEY = "typediag_guest_token";
+const GUEST_TOKEN_STORAGE_KEY = "typediag_guest_token";
 
 export function getStoredGuestId(): string | null {
   if (typeof window === "undefined") {

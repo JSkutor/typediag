@@ -9,7 +9,7 @@ export interface RateLimitResult {
   limit: number;
 }
 
-export const TOPIC_LIMITS = {
+const TOPIC_LIMITS = {
   search: 100,
   generate: 15,
 } as const;

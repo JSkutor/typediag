@@ -6,7 +6,7 @@ export const OPENAI_PRICING = {
 } as const;
 
 /** Upstage embedding API pricing (2026). */
-export const DEFAULT_UPSTAGE_USD_PER_M = 0.1;
+const DEFAULT_UPSTAGE_USD_PER_M = 0.1;
 
 export { GCP_FREE_TIER } from "@/lib/dev/platformScaling";
 import {
@@ -21,9 +21,9 @@ import {
   type ResolvedDbHosting,
 } from "@/lib/dev/platformScaling";
 
-export type { DbHostingMode, FrontendHostingStage, ResolvedDbHosting };
+;
 
-export const DEFAULT_SENTENCES_PER_GENERATE = 20;
+const DEFAULT_SENTENCES_PER_GENERATE = 20;
 export const DEFAULT_SIMILARITY_THRESHOLD = 0.5;
 
 /** SSOT: `createTopicSlice` `topicNextTarget` — `remainingCount <= 3` */
@@ -33,7 +33,7 @@ export const TOPIC_POOL_REFILL_THRESHOLD = 3;
 const SAMPLE_OUTPUT_SENTENCE =
   "오늘 아침 창가에 앉아 따뜻한 커피를 홀짝이며 하루를 시작했을 때 문득 지난 시간들이 주마등처럼 스쳐 지나가는 기분이 들었고 그 순간 나는 작은 변화가 모여 큰 성장을 만든다는 사실을 다시금 깨닫게 되었다";
 
-export interface ScriptCounts {
+interface ScriptCounts {
   latin: number;
   hangul: number;
   other: number;
@@ -139,9 +139,9 @@ export interface CostSimulationInput {
   usdToKrw: number;
 }
 
-export type CostEconomicsBucket = "fixed" | "variable";
+type CostEconomicsBucket = "fixed" | "variable";
 
-export interface CostLineItem {
+interface CostLineItem {
   id: string;
   label: string;
   usd: number;
@@ -149,7 +149,7 @@ export interface CostLineItem {
   bucket: CostEconomicsBucket;
 }
 
-export interface DbHostingResolution {
+interface DbHostingResolution {
   hosting: ResolvedDbHosting;
   /** Effective baseline GB used (live DB size or manual input). */
   baselineGb: number;
@@ -210,7 +210,7 @@ const TOPIC_LLM_TOKEN_RATES = {
   otherCharsPerToken: 4,
 } as const;
 
-export function countByScript(text: string): ScriptCounts {
+function countByScript(text: string): ScriptCounts {
   let latin = 0;
   let hangul = 0;
   let other = 0;
@@ -222,7 +222,7 @@ export function countByScript(text: string): ScriptCounts {
   return { latin, hangul, other, total: text.length };
 }
 
-export function estimateTokensFromScript(counts: ScriptCounts): number {
+function estimateTokensFromScript(counts: ScriptCounts): number {
   return Math.ceil(
     counts.latin / TOPIC_LLM_TOKEN_RATES.latinCharsPerToken +
       counts.hangul * TOPIC_LLM_TOKEN_RATES.hangulTokensPerChar +
@@ -482,7 +482,7 @@ export function estimateKbPerPageFromDb(
   return sessionDataBytes / 1024 / pageCount;
 }
 
-export function resolveCacheMissRate(input: CostSimulationInput): {
+function resolveCacheMissRate(input: CostSimulationInput): {
   hitRate: number;
   missRate: number;
   effectiveTopicCoverage: number;
@@ -717,8 +717,8 @@ export function runCostSimulation(
 }
 
 /** Log-scale MAU slider helpers (10 … 500_000). */
-export const MAU_SLIDER_MIN = 10;
-export const MAU_SLIDER_MAX = 500_000;
+const MAU_SLIDER_MIN = 10;
+const MAU_SLIDER_MAX = 500_000;
 
 export function mauToSlider(mau: number): number {
   const clamped = Math.min(MAU_SLIDER_MAX, Math.max(MAU_SLIDER_MIN, mau));

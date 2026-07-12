@@ -9,7 +9,7 @@ export interface FeedbackRateLimitResult {
   limit: number;
 }
 
-export const FEEDBACK_DAILY_LIMIT = 10;
+const FEEDBACK_DAILY_LIMIT = 10;
 
 export async function checkFeedbackRateLimit(userId: string): Promise<FeedbackRateLimitResult> {
   const todayStart = new Date();

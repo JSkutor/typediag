@@ -1,4 +1,4 @@
-export interface CosineSearchResult {
+interface CosineSearchResult {
   id: string;
   topic: string | null;
   content: string;

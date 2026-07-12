@@ -5,7 +5,7 @@ const UuidSchema = z
   .regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, "Invalid UUID");
 
 /** 클라이언트 `KeyEvent` (camelCase) — `POST /api/session` finish body */
-export const SessionKeyEventSchema = z.object({
+const SessionKeyEventSchema = z.object({
   fromKey: z.string().max(20).nullable(),
   toKey: z.string().min(1).max(20),
   latencyMs: z.number().finite().min(0).max(600_000),
@@ -49,4 +49,4 @@ export const SessionPostPayloadSchema = z.discriminatedUnion("action", [
   SessionSyncSchema,
 ]);
 
-export type SessionPostPayload = z.infer<typeof SessionPostPayloadSchema>;
+type SessionPostPayload = z.infer<typeof SessionPostPayloadSchema>;

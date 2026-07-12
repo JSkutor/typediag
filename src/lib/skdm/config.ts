@@ -34,7 +34,7 @@ export const OUTLIER_BLEND_END_EVENTS = 1500;
 export const OUTLIER_IQR_MULTIPLIER = 2.5;
 
 /** Minimum observed frequency for a pair (kept at 1 = keep all). */
-export const MIN_FREQUENCY = 1;
+const MIN_FREQUENCY = 1;
 
 /** Exponent applied to frequency when used as a weight: weight = freq ** POWER. */
 export const FREQUENCY_WEIGHT_POWER = 1.0;

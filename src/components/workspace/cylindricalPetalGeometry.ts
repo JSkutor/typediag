@@ -6,7 +6,7 @@ import { CYL_COLORS, toCylindricalCartesian } from "./geometryUtils";
 const SPLINE_STEPS = 10;
 
 /** Latency → vertex color: bright accent cyan (fast) → main cyan (slow). Origin stays pink via CYL_COLORS.originNode. */
-export function latencyVertexColor(z: number): THREE.Color {
+function latencyVertexColor(z: number): THREE.Color {
   const t = Math.min(1, Math.max(0, (z - 100) / 700));
   const fast = new THREE.Color(0x6dd4f0);
   const slow = new THREE.Color(0x4dc6e8);

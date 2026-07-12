@@ -6,14 +6,14 @@
 // ---------------------------------------------------------
 
 // 1) 자음: 쌍자음
-export const CONSONANTS_DOUBLE = ["ㄲ", "ㄸ", "ㅃ", "ㅆ", "ㅉ"];
-export const CONSONANTS_NO_JONGSEONG = ["ㅃ", "ㅉ", "ㄸ"];
+const CONSONANTS_DOUBLE = ["ㄲ", "ㄸ", "ㅃ", "ㅆ", "ㅉ"];
+const CONSONANTS_NO_JONGSEONG = ["ㅃ", "ㅉ", "ㄸ"];
 
 // QWEROP 키에 해당하는 자모 (Shift + q, w, e, r, o, p)
-export const QWEROP_JAMO = ["ㅃ", "ㅉ", "ㄸ", "ㄲ", "ㅒ", "ㅖ"];
+const QWEROP_JAMO = ["ㅃ", "ㅉ", "ㄸ", "ㄲ", "ㅒ", "ㅖ"];
 
 // 2) 자음: 겹받침 (논리적 개념, QWERTY 단일 키로는 존재하지 않음)
-export const CONSONANTS_COMPOUND = [
+const CONSONANTS_COMPOUND = [
   "ㄳ",
   "ㄵ",
   "ㄶ",
@@ -28,7 +28,7 @@ export const CONSONANTS_COMPOUND = [
 ];
 
 // 3) 자음: 그 외 자음 (단일 자음)
-export const CONSONANTS_SINGLE = [
+const CONSONANTS_SINGLE = [
   "ㄱ",
   "ㄴ",
   "ㄷ",
@@ -46,10 +46,10 @@ export const CONSONANTS_SINGLE = [
 ];
 
 // 4) 모음: 복모음 (논리적 개념, QWERTY 단일 키로는 존재하지 않음)
-export const VOWELS_COMPOUND = ["ㅘ", "ㅙ", "ㅚ", "ㅝ", "ㅞ", "ㅟ", "ㅢ"];
+const VOWELS_COMPOUND = ["ㅘ", "ㅙ", "ㅚ", "ㅝ", "ㅞ", "ㅟ", "ㅢ"];
 
 // 5) 모음: 그 외 모음 (단일 모음 및 단일 키로 입력되는 ㅒ, ㅖ)
-export const VOWELS_SINGLE = [
+const VOWELS_SINGLE = [
   "ㅏ",
   "ㅐ",
   "ㅑ",
@@ -69,7 +69,7 @@ export const VOWELS_SINGLE = [
 // ---------------------------------------------------------
 // 2. QWERTY -> Jamo 매핑
 // ---------------------------------------------------------
-export const QWERTY_TO_JAMO: Record<string, string> = {
+const QWERTY_TO_JAMO: Record<string, string> = {
   q: "ㅂ",
   w: "ㅈ",
   e: "ㄷ",
@@ -112,13 +112,13 @@ export const QWERTY_TO_JAMO: Record<string, string> = {
   ㅖ: "ㅖ",
 };
 
-export const COMPLEX_VOWEL_PAIRS: Record<string, string[]> = {
+const COMPLEX_VOWEL_PAIRS: Record<string, string[]> = {
   ㅗ: ["ㅏ", "ㅐ", "ㅣ"],
   ㅜ: ["ㅓ", "ㅔ", "ㅣ"],
   ㅡ: ["ㅣ"],
 };
 
-export const COMPOUND_CONSONANT_PAIRS: Record<string, string[]> = {
+const COMPOUND_CONSONANT_PAIRS: Record<string, string[]> = {
   ㄱ: ["ㅅ"],
   ㄴ: ["ㅈ", "ㅎ"],
   ㄹ: ["ㄱ", "ㅁ", "ㅂ", "ㅅ", "ㅌ", "ㅍ", "ㅎ"],
@@ -139,7 +139,7 @@ for (const [qwerty, jamo] of Object.entries(QWERTY_TO_JAMO)) {
   }
 }
 
-export function jamoToQwertyKey(jamo: string): string | null {
+function jamoToQwertyKey(jamo: string): string | null {
   return JAMO_TO_QWERTY_KEY[jamo] ?? null;
 }
 
@@ -152,7 +152,7 @@ export function charToLayoutKey(char: string | null | undefined): string | null 
   return jamoToQwertyKey(c);
 }
 
-export function isConsonant(jamo: string): boolean {
+function isConsonant(jamo: string): boolean {
   return CONSONANTS_SINGLE.includes(jamo) || CONSONANTS_DOUBLE.includes(jamo);
 }
 

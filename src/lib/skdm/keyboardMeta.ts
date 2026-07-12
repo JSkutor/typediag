@@ -69,17 +69,17 @@ export function getHand(key: string): Hand | null {
 }
 
 /** Convenience lookup: get finger for a key (lowercase). Returns null for non-alpha. */
-export function getFinger(key: string): Finger | null {
+function getFinger(key: string): Finger | null {
   return KEYBOARD_META[key.toLowerCase()]?.finger ?? null;
 }
 
 /** Convenience lookup: get row for a key (lowercase). Returns -1 for non-alpha. */
-export function getMetaRow(key: string): number {
+function getMetaRow(key: string): number {
   return KEYBOARD_META[key.toLowerCase()]?.row ?? -1;
 }
 
 /** Check if a key supports Shift combination in Korean layout. */
-export function isShiftCombinable(key: string): boolean {
+function isShiftCombinable(key: string): boolean {
   return KEYBOARD_META[key.toLowerCase()]?.shiftCombinable ?? false;
 }
 

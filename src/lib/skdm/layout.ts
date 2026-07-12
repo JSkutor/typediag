@@ -6,7 +6,7 @@ import { KEY_UNIT, ROW_HEIGHT_U, ROW_STAGGER_U } from "./config";
 import type { KeyPosition } from "./types";
 
 /** Analysis target rows. Row 0 = number row, 1 = qwerty, 2 = asdf, 3 = zxcv. */
-export const DEFAULT_ROWS: string[][] = [
+const DEFAULT_ROWS: string[][] = [
   "1234567890".split(""),
   "qwertyuiop".split(""),
   "asdfghjkl".split(""),
@@ -37,6 +37,6 @@ export function buildLayout(rows: string[][] = DEFAULT_ROWS): Record<string, Key
 }
 
 /** Row index of a key, or -1 if not present. */
-export function getRow(key: string, layout: Record<string, KeyPosition>): number {
+function getRow(key: string, layout: Record<string, KeyPosition>): number {
   return layout[key]?.row ?? -1;
 }

@@ -2,7 +2,7 @@ import * as THREE from "three";
 import type { KeyResult } from "@/lib/skdm";
 import { CYL_COLORS } from "./geometryUtils";
 
-export const LATENCY_POWER = 1.3;
+const LATENCY_POWER = 1.3;
 export const TARGET_ELEVATION_SCALE = 180;
 
 /** Latency → vertex color: 3-stage gradient (Slate Grey -> Ocean Cyan -> Neon Rose). Confidence dims low-sample keys. */
