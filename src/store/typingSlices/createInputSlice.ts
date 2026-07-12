@@ -32,15 +32,21 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => {
     fetchTopicTarget: topicActions.fetchTopicTarget,
     resetTopicToGuideScreen: topicActions.resetTopicToGuideScreen,
     fetchInitialNormalTarget: normalActions.fetchInitialNormalTarget,
-    targetText: "",
+    targetText:
+      "매일 마주하는 평범한 일상이 때로는 지루하게 느껴질 수 있지만, 우리가 흘리는 땀방울이 모여 결국 찬란한 미래를 완성하는 소중한 밑거름이 된다는 사실을 잊지 말고 오늘 하루도 묵묵히 최선을 다해 나아간다면 분명히 값진 성취를 맛보는 기쁨을 누리게 될 것입니다.",
     targetLanguage: "ko",
-    targetId: "",
+    targetId: "target_001",
     typedText: "",
     maxTypedTextLength: 0,
     qwertyBuffer: "",
     mvsaCache: new Map(),
 
-    alignments: [],
+    alignments: runMvsa(
+      "매일 마주하는 평범한 일상이 때로는 지루하게 느껴질 수 있지만, 우리가 흘리는 땀방울이 모여 결국 찬란한 미래를 완성하는 소중한 밑거름이 된다는 사실을 잊지 말고 오늘 하루도 묵묵히 최선을 다해 나아간다면 분명히 값진 성취를 맛보는 기쁨을 누리게 될 것입니다.",
+      "",
+      true,
+      new Map(),
+    ),
     mode: "normal",
 
     setMode: async (mode) => {
@@ -81,6 +87,9 @@ export const createInputSlice: StoreSlice<InputSlice> = (set, get) => {
     },
 
     setTargetLanguage: async (language) => {
+      if (get().targetLanguage === language && get().targetId) {
+        return;
+      }
       await saveCurrentPageIfDone(get);
       if (get().mode === "normal") {
         return normalActions.onNormalLanguageChange(language);
