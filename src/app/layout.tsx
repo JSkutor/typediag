@@ -3,9 +3,9 @@ import { Outfit, Fira_Code } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 import { ConditionalFooter } from "@/components/layout/ConditionalFooter";
-import { LangHtmlSync } from "@/components/layout/LangHtmlSync";
 import { ClerkErrorHandler } from "@/components/auth/ClerkErrorHandler";
 import { UserSyncEffect } from "@/components/auth/UserSyncEffect";
+import { getLandingCopy } from "@/lib/i18n/landing";
 
 import { clerkAppearance } from "@/lib/clerkAppearance";
 
@@ -21,10 +21,36 @@ const firaCode = Fira_Code({
   weight: ["400", "500", "600", "700"],
 });
 
+const copy = getLandingCopy("ko");
+
+const getBaseUrl = () => {
+  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
+  if (process.env.NEXT_PUBLIC_VERCEL_URL) return `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`;
+  return "http://localhost:3000";
+};
+
+const baseUrl = getBaseUrl();
+
 export const metadata: Metadata = {
-  title: "TypeDiag — 공간 타건 동역학 타자연습",
-  description:
-    "물리적 키 입력을 직접 캡처해 공간 타건 동역학(SKDM)으로 분석하는 차세대 타자연습 플랫폼.",
+  metadataBase: new URL(baseUrl),
+  title: copy.meta.title,
+  description: copy.meta.description,
+  alternates: {
+    canonical: `/`,
+  },
+  openGraph: {
+    title: copy.meta.title,
+    description: copy.meta.description,
+    url: `${baseUrl}/`,
+    siteName: "TypeDiag",
+    locale: "ko_KR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: copy.meta.title,
+    description: copy.meta.description,
+  },
 };
 
 export default function RootLayout({
@@ -33,15 +59,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider appearance={clerkAppearance} afterSignOutUrl="/ko">
+    <ClerkProvider appearance={clerkAppearance} afterSignOutUrl="/">
       <html
-        lang="en"
+        lang="ko"
         suppressHydrationWarning
         className={`${outfit.variable} ${firaCode.variable}`}
       >
         <body>
           <ClerkErrorHandler />
-          <LangHtmlSync />
           <UserSyncEffect />
           <main>{children}</main>
           <ConditionalFooter />

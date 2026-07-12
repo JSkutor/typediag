@@ -112,22 +112,6 @@ const PracticePanelToolbar: React.FC = React.memo(function PracticePanelToolbar(
             style={{ position: "relative" }}
           >
             {m}
-            {(m === "topic" || m === "hardcore") && mode === m && (
-              <span
-                style={{
-                  position: "absolute",
-                  top: "-22px",
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  fontSize: "12px",
-                  fontWeight: "bold",
-                  color: "#ff6b6b",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                Beta Free
-              </span>
-            )}
           </button>
         ))}
       </div>

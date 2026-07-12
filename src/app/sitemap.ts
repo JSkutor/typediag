@@ -1,5 +1,4 @@
 import type { MetadataRoute } from "next";
-import { getPublicLangs } from "@/lib/i18n/lang";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const getBaseUrl = () => {
@@ -9,34 +8,31 @@ export default function sitemap(): MetadataRoute.Sitemap {
   };
 
   const baseUrl = getBaseUrl();
-  const langs = getPublicLangs();
 
-  const routes = langs.flatMap((lang) => [
+  return [
     {
-      url: `${baseUrl}/${lang}`,
+      url: `${baseUrl}/`,
       lastModified: new Date(),
       changeFrequency: "monthly" as const,
       priority: 1.0,
     },
     {
-      url: `${baseUrl}/${lang}/practice`,
+      url: `${baseUrl}/practice`,
       lastModified: new Date(),
       changeFrequency: "weekly" as const,
       priority: 0.8,
     },
     {
-      url: `${baseUrl}/${lang}/terms`,
+      url: `${baseUrl}/terms`,
       lastModified: new Date(),
       changeFrequency: "yearly" as const,
       priority: 0.3,
     },
     {
-      url: `${baseUrl}/${lang}/privacy`,
+      url: `${baseUrl}/privacy`,
       lastModified: new Date(),
       changeFrequency: "yearly" as const,
       priority: 0.3,
     },
-  ]);
-
-  return routes;
+  ];
 }

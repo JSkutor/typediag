@@ -102,22 +102,6 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
       className={`cyl-drawer ${isOpen ? "cyl-drawer--open" : ""}`}
       style={{ position: "relative" }}
     >
-      {isOpen && (
-        <span
-          style={{
-            position: "absolute",
-            top: "-28px",
-            left: "68px",
-            fontSize: "14px",
-            fontWeight: "bold",
-            color: "#ff6b6b",
-            zIndex: 100,
-            whiteSpace: "nowrap",
-          }}
-        >
-          Beta Free
-        </span>
-      )}
       <button
         type="button"
         className="cyl-drawer__toggle"

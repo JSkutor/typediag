@@ -95,6 +95,14 @@ export function PrivacyContent({ lang }: PrivacyContentProps) {
                   </td>
                   <td>피드백 전송 폼 작성 시 전송</td>
                 </tr>
+                <tr>
+                  <td>
+                    <strong>자동 수집 정보 (이용 기록)</strong>
+                  </td>
+                  <td>서비스 이용 통계 분석 및 UX 개선</td>
+                  <td>접속 IP 주소, 브라우저/기기 정보, 서비스 내 행동 로그</td>
+                  <td>서비스 이용 시 애널리틱스 툴을 통해 자동 수집</td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -244,6 +252,20 @@ export function PrivacyContent({ lang }: PrivacyContentProps) {
                   <td>회원 가입 및 로그인 시 Clerk SDK를 통한 암호화 전송 (HTTPS)</td>
                   <td>회원 탈퇴 시 또는 서비스 종료 시까지</td>
                 </tr>
+                <tr>
+                  <td>
+                    <strong>PostHog, Inc.</strong>
+                  </td>
+                  <td>
+                    미국 (USA)
+                    <br />
+                    privacy@posthog.com
+                  </td>
+                  <td>서비스 이용 통계 분석 및 제품 개선 (애널리틱스)</td>
+                  <td>IP 주소, 기기/브라우저 정보, 행동(이벤트) 로그</td>
+                  <td>서비스 이용 시 PostHog SDK를 통한 암호화 전송 (HTTPS)</td>
+                  <td>회원 탈퇴 시 또는 통계 목적 달성 후 파기</td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -351,15 +373,8 @@ export function PrivacyContent({ lang }: PrivacyContentProps) {
                   <td>
                     <strong>개인정보 보호책임자</strong>
                   </td>
-                  <td>TypeDiag 운영 본부 / 김태영 책임자</td>
-                  <td>support@typediag.com</td>
-                </tr>
-                <tr>
-                  <td>
-                    <strong>개인정보보호 담당부서</strong>
-                  </td>
-                  <td>TypeDiag 데이터보호팀</td>
-                  <td>privacy@typediag.com</td>
+                  <td>kutor</td>
+                  <td>typediag.official@gmail.com</td>
                 </tr>
               </tbody>
             </table>
@@ -462,6 +477,9 @@ export function PrivacyContent({ lang }: PrivacyContentProps) {
           <li>
             <strong>User Feedbacks:</strong> User identifiers, message body, IP address.
           </li>
+          <li>
+            <strong>Automatically Collected Data:</strong> IP address, device/browser information, and usage behavior logs for service analytics and improvement.
+          </li>
         </ul>
       </section>
 
@@ -542,6 +560,9 @@ export function PrivacyContent({ lang }: PrivacyContentProps) {
             <strong>Clerk, Inc. (USA):</strong> User sign-up, authentication, and session status
             verification.
           </li>
+          <li>
+            <strong>PostHog, Inc. (USA):</strong> Product analytics, usage tracking, and service improvement based on user behavior events.
+          </li>
         </ul>
       </section>
 
@@ -604,7 +625,7 @@ export function PrivacyContent({ lang }: PrivacyContentProps) {
         <p>We designate the CPO to oversee personal data inquiries:</p>
         <ul>
           <li>
-            <strong>Chief Privacy Officer:</strong> TypeDiag Operations / CPO (support@typediag.com)
+            <strong>Chief Privacy Officer:</strong> kutor (typediag.official@gmail.com)
           </li>
           <li>
             <strong>Inquiries for remedies:</strong> Personal Information Infringement Report Center

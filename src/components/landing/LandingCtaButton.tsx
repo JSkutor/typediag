@@ -38,7 +38,7 @@ export function LandingCtaButton({
 
   return (
     <Link
-      href={`/${lang}/practice`}
+      href="/practice"
       className={className}
       id={id}
       onClick={() => posthog.capture("cta_clicked", { lang })}
