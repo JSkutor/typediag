@@ -171,9 +171,9 @@ describe("costSimulation", () => {
     // With 15000 MAU * 10 sessions * 30 pages = 4,500,000 views/mo * 1.5 = 6.75M calls.
     // Over 1M calls limit -> 5.75M overage -> $11.5
     // Bandwidth: 6.75M * 100KB = 675GB. Under 1000GB limit.
-    // Total = 20 + 11.5 = 31.5
-    expect(scaled.derived.frontend.monthlyUsd).toBe(31.5);
-    expect(scaled.items.find((i) => i.id === "vercel")?.usd).toBe(31.5);
+    // Total overage = 11.5. Credit = 20. Billed overage = 0. Total = 20.
+    expect(scaled.derived.frontend.monthlyUsd).toBe(20);
+    expect(scaled.items.find((i) => i.id === "vercel")?.usd).toBe(20);
   });
 
   it("auto mode switches to Hetzner when already at GCP cap", () => {
@@ -181,7 +181,6 @@ describe("costSimulation", () => {
       mau: 1_000,
       sessionsPerMonth: 10,
       pagesPerSession: 30,
-      keyEventsPerPage: 40,
       baselineGb: GCP_FREE_TIER.storageGb,
       growthGbPerMonth: 0.1,
       mode: "auto",

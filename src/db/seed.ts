@@ -3,7 +3,7 @@
  *
  * 1. Enables pgvector extension
  * 2. Seeds target_texts from SQLite (scripts/data/targets.db)
- * 3. Converts key_events table to TimescaleDB Hypertable
+ * 3. Pre-populates key_events data
  *
  * Usage: npx tsx src/db/seed.ts
  */

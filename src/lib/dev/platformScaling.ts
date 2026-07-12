@@ -94,7 +94,7 @@ export const PLATFORM_STAGE_SPECS: PlatformStageSpec[] = [
     id: "backend",
     platform: "Backend & DB (OCI Free + Docker PostgreSQL)",
     stage1: `e2-micro ${GCP_FREE_TIER.vcpus} vCPU / ${GCP_FREE_TIER.ramGb}GB RAM · 스토리지 ${GCP_FREE_TIER.storageGb}GB · 아웃바운드 ${GCP_FREE_TIER.outboundGbPerMonth}GB/월`,
-    stage2: `적정 MAU 1,000 · 쓰기 RPS > 50 · 버퍼 캐시(RAM) 부족 · 스토리지 ${GCP_FREE_TIER.storageGb}GB 한도 도달`,
+    stage2: `적정 MAU 5,000 · 쓰기 RPS > 50 · 스토리지 ${GCP_FREE_TIER.storageGb}GB 한도 도달`,
     stage3: `Hetzner Cloud VPS 스케일링 (CX23 ₩7k → CCX23 ₩38k → CCX33 ₩84k) · 초과 스토리지 GB당 ₩70 추가 · pg_dump 복원`,
   },
 ];
@@ -122,7 +122,6 @@ export interface DbScalingInput {
   mau: number;
   sessionsPerMonth: number;
   pagesPerSession: number;
-  keyEventsPerPage: number;
   baselineGb: number;
   growthGbPerMonth: number;
   mode: DbHostingMode;
@@ -159,18 +158,16 @@ export function estimateDailySsrCalls(input: {
   return (monthlyViews / 30) * Math.max(0, input.ssrCallsPerPageView);
 }
 
-/** Average write RPS from key_events persistence (pages × events/page). */
+/** Average write RPS from pages persistence (packed arrays = 1 row/page). */
 export function estimateAvgWriteRps(input: {
   mau: number;
   sessionsPerMonth: number;
   pagesPerSession: number;
-  keyEventsPerPage: number;
 }): number {
   const monthlyWrites =
     input.mau *
     input.sessionsPerMonth *
-    input.pagesPerSession *
-    Math.max(1, input.keyEventsPerPage);
+    input.pagesPerSession;
   return monthlyWrites / (30 * 24 * 3600);
 }
 
@@ -189,7 +186,11 @@ export function resolveFrontendHosting(input: FrontendScalingInput): FrontendSca
     const overageBandwidthGb = Math.max(0, monthlyBandwidthGb - 1000);
     const bandwidthUsd = overageBandwidthGb * VERCEL_HOSTING.bandwidthUsdPerGb;
 
-    return VERCEL_HOSTING.proBaseUsd + invocationUsd + bandwidthUsd;
+    const totalOverage = invocationUsd + bandwidthUsd;
+    // Vercel Pro는 매월 $20의 Credit이 기본 제공되어 초과분을 우선 차감합니다.
+    const billedOverage = Math.max(0, totalOverage - 20);
+
+    return VERCEL_HOSTING.proBaseUsd + billedOverage;
   };
 
   if (input.mode === "free") {
@@ -346,7 +347,7 @@ export function resolveDbHostingScaled(input: DbScalingInput): DbScalingResult {
   }
 
   // Auto Scaling logic
-  const overGcpMau = input.mau > 1_000;
+  const overGcpMau = input.mau > 5_000;
   const overGcpRps = avgWriteRps > 50; // e2-micro limit
   const atGcpCap = input.baselineGb >= cap;
   const gcpCapWithinMonth = input.growthGbPerMonth > 0 && headroom / input.growthGbPerMonth < 1;
@@ -354,7 +355,7 @@ export function resolveDbHostingScaled(input: DbScalingInput): DbScalingResult {
   if (overGcpMau || overGcpRps || atGcpCap || gcpCapWithinMonth) {
     const triggers: string[] = [];
     if (overGcpMau) {
-      triggers.push(`MAU ${input.mau.toLocaleString()} > 1,000`);
+      triggers.push(`MAU ${input.mau.toLocaleString()} > 5,000`);
     }
     if (overGcpRps) {
       triggers.push(`쓰기 RPS ${avgWriteRps.toFixed(1)} > 50 (GCP Free 한계)`);

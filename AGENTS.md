@@ -18,7 +18,7 @@
 - **상태 관리**: Zustand (Slice 패턴 활용 - `src/store/typingSlices/`)
 - **3D 시각화**: Three.js / React Three Fiber (R3F)
 - **테스트**: Vitest (단위 및 패리티 검증)
-- **DB**: PostgreSQL (TimescaleDB) + Drizzle ORM (`src/utils/db.ts`, `src/db/`)
+- **DB**: PostgreSQL + Drizzle ORM (`src/utils/db.ts`, `src/db/`)
 - **인증**: Clerk (`@clerk/nextjs`) — 로그인 사용자는 Clerk `userId`가 DB `users.id`와 동일
 - **게스트 사용자**: 비로그인 시 `src/utils/guestUser.ts`가 `localStorage`에 `guest_<uuid>`와 HMAC 토큰을 발급·유지하고, 클라이언트 API 호출 시 `X-Guest-User-Id` + `X-Guest-Token` 헤더로 전달. 서버는 `src/utils/guestAuth.ts`로 토큰을 검증하며, 최초 세션 API 응답의 `guestToken`으로 클라이언트가 토큰을 bootstrap. 로그인 머지(`/api/user/sync`)는 유효한 게스트 토큰이 있을 때만 수행. Clerk ID와 동일 경로로 `db.getOrCreateUserByClerkId()` 처리
 - **세션 저장 경로**: 클라이언트 `sessionServiceClient` → `POST /api/session` → 서버 `sessionService` → `db` (localStorage/JSON DB에 세션을 직접 쓰지 않음)
@@ -158,7 +158,7 @@
 - MVSA의 결과 병합 시 Operator Precedence 순서(`REPLACE (5) > INSERT (4) > PARTIAL (3) > EQUAL (2) > OMIT (1) > PENDING (0)`)를 임의로 수정하지 마십시오.
 - Topic Mode의 API rate limit 정책(일일 검색 100회, 생성 15회)이나 OpenAI API의 지수 백오프 재시도 딜레이 정책을 유저 동의 없이 변경하거나 우회하지 마십시오.
 - DB 마이그레이션 및 ORM 코드 작성 시 snake_case(DB)와 camelCase(TypeScript) 매핑 룰을 혼용하지 마십시오. 스키마 정의(`src/db/schema.ts`)의 camelCase 매핑 규칙을 철저히 따라야 합니다.
-- `key_events` 테이블 다룰 때, TimescaleDB Hypertable 제약인 `(id, created_at)` 복합 기본키 제약조건을 훼손하거나, `created_at` 파티셔닝 기준을 무력화하지 마십시오.
+- `key_events` 테이블 다룰 때, `(id, created_at)` 복합 기본키 제약조건을 훼손하거나, 파티셔닝 기준을 무력화하지 마십시오.
 - `next.config.ts`의 `turbopack.resolveAlias`에서 `path`를 `empty.ts`로 alias하지 마십시오. `posthog-node` 등 서버사이드 패키지가 `path.parse()`, `path.sep` 등을 실제로 사용하므로 `_path.default.parse is not a function` 에러가 발생합니다.
 - `@cloudflare/next-on-pages`는 모든 라우트가 Edge Runtime이어야 하므로, OCI 셀프호스팅 PostgreSQL처럼 TCP 직접 연결이 필요한 DB를 쓰는 이 프로젝트에는 사용 불가입니다. Cloudflare Pages 배포는 GitHub 직접 연동 + `npm run build` + `.next` 출력 디렉토리 방식을 사용하십시오.
 

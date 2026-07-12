@@ -228,13 +228,13 @@ export function DevPlatformSection({ input, result, onPatch }: DevPlatformSectio
             onChange={(ssrCallsPerPageView) => onPatch({ ssrCallsPerPageView })}
           />
           <NumberField
-            label="key_events / page"
-            value={input.keyEventsPerPage}
-            min={10}
-            max={200}
-            step={5}
-            hint={`페이지 완주 시 저장될 키 이벤트 수 (기본 40) · 평균 쓰기 RPS ${result.derived.avgWriteRps.toFixed(1)}`}
-            onChange={(keyEventsPerPage) => onPatch({ keyEventsPerPage })}
+            label="KB / page"
+            value={input.kbPerPage}
+            min={0.5}
+            max={10}
+            step={0.5}
+            hint={`페이지당 저장 KB (기본 2.5) · 평균 쓰기 RPS ${result.derived.avgWriteRps.toFixed(1)}`}
+            onChange={(kbPerPage) => onPatch({ kbPerPage })}
           />
         </div>
 

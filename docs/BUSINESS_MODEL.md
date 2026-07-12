@@ -326,18 +326,17 @@ $$
 
 | 테이블 | 내용 | 비용 성격 |
 | :--- | :--- | :--- |
-| `pages` | 문장 완주 요약 1행 | 스토리지 + 쓰기 |
-| `key_events` | 키 입력 이벤트 (Hypertable) | **대부분의 행 수·RPS** |
+| `pages` | 문장 완주 요약 + 타건 데이터(Packed Arrays) | 스토리지 + 쓰기 |
 | `runs` | 세션 메타 | 소량 |
 | `target_texts` | 연습 문장·임베딩 (코퍼스) | Topic 캐시, 배치 임베딩 |
 
 세션 데이터만 용량 추정에 사용 (코퍼스 제외):
 
 $$
-K_{page} = \frac{size(pages) + size(key\_events) + size(runs)}{pageCount \times 1024}\ \text{(KB)}
+K_{page} = \frac{size(pages) + size(runs)}{pageCount \times 1024}\ \text{(KB)}
 $$
 
-실측: `cost-stats` → `usage.kbPerPageEstimate`. 기본 계획값 **25 KB/page**.
+실측: `cost-stats` → `usage.kbPerPageEstimate`. 기본 계획값 **2.5 KB/page** (기존 25KB에서 ~90% 절감).
 
 ### 5.2. 월 스토리지 증분
 
@@ -351,13 +350,11 @@ $$
 
 ### 5.3. 평균 쓰기 RPS
 
-페이지 완주 시 `key_events`를 한 번에 bulk insert합니다.
+페이지 완주 시 `pages` (Packed Arrays 포함)를 1행 insert합니다. (이전처럼 `key_events` bulk insert 없음)
 
 $$
-RPS_{write} = \frac{M \times S \times P \times E_{key}}{30 \times 24 \times 3600}
+RPS_{write} = \frac{M \times S \times P}{30 \times 24 \times 3600}
 $$
-
-$E_{key}$: page당 key_event 수 (기본 **40**). 실측: `key_event_count / page_count`.
 
 이 값이 GCP Free 한계(**50 RPS** 계획치)를 넘으면 Hetzner 이전 검토 대상입니다. 피크는 평균보다 높을 수 있으나 본 명세는 **평균** 기준입니다.
 
@@ -373,8 +370,12 @@ Next.js App Router + API Routes (Edge/SSR).
 
 | 단계 | 조건 | 비용 |
 | :--- | :--- | :--- |
-| Free | 일 SSR ≤ 100,000 **且** MAU ≤ 10,000 | $0 |
-| Paid | 일 SSR > 100,000 **或** MAU > 10,000 | **$5/월** (플랜 업그레이드만, 코드 변경 없음) |
+| **Hobby** (Free) | 일 SSR ≤ 30,000 (월 100만 회) **且** MAU ≤ 5,000 | $0 (개인/비상업용 한정, 월 대역폭 100GB) |
+| **Pro** (Paid) | 일 SSR > 30,000 **或** MAU > 5,000 (또는 상업용) | **$20/월** (기본) + 초과 종량제 과금 |
+
+**Pro 플랜 종량제 과금 상세:**
+- 기본 제공: 함수 호출 월 100만 회, 대역폭(Fast Data Transfer) 1TB. (매월 제공되는 $20 Credit 내에서 초과분 우선 차감 가능)
+- 초과 단가: 함수 호출 100만 회당 **$2**, 대역폭 1GB당 **$0.15**.
 
 **일 SSR 추정:**
 
@@ -399,7 +400,7 @@ $V_{ssr}$: page view당 SSR/API 호출 가중 (기본 **1.5** — 라우팅·세
 
 | 조건 | 임계 |
 | :--- | :--- |
-| MAU | > 1,000 (RAM 1GB 한계로 동시 접속자 수용 제한) |
+| MAU | > 5,000 (RAM 1GB 환경에서의 PostgreSQL 동시 접속자 수용 제한) |
 | 쿼리 복잡도 | pgvector 유사도 검색 등 복잡한 쿼리 동시 발생으로 인한 OOM (Memory 부족) |
 | 평균 쓰기 RPS | > 50 |
 | DB 스토리지 | ≥ 30 GB |
@@ -597,16 +598,16 @@ $$
 
 ### 11.1. 주요 리소스 예측치
 * **월 완료 페이지 수**: $500,000 \times 10 \text{ (세션/월)} \times 30 \text{ (페이지/세션)} = 150,000,000\text{회}$
-* **월 DB 용량 증가량**: $1.5\text{억} \times 25\text{ KB} / (1024 \times 1024) \approx \mathbf{3.57\text{ GB / 월}}$ (누적 볼륨 누적 과금 대상)
-* **평균 쓰기 RPS**: 약 **2,314.8 RPS** (피크 RPS 1만~2.5만 돌파 예상)
+* **월 DB 용량 증가량**: $1.5\text{억} \times 2.5\text{ KB} / (1024 \times 1024) \approx \mathbf{0.36\text{ GB / 월}}$
+* **평균 쓰기 RPS**: 약 **57.9 RPS** (피크 RPS 250~500 돌파 예상)
 
 ### 11.2. DB 비용 산출 상세
-* **DB 호스팅 요금**: GCP Free 및 CX23/CCX23 한계를 대폭 초과하므로 **Hetzner CCX33 (Dedicated)** 티어 자동 선택 (월 ₩84,000 $\approx$ **$56.00**)
-* **DB 추가 볼륨 요금**: 3TB baseline 기준, 기본 SSD 240GB 초과 용량인 2,760GB에 대해 GB당 ₩70 과금 $\approx$ **$128.80** (₩193,200)
-* **최종 월 DB 인프라 비용**: **$184.80/mo (약 ₩277,200)**
+* **DB 호스팅 요금**: 평균 RPS 57.9로 GCP 한계(50 RPS) 초과, **Hetzner CCX23 (Dedicated)** 티어 자동 선택 (월 ₩38,000 $\approx$ **$25.33**)
+* **DB 추가 볼륨 요금**: 3TB baseline 기준, 기본 SSD 160GB 초과 용량인 2,840GB에 대해 GB당 ₩70 과금 $\approx$ **$132.53** (₩198,800)
+* **최종 월 DB 인프라 비용**: **$157.86/mo (약 ₩236,800)**
 
 > [!NOTE]
-> 단순 고정형 VPS 비용 모델을 사용할 때보다 **약 20배 이상** 비용이 현실적으로 늘어났으며, 대규모 트래픽 시 DB 디스크 증가율에 비례한 스토리지 비용의 누적 합산이 단위 경제(Unit Economics) 손익분기 분석에 올바르게 연동됩니다.
+> Parallel Arrays 도입으로 대규모 트래픽 시에도 RPS와 스토리지 증가율이 획기적으로 낮아져, 기존 CCX33 요건이었던 MAU 50만 트래픽도 CCX23 수준으로 방어할 수 있게 되었습니다.
 
 ---
 

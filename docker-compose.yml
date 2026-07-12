@@ -1,5 +1,5 @@
 services:
-  timescaledb:
+  postgres:
     image: pgvector/pgvector:pg16
     container_name: typediag-db
     ports:

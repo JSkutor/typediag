@@ -134,8 +134,6 @@ export interface CostSimulationInput {
   frontendHosting: "auto" | FrontendHostingStage;
   /** Edge/SSR invocations per page view. */
   ssrCallsPerPageView: number;
-  /** key_events writes per completed page (RPS estimate). */
-  keyEventsPerPage: number;
   kbPerPage: number;
 
   usdToKrw: number;
@@ -335,8 +333,7 @@ export const DEFAULT_COST_SIMULATION: CostSimulationInput = {
   vercelProBaseUsd: 20,
   frontendHosting: "auto",
   ssrCallsPerPageView: 1.5,
-  keyEventsPerPage: 40,
-  kbPerPage: 25,
+  kbPerPage: 2.5, // Reduced from 25 by Parallel Arrays
 
   usdToKrw: 1_500,
 };
@@ -574,7 +571,6 @@ export function runCostSimulation(
     mau: input.mau,
     sessionsPerMonth: input.sessionsPerMonth,
     pagesPerSession: input.pagesPerSession,
-    keyEventsPerPage: input.keyEventsPerPage,
     baselineGb: effectiveBaselineGb,
     growthGbPerMonth: dbGrowthGbPerMonth,
     mode: input.dbHosting,

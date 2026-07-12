@@ -64,22 +64,21 @@ describe("platformScaling", () => {
     expect(result.autoReason).toContain("SSR");
   });
 
-  it("stays on Oracle Free below MAU and RPS thresholds", () => {
+  it("stays on GCP Free below MAU and RPS thresholds", () => {
     const result = resolveDbHostingScaled({
-      mau: 10_000,
+      mau: 800,
       sessionsPerMonth: 10,
       pagesPerSession: 30,
-      keyEventsPerPage: 40,
       baselineGb: 20,
       growthGbPerMonth: 1,
       mode: "auto",
       hetznerMonthlyKrw: HETZNER_VPS.tiers.cx23.monthlyKrw,
       usdToKrw: 1_500,
     });
-    expect(result.hosting).toBe("oracle_free");
+    expect(result.hosting).toBe("gcp_free");
     expect(result.monthlyUsd).toBe(0);
     expect(result.migrationAction).toBeNull();
-    expect(result.avgWriteRps).toBeLessThan(100); // Oracle ARM free VM write limit
+    expect(result.avgWriteRps).toBeLessThan(50); // GCP Free VM write limit
   });
 
   it("migrates DB to Hetzner when MAU exceeds 50k", () => {
@@ -87,7 +86,6 @@ describe("platformScaling", () => {
       mau: 60_000,
       sessionsPerMonth: 5,
       pagesPerSession: 10,
-      keyEventsPerPage: 20,
       baselineGb: 50,
       growthGbPerMonth: 2,
       mode: "auto",
@@ -100,37 +98,34 @@ describe("platformScaling", () => {
     expect(result.autoReason).toContain("MAU");
   });
 
-  it("migrates DB to Hetzner when write RPS exceeds 200", () => {
+  it("migrates DB to Hetzner when write RPS exceeds 50", () => {
     const rps = estimateAvgWriteRps({
       mau: 30_000,
       sessionsPerMonth: 60,
       pagesPerSession: 100,
-      keyEventsPerPage: 50,
     });
-    expect(rps).toBeGreaterThan(100); // Oracle ARM free VM write limit
+    expect(rps).toBeGreaterThan(50); // GCP Free VM write limit
 
     const result = resolveDbHostingScaled({
       mau: 30_000,
       sessionsPerMonth: 60,
       pagesPerSession: 100,
-      keyEventsPerPage: 50,
       baselineGb: 80,
       growthGbPerMonth: 5,
       mode: "auto",
       hetznerMonthlyKrw: HETZNER_VPS.tiers.cx23.monthlyKrw,
       usdToKrw: 1_500,
     });
-    expect(result.hosting).toBe("hetzner_ccx33");
+    expect(result.hosting).toBe("hetzner_ccx23");
     expect(result.autoReason).toContain("RPS");
   });
 
-  it("migrates DB to Hetzner when OCI disk cap exceeded within one month", () => {
+  it("migrates DB to Hetzner when GCP disk cap exceeded within one month", () => {
     const result = resolveDbHostingScaled({
       mau: 1_000,
       sessionsPerMonth: 10,
       pagesPerSession: 30,
-      keyEventsPerPage: 40,
-      baselineGb: 199,
+      baselineGb: 29, // Close to 30GB cap
       growthGbPerMonth: 2,
       mode: "auto",
       hetznerMonthlyKrw: HETZNER_VPS.tiers.cx23.monthlyKrw,
