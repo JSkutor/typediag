@@ -49,6 +49,7 @@ __pycache__/
 
 # local
 *.local.md
+*블로그*
 
 # agent / tooling (regeneratable or IDE-local)
 /graphify-out/
