@@ -444,8 +444,13 @@
   opacity: 0.8;
 }
 
+/* position:absolute 아이템은 grid 셀 크기 계산에서 제외됨.
+   셀 너비는 muted span(배경글자)만으로 결정 → 좁은 자소 입력 시 수축 없음. */
 .text-char-overlay {
-  grid-area: 1 / 1;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
 }
 
 .text-char-omitted {

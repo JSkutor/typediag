@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { useTypingStore } from "./useTypingStore";
+import { getActiveSavePromise } from "./typingSlices/pendingPageSave";
 
 const mockFetchRandomNormalTarget = vi.fn();
 
@@ -421,6 +422,8 @@ describe("useTypingStore", () => {
 
     // Trigger save directly and wait for it to complete in DB
     await store.saveCurrentPage();
+    const savePromise = getActiveSavePromise();
+    if (savePromise) await savePromise;
 
     pages = await db.getPagesForRun(runId!);
     expect(pages).toHaveLength(1);
@@ -510,6 +513,9 @@ describe("useTypingStore", () => {
 
     // Trigger save directly and wait for it to complete in DB
     await store.saveCurrentPage();
+    const savePromise = getActiveSavePromise();
+    if (savePromise) await savePromise;
+
     const pages1 = await db.getPagesForRun(runId1);
     expect(pages1).toHaveLength(1);
 
@@ -549,6 +555,8 @@ describe("useTypingStore", () => {
 
     // Trigger save directly and wait for it to complete in DB
     await store.saveCurrentPage();
+    const savePromise = getActiveSavePromise();
+    if (savePromise) await savePromise;
 
     const finalRunId = useTypingStore.getState().currentRunId!;
     expect(finalRunId).not.toBe(runId1);

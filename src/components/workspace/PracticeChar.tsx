@@ -60,6 +60,7 @@ export const PracticeChar = React.memo(function PracticeChar({
 }: PracticeCharProps) {
   const isOmitted = alignment.op === "OMIT";
   const highlightClass = getHighlightClass(alignment);
+
   const showsTyped =
     alignment.op === "EQUAL" ||
     alignment.op === "PARTIAL" ||
@@ -80,6 +81,11 @@ export const PracticeChar = React.memo(function PracticeChar({
       {showsTyped && (
         <span
           className={`${alignment.op !== "INSERT" && !isDuplicateTarget ? "text-char-overlay" : ""} ${highlightClass}`.trim()}
+          style={
+            alignment.op !== "INSERT" && !isDuplicateTarget
+              ? { position: "absolute", inset: 0, display: "flex", alignItems: "center" }
+              : undefined
+          }
         >
           {formatPracticeChar(alignment.char, isWrapHiddenSpace)}
         </span>

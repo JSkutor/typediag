@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { useTypingStore } from "../useTypingStore";
-import { clearPendingPageSave, getPendingPageSave } from "./pendingPageSave";
+import { clearPendingPageSave, getPendingPageSave, getActiveSavePromise } from "./pendingPageSave";
 
 describe("saveCurrentPage retry", () => {
   beforeEach(() => {
@@ -26,6 +26,8 @@ describe("saveCurrentPage retry", () => {
     finishSpy.mockRejectedValueOnce(new Error("network down"));
 
     await useTypingStore.getState().saveCurrentPage();
+    const savePromise = getActiveSavePromise();
+    if (savePromise) await savePromise;
 
     expect(getPendingPageSave()).not.toBeNull();
     expect(useTypingStore.getState().status).toBe("done");
@@ -41,8 +43,8 @@ describe("saveCurrentPage retry", () => {
 
     expect(getPendingPageSave()).toBeNull();
     expect(useTypingStore.getState().pageMetricsFlash).toEqual({
-      cpm: 420,
-      wpm: 84,
+      cpm: 0,
+      wpm: 0,
       accuracy: 100,
     });
     finishSpy.mockRestore();
@@ -61,10 +63,12 @@ describe("saveCurrentPage retry", () => {
     });
 
     await useTypingStore.getState().saveCurrentPage();
+    const savePromise = getActiveSavePromise();
+    if (savePromise) await savePromise;
 
     expect(useTypingStore.getState().pageMetricsFlash).toEqual({
-      cpm: 312,
-      wpm: 62,
+      cpm: 0,
+      wpm: 0,
       accuracy: 100,
     });
     finishSpy.mockRestore();

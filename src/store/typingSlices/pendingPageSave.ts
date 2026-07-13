@@ -11,6 +11,7 @@ export interface PendingPageSave {
 }
 
 let pendingPageSave: PendingPageSave | null = null;
+let activeSavePromise: Promise<void> | null = null;
 
 export function getPendingPageSave(): PendingPageSave | null {
   return pendingPageSave;
@@ -22,4 +23,12 @@ export function setPendingPageSave(save: PendingPageSave | null): void {
 
 export function clearPendingPageSave(): void {
   pendingPageSave = null;
+}
+
+export function getActiveSavePromise(): Promise<void> | null {
+  return activeSavePromise;
+}
+
+export function setActiveSavePromise(promise: Promise<void> | null): void {
+  activeSavePromise = promise;
 }

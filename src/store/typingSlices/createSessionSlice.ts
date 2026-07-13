@@ -1,4 +1,5 @@
 import posthog from "posthog-js";
+import { calculateMetrics } from "@/lib/practice/metrics";
 import { StoreSlice, SessionSlice } from "./types";
 import { sessionServiceClient as sessionService } from "@/services/sessionServiceClient";
 import { saveCurrentPageIfDone } from "./saveIfDone";
@@ -6,6 +7,8 @@ import {
   clearPendingPageSave,
   getPendingPageSave,
   setPendingPageSave,
+  getActiveSavePromise,
+  setActiveSavePromise,
   type PendingPageSave,
 } from "./pendingPageSave";
 
@@ -41,14 +44,6 @@ async function persistPageSave(
   if (result.runId !== runId) {
     set({ currentRunId: result.runId });
   }
-
-  set({
-    pageMetricsFlash: {
-      cpm: result.cpm,
-      wpm: result.wpm,
-      accuracy: result.accuracy,
-    },
-  });
 
   posthog.capture("typing_page_completed", {
     cpm: result.cpm,
@@ -88,17 +83,35 @@ export const createSessionSlice: StoreSlice<SessionSlice> = (set, get) => ({
   },
 
   flushPendingPageSave: async () => {
+    const activePromise = getActiveSavePromise();
+    if (activePromise) {
+      try {
+        await activePromise;
+      } catch (error) {
+        // already handled where created
+      }
+    }
+
     const pending = getPendingPageSave();
     if (!pending) {
       return;
     }
 
-    try {
-      await persistPageSave(get, set, pending);
-      clearPendingPageSave();
-    } catch (error) {
-      console.error("[session] Pending page save failed:", error);
-    }
+    const savePromise = (async () => {
+      try {
+        await persistPageSave(get, set, pending);
+        clearPendingPageSave();
+      } catch (error) {
+        console.error("[session] Pending page save failed:", error);
+      }
+    })();
+    savePromise.finally(() => {
+      if (getActiveSavePromise() === savePromise) {
+        setActiveSavePromise(null);
+      }
+    });
+    setActiveSavePromise(savePromise);
+    await savePromise;
   },
 
   dismissPageMetricsFlash: () => {
@@ -132,16 +145,36 @@ export const createSessionSlice: StoreSlice<SessionSlice> = (set, get) => ({
       typedText,
     };
 
-    set({ status: "idle" });
+    const metrics = calculateMetrics(captured.events, {
+      targetText: captured.targetText,
+      language: captured.targetLanguage,
+    });
+
+    set({
+      status: "idle",
+      pageMetricsFlash: {
+        cpm: metrics.cpm,
+        wpm: metrics.wpm,
+        accuracy: metrics.accuracy,
+      },
+    });
     setPendingPageSave(captured);
 
-    try {
-      await persistPageSave(get, set, captured);
-      clearPendingPageSave();
-    } catch (error) {
-      console.error("[session] Page save failed:", error);
-      restoreDoneStateFromPending(set, captured);
-    }
+    const savePromise = (async () => {
+      try {
+        await persistPageSave(get, set, captured);
+        clearPendingPageSave();
+      } catch (error) {
+        console.error("[session] Page save failed:", error);
+        restoreDoneStateFromPending(set, captured);
+      }
+    })();
+    savePromise.finally(() => {
+      if (getActiveSavePromise() === savePromise) {
+        setActiveSavePromise(null);
+      }
+    });
+    setActiveSavePromise(savePromise);
   },
 
   reset: async () => {
