@@ -130,14 +130,16 @@ export const CylindricalDiagnosticsPanel: React.FC<CylindricalDiagnosticsPanelPr
                   {displayFocusKey ? formatKey(displayFocusKey).toUpperCase() : "-"}
                 </div>
               </div>
-              <button
-                type="button"
-                className={`cyl-diag__dev-toggle ${isDevMode ? "cyl-diag__dev-toggle--active" : ""}`}
-                onClick={() => setIsDevMode(!isDevMode)}
-              >
-                <span className="cyl-diag__dev-toggle-dot" />
-                {isDevMode ? "DEV ON" : "DEV OFF"}
-              </button>
+              {process.env.NODE_ENV === "development" && (
+                <button
+                  type="button"
+                  className={`cyl-diag__dev-toggle ${isDevMode ? "cyl-diag__dev-toggle--active" : ""}`}
+                  onClick={() => setIsDevMode(!isDevMode)}
+                >
+                  <span className="cyl-diag__dev-toggle-dot" />
+                  {isDevMode ? "DEV ON" : "DEV OFF"}
+                </button>
+              )}
             </header>
 
             {hasData ? (
