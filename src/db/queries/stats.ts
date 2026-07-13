@@ -20,13 +20,13 @@ function unpackKeyEvents(page: {
   if (!toKeys || toKeys.length === 0) return [];
 
   return toKeys.map((toKey, i) => ({
-    fromKey: page.packedFromKeys?.[i] || null,   // "" sentinel → null
+    fromKey: page.packedFromKeys?.[i] || null, // "" sentinel → null
     toKey: toKey ?? "",
     latencyMs: page.packedLatencies?.[i] ?? 0,
-    holdDurationMs: (page.packedHolds?.[i] ?? -1) === -1 ? null : page.packedHolds![i],  // -1 sentinel → null
+    holdDurationMs: (page.packedHolds?.[i] ?? -1) === -1 ? null : page.packedHolds![i], // -1 sentinel → null
     isCorrect: page.packedIsCorrects?.[i] ?? null,
-    expectedChar: page.packedExpectedChars?.[i] || null,  // "" sentinel → null
-    keyChar: page.packedKeyChars?.[i] || undefined,       // "" sentinel → undefined
+    expectedChar: page.packedExpectedChars?.[i] || null, // "" sentinel → null
+    keyChar: page.packedKeyChars?.[i] || undefined, // "" sentinel → undefined
   }));
 }
 

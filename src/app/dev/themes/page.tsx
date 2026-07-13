@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 
-
 import styles from "../dev.module.css";
 
 export default function DevThemesPage() {

@@ -2,11 +2,7 @@ import WorkspaceView from "../WorkspaceView";
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
-export default async function PracticePage({
-  searchParams,
-}: {
-  searchParams: SearchParams;
-}) {
+export default async function PracticePage({ searchParams }: { searchParams: SearchParams }) {
   const { tab } = await searchParams;
   const lang = "ko";
 

@@ -21,8 +21,6 @@ import {
   type ResolvedDbHosting,
 } from "@/lib/dev/platformScaling";
 
-;
-
 const DEFAULT_SENTENCES_PER_GENERATE = 20;
 export const DEFAULT_SIMILARITY_THRESHOLD = 0.5;
 

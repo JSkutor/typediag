@@ -54,7 +54,6 @@ export const DiagnosticsLayer: React.FC = () => {
         {diagnosticMode !== "cylindrical" && diagnosticMode !== "surface" && (
           <DashboardPanel diagnosticMode={diagnosticMode} />
         )}
-
       </ErrorBoundary3D>
     </div>
   );

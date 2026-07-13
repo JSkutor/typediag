@@ -17,12 +17,12 @@ export class SurfaceAnimationController {
   private camera: THREE.PerspectiveCamera;
   private surfaceGroup: THREE.Group;
   private dist: number;
-  
+
   constructor(camera: THREE.PerspectiveCamera, surfaceGroup: THREE.Group, dist: number) {
     this.camera = camera;
     this.surfaceGroup = surfaceGroup;
     this.dist = dist;
-    
+
     this.state = {
       elevationScale: 0,
       camX: 0,
@@ -74,7 +74,11 @@ export class SurfaceAnimationController {
     }
   }
 
-  public playActivationAnim(isLanding: boolean, onUpdate: () => void, onComplete: () => void): void {
+  public playActivationAnim(
+    isLanding: boolean,
+    onUpdate: () => void,
+    onComplete: () => void,
+  ): void {
     this.kill();
 
     this.state.elevationScale = 0;

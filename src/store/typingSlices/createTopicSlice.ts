@@ -16,8 +16,6 @@ import {
   type TopicErrorKey,
 } from "@/lib/practice/topicLoading";
 
-;
-
 export const topicInitialState: Pick<
   InputSlice,
   | "isTopicInputActive"

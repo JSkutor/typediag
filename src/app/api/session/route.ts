@@ -95,34 +95,52 @@ export async function GET(request: NextRequest) {
           { status: 400 },
         );
       }
-
-      const fsMod = await import("fs");
-      const pathMod = await import("path");
-
-      const filePath = pathMod.join(process.cwd(), "src/data/local_db.json");
-      if (!fsMod.existsSync(filePath)) {
-        return NextResponse.json({ error: "local_db.json not found on server" }, { status: 404 });
-      }
-
-      const fileContent = await fsMod.promises.readFile(filePath, "utf-8");
-      const dbData = JSON.parse(fileContent);
+      const keys = [
+        "q",
+        "w",
+        "e",
+        "r",
+        "t",
+        "y",
+        "u",
+        "i",
+        "o",
+        "p",
+        "a",
+        "s",
+        "d",
+        "f",
+        "g",
+        "h",
+        "j",
+        "k",
+        "l",
+        "z",
+        "x",
+        "c",
+        "v",
+        "b",
+        "n",
+        "m",
+      ];
 
       const events: KeyEvent[] = [];
-      if (dbData.pages) {
-        for (const page of dbData.pages) {
-          if (!page.key_events) continue;
-          for (const ev of page.key_events) {
-            events.push({
-              fromKey: ev.from_key,
-              toKey: ev.to_key,
-              latencyMs: ev.latency ?? 0,
-              keyChar: ev.key_char,
-              holdDurationMs: ev.hold_duration_ms,
-              isCorrect: ev.is_correct,
-              expectedChar: ev.expected_char,
-            });
-          }
-        }
+      // Generate 1000 mock events to populate the 3D surface
+      for (let i = 0; i < 1000; i++) {
+        const toKey = keys[Math.floor(Math.random() * keys.length)];
+        const fromKey = keys[Math.floor(Math.random() * keys.length)];
+
+        // Base latency that varies across the keyboard to create a nice 3D landscape
+        const idx = keys.indexOf(toKey);
+        const baseLatency = 100 + idx * 5;
+        const noise = (Math.random() - 0.5) * 60;
+
+        events.push({
+          fromKey,
+          toKey,
+          latencyMs: Math.max(10, baseLatency + noise),
+          isCorrect: Math.random() > 0.05, // 5% error rate
+        });
       }
 
       return NextResponse.json({ events });

@@ -164,10 +164,7 @@ export function estimateAvgWriteRps(input: {
   sessionsPerMonth: number;
   pagesPerSession: number;
 }): number {
-  const monthlyWrites =
-    input.mau *
-    input.sessionsPerMonth *
-    input.pagesPerSession;
+  const monthlyWrites = input.mau * input.sessionsPerMonth * input.pagesPerSession;
   return monthlyWrites / (30 * 24 * 3600);
 }
 

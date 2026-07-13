@@ -127,7 +127,7 @@ const PracticePanelToolbar: React.FC = React.memo(function PracticePanelToolbar(
                   border: "1px solid var(--border-strong)",
                   textTransform: "uppercase",
                   pointerEvents: "none",
-                  boxShadow: "0 2px 4px rgba(0,0,0,0.2)"
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
                 }}
               >
                 Beta

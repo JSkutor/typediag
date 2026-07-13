@@ -51,9 +51,13 @@ export function buildInactiveVectorLine(v: CylindricalVector): THREE.Line {
   return line;
 }
 
-export function buildActiveVectorGroup(vx: number, vy: number, vz: number): { targetMesh: THREE.Mesh; projectionGroup: THREE.Group; visuals: THREE.Group } {
+export function buildActiveVectorGroup(
+  vx: number,
+  vy: number,
+  vz: number,
+): { targetMesh: THREE.Mesh; projectionGroup: THREE.Group; visuals: THREE.Group } {
   const visuals = new THREE.Group();
-  
+
   // Target Mesh
   const tGeom = new THREE.SphereGeometry(0.01, 8, 8);
   const tMat = new THREE.MeshBasicMaterial({ visible: false });
@@ -146,11 +150,21 @@ export function buildActiveVectorGroup(vx: number, vy: number, vz: number): { ta
   return { targetMesh, projectionGroup, visuals };
 }
 
-export function buildPetalMeshes(vectors: CylindricalVector[], selectedFrom: string): { petalMesh: THREE.Mesh | null; petalBorder: THREE.Line | null; originMarker: THREE.Mesh | null } {
+export function buildPetalMeshes(
+  vectors: CylindricalVector[],
+  selectedFrom: string,
+): {
+  petalMesh: THREE.Mesh | null;
+  petalBorder: THREE.Line | null;
+  originMarker: THREE.Mesh | null;
+} {
   if (vectors.length < 3) return { petalMesh: null, petalBorder: null, originMarker: null };
 
   const sorted = [...vectors].sort((a, b) => a.theta - b.theta);
-  const { positions, colors, indices, borderPoints } = buildSmoothPetalGeometry(sorted, selectedFrom);
+  const { positions, colors, indices, borderPoints } = buildSmoothPetalGeometry(
+    sorted,
+    selectedFrom,
+  );
 
   const geom = new THREE.BufferGeometry();
   geom.setAttribute("position", new THREE.BufferAttribute(positions, 3));

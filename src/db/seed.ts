@@ -105,8 +105,6 @@ async function main() {
   console.log(`\n   ✅ Inserted ${insertedCount} target texts\n`);
   sqliteDb.close();
 
-
-
   // --- Step 4: Verify ---
   console.log("🔍 Verifying...");
   const [countResult] = await sql`SELECT COUNT(*)::int as count FROM target_texts`;

@@ -478,7 +478,8 @@ export function PrivacyContent({ lang }: PrivacyContentProps) {
             <strong>User Feedbacks:</strong> User identifiers, message body, IP address.
           </li>
           <li>
-            <strong>Automatically Collected Data:</strong> IP address, device/browser information, and usage behavior logs for service analytics and improvement.
+            <strong>Automatically Collected Data:</strong> IP address, device/browser information,
+            and usage behavior logs for service analytics and improvement.
           </li>
         </ul>
       </section>
@@ -561,7 +562,8 @@ export function PrivacyContent({ lang }: PrivacyContentProps) {
             verification.
           </li>
           <li>
-            <strong>PostHog, Inc. (USA):</strong> Product analytics, usage tracking, and service improvement based on user behavior events.
+            <strong>PostHog, Inc. (USA):</strong> Product analytics, usage tracking, and service
+            improvement based on user behavior events.
           </li>
         </ul>
       </section>

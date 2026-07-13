@@ -3,7 +3,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
 /**
  * BaseThreeEngine
- * 
+ *
  * Encapsulates the common Three.js boilerplate for 3D Managers:
  * Scene, Camera, Renderer, OrbitControls, Resize handling, and Render loop.
  */
@@ -21,7 +21,14 @@ export abstract class BaseThreeEngine {
   protected needsRender: boolean = true;
   protected isDisposed: boolean = false;
 
-  constructor(container: HTMLElement, width: number, height: number, fov: number = 50, near: number = 0.1, far: number = 1000) {
+  constructor(
+    container: HTMLElement,
+    width: number,
+    height: number,
+    fov: number = 50,
+    near: number = 0.1,
+    far: number = 1000,
+  ) {
     this.container = container;
     this.width = width;
     this.height = height;
@@ -71,13 +78,13 @@ export abstract class BaseThreeEngine {
     this.isDisposed = true;
     cancelAnimationFrame(this.reqId);
     this.reqId = 0;
-    
+
     if (this.camera.view) {
       this.camera.clearViewOffset();
     }
-    
+
     this.controls.dispose();
-    
+
     if (this.container.contains(this.renderer.domElement)) {
       this.container.removeChild(this.renderer.domElement);
     }

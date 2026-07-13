@@ -13,19 +13,7 @@ const CONSONANTS_NO_JONGSEONG = ["ㅃ", "ㅉ", "ㄸ"];
 const QWEROP_JAMO = ["ㅃ", "ㅉ", "ㄸ", "ㄲ", "ㅒ", "ㅖ"];
 
 // 2) 자음: 겹받침 (논리적 개념, QWERTY 단일 키로는 존재하지 않음)
-const CONSONANTS_COMPOUND = [
-  "ㄳ",
-  "ㄵ",
-  "ㄶ",
-  "ㄺ",
-  "ㄻ",
-  "ㄼ",
-  "ㄽ",
-  "ㄾ",
-  "ㄿ",
-  "ㅀ",
-  "ㅄ",
-];
+const CONSONANTS_COMPOUND = ["ㄳ", "ㄵ", "ㄶ", "ㄺ", "ㄻ", "ㄼ", "ㄽ", "ㄾ", "ㄿ", "ㅀ", "ㅄ"];
 
 // 3) 자음: 그 외 자음 (단일 자음)
 const CONSONANTS_SINGLE = [

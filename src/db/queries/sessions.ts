@@ -1,12 +1,6 @@
 import { eq, desc } from "drizzle-orm";
 import { drizzleDb } from "@/db";
-import {
-  runs,
-  pages,
-  targetTexts,
-  type Run,
-  type Page,
-} from "@/db/schema";
+import { runs, pages, targetTexts, type Run, type Page } from "@/db/schema";
 
 // --- Row type re-exports for consumers ---
 export type { Run as RunRow } from "@/db/schema";
@@ -150,13 +144,25 @@ export async function createPage(pageData: {
   // Nullable fields: fromKey → "" (empty string sentinel), expectedChar → "" (empty string sentinel).
   // holdDurationMs → -1 sentinel for "no hold recorded". isCorrect → stored as boolean[].
   const evs = pageData.key_events;
-  const packedFromKeys = evs.length > 0 ? evs.map((e) => (e.from_key ? e.from_key.substring(0, 20) : "")) : null;
-  const packedToKeys = evs.length > 0 ? evs.map((e) => (e.to_key ? e.to_key.substring(0, 20) : "")) : null;
-  const packedLatencies = evs.length > 0 ? evs.map((e) => Math.round(typeof e.latency === "number" ? e.latency : 0)) : null;
-  const packedHolds = evs.length > 0 ? evs.map((e) => (e.hold_duration_ms != null ? Math.round(e.hold_duration_ms) : -1)) : null;
+  const packedFromKeys =
+    evs.length > 0 ? evs.map((e) => (e.from_key ? e.from_key.substring(0, 20) : "")) : null;
+  const packedToKeys =
+    evs.length > 0 ? evs.map((e) => (e.to_key ? e.to_key.substring(0, 20) : "")) : null;
+  const packedLatencies =
+    evs.length > 0
+      ? evs.map((e) => Math.round(typeof e.latency === "number" ? e.latency : 0))
+      : null;
+  const packedHolds =
+    evs.length > 0
+      ? evs.map((e) => (e.hold_duration_ms != null ? Math.round(e.hold_duration_ms) : -1))
+      : null;
   const packedIsCorrects = evs.length > 0 ? evs.map((e) => e.is_correct ?? true) : null;
-  const packedExpectedChars = evs.length > 0 ? evs.map((e) => (e.expected_char ? e.expected_char.substring(0, 10) : "")) : null;
-  const packedKeyChars = evs.length > 0 ? evs.map((e) => (e.key_char ? e.key_char.substring(0, 10) : "")) : null;
+  const packedExpectedChars =
+    evs.length > 0
+      ? evs.map((e) => (e.expected_char ? e.expected_char.substring(0, 10) : ""))
+      : null;
+  const packedKeyChars =
+    evs.length > 0 ? evs.map((e) => (e.key_char ? e.key_char.substring(0, 10) : "")) : null;
 
   const baseValues = {
     runId: pageData.run_id,

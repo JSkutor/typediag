@@ -58,7 +58,7 @@ describe("useFeedbackStore", () => {
     vi.mocked(feedbackServiceClient.submitFeedback).mockResolvedValueOnce();
 
     const submitPromise = useFeedbackStore.getState().submit();
-    
+
     // While submitting
     expect(useFeedbackStore.getState().submitStatus).toBe("submitting");
     expect(useFeedbackStore.getState().submitError).toBeNull();
@@ -90,7 +90,7 @@ describe("useFeedbackStore", () => {
   it("should handle submission error", async () => {
     useTypingStore.setState({ typedText: "버그 있어요.", targetLanguage: "ko" });
     vi.mocked(feedbackServiceClient.submitFeedback).mockRejectedValueOnce(
-      new Error("Network Error")
+      new Error("Network Error"),
     );
 
     await useFeedbackStore.getState().submit();

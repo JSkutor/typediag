@@ -606,6 +606,16 @@
 
 /* --- Top Right Actions --- */
 
+.workspace-header-actions {
+  position: absolute;
+  top: 16px;
+  right: 120px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .top-right-actions {
   position: absolute;
   right: 32px;

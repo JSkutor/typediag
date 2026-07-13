@@ -272,8 +272,8 @@ export function TermsContent({ lang }: TermsContentProps) {
             </li>
             <li>
               개인정보 수집, 이용, 제공, 파기 및 가명화 처리에 관한 상세 사항은 별도로 게시된{" "}
-              <Link href="/privacy">개인정보처리방침</Link>을 준수하며, 이는 본 약관과
-              상호보완적인 효력을 가집니다.
+              <Link href="/privacy">개인정보처리방침</Link>을 준수하며, 이는 본 약관과 상호보완적인
+              효력을 가집니다.
             </li>
           </ul>
         </section>
@@ -585,9 +585,8 @@ export function TermsContent({ lang }: TermsContentProps) {
             our services running.
           </li>
           <li>
-            All data processing conforms strictly to the{" "}
-            <Link href="/privacy">Privacy Policy</Link>, which is incorporated into these
-            Terms by reference.
+            All data processing conforms strictly to the <Link href="/privacy">Privacy Policy</Link>
+            , which is incorporated into these Terms by reference.
           </li>
         </ul>
       </section>

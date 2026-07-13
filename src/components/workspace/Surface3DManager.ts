@@ -17,7 +17,7 @@ export class Surface3DManager extends BaseThreeEngine {
   private floorGroup = new THREE.Group();
   private surfaceGroup = new THREE.Group();
   private surfaceKeys: KeyResult[] = [];
-  
+
   private minZ: number = 0;
   private maxZ: number = 1;
   private zRange: number = 1;
@@ -123,8 +123,14 @@ export class Surface3DManager extends BaseThreeEngine {
 
     this.clearSurfaceGroup();
 
-    const meshes = buildSurfaceMeshes(this.surfaceKeys, this.minZ, this.maxZ, this.zRange, this.isLanding);
-    
+    const meshes = buildSurfaceMeshes(
+      this.surfaceKeys,
+      this.minZ,
+      this.maxZ,
+      this.zRange,
+      this.isLanding,
+    );
+
     this.surfaceGroup.add(meshes.surfaceMesh);
     this.surfaceGroup.add(meshes.wireframeMesh);
     if (meshes.borderLine) this.surfaceGroup.add(meshes.borderLine);
@@ -141,7 +147,7 @@ export class Surface3DManager extends BaseThreeEngine {
 
   public getLabelWorldPos(k: KeyResult, elevationScale: number): THREE.Vector3 {
     const local = getSurface3DPos(k, this.minZ, this.zRange, 1.0); // using 1.0 for TARGET_ELEVATION_SCALE relative
-    // To match original math: it was get3DPos(k, TARGET_ELEVATION_SCALE) which implies scale is TARGET_ELEVATION_SCALE. 
+    // To match original math: it was get3DPos(k, TARGET_ELEVATION_SCALE) which implies scale is TARGET_ELEVATION_SCALE.
     // We'll pass elevationScale instead of TARGET_ELEVATION_SCALE. Wait, original did:
     // local = get3DPos(k, TARGET_ELEVATION_SCALE); scaleY = elevationScale / TARGET_ELEVATION_SCALE.
     // Let's just calculate directly with elevationScale.
@@ -157,12 +163,14 @@ export class Surface3DManager extends BaseThreeEngine {
       this.controls.enabled = false;
       this.animController.playActivationAnim(
         this.isLanding,
-        () => { this.needsRender = true; },
+        () => {
+          this.needsRender = true;
+        },
         () => {
           this.controls.enabled = !this.isLanding;
           this.controls.target.set(0, 0, 0);
           this.controls.update();
-        }
+        },
       );
     } else {
       this.animController.resetToDeactivated();

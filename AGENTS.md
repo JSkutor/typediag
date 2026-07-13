@@ -154,7 +154,6 @@
 - Cylindrical Diagnostics에서 `events`를 통계마다 반복 스캔하는 패턴으로 되돌리지 마라. 용어·1패스 누산 SSOT는 `docs/DIAGNOSTICS.md` §0.
 - 스타일 수정 시 하드코딩된 색상 값을 CSS에 작성하지 마십시오. 반드시 `src/app/styles/tokens.css`에 지정된 CSS 변수(예: `--accent`, `--bg-base`)를 사용하십시오.
 - 하드코어 모드 구현 시 완료 조건을 우회하여 오타(특히 초과 입력 `INSERT`)가 남아있는데 페이지 완료가 트리거되도록 수정하지 마십시오. (완벽한 타건 입력을 강제해야 함)
-- 하드코어 모드에서 사용자 취약 키를 계산하는 `getUserWeakKeys()` 함수가 임의로 동작하도록 가짜 로직을 만들지 마십시오. 현재 스텁(`[]` 반환)으로 처리되어 있으므로 사용자의 요청 시에만 정교하게 구현해야 합니다.
 - MVSA의 결과 병합 시 Operator Precedence 순서(`REPLACE (5) > INSERT (4) > PARTIAL (3) > EQUAL (2) > OMIT (1) > PENDING (0)`)를 임의로 수정하지 마십시오.
 - Topic Mode의 API rate limit 정책(일일 검색 100회, 생성 15회)이나 OpenAI API의 지수 백오프 재시도 딜레이 정책을 유저 동의 없이 변경하거나 우회하지 마십시오.
 - DB 마이그레이션 및 ORM 코드 작성 시 snake_case(DB)와 camelCase(TypeScript) 매핑 룰을 혼용하지 마십시오. 스키마 정의(`src/db/schema.ts`)의 camelCase 매핑 규칙을 철저히 따라야 합니다.

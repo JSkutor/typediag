@@ -69,9 +69,7 @@ export async function GET() {
 
     const databaseBytes = Number(row?.database_bytes ?? 0);
     const pageCount = Number(row?.page_count ?? 0);
-    const sessionDataBytes =
-      Number(row?.pages_bytes ?? 0) +
-      Number(row?.runs_bytes ?? 0);
+    const sessionDataBytes = Number(row?.pages_bytes ?? 0) + Number(row?.runs_bytes ?? 0);
     const kbPerPageEstimate = estimateKbPerPageFromDb(sessionDataBytes, pageCount);
     const pagesLast30d = Number(row?.pages_last_30d ?? 0);
     const sessionDataGb = sessionDataBytes / (1024 * 1024 * 1024);
@@ -109,7 +107,8 @@ export async function GET() {
       glossary: {
         targetTexts:
           "제시문 1행 = 타자 연습 문장 1개. Batch API 1요청 → 1행. Topic generate 1회 → 20행.",
-        pages: "유저가 문장 1개를 끝까지 친 완주 기록 (세션 데이터). 키 이벤트는 pages 테이블 packed 배열에 내장됨.",
+        pages:
+          "유저가 문장 1개를 끝까지 친 완주 기록 (세션 데이터). 키 이벤트는 pages 테이블 packed 배열에 내장됨.",
         embedded: "embedding IS NOT NULL — 벡터 검색에 쓰이는 행 수.",
         databaseGb: "pg_database_size — OCI Free 200 GB cap 비교용.",
         kbPerPageEstimate: "pages+runs 바이트 ÷ page 수.",

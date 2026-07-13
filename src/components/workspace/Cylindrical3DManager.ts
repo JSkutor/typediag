@@ -2,7 +2,12 @@ import * as THREE from "three";
 import type { CylindricalVector } from "@/lib/skdm/cylindrical";
 import { CYL_COLORS as C, toCylindricalCartesian } from "./geometryUtils";
 import { BaseThreeEngine } from "./core/BaseThreeEngine";
-import { buildFloorGroup, buildInactiveVectorLine, buildActiveVectorGroup, buildPetalMeshes } from "./CylindricalMeshBuilder";
+import {
+  buildFloorGroup,
+  buildInactiveVectorLine,
+  buildActiveVectorGroup,
+  buildPetalMeshes,
+} from "./CylindricalMeshBuilder";
 import { buildPetalVertexColors } from "./cylindricalPetalGeometry";
 
 export interface CylindricalToggles {
@@ -48,7 +53,7 @@ export class Cylindrical3DManager extends BaseThreeEngine {
   private vectors: CylindricalVector[] = [];
   private vectorSignature = "";
   private drawerShiftPx = 0;
-  
+
   private toggles: CylindricalToggles = {
     grid: true,
     projections: false,
@@ -60,7 +65,7 @@ export class Cylindrical3DManager extends BaseThreeEngine {
 
   constructor(container: HTMLElement, width: number, height: number) {
     super(container, width, height, 50, 0.1, 1000);
-    
+
     this.scene.background = new THREE.Color(C.sceneBg);
     this.scene.fog = new THREE.FogExp2(C.sceneBg, 0.014);
 
@@ -209,7 +214,7 @@ export class Cylindrical3DManager extends BaseThreeEngine {
       const { targetMesh, projectionGroup, visuals } = buildActiveVectorGroup(vx, vy, vz);
       this.targetMesh = targetMesh;
       this.projectionGroup = projectionGroup;
-      
+
       this.visualGroup.add(visuals);
       this.visualGroup.add(this.projectionGroup);
     }
@@ -261,7 +266,9 @@ export class Cylindrical3DManager extends BaseThreeEngine {
 
       const oVec = new THREE.Vector3(0, 0, 0).project(this.camera);
       const tVec = this.targetMesh
-        ? new THREE.Vector3(this.curCartesian.x, this.curCartesian.y, this.curCartesian.z).project(this.camera)
+        ? new THREE.Vector3(this.curCartesian.x, this.curCartesian.y, this.curCartesian.z).project(
+            this.camera,
+          )
         : oVec.clone();
 
       const vectorCoords = this.vectors.map((v) => {

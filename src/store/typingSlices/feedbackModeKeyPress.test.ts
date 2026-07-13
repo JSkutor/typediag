@@ -63,7 +63,7 @@ describe("handleFeedbackModeKeyPress", () => {
       expect.objectContaining({
         qwertyBuffer: "\n",
         typedText: "\n",
-      })
+      }),
     );
   });
 
@@ -75,7 +75,7 @@ describe("handleFeedbackModeKeyPress", () => {
       expect.objectContaining({
         qwertyBuffer: " ",
         typedText: " ",
-      })
+      }),
     );
   });
 
@@ -94,7 +94,7 @@ describe("handleFeedbackModeKeyPress", () => {
       expect.objectContaining({
         qwertyBuffer: "",
         typedText: "",
-      })
+      }),
     );
   });
 
@@ -129,7 +129,7 @@ describe("handleFeedbackModeKeyPress", () => {
       expect.objectContaining({
         qwertyBuffer: "A",
         typedText: "A",
-      })
+      }),
     );
   });
 

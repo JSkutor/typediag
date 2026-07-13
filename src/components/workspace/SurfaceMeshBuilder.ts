@@ -20,7 +20,8 @@ import {
 import { buildSurfaceBrandLogo } from "./surfaceBrandLogo";
 
 const { layoutMap: KEY_LAYOUT, centerX, centerZ } = generateSurfaceLayout();
-const { innerBorderPoints: _innerBorderPoints, outerBorderPoints: _outerBorderPoints } = calculateSurfaceBorders(KEY_LAYOUT);
+const { innerBorderPoints: _innerBorderPoints, outerBorderPoints: _outerBorderPoints } =
+  calculateSurfaceBorders(KEY_LAYOUT);
 
 export interface SurfaceMeshes {
   surfaceMesh: THREE.Mesh;
@@ -30,7 +31,12 @@ export interface SurfaceMeshes {
   logo: THREE.Group;
 }
 
-export function getSurface3DPos(k: KeyResult, minZ: number, zRange: number, elevationScale: number) {
+export function getSurface3DPos(
+  k: KeyResult,
+  minZ: number,
+  zRange: number,
+  elevationScale: number,
+) {
   const keyName = k.key.toLowerCase();
   const layout = KEY_LAYOUT[keyName];
 
@@ -52,7 +58,7 @@ export function buildSurfaceMeshes(
   minZ: number,
   maxZ: number,
   zRange: number,
-  isLanding: boolean
+  isLanding: boolean,
 ): SurfaceMeshes {
   const N = surfaceKeys.length;
   const M1 = _innerBorderPoints.length;
@@ -62,7 +68,8 @@ export function buildSurfaceMeshes(
   const positions = new Float32Array(totalVertices * 3);
   const colors = new Float32Array(totalVertices * 3);
 
-  const maxConfidence = surfaceKeys.length > 0 ? Math.max(...surfaceKeys.map((k) => k.confidence), 1) : 1;
+  const maxConfidence =
+    surfaceKeys.length > 0 ? Math.max(...surfaceKeys.map((k) => k.confidence), 1) : 1;
   const boundaryColor = new THREE.Color().setHSL(227 / 360, 0.35, 0.28);
   const topPositions = new Map<string, THREE.Vector3>();
 

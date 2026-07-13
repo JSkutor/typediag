@@ -22,16 +22,6 @@ interface HardcoreWeights {
 }
 
 /**
- * Computes user weak keys based on recent typing history.
- * Returns an array of character IDs representing weak keys.
- */
-function getUserWeakKeys(): number[] {
-  // TODO: Retrieve user keystroke logs from local storage or Zustand store
-  // Calculate average latency / error rate for keys
-  return []; // Return character IDs
-}
-
-/**
  * Runs MLP forward pass on given 6-character context.
  * Returns raw logits (length V).
  */
@@ -77,32 +67,6 @@ function predictNextLogits(contextIds: number[], modelWeights: HardcoreWeights):
  * Blends predicted logits with user's weak keys.
  * Unifies operations strictly into English QWERTY space.
  */
-function blendLogits(
-  logits: number[],
-  weakKeys: number[],
-  blendStrength: number = 2.0,
-): number[] {
-  const blended = [...logits];
-  for (const keyId of weakKeys) {
-    if (keyId >= 0 && keyId < blended.length) {
-      const char = vocab[keyId];
-      if (!char) continue;
-
-      let targetId = keyId;
-
-      // 만약 약한 키가 한글 쌍자음/쌍모음이면 대응되는 QWERTY 대문자로 완전히 치환 (영어 연산 통일)
-      if (KOREAN_TO_QWERTY_SHIFT[char]) {
-        const qwertyChar = KOREAN_TO_QWERTY_SHIFT[char];
-        targetId = vocab.indexOf(qwertyChar);
-      }
-
-      if (targetId !== -1) {
-        blended[targetId] += blendStrength;
-      }
-    }
-  }
-  return blended;
-}
 
 /**
  * Inverts logits to prioritize rare transitions (rare = higher logit value).
@@ -322,7 +286,6 @@ export function generateHardcorePracticeText(length: number = 70): string {
   const generatedChars: string[] = [];
 
   const w = weights as HardcoreWeights;
-  const weakKeys = getUserWeakKeys(); // currently returns []
 
   for (let step = 0; step < length; step++) {
     // 1. Predict raw logits
@@ -334,10 +297,7 @@ export function generateHardcorePracticeText(length: number = 70): string {
     // 3. Static logit biases (penalize shifts, boost space)
     logits = applyStaticBiases(logits);
 
-    // 4. Blend user's weak keys (Hardcoded boost of 5.0 for now)
-    logits = blendLogits(logits, weakKeys, 5.0);
-
-    // 5. Rule-based Masking
+    // 4. Rule-based Masking
     logits = applyMask(generatedChars, logits, step === length - 1);
 
     // 6. Sample next character ID

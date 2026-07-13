@@ -87,7 +87,9 @@ describe("fetchRandomNormalTarget", () => {
       }),
     });
 
-    await expect(fetchRandomNormalTarget("ko")).rejects.toThrow("Invalid practice sentence response");
+    await expect(fetchRandomNormalTarget("ko")).rejects.toThrow(
+      "Invalid practice sentence response",
+    );
   });
 
   it("should handle json parsing error gracefully by throwing default error", async () => {

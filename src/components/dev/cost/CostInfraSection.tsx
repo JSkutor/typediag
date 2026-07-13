@@ -75,8 +75,7 @@ export function CostInfraSection({
               <>
                 <p className={devStyles.helpText}>
                   GCP e2-micro 무료 티어에 Docker로 PostgreSQL self-host. compute·디스크 과금 $0 (
-                  {GCP_FREE_TIER.storageGb}GB·{GCP_FREE_TIER.outboundGbPerMonth}GB 아웃바운드
-                  포함).
+                  {GCP_FREE_TIER.storageGb}GB·{GCP_FREE_TIER.outboundGbPerMonth}GB 아웃바운드 포함).
                 </p>
                 <ul className={styles.specList}>
                   <li>
