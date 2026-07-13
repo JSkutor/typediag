@@ -137,7 +137,7 @@
 
 /* 3D HUD key labels sit behind the glass drawer; clip so letters (e.g. M) don't bleed through */
 .cyl-drawer--open ~ .cyl-labels-container {
-  clip-path: inset(0 0 0 calc(48px + min(1260px, calc(100vw - 56px))));
+  clip-path: inset(0 0 0 calc(48px + min(1260px, max(calc(100vw - 450px), min(800px, calc(100vw - 56px))))));
 }
 
 .cyl-drawer__body {
@@ -152,7 +152,7 @@
 }
 
 .cyl-drawer--open .cyl-drawer__body {
-  width: min(1260px, calc(100vw - 56px));
+  width: min(1260px, max(calc(100vw - 450px), min(800px, calc(100vw - 56px))));
   opacity: 1;
   pointer-events: auto;
 }
@@ -161,7 +161,7 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
-  width: min(1260px, calc(100vw - 56px));
+  width: min(1260px, max(calc(100vw - 450px), min(800px, calc(100vw - 56px))));
   height: 100%;
   overflow: hidden;
   padding-right: 4px;

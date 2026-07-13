@@ -25,10 +25,10 @@ describe("LegalInfoMenu", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "법적 정보" }));
 
-    expect(screen.getByRole("menuitem", { name: "이용약관" })).toHaveAttribute("href", "/ko/terms");
+    expect(screen.getByRole("menuitem", { name: "이용약관" })).toHaveAttribute("href", "/terms");
     expect(screen.getByRole("menuitem", { name: "개인정보 처리방침" })).toHaveAttribute(
       "href",
-      "/ko/privacy",
+      "/privacy",
     );
   });
 

@@ -104,8 +104,8 @@ export const OnboardingGuides: React.FC = () => {
           <div className="onboarding-guide-content">
             <span className="onboarding-guide-icon">💡</span>
             <span className="onboarding-guide-text">
-              언제든지 <kbd className="onboarding-guide-kbd">Tab</kbd> 키를 누르면 3D 지연
-              진단(Diagnostics) 모드로 전환할 수 있습니다.
+              <kbd className="onboarding-guide-kbd">Tab</kbd> 키를 누르면 3D 지연 지형 모드로 전환할
+              수 있습니다.
             </span>
           </div>
           <button onClick={dismissTabGuide} className="onboarding-guide-close" aria-label="닫기">
@@ -123,8 +123,7 @@ export const OnboardingGuides: React.FC = () => {
           <div className="onboarding-guide-content">
             <span className="onboarding-guide-icon">💡</span>
             <span className="onboarding-guide-text">
-              3D 키보드 위에서 특정 키를 클릭하거나 해당 키를 누르면, 그 키의 3D 원통
-              분석(Cylindrical Diagnostics)을 볼 수 있습니다.
+              분석하고 싶은 키를 누르면, 그 키의 3D 원통좌표계 지연 모형을 볼 수 있습니다.
             </span>
           </div>
           <button
@@ -146,7 +145,7 @@ export const OnboardingGuides: React.FC = () => {
           <div className="onboarding-guide-content">
             <span className="onboarding-guide-icon">💡</span>
             <span className="onboarding-guide-text">
-              <kbd className="onboarding-guide-kbd">Space</kbd> 키를 누르거나 우측의{" "}
+              <kbd className="onboarding-guide-kbd">Space</kbd> 키를 누르거나 좌측의{" "}
               <kbd className="onboarding-guide-kbd">›</kbd> 버튼을 클릭해 상세 진단 패널을
               열어보세요.
             </span>

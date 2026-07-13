@@ -1084,6 +1084,27 @@
   color: var(--text-secondary);
 }
 
+.landing-github-link {
+  display: inline-flex;
+  align-items: center;
+  font-weight: 600;
+  color: var(--text-secondary) !important;
+  background: transparent;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-subtle);
+  text-decoration: none;
+  margin-right: 8px;
+  transition: all 0.2s ease;
+}
+
+.landing-github-link:hover {
+  color: var(--text-primary) !important;
+  border-color: var(--text-secondary);
+  background: var(--bg-surface);
+  transform: translateY(-1px);
+}
+
 /* --------------------------------------------------------------------------
    Responsive
    -------------------------------------------------------------------------- */

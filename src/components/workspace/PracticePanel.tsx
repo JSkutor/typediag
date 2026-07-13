@@ -112,6 +112,27 @@ const PracticePanelToolbar: React.FC = React.memo(function PracticePanelToolbar(
             style={{ position: "relative" }}
           >
             {m}
+            {m === "hardcore" && (
+              <span
+                style={{
+                  position: "absolute",
+                  top: "-8px",
+                  right: "-12px",
+                  fontSize: "9px",
+                  fontWeight: 600,
+                  color: "var(--accent-secondary)",
+                  background: "var(--bg-raised)",
+                  padding: "2px 4px",
+                  borderRadius: "4px",
+                  border: "1px solid var(--border-strong)",
+                  textTransform: "uppercase",
+                  pointerEvents: "none",
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.2)"
+                }}
+              >
+                Beta
+              </span>
+            )}
           </button>
         ))}
       </div>

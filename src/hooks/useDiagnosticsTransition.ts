@@ -9,9 +9,15 @@ export function useDiagnosticsTransition() {
   const setUiState = useWorkspaceStore((state) => state.setUiState);
   const setDiagnosticMode = useWorkspaceStore((state) => state.setDiagnosticMode);
   const setAnalysisData = useWorkspaceStore((state) => state.setAnalysisData);
+  const setIsAnalyzing = useWorkspaceStore((state) => state.setIsAnalyzing);
   const [isMockLoading, setIsMockLoading] = useState(false);
 
   const startDiagnosticsTransition = useCallback(async () => {
+    // 1. Immediate UI Transition
+    setUiState("diagnostics");
+    setDiagnosticMode("surface");
+    setIsAnalyzing(true);
+
     const typingStore = useTypingStore.getState();
 
     // If the current page is completed (done) but not yet saved, save it now
@@ -46,9 +52,8 @@ export function useDiagnosticsTransition() {
 
     setAnalysisData(results, triangles, eventsToAnalyze);
     posthog.capture("diagnostics_entered", { trigger: "tab", event_count: eventsToAnalyze.length });
-    setUiState("diagnostics");
-    setDiagnosticMode("surface");
-  }, [setAnalysisData, setUiState, setDiagnosticMode]);
+    setIsAnalyzing(false);
+  }, [setAnalysisData, setUiState, setDiagnosticMode, setIsAnalyzing]);
 
   const loadMockAnalysisData = useCallback(async (): Promise<boolean> => {
     setIsMockLoading(true);

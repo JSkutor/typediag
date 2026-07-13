@@ -4,6 +4,8 @@ import React from "react";
 import { useTypingStore } from "@/store/useTypingStore";
 import { useWorkspaceStore } from "@/store/useWorkspaceStore";
 import { useFeedbackStore } from "@/store/useFeedbackStore";
+import { useDiagnosticsTransition } from "@/hooks/useDiagnosticsTransition";
+import { isDevOnlyEnabled } from "@/lib/api/isDevOnlyRoute";
 
 export const FeedbackButton: React.FC = () => {
   const mode = useTypingStore((state) => state.mode);
@@ -11,12 +13,27 @@ export const FeedbackButton: React.FC = () => {
   const targetLanguage = useTypingStore((state) => state.targetLanguage);
   const setUiState = useWorkspaceStore((state) => state.setUiState);
   const resetSubmitStatus = useFeedbackStore((state) => state.resetSubmitStatus);
+  const { startMockDiagnostics, isMockLoading } = useDiagnosticsTransition();
+  const showMockControls = isDevOnlyEnabled();
 
   const isEn = targetLanguage === "en";
   const isFeedbackMode = mode === "feedback";
 
   return (
     <div className="fab-container">
+      {showMockControls && (
+        <button
+          onClick={() => {
+            if (!isMockLoading) {
+              startMockDiagnostics();
+            }
+          }}
+          className="mock-apply-btn"
+          disabled={isMockLoading}
+        >
+          {isMockLoading ? "Loading..." : "Apply Mock DB"}
+        </button>
+      )}
       <a
         href="https://fairy.hada.io/@typediag"
         target="_blank"

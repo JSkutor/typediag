@@ -8,8 +8,8 @@ export default function SignInPage() {
     <div className={styles.page}>
       <Header />
       <main className={styles.main}>
-        <SignIn routing="path" path="/sign-in" signUpUrl="/sign-up" forceRedirectUrl="/ko" />
-        <Link href="/ko" className={styles.backLink}>
+        <SignIn routing="path" path="/sign-in" signUpUrl="/sign-up" forceRedirectUrl="/" />
+        <Link href="/" className={styles.backLink}>
           연습으로 돌아가기
         </Link>
       </main>

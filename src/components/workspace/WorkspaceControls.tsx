@@ -1,33 +1,13 @@
 import React from "react";
 import posthog from "posthog-js";
 import { useWorkspaceStore } from "@/store/useWorkspaceStore";
-import { useDiagnosticsTransition } from "@/hooks/useDiagnosticsTransition";
-import { isDevOnlyEnabled } from "@/lib/api/isDevOnlyRoute";
 
 export const WorkspaceControls: React.FC = () => {
   const uiState = useWorkspaceStore((state) => state.uiState);
   const setUiState = useWorkspaceStore((state) => state.setUiState);
-  const { startMockDiagnostics, isMockLoading } = useDiagnosticsTransition();
-  const showMockControls = isDevOnlyEnabled();
 
   return (
     <>
-      {showMockControls && (
-        <div className="dev-controls-container">
-          <button
-            onClick={() => {
-              if (!isMockLoading) {
-                startMockDiagnostics();
-              }
-            }}
-            className="mock-apply-btn"
-            disabled={isMockLoading}
-          >
-            {isMockLoading ? "Loading Mock DB..." : "Apply Mock DB (local_db)"}
-          </button>
-        </div>
-      )}
-
       <div className="workspace-controls-container">
         <button
           onClick={() => {
@@ -41,7 +21,7 @@ export const WorkspaceControls: React.FC = () => {
           }}
           className="mode-toggle-btn"
         >
-          {uiState === "practice" ? "Enter Diagnostics (Tab)" : "Return to Practice (Tab)"}
+          {uiState === "practice" ? "진단 모드 진입 (Tab)" : "연습 모드 복귀 (Tab)"}
         </button>
       </div>
     </>

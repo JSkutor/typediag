@@ -8,7 +8,7 @@
 .compact {
   position: absolute;
   top: 16px;
-  right: 80px;
+  right: 120px;
   z-index: 50;
   display: flex;
   align-items: center;

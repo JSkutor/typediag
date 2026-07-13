@@ -16,15 +16,16 @@ export function Header() {
   return (
     <header className={styles.header}>
       <div className={styles.inner}>
-        <Link href={`/${lang}`} className={styles.brand} aria-label="TypeDiag home">
+        <Link href="/" className={styles.brand} aria-label="TypeDiag home">
           <span className={styles.keycap}>T</span>
           <span className={styles.wordmark}>
             Type<span className={styles.accent}>Diag</span>
           </span>
+          <span className={styles.betaBadge}>BETA</span>
         </Link>
 
         <nav className={styles.nav} aria-label="Primary">
-          <Link href={`/${lang}/practice`} className={styles.cta}>
+          <Link href="/practice" className={styles.cta}>
             {nav.getStarted}
           </Link>
           <AuthControls />

@@ -2,7 +2,7 @@ export const SUPPORTED_LANGS = ["ko", "en"] as const;
 
 export type LandingLang = (typeof SUPPORTED_LANGS)[number];
 
-/** When false, /en routes redirect to /ko and the practice language pill is hidden. Logic remains in codebase. */
+/** When false, /en routes redirect to / and the practice language pill is hidden. Logic remains in codebase. */
 export const EN_PUBLIC_ENABLED = false;
 
 export function isValidLang(lang: string): lang is LandingLang {

@@ -53,3 +53,24 @@
   background: var(--surface-raised);
   transform: translateY(-1px);
 }
+
+.githubLink {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-decoration: none;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+}
+
+.githubLink:hover {
+  color: var(--text-primary);
+  border-color: var(--text-secondary);
+  background: var(--bg-surface);
+  transform: translateY(-1px);
+}

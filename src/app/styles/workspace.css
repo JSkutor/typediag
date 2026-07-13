@@ -21,7 +21,8 @@
 .workspace-controls-container {
   position: absolute;
   top: 16px;
-  left: 32px;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 50;
   display: flex;
   gap: 12px;
@@ -548,13 +549,13 @@
 }
 
 .feedback-fab {
-  padding: 10px 18px;
+  padding: 8px 14px;
   border: 1px solid var(--border-strong);
-  border-radius: 9999px;
-  background-color: var(--bg-raised);
+  border-radius: var(--radius-sm);
+  background-color: transparent;
   color: var(--text-secondary);
-  font-size: 0.875rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
   transition:
     background-color 0.2s,
@@ -564,32 +565,29 @@
 
 .feedback-fab:hover,
 .feedback-fab[aria-pressed="true"] {
-  background-color: var(--accent-dim);
-  border-color: var(--accent);
-  color: var(--accent);
+  background-color: var(--bg-raised);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
 }
 
 .fairy-fab {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 18px;
+  padding: 8px 14px;
   border: 1px solid var(--border-strong);
-  border-radius: 9999px;
-  background-color: var(--bg-raised);
+  border-radius: var(--radius-sm);
+  background-color: transparent;
   color: var(--text-secondary);
-  font-size: 0.875rem;
+  font-size: 14px;
+  font-weight: 500;
   text-decoration: none;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .fairy-fab:hover {
-  background-color: var(--accent-dim);
-  border-color: var(--accent);
-  color: var(--accent);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+  background-color: var(--bg-raised);
+  color: var(--text-primary);
 }
 
 .feedback-inline-status {
@@ -606,13 +604,45 @@
   color: #f87171;
 }
 
-/* --- Legal info menu --- */
+/* --- Top Right Actions --- */
 
-.legal-info-menu {
+.top-right-actions {
   position: absolute;
   right: 32px;
   top: 16px;
   z-index: 60;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.github-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  background-color: var(--bg-raised);
+  color: var(--text-muted);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition:
+    background-color 0.2s,
+    color 0.2s,
+    border-color 0.2s;
+}
+
+.github-icon-btn:hover {
+  background-color: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.legal-info-menu {
+  position: relative;
 }
 
 .legal-info-btn {

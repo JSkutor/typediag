@@ -53,12 +53,12 @@ export function LegalInfoMenu({ lang }: LegalInfoMenuProps) {
       {open ? (
         <ul className="legal-info-dropdown" role="menu">
           <li role="none">
-            <Link href={`/${landingLang}/terms`} role="menuitem" onClick={() => setOpen(false)}>
+            <Link href="/terms" role="menuitem" onClick={() => setOpen(false)}>
               {footer.terms}
             </Link>
           </li>
           <li role="none">
-            <Link href={`/${landingLang}/privacy`} role="menuitem" onClick={() => setOpen(false)}>
+            <Link href="/privacy" role="menuitem" onClick={() => setOpen(false)}>
               {footer.privacy}
             </Link>
           </li>

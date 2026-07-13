@@ -23,13 +23,13 @@ describe("TermsContent", () => {
   it("links to the localized privacy page from Korean terms", () => {
     render(<TermsContent lang="ko" />);
     const link = screen.getByRole("link", { name: "개인정보처리방침" });
-    expect(link).toHaveAttribute("href", "/ko/privacy");
+    expect(link).toHaveAttribute("href", "/privacy");
   });
 
   it("links to the localized privacy page from English terms", () => {
     render(<TermsContent lang="en" />);
     const link = screen.getByRole("link", { name: "Privacy Policy" });
-    expect(link).toHaveAttribute("href", "/en/privacy");
+    expect(link).toHaveAttribute("href", "/privacy");
   });
 
   it("renders all Korean section headings", () => {
