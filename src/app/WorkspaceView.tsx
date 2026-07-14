@@ -35,6 +35,15 @@ export default function WorkspaceView({ lang }: { lang: string; tab: string }) {
     });
 
     setTargetLanguage(lang);
+
+    // Prefetch the next target so there's no delay after completing the initial mock target
+    const { mode, normalPrefetchedTarget, targetLanguage, targetId } = useTypingStore.getState();
+    if (mode === "normal" && !normalPrefetchedTarget) {
+      import("@/lib/practice/normalTargetClient")
+        .then(({ fetchRandomNormalTarget }) => fetchRandomNormalTarget(targetLanguage, targetId))
+        .then((nextTarget) => useTypingStore.setState({ normalPrefetchedTarget: nextTarget }))
+        .catch((err) => console.warn("[WorkspaceView] Failed to prefetch initial practice sentence:", err));
+    }
   }, [setTargetLanguage, lang]);
 
   useWorkspaceKeybindings({
